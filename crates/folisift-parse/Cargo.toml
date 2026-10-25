@@ -1,0 +1,19 @@
+[package]
+name = "folisift-parse"
+description = "liteparse adapter, source inventory and page rendering for Folisift"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+async-trait.workspace = true
+chrono.workspace = true
+folisift-core = { path = "../folisift-core", version = "0.1.0" }
+liteparse.workspace = true
+liteparse-pdfium.workspace = true
+regex.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true

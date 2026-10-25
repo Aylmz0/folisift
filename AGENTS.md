@@ -35,14 +35,22 @@ cargo test
 cargo clippy --all-targets --all-features -- -D warnings
 cargo run -p folisift-cli -- workspace-info
 cargo run -p folisift-cli -- guide-status pd0-pd1
+cargo run -p folisift-cli -- analyze --source sources/PD0.pdf \
+  --out guides/pd0-pd1/data/source.json --md guides/pd0-pd1/data/source.md
+cargo run -p folisift-cli -- render-pages --source sources/PD0.pdf \
+  --pages 7 --out guides/pd0-pd1/data/pages
 ```
 
-The v2 plan and Phase 0 evidence live in `docs/plans/`. Do not remove the
-Python engine until the Rust path reaches coverage/PDF parity.
+The Rust binary loads `libpdfium.so` (or the platform equivalent) from its own
+directory. Set `FOLISIFT_PDFIUM_DIR` for a development copy. Do not add runtime
+extraction. The v2 plan and Phase 0 evidence live in `docs/plans/`. Do not
+remove the Python engine until the Rust path reaches coverage/PDF parity.
 
 ## Architecture
 
 - `engine/` — reusable code, templates, CSS and SVG brand assets.
+- `crates/` — Rust v2 workspace: `folisift-core` (config/schema/path safety),
+  `folisift-parse` (liteparse/inventory/screenshots), `folisift-cli`.
 - `guides/<slug>/` — one self-contained course/material bundle:
   `guide.html`, `config.json`, `assets/`, `data/`.
 - `sources/` — personal/course PDFs; **not tracked by git**.

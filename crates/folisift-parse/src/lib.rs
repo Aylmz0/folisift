@@ -1,0 +1,18 @@
+//! liteparse adapter, source inventory and page rendering.
+//!
+//! The production parser is liteparse only. OCR is disabled; low-text pages
+//! are routed to rendered screenshots for the host agent to inspect.
+
+pub mod error;
+pub mod inventory;
+pub mod parser;
+pub mod pdfium;
+pub mod render;
+pub mod text;
+
+pub use error::{Error, Result};
+pub use inventory::{Heading, Inventory, PageRow, SourceInventory, Totals};
+pub use parser::{LiteparseParser, SourceParser, analyze_source, analyze_sources, parse_page_list};
+pub use pdfium::{PDFIUM_DIR_ENV, init as init_pdfium};
+pub use render::{PageImage, render_pages};
+pub use text::LOW_TEXT_THRESHOLD;
