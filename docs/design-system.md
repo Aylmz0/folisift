@@ -2,9 +2,8 @@
 
 The guide is a study object, not a slide deck. The visual language is warm,
 editorial and print-friendly. The design system is shared by every guide and
-lives in `engine/style.css` (Python reference) and `templates/paper.typ`
-(Rust v2). See `docs/adr/0002-paper-design-system.md` and
-`docs/adr/0007-typst-renderer.md`.
+lives in `templates/paper.typ` and `templates/fonts/`. See
+`docs/adr/0002-paper-design-system.md` and `docs/adr/0007-typst-renderer.md`.
 
 ## Palette
 
@@ -79,7 +78,7 @@ Turkish characters and hyphenation must be checked in the final PDF.
 ## Guide-specific assets
 
 Put diagrams used by one guide in `guides/<slug>/assets/`. Put brand assets
-(cover motif) in `engine/assets/` for the reference and in `templates/` for v2.
+(cover motif) in `templates/`.
 Do not fork the shared stylesheet or template for one guide; if a visual
 exception is needed, document it and keep the change local.
 

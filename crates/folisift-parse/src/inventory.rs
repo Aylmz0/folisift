@@ -170,7 +170,7 @@ impl Inventory {
             }
             out.push('\n');
         }
-        out
+        format!("{}\n", out.trim_end())
     }
 }
 

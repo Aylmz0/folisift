@@ -1,6 +1,6 @@
 # Folisift v2 — Rust MCP + Typst Migration Plan
 
-- **Status:** Phase 0–6 parity audit complete; removal/CI pending
+- **Status:** Phase 0–6 complete; CI pending
 - **Date:** 2026-10-26
 - **Owner:** Maintainer
 - **Supersedes:** the Python-only engine described in `docs/architecture.md`
@@ -40,7 +40,7 @@ The maintainer accepted:
 | Content format | Markdown + YAML frontmatter + typed directives | Proposed |
 | MCP tools | Granular deterministic tools; no LLM calls | Proposed |
 | Filesystem | Workspace-root sandbox; sources read-only | Proposed |
-| Migration | Strangle the Python engine; parity then remove | Proposed |
+| Migration | Strangle the Python engine; parity then remove | Complete |
 | Versioning | TradeSeeker three-layer model + guide `schema_version` | Proposed |
 | Docs | English; guide output Turkish | Locked |
 
@@ -191,10 +191,9 @@ Migration note: existing `guide.html`, `data/source.json`, `style.css` are
 reference inputs, not the final format. The HTML is ported once; CSS becomes a
 Typst template.
 
-Schema note: `pd0-pd1` is now schema 2 (`content: guide.md`). Its
-`legacy_content: guide.html` field keeps the Python reference build and its
-HTML coverage checker working until Phase 6. Schema 1 remains accepted for
-other bundles during the strangle.
+Schema note: `pd0-pd1` is schema 2 (`content: guide.md`). The Python engine and
+`guide.html` were removed after parity; schema 1 is no longer used by a live
+guide.
 
 ## 7. Content format
 
@@ -418,8 +417,7 @@ WeasyPrint, or a system Typst installation.
   numbers, boxes, tables, figures, code.
 - `guides/pd0-pd1/guide.md`: PD0–PD1 content ported from `guide.html`.
 - `folisift build` and Rust Markdown coverage gate.
-- Config is schema 2 (`content: guide.md`); `legacy_content: guide.html` keeps
-  the Python reference build working during the strangle.
+- Config is schema 2 (`content: guide.md`).
 - **Gate:** 23 pages vs 22 (+4.5%, inside ±10%), coverage 13/13 PASS, TOC and
   PDF bookmarks present, Turkish glyphs intact, no clipped tables/figures.
 - Details: [`2026-10-26-phase3-report.md`](2026-10-26-phase3-report.md).
@@ -449,16 +447,15 @@ WeasyPrint, or a system Typst installation.
   intentionally not files); all AGENTS commands run.
 - Details: [`2026-10-26-phase5-report.md`](2026-10-26-phase5-report.md).
 
-### Phase 6 — Parity and removal — audit complete, removal pending
+### Phase 6 — Parity and removal — complete (release tag pending)
 
 - Full PD0–PD1 content comparison: headings, directives, figures and coverage
-  match; Rust PDF is 23 pages vs 22 (+4.5%).
-- Python engine intentionally stays in the tree until the maintainer signs off
-  on removal; it is the reference build.
-- Output remains split: Python `PD0-PD1_Calisma_Ozeti.pdf`, Rust
-  `PD0-PD1_v2.pdf`.
-- **Gate:** removal and a `v0.1.0` release are not executed yet. No Python
-  runtime claim is made for the release until the reference is removed.
+  match; the final PDF is 23 pages.
+- Python engine, `guide.html`, `requirements.txt` and Python tooling removed.
+- `config.json` output switched to the canonical
+  `output/PD0-PD1_Calisma_Ozeti.pdf`.
+- **Gate:** the product no longer needs Python, Poppler, WeasyPrint or system
+  Typst. A `v0.1.0` tag is still pending the release checklist.
 - Details: [`2026-10-26-phase6-parity-report.md`](2026-10-26-phase6-parity-report.md).
 
 ## 14. Testing and verification

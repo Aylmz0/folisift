@@ -6,13 +6,11 @@ table.
 
 | Tag | Date | Build | Commit | PDFium | What changed |
 |---|---|---:|---|---|---|
-| unreleased | 2026-10-26 | derived | `HEAD` | `chromium/8058` | v2 Rust/Typst/MCP workspace; PD0–PD1 Markdown port, 23 pages, coverage 13/13; parity audit complete; Python removal pending |
+| unreleased | 2026-10-26 | derived | `HEAD` | `chromium/8058` | Rust/Typst/MCP workspace; PD0–PD1 Markdown guide, 23 pages, coverage 13/13; Python engine removed |
 
 ## Notes
 
-- The Python engine remains the reference for the 22-page pilot until Phase 6.
-- The v2 PDF is `output/PD0-PD1_v2.pdf`; the Python reference is
-  `output/PD0-PD1_Calisma_Ozeti.pdf`.
+- The canonical guide output is `output/PD0-PD1_Calisma_Ozeti.pdf`.
 - The release archive contains `folisift` and the platform PDFium shared
   library. See ADR-0005.
 - Do not tag an unreleased row without running the checklist in

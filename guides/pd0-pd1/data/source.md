@@ -1,18 +1,18 @@
 # Kaynak Envanteri
 
-Üretim: 2026-10-25T20:26:52+00:00
+Üretim: 2026-10-25T22:51:11+00:00
 
 | PDF | Sayfa | Kelime | Düşük metinli sayfa |
 |---|---:|---:|---:|
-| PD0.pdf | 123 | 5334 | 40 |
-| PD1.pdf | 137 | 6856 | 15 |
+| PD0.pdf | 123 | 5386 | 40 |
+| PD1.pdf | 137 | 6852 | 15 |
 
-**Toplam:** 260 slayt, 12190 kelime, 55 düşük metinli slayt.
+**Toplam:** 260 slayt, 12238 kelime, 55 düşük metinli slayt.
 
 ## PD0.pdf — Programlama Dilleri
 
 - Sayfa: **123**
-- Kelime: **5334**
+- Kelime: **5386**
 - Düşük metinli sayfalar: **1, 7, 9, 16, 17, 21, 23, 26, 27, 32, 35, 49, 60, 61, 62, 63, 64, 65, 68, 69, 74, 77, 78, 80, 81, 82, 83, 84, 85, 86, 87, 89, 109, 111, 116, 117, 118, 119, 120, 121**
 
 ### Başlıklar
@@ -34,13 +34,13 @@
 |---:|---|---|
 | 1 | Bölüm: 0 | evet |
 | 2 | Hazırlık |  |
-| 3 | 0.1. Giriş ve Amaçlar |  |
-| 4 | Amaç |  |
+| 3 | • 0.1. Giriş ve Amaçlar |  |
+| 4 | • Amaç |  |
 | 5 | Amaç |  |
-| 6 | • Şu ana kadar 2500’den fazla programlama dili yapılmıştır. |  |
+| 6 | • Şu ana kadar 2500'den fazla programlama dili yapılmıştır. |  |
 | 7 | Ekim 2019 için TIOBE Programlama Kominite İndeksi | evet |
 | 8 | Neden Programlama Dilleri Dersi? |  |
-| 9 | Dil amaçları ve trade-off’lar | evet |
+| 9 | Dil amaçları ve trade-off'lar | evet |
 | 10 | 0.2. Programlama Dili Nedir? |  |
 | 11 | Programlama Dili Nedir? |  |
 | 12 | Doğal Dil - Programlama Dili (1) |  |
@@ -74,7 +74,7 @@
 | 40 | Sözcüksel veya Metinsel (Lexical) Analiz |  |
 | 41 | Sözcüksel veya Metinsel (Lexical) Analiz |  |
 | 42 | Sözcüksel veya Metinsel (Lexical) Analiz |  |
-| 43 | Sözcüksel Analiz Şekli |  |
+| 43 | Sözcüksel             Analiz Şekli |  |
 | 44 | Sözcüksel veya Metinsel (Lexical) Analiz |  |
 | 45 | Sözcüksel veya Metinsel (Lexical) Analiz |  |
 | 46 | Sözcüksel veya Metinsel (Lexical) Analiz |  |
@@ -126,17 +126,17 @@
 | 92 | Komut Çizelgelemesi (Instruction Scheduling) |  |
 | 93 | ÖZETLE DERLEME |  |
 | 94 | ÖZETLE DERLEME |  |
-| 95 | Kaynak Program         Örnek Derleme |  |
-| 96 | Kaynak Program         Örnek Derleme |  |
-| 97 | Kaynak Program          Örnek Derleme |  |
+| 95 | Kaynak Program       Örnek Derleme |  |
+| 96 | Kaynak Program        Örnek Derleme |  |
+| 97 | Kaynak Program        Örnek Derleme |  |
 | 98 | Kaynak Program          Örnek Derleme |  |
 | 99 | Kaynak Program          Örnek Derleme |  |
-| 100 | Kaynak Program         Örnek Derleme |  |
-| 101 | Kaynak Program         Örnek Derleme |  |
-| 102 | Kaynak Program          Örnek Derleme |  |
-| 103 | Kaynak Program          Örnek Derleme |  |
+| 100 | Kaynak Program        Örnek Derleme |  |
+| 101 | Kaynak Program        Örnek Derleme |  |
+| 102 | Kaynak Program        Örnek Derleme |  |
+| 103 | Kaynak Program        Örnek Derleme |  |
 | 104 | Kaynak Program          Örnek Derleme |  |
-| 105 | Derleme ÖZET |  |
+| 105 | Kaynak           Derleme ÖZET |  |
 | 106 | Dil Çevrim Yöntemlerinin Karşılaştırılması |  |
 | 107 | Zaman Etkinliği Açısından |  |
 | 108 | Bellek Kullanma Etkinliği Açısından |  |
@@ -159,7 +159,7 @@
 ## PD1.pdf — Chapter 1
 
 - Sayfa: **137**
-- Kelime: **6856**
+- Kelime: **6852**
 - Düşük metinli sayfalar: **1, 29, 31, 40, 72, 79, 89, 91, 93, 95, 97, 98, 99, 113, 121**
 
 ### Başlıklar
@@ -207,7 +207,7 @@
 | 23 | Genel Kolaylık (Özet) |  |
 | 24 | Ortogonallik (Orthogonality) |  |
 | 25 | Örnek: Hangisi ortogonaldir? Neden? |  |
-| 26 | • C dilinde toplama işlemi (+) bulunmakta ve ortogonallik gereği |  |
+| 26 | •   C dilinde toplama işlemi (+) bulunmakta ve ortogonallik gereği |  |
 | 27 | Ortogonallik (Orthogonality) |  |
 | 28 | Ortogonallik (Orthogonality) |  |
 | 29 | Kontrol İfadeleri | evet |
@@ -244,15 +244,15 @@
 | 60 | Bilgisayar Mimarisi Etkisi |  |
 | 61 | Bilgisayar Mimarisi Etkisi |  |
 | 62 | Von Neumann Mimarisi |  |
-| 63 | – Von Neumann’dan dolayı İmperatif |  |
+| 63 | -Von Neumann'dan dolayı İmperatif |  |
 | 64 | • İfadelerdeki operatörler CPU tarafından |  |
 | 65 | • Von Neumann bilgisayarlarda iterasyon |  |
 | 66 | • Makina kodunun bir Von Neumann |  |
-| 67 | • von Neumann mimarisi bilgisayarda Fetch-Execute |  |
+| 67 | •  von Neumann mimarisi bilgisayarda Fetch-Execute |  |
 | 68 | • Fonksiyonel dillerde imperative dillerdeki |  |
 | 69 | • Başka bir grup bilim adamı ise |  |
 | 70 | Programlama Tasarım Yöntemlerinin |  |
-| 71 | • 1980’lerin ortaları: Nesneye-dayalı (Object- |  |
+| 71 | • 1980'lerin ortaları: Nesneye-dayalı (Object- |  |
 | 72 | 1.5 Dil Kategorileri | evet |
 | 73 | Programlama Paradigmaları |  |
 | 74 | Programlama Paradigmaları |  |
@@ -294,9 +294,9 @@
 | 110 | Bilgisayarın katmanlı (layered) görünümü |  |
 | 111 | Geleneksel Çevirici |  |
 | 112 | Derleme (Compilation) |  |
-| 113 | Kaynak | evet |
+| 113 | Kaynak    Veri Girişi | evet |
 | 114 | Derleme |  |
-| 115 | Bir Derleyicinin 8 Fazı |  |
+| 115 | Bir Derleyicinin 8 Fazı                   Kaynak |  |
 | 116 | Biraz daha derleme terminolojisi |  |
 | 117 | Derleme ve Yürütme |  |
 | 118 | Makine kodunun yürütülmesi |  |

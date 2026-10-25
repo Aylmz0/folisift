@@ -1,15 +1,15 @@
 # Phase 6 — Parity Audit Report
 
 - **Date:** 2026-10-26
-- **Status:** Audit complete; removal and release pending maintainer approval
+- **Status:** Complete — Python removed; release tag pending
 - **Plan:** [`2026-10-26-rust-mcp-typst.md`](2026-10-26-rust-mcp-typst.md)
 
 ## Compared artifacts
 
 | Artifact | Path | Pages |
 |---|---|---:|
-| Python reference | `output/PD0-PD1_Calisma_Ozeti.pdf` | 22 |
-| Rust/Typst v2 | `output/PD0-PD1_v2.pdf` | 23 |
+| Python reference (before removal) | `output/PD0-PD1_Calisma_Ozeti.pdf` | 22 |
+| Final Rust/Typst guide | `output/PD0-PD1_Calisma_Ozeti.pdf` | 23 |
 
 ## Content parity
 
@@ -50,14 +50,15 @@ Selected pages were rendered to PNG and inspected:
 No clipped tables, figures or code blocks were found. The table header bug
 found during the first render was fixed before this audit.
 
-## Removal checklist (not executed)
+## Removal executed
 
-1. Maintainer accepts the 23-page Rust output and the +4.5% page delta.
-2. Switch `guides/pd0-pd1/config.json` output to the v2 PDF.
-3. Remove `legacy_content` and the Python build/tool dependencies.
-4. Delete `engine/` and the Python-specific docs after the final reference
-   build is archived.
-5. Tag `v0.1.0` and attach `folisift` + `libpdfium.so`.
-6. Update `docs/VERSIONS.md` and the README.
+- `engine/` removed.
+- `requirements.txt` removed.
+- `guides/pd0-pd1/guide.html` removed.
+- `config.json` switched to `content: guide.md` and the canonical output.
+- `output/PD0-PD1_v2.pdf` removed; the canonical PDF is now the Rust build.
+- `Makefile` rewritten for the Rust workspace.
+- Docs and AGENTS updated to remove the Python reference.
 
-Until then, both builds remain valid and the Python engine is the reference.
+The release tag `v0.1.0` is still pending the checklist in
+`docs/agents/versioning.md`.

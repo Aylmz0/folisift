@@ -17,13 +17,13 @@ Use one paper design system for every guide:
 
 - warm cream paper `#FAF6EC`, ink `#211E19`;
 - brick `#8A3E2F`, sage `#42594F`, antique gold `#B08A4F`;
-- Noto Serif body, Inter headings, DejaVu Sans Mono code;
+- Noto Serif body, Inter headings, Noto Sans Mono code;
 - A4, single column, thin rules, no gradients, no stock photos, no rounded
   “card” UI;
 - boxes are defined by rules/fills, not shadows;
 - figures are simple SVG; tables have no vertical lines.
 
-The design system lives in `engine/style.css` and `engine/assets/`.
+The design system lives in `templates/paper.typ` and `templates/fonts/`.
 
 ## Consequences
 

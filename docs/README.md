@@ -2,7 +2,7 @@
 
 | Document | Purpose |
 |---|---|
-| [Architecture](architecture.md) | Engine/guide layers, build flow, config schema |
+| [Architecture](architecture.md) | Workspace layers, build flow, config schema |
 | [Authoring](authoring.md) | Practical runbook for producing a guide |
 | [Authoring specification](authoring-spec.md) | Normative content, coverage and design rules |
 | [Design system](design-system.md) | Paper palette, typography and components |
@@ -23,8 +23,8 @@
 ## Invariants
 
 - Source PDFs are local; never commit `sources/*.pdf`.
-- `python3 engine/build.py --guide guides/<slug> --check` must pass before a
-  guide is called complete.
+- `folisift build --guide <slug> --check` must pass before a guide is called
+  complete.
 - Engine changes must not introduce a course name, source filename or slide
-  count into `engine/`.
-- Do not fork `engine/style.css` per guide.
+  count into `crates/`.
+- Do not fork `templates/paper.typ` per guide.

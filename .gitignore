@@ -1,23 +1,16 @@
-# Kişisel/ders PDF'leri repoya girmez
+# Personal/course PDFs are local inputs; never commit them.
 sources/*.pdf
 sources/**/*.pdf
 
-__pycache__/
-*.py[cod]
-.pytest_cache/
 .DS_Store
 
-# Üretilen görsel önbelleği
+# Generated page screenshots.
 guides/*/data/pages/
 
-# Geçici LaTeX/Ofis dosyaları
+# Temporary LaTeX/Office files.
 *.aux
 *.log
 *.out
 
-# Python packaging / sanal ortam
-.venv/
-*.egg-info/
-
-# Rust build output
+# Rust build output.
 /target/

@@ -3,9 +3,9 @@
 Each directory is one self-contained guide bundle. The engine never assumes a
 course, a source filename or a slide count.
 
-```
+```text
 guides/<slug>/
-├── guide.html       # content, source order preserved in B
+├── guide.md         # content, source order preserved in B
 ├── config.json      # paths relative to this directory
 ├── assets/          # guide-specific SVG diagrams
 └── data/            # generated inventory + coverage report
@@ -20,19 +20,19 @@ guides/<slug>/
 ## Create a bundle
 
 ```bash
-python3 engine/tools/scaffold.py \
+cargo run -p folisift-cli -- scaffold \
   --slug <slug> \
   --title "<title>" \
   --course "<course>" \
-  --sources sources/<file>.pdf
+  --source sources/<file>.pdf
 ```
 
 Then follow `docs/authoring.md`.
 
 ## Rules
 
-- `guide.html` links the shared stylesheet with `../../engine/style.css`.
-- Guide-specific diagrams live in `assets/`, not in `engine/assets/`.
+- `guide.md` is rendered by `templates/paper.typ`; do not add CSS.
+- Guide-specific diagrams live in `assets/`.
 - `data/source.json` and `data/coverage.md` are generated; do not hand-edit.
 - `data/pages/` is a local visual cache and is gitignored.
 - Source PDFs never live in a guide bundle; they stay in `sources/`.
