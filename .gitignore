@@ -1,0 +1,16 @@
+# Kişisel/ders PDF'leri repoya girmez
+sources/*.pdf
+sources/**/*.pdf
+
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.DS_Store
+
+# Üretilen görsel önbelleği
+kitap/data/pages/
+
+# Geçici LaTeX/Ofis dosyaları
+*.aux
+*.log
+*.out

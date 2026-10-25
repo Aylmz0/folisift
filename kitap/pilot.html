@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>Programlama Dilleri — Çalışma Kılavuzu (Pilot: PD0–PD1)</title>
+<meta name="author" content="BMÜ325 Programlama Dilleri">
+<meta name="description" content="PD0 ve PD1 ders slaytlarından hazırlanmış, sınav odaklı Türkçe çalışma özeti.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ==================== KAPAK ==================== -->
+<section class="cover">
+  <div class="cover-frame">
+    <div class="cover-top">BMÜ325 · Programlama Dilleri</div>
+    <div class="cover-rule"></div>
+
+    <h1>Çalışma Kılavuzu<span>Kavramlar, diller ve çevrim süreçleri</span></h1>
+
+    <div class="cover-sub">Bölüm 0: Hazırlık &nbsp;·&nbsp; Bölüm 1: Giriş</div>
+    <div style="text-align:center;"><span class="cover-pilot">Pilot sürüm · PD0–PD1</span></div>
+
+    <img class="cover-motif" src="assets/cover-motif.svg" alt="Soyut sözdizimi ağacı motifi">
+
+    <div class="cover-bottom">
+      Ders slaytlarından derlenmiştir: PD0 (123 slayt) · PD1 (137 slayt)<br>
+      <span class="small">Metin içermeyen eğitsel slaytlar görsel olarak incelenmiştir.</span><br>
+      <span class="small">Ek açıklamalar “Açıklayıcı not” etiketiyle işaretlenmiştir.</span>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== ÖN KISIM ==================== -->
+<section class="front">
+  <div class="kicker">Ön kısım · Okuma notu</div>
+  <h1>Bu kitapçık hakkında</h1>
+
+  <p class="lead">Bu pilot, PD0 ve PD1 ders destelerinin sınav odaklı, kâğıt hissi veren bir çalışma özetidir. Amaç slaytları yalnızca tekrar etmek değil; kavramları, aralarındaki neden–sonuç ilişkilerini ve sık karıştırılan ayrımları tek bir metinde toplamaktır.</p>
+
+  <div class="about-grid">
+    <div class="row"><div class="cell">Kaynaklar</div><div class="cell">PD0 “Hazırlık” (123 slayt) ve PD1 “Giriş” (137 slayt). Toplam <strong>260 slayt</strong>.</div></div>
+    <div class="row"><div class="cell">Kapsam</div><div class="cell">PD0’ın beş, PD1’in sekiz alt bölümünün tamamı. Kaynak sırası korunmuştur; sayfa referansları <span class="ref">PD0, s. 3</span> biçimindedir.</div></div>
+    <div class="row"><div class="cell">Yöntem</div><div class="cell">Metin katmanı <code>pdftotext</code> ile çıkarıldı; metin içermeyen eğitsel slaytlar sayfa görüntüsü olarak okundu. Şekiller sadeleştirilerek yeniden çizildi.</div></div>
+    <div class="row"><div class="cell">Doğruluk</div><div class="cell">Kaynakta bulunmayan ek bilgi yalnızca <strong>Açıklayıcı not</strong> etiketiyle verilir. Kaynak içindeki tutarsızlıklar sessizce düzeltilmez; ilgili yerde belirtilir.</div></div>
+    <div class="row"><div class="cell">Sürüm</div><div class="cell">Pilot: PD0–PD1. PD2–PD8 bölümleri aynı şablonla eklenecektir.</div></div>
+  </div>
+
+  <div class="definition" id="overview">
+    <span class="label">Kılavuzun iki ekseni</span>
+    <p><strong>Birinci eksen:</strong> “Dil nedir ve nasıl çalışır?” PD0 bunu tanımlar; çevrim hattını ve yazılım yaşam döngüsündeki yeri gösterir. <strong>İkinci eksen:</strong> “Dilleri neye göre değerlendiririz?” PD1 okunabilirlik, yazılabilirlik, güvenilirlik ve maliyet ölçütlerini, paradigmaları ve implementasyon yöntemlerini sunar. PD2–PD8 bu iki ekseni tarih, sözdizimi/semantik, analiz, tipler, akış denetimi ve altprogramlarla derinleştirir.</p>
+  </div>
+
+  <div class="definition">
+    <span class="label">Pilotun sınırı</span>
+    <p>Bu dosya nihai kılavuzun <strong>üslup ve tasarım pilotudur</strong>. Bölüm 0 ve 1 tam kapsanır; ortak kavram sözlüğü, yöntem kartları, formüller/olgular, bağlantılar ve kapsam denetimi de pilot ölçeğinde hazırlanmıştır. PD2–PD8 eklendiğinde bu bölümler genişletilecek, bölüm başına yoğunluk korunacaktır.</p>
+  </div>
+
+  <h3>Kısaltmalar</h3>
+  <p class="small"><strong>PD</strong> programlama dili ders destesi · <strong>CFG</strong> bağlam-bağımsız gramer (context-free grammar) · <strong>BNF</strong> Backus–Naur formu · <strong>AST</strong> soyut sözdizimi ağacı (abstract syntax tree) · <strong>SDLC</strong> yazılım geliştirme yaşam döngüsü (software development life cycle) · <strong>JIT</strong> tam-zamanında derleme (just-in-time) · <strong>JVM</strong> Java Sanal Makinesi · <strong>TIOBE</strong> programlama topluluğu indeksi.</p>
+
+  <p class="tiny">Not: Kaynak slaytlarda geçen “imperative”, “functional”, “logic” ve “object-oriented” terimleri Türkçe metinde sırasıyla zorunlu/komut merkezli, fonksiyonel, mantıksal ve nesneye yönelik olarak karşılanmıştır. İngilizce terim ilk kullanımda parantez içinde verilmiştir.</p>
+</section>
+
+<!-- ==================== İÇİNDEKİLER ==================== -->
+<section class="front page-break">
+  <div class="kicker">İçindekiler</div>
+  <div class="toc-title">Kılavuzun haritası</div>
+  <p class="toc-note">Pilot dosya: PD0–PD1. Sayfa numaraları bu PDF’e aittir; kaynak slayt referansları metin içinde verilmiştir.</p>
+
+  <table class="toc">
+    <tr class="part"><td colspan="2">A · Çerçeve</td></tr>
+    <tr><td><a href="#overview">Kılavuzun iki ekseni</a></td><td class="pg"><a href="#overview"></a></td></tr>
+
+    <tr class="part"><td colspan="2">B · Ayrıntılı inceleme</td></tr>
+    <tr><td><a href="#ch0">Bölüm 0 — Hazırlık</a></td><td class="pg"><a href="#ch0"></a></td></tr>
+    <tr class="sub"><td><a href="#s01">0.1 Giriş ve amaçlar</a></td><td class="pg"><a href="#s01"></a></td></tr>
+    <tr class="sub"><td><a href="#s02">0.2 Programlama dili nedir?</a></td><td class="pg"><a href="#s02"></a></td></tr>
+    <tr class="sub"><td><a href="#s03">0.3 Dilleri düzeylere ayırmak</a></td><td class="pg"><a href="#s03"></a></td></tr>
+    <tr class="sub"><td><a href="#s04">0.4 Dil çevrimi</a></td><td class="pg"><a href="#s04"></a></td></tr>
+    <tr class="sub"><td><a href="#s05">0.5 Yazılım yaşam döngüsündeki yer</a></td><td class="pg"><a href="#s05"></a></td></tr>
+
+    <tr><td><a href="#ch1">Bölüm 1 — Giriş</a></td><td class="pg"><a href="#ch1"></a></td></tr>
+    <tr class="sub"><td><a href="#s11">1.1 Kavramları öğrenmenin nedenleri</a></td><td class="pg"><a href="#s11"></a></td></tr>
+    <tr class="sub"><td><a href="#s12">1.2 Programlama alanları</a></td><td class="pg"><a href="#s12"></a></td></tr>
+    <tr class="sub"><td><a href="#s13">1.3 Dil değerlendirme kriterleri</a></td><td class="pg"><a href="#s13"></a></td></tr>
+    <tr class="sub"><td><a href="#s14">1.4 Dil tasarımını etkileyen faktörler</a></td><td class="pg"><a href="#s14"></a></td></tr>
+    <tr class="sub"><td><a href="#s15">1.5 Dil kategorileri ve paradigmalar</a></td><td class="pg"><a href="#s15"></a></td></tr>
+    <tr class="sub"><td><a href="#s16">1.6 Tasarımda verilen ödünler</a></td><td class="pg"><a href="#s16"></a></td></tr>
+    <tr class="sub"><td><a href="#s17">1.7 İmplementasyon yöntemleri</a></td><td class="pg"><a href="#s17"></a></td></tr>
+    <tr class="sub"><td><a href="#s18">1.8 Programlama platformları</a></td><td class="pg"><a href="#s18"></a></td></tr>
+
+    <tr class="part"><td colspan="2">C–G · Ortak bölümler</td></tr>
+    <tr><td><a href="#concepts">C. Kavramlar ve tanımlar</a></td><td class="pg"><a href="#concepts"></a></td></tr>
+    <tr><td><a href="#methods">D. Yöntemler ve süreçler</a></td><td class="pg"><a href="#methods"></a></td></tr>
+    <tr><td><a href="#facts">E. Formüller, kurallar ve olgular</a></td><td class="pg"><a href="#facts"></a></td></tr>
+    <tr><td><a href="#connections">F. Bağlantılar ve karşılaştırmalar</a></td><td class="pg"><a href="#connections"></a></td></tr>
+    <tr><td><a href="#audit">G. Kapsam denetimi</a></td><td class="pg"><a href="#audit"></a></td></tr>
+  </table>
+</section>
+
+<!-- ==================== B. BÖLÜM 0 ==================== -->
+<section class="chapter" id="ch0">
+  <div class="chapter-open">
+    <div class="meta"><span class="left">B · Ayrıntılı inceleme</span><span class="right">Kaynak: PD0 · 123 slayt</span></div>
+    <h1 class="chapter-title" data-running="Bölüm 0 · Hazırlık"><span class="num">Bölüm 0</span>Hazırlık</h1>
+    <p class="chapter-lead">Programlama dili nedir? Neden birbirinden farklı diller vardır? Bir program bilgisayarın anlayacağı biçime nasıl dönüşür ve bu dönüşüm yazılım geliştirme sürecinin neresinde durur?</p>
+    <div class="source">Kaynak aralığı: PD0, s. 1–123 · Alt bölümler: 0.1–0.5</div>
+  </div>
+
+  <h2 id="s01"><span class="n">0.1</span>Giriş ve amaçlar</h2>
+
+  <p><strong>Church–Turing hipotezi</strong>, bütün programlama dillerinin ve bilinen hesaplama cihazlarının —performans açısından değil, ifade ve problem çözme yeteneği açısından— eşdeğer olduğunu söyler. Bunun doğrudan sonucu şudur: bir genel amaçlı programlama dilinde yazılan algoritma, başka bir genel amaçlı dilde de yazılabilir. <span class="ref">PD0, s. 3</span></p>
+
+  <p>Peki neden bu kadar çok dil vardır? Kaynak, 2019 itibarıyla <strong>2.500’den fazla</strong> programlama dili bulunduğunu belirtir. Bu çeşitlilik, dillerin tarihsel gelişiminden, farklı uygulama gereksinimlerinden ve bir iş için uygun olan dilin başka bir iş için uygun olmamasından kaynaklanır. <span class="ref">PD0, s. 6, 19–20</span></p>
+
+  <h3>Dersin amacı ve çerçevesi</h3>
+  <p>Bu dersin amacı “bir dil öğretmek” değildir. Amaç, programlama dillerinin <strong>ortak kavramlarını</strong> ve bu kavramlar için farklı dillerde sağlanan yapıları incelemektir. Kavramları örneklemek için Pascal, C, C++, Java, Lisp ve Prolog gibi diller kullanılır. Ders ayrıca farklı paradigmaları, “daha iyi dil” tartışmasını ve derleyici tasarımı, yazılım mühendisliği, nesneye yönelik tasarım gibi alanlara temel oluşturmayı hedefler. <span class="ref">PD0, s. 4–5</span></p>
+
+  <p>Kaynak, “dil amaçları ve trade-off’lar” şemasında programlama dilinin farklı paydaşların beklentileriyle çevrili olduğunu gösterir: mimar, programcı, test edici, hata bulma araçları ile derleyici/yürütme zamanı çevresi. Bu paydaşların öncelikleri farklıdır; dil tasarımı bu beklentiler arasında denge kurar. <span class="ref">PD0, s. 9</span></p>
+
+  <h3>Neden programlama dilleri dersi?</h3>
+  <ul class="clean">
+    <li><strong>Fikirleri ifade etme yeteneği:</strong> Bildiğimiz dil yapıları, kurabileceğimiz çözümlerin sınırını belirler. Farklı kontrol yapıları, veri yapıları ve soyutlamalar öğrenmek bu sınırı genişletir.</li>
+    <li><strong>Uygun dili seçebilme:</strong> Seçenekleri bilmek, proje için doğru dili seçmeyi kolaylaştırır.</li>
+    <li><strong>Yeni dil öğrenme:</strong> Ortak kavramları bilen bir programcı, yeni bir dilde bu kavramların nasıl birleştirildiğini daha hızlı anlar.</li>
+    <li><strong>İmplementasyonu anlama:</strong> Dil yapılarının makinede nasıl gerçekleştirildiğini bilmek, hata ayıklamayı ve verimli yapı seçimini kolaylaştırır.</li>
+    <li><strong>Bilinen dilleri daha iyi kullanma:</strong> Diller büyük ve karmaşıktır; kavram bilgisi, kullanılmayan özelliklerin öğrenilmesini hızlandırır.</li>
+    <li><strong>Bilgisayar biliminde ilerleme:</strong> Popüler olan dil, her zaman “en iyi” dil değildir. ALGOL 60’ın FORTRAN’ın yerini alacağı düşünülmüş, ancak okuma/yazma karmaşıklığı bu beklentiyi zayıflatmıştır. <span class="ref">PD0, s. 8, 14</span></li>
+  </ul>
+
+  <p>Kaynak slaytta Ekim 2019 TIOBE indeksi de yer alır; ilk altı sıra Java (%16.884), C (%16.180), Python (%9.089), C++ (%6.229), C# (%3.860) ve Visual Basic .NET’tir. Bu oranlar Ekim 2019 anlık görüntüsüdür; güncel sıralama için kullanılmamalıdır. <span class="ref">PD0, s. 7</span></p>
+
+  <h2 id="s02"><span class="n">0.2</span>Programlama dili nedir?</h2>
+
+  <p>Doğal dillerin kendilerine özgü kelimeleri, işaretleri ve kelimeleri cümlelere dönüştüren dilbilgisi kuralları vardır. Dilbilgisi açısından doğru bir cümle bir anlam ifade eder; kurallarda hata olduğunda cümle anlaşılamaz. Programlama dilleri de benzer bir yapıya sahiptir: her dilin sözlüğü, işaretleri ve yazım kuralları vardır. Programlama dillerinde bu kurallara <strong>sözdizimi (syntax)</strong> denir. <span class="ref">PD0, s. 10–12</span></p>
+
+  <p>Programcı, dilin sözdizimi kurallarına göre kelime ve işaretleri bir araya getirerek bilgisayarın yapmasını istediği işi anlatan bir deyim oluşturur. Doğal dillerde konuşma veya yazma sırasında hata yapılabilir; programlama dillerinde ise hataya tolerans yoktur. Herhangi bir sözdizimi hatası, deyimin bilgisayar açısından hiçbir anlamı olmamasına ve programın çalışmamasına yol açar. Bu nedenle programcının dilin sözdizimi kurallarını bilmesi gerekir. <span class="ref">PD0, s. 13</span></p>
+
+  <div class="definition">
+    <span class="label">Tanım</span>
+    <p><strong>Programlama dili</strong>, bir problemin çözümünün bilgisayardaki gerçekleştirimini ifade etmek amacıyla tasarlanmış; hem insanlar hem de bilgisayarlar tarafından ortak olarak anlaşılacak kurallar ve semboller dizisidir. <span class="ref">PD0, s. 14</span></p>
+  </div>
+
+  <p>Bir programlama dilinin bilgisayar tarafından anlaşılması için sözdiziminin ve anlamının <strong>makine diline</strong> çevrilmesi gerekir. Makine dili, bir bilgisayarın doğrudan anladığı gösterimdir; bilgisayarların “ana dili” olarak nitelenebilir. Bu çevrim derleme veya yorumlama yöntemleriyle yapılır. <span class="ref">PD0, s. 18</span></p>
+
+  <h3>Doğal dil ile programlama dili arasındaki fark</h3>
+  <table class="data">
+    <thead><tr><th style="width:24%">Boyut</th><th>Doğal dil</th><th>Programlama dili</th></tr></thead>
+    <tbody>
+      <tr><td>İletişim</td><td>İnsanlar arasında</td><td>İnsan ile bilgisayar arasında</td></tr>
+      <tr><td>Kurallar</td><td>Dilbilgisi</td><td>Sözdizimi (syntax) ve anlambilim (semantics)</td></tr>
+      <tr><td>Hata toleransı</td><td>Anlaşılabilir ölçüde esnek</td><td>Yok; hatalı deyim çalışmaz</td></tr>
+      <tr><td>Öğrenme</td><td>Doğal edinim</td><td>Kuralların açıkça öğrenilmesi gerekir</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Neden farklı programlama dilleri var?</h3>
+  <p>Diller zaman içinde gelişmiştir; ilk diller 1950’lerin başında ortaya çıkmış, bugünkü dillere göre oldukça zayıf tasarımlara sahipti. Modern diller, farklı gereksinimlere cevap vermek üzere geliştirilmiştir. Bilgisayar programları genel olarak <strong>sistem programları</strong> ve <strong>uygulama programları</strong> olarak ikiye ayrılır; bazı diller sistem programları, bazıları uygulama programları için tasarlanmıştır. Bir iş için uygun olan dil, başka bir iş için uygun olmayabilir. <span class="ref">PD0, s. 19–20</span></p>
+
+  <div class="critical">
+    <span class="label">Kritik ayrım</span>
+    <p><strong>Sözdizimi</strong> bir deyimin biçimsel olarak geçerli olup olmadığını; <strong>anlambilim</strong> ise bu geçerli deyimin ne anlama geldiğini belirler. Bir program sözdizimsel olarak doğru olduğu hâlde anlamsal olarak hatalı olabilir. Bu ayrım, 0.4’teki derleme aşamalarının da temelidir: sözdizim çözümleme ağaç kurar, anlam çözümleme bu ağacı tipler ve işlemler açısından yorumlar.</p>
+  </div>
+
+  <h2 id="s03"><span class="n">0.3</span>Programlama dillerini düzeylere ayırmak</h2>
+
+  <p>Programlama dilleri <strong>düşük düzeyli</strong> ve <strong>yüksek düzeyli</strong> olarak ikiye ayrılır. Bu ayrım, dilin makine donanımına ne kadar bağımlı olduğuyla ilgilidir.</p>
+
+  <table class="data">
+    <thead><tr><th style="width:22%">Özellik</th><th>Düşük düzeyli dil</th><th>Yüksek düzeyli dil</th></tr></thead>
+    <tbody>
+      <tr><td>Donanım bağımlılığı</td><td>Yüksek; makineye özgü</td><td>Düşük; makineden bağımsız</td></tr>
+      <tr><td>Gösterim</td><td>Makine kodu (0/1) veya sembolik assembly</td><td>Okunabilir, insan odaklı sözdizimi</td></tr>
+      <tr><td>Soyutlama</td><td>Az; kaydediciler, bellek adresleri açık</td><td>Fazla; makine ve assembly ayrıntıları gizli</td></tr>
+      <tr><td>Örnek</td><td>Makine kodu, assembly</td><td>C, Pascal, Java, Lisp, Prolog</td></tr>
+      <tr><td>Bu dersin odağı</td><td>Temel kavram olarak</td><td>Asıl inceleme alanı</td></tr>
+    </tbody>
+  </table>
+
+  <p>Assembly dilinde komutlar, makine kodundaki işlemlerin insan tarafından okunabilir kısa adlarıyla (mnemonic) gösterilir. Örneğin <code>ADD R1, 28</code>, R1 kaydedicisindeki değere 28 eklenmesini belirtir. Yüksek düzeyli dillerde ise okunabilirlik, makineden bağımsızlık ve program kütüphaneleri öne çıkar. <span class="ref">PD0, s. 21</span></p>
+
+  <div class="note">
+    <span class="label">Açıklayıcı not</span>
+    <p>“Düzey” burada bir dilin <em>soyutlama düzeyini</em> anlatır; bir dilin diğerinden daha “güçlü” veya daha “iyi” olduğunu tek başına söylemez. Church–Turing eşdeğerliği ifade gücü içindir; düşük/yüksek düzey ayrımı ise makineye yakınlık ve okunabilirlikle ilgilidir.</p>
+  </div>
+
+  <h2 id="s04"><span class="n">0.4</span>Dil çevrimi</h2>
+
+  <p>Yüksek düzeyli bir dilde yazılmış programın bilgisayarda çalıştırılabilmesi için o bilgisayarın makine diline çevrilmesi gerekir. Bir programlama dili komutlarının makine diline çevrimini gerçekleştiren yazılımlara <strong>dil çevirici yazılımlar</strong>; bu yazılımların oluşturulmasına ise <strong>dilin gerçekleştirimi (implementation)</strong> denir. İki temel yöntem vardır: <strong>derleme (compilation)</strong> ve <strong>yorumlama (interpretation)</strong>. <span class="ref">PD0, s. 22</span></p>
+
+  <p>Otomatik çeviri paradigmasında kaynak dil analiz edilir; ara dil üzerinden transfer/üretim yapılabilir veya doğrudan hedefe çevrilebilir. <span class="ref">PD0, s. 23</span></p>
+
+  <h3>Yorumlayıcılar</h3>
+  <p>Yorumlayıcılar bir programı çok az veya hiç ön işleme sokmadan olduğu gibi çalıştırır. Yorumlayıcı, programın her deyimini birer birer makine diline çevirir ve o deyimle ilgili bir altprogram çağırarak çalıştırır. Yani yorumlama, <strong>çevrim ile yürütmeyi birleştirir</strong>. Yorumlayıcı, dildeki her olası işlem için makine dilinde yazılmış bir altprogram içerir; programın yorumlanması bu altprogramların uygun sırada çağrılmasıdır. Çalışma döngüsü üç adımdır: sıradaki deyimi al, yapılacak işlemleri belirle, işlemleri gerçekleştir. <span class="ref">PD0, s. 24–25</span></p>
+
+  <div class="example">
+    <span class="label">Yorumlama döngüsü</span>
+    <p><strong>1.</strong> Sıradaki deyimi al. <strong>2.</strong> Yapılacak işlemleri belirle. <strong>3.</strong> İşlemleri gerçekleştir. Programdaki deyimler bitene kadar tekrarla. Bir döngü içindeki deyimler her seferinde yeniden çevrilir. <span class="ref">PD0, s. 25, 27</span></p>
+  </div>
+
+  <h3>Derleyiciler</h3>
+  <p>Derleyici, bir programlama dilinde yazılmış program için ona eşdeğer olan makine dilinde bir program üretir. Derleme sürecinin başında verilen yüksek düzeyli programa <strong>kaynak program (source program)</strong>, sonuçta oluşan makine dilindeki programa <strong>amaç program (object program)</strong> denir. Derleme sırasında geçen zamana <strong>derleme zamanı (compile time)</strong>, amaç programın çalışması sırasında geçen zamana <strong>çalışma zamanı (run time)</strong> denir. Derleyici tüm programı bir kerede denetler; sözcüksel ve sözdizimsel hataları bulur; hata yoksa nesne kodu üretir; nesne kod daha sonra çalışabilir koda çevrilir. <span class="ref">PD0, s. 28–33</span></p>
+
+  <h3>Assembler ile derleyici arasındaki fark</h3>
+  <p>Assembler, assembly dilindeki bir komutu makine kodundaki bir komuta <strong>bire bir</strong> çevirir. Derleyici ise yüksek düzeyli bir deyimi <strong>birden çoğa</strong> çevirir: tek bir <code>a = b + c - d;</code> deyimi, yükleme, toplama, çıkarma ve saklama gibi birçok makine komutuna dönüşebilir. <span class="ref">PD0, s. 30–31</span></p>
+
+  <h3>Derleme sürecinin aşamaları</h3>
+  <p>Derleyicinin <strong>ön ucu (front-end)</strong> programın sözdizimini ve anlamını dilin kurallarına göre inceler, bir ara kod oluşturur. Bu süreçte sırasıyla token dizisi, ayrıştırma ağacı ve ara kodla ifade edilen soyut program elde edilir. <strong>Arka uç (back-end)</strong> ise ara kod gösterimine eniyileme uygulayarak amaç programı, yani makine kodunu üretir. Ön uç dile bağımlı, arka uç makineye bağımlıdır. <span class="ref">PD0, s. 34, 70</span></p>
+
+  <figure>
+    <img src="assets/pipeline.svg" alt="Derleme hattı: ön uç, ara kod, arka uç">
+    <figcaption><span class="fig-no">Şekil 0.2</span>Derleme hattı ve iki yardımcı bileşen. Sembol tablosu ile hata yöneticisi, ana evrelere paralel çalışır. <span class="ref">PD0, s. 35; PD1, s. 115</span></figcaption>
+  </figure>
+
+  <h3>Sözcüksel (lexical) analiz</h3>
+  <p>Derleyicinin ön ucundaki sözcüksel çözümleyici, kaynak programı bir dizi <strong>token</strong>’a çevirir. Token sözdizimsel bir kategori belirtir; programlama dillerinde bu kategori “anahtar kelime”, “matematiksel sembol”, “tanımlayıcı” gibi türler olabilir. Token’ı belirten alt karakter katarına <strong>lexeme</strong> denir. Kullanılabilecek tüm lexeme’ler <strong>örüntüler (pattern)</strong> ile tanımlanır; örüntüler <strong>düzenli ifadeler (regular expressions)</strong> kullanılarak yazılır. <span class="ref">PD0, s. 36–37</span></p>
+
+  <p>Sözcüksel analiz aracı üç şeyi yapabilmelidir: bütün boşlukları ve açıklamaları temizlemek, karakter katarı içindeki tüm token’ları bulmak, bulunan token için lexeme ve satır numarası gibi özellikleri döndürmek. Derleme sürecinde her tanımlayıcı için bir <strong>sembol tablosu</strong> elemanı oluşturulur; tanımlayıcı ilk kez görüldüğünde tabloya eklenir, sonraki kullanımlar aynı elemana başvurur. <span class="ref">PD0, s. 38–40</span></p>
+
+  <table class="data">
+    <thead><tr><th>Lexeme</th><th>Token</th><th>Örnekteki rol</th></tr></thead>
+    <tbody>
+      <tr><td><code>toplam</code></td><td>IDENTIFIER</td><td>değişken adı</td></tr>
+      <tr><td><code>=</code></td><td>ASSIGN_OP</td><td>atama</td></tr>
+      <tr><td><code>3</code></td><td>NUMBER</td><td>sayı</td></tr>
+      <tr><td><code>+</code></td><td>ADD_OP</td><td>toplama</td></tr>
+      <tr><td><code>2</code></td><td>NUMBER</td><td>sayı</td></tr>
+      <tr><td><code>;</code></td><td>SEMICOLON</td><td>deyim sonu</td></tr>
+    </tbody>
+  </table>
+  <p class="tiny">Örnek, <code>toplam=3+2;</code> deyiminin token dizisine ayrılmasıdır. <span class="ref">PD0, s. 40</span></p>
+
+  <p>Düzenli ifadeler sonlu durum otomatları (FSA) ile tanımlanabilen dilleri ifade eder. Tasarımda üç kural önemlidir: bir düzenli ifade özel bir token tipinin tüm durumlarını kapsamalıdır; belirsizliği önlemek için <strong>en uzun eşleme</strong> seçilir; eş uzunluklu belirsizlikte <strong>ilk eşleme</strong> seçilir. <span class="ref">PD0, s. 41–42</span></p>
+
+  <h3>Sözdizim (syntax) analizi</h3>
+  <p>Sözdizim çözümleme, token dizisini ve dilin gramerini kullanarak bir <strong>ayrıştırma ağacı (parse tree)</strong> oluşturmayı amaçlar. Böylece programın sözdizimsel olarak doğru olup olmadığı belirlenir. Sözdizim çözümleyiciye <strong>ayrıştırıcı (parser)</strong> denir. Düzenli dillerin çözebildiği yapıların karmaşıklığı sınırlı olduğu için sözdizim analizinde yeterli değildir; iç içe parantezler gibi yapılar için gramer gerekir. <span class="ref">PD0, s. 48–49</span></p>
+
+  <p>Bağlam-bağımsız gramerler (CFG) birçok programlama dilini tanımada yeterlidir ve dört bileşenden oluşur: <strong>terminal semboller</strong>, <strong>terminal olmayan semboller</strong>, <strong>başlangıç sembolü</strong> ve <strong>üretim kuralları</strong>. Karşılıklı parantezleri tanıyan bir gramer şöyledir: <code>S → (S)S</code> ve <code>S → ε</code>. Burada tek terminal olmayan S, terminal semboller “(” ve “)”, başlangıç sembolü S’dir. <span class="ref">PD0, s. 51</span></p>
+
+  <p>Ayrıştırma ağacı iki temel teknikle oluşturulur. <strong>Yukarıdan aşağıya (top-down)</strong> yöntemde ağaç kökten başlar; amaç sembolden token’lara doğru üretimler seçilir. Çıkmaza girildiğinde <strong>geri izleme (backtracking)</strong> yapılır: en yakın tanımlamaya dönülür ve kullanılmamış bir üretim denenir. <strong>Aşağıdan yukarıya (bottom-up)</strong> yöntemde ise token dizisinden başlanır; olası terminal olmayanlar belirlenerek amaç sembole ulaşılır. <span class="ref">PD0, s. 52–55</span></p>
+
+  <figure class="narrow">
+    <img src="assets/parse-tree.svg" alt="sonuc = a + b * 10 için ayrıştırma ağacı">
+    <figcaption><span class="fig-no">Şekil 0.3</span><code>sonuc = a + b * 10</code> deyimi için ayrıştırma ağacı. Çarpma, toplamadan daha derinde olduğu için önce değerlendirilir. <span class="ref">PD0, s. 57</span></figcaption>
+  </figure>
+
+  <p><strong>Belirsizlik (ambiguity)</strong>, aynı karakter dizisi için iki veya daha fazla ayrıştırma ağacı oluşmasıdır. Örneğin <code>E → E + E | E - E | 0 | … | 9</code> grameriyle <code>2 - 3 + 4</code> dizisi iki farklı ağaçla türetilebilir. Belirsiz gramer bazen belirli hâle getirilebilir: <code>E → E + T | E - T | T</code> ve <code>T → 0 | … | 9</code> yazımı, işlem sırasını tek anlamlı kılar. <span class="ref">PD0, s. 61–63</span></p>
+
+  <div class="critical">
+    <span class="label">Kritik ayrım</span>
+    <p><strong>Sözdizim analizi</strong> “bu token dizisi dilin gramerine uyuyor mu?” sorusunu yanıtlar ve bir ağaç üretir. <strong>Anlam analizi</strong> ise bu ağacın üzerinde tipleri, tanımları ve işlemleri denetleyerek daha soyut bir program kurar. Ayrıştırma ağacının varlığı tek başına programın anlamlı olduğunu göstermez.</p>
+  </div>
+
+  <h3>Anlam (semantics) çözümleme</h3>
+  <p>Anlam çözümleme, sözdizim çözümleme sırasında oluşturulmuş ayrıştırma ağacını kullanarak soyut bir programlama dilinde bir program oluşturur. Anlam çözümleyici, her deyim için sözdizim çözümleyicinin belirlediği sözdizimine göre bir çevrim altyordamı çağırır. Ortaya çıkan <strong>soyut dil</strong>, üst düzeyli bir birleştirici diline benzer; kaynak dilin veri türleri ve işlemleriyle uyumlu, hayali bir makinenin makine dilidir ve kaynak ile amaç diller arasında bir ara adım oluşturur. <span class="ref">PD0, s. 66–67</span></p>
+
+  <p>Örnek olarak Pascal’daki <code>gcd</code> programının ayrıştırma ağacı, anlam analizinde sembol tablosuyla birlikte ele alınır. Sembol tablosunda her tanımlayıcı için indeks, sembol ve tip bilgisi tutulur: <code>INTEGER</code> ve <code>TEXTFILE</code> tipleri, <code>INPUT</code>/<code>OUTPUT</code> dosya değişkenleri, <code>GCD</code> programı, <code>I</code> ve <code>J</code> tamsayı değişkenleri. <span class="ref">PD0, s. 68–69</span></p>
+
+  <h3>Ara kod, eniyileme ve kod üretimi</h3>
+  <p>Ön uçtan çıkan soyut program, arka uçta eniyileme ve kod üretimi için kullanılır. Kaynak slayttaki örnekte <code>cur_time = start_time + cycles * 60</code> deyimi şu ara koda dönüşür: <code>temp1 := inttoreal(60)</code>, <code>temp2 := id3 * temp1</code>, <code>temp3 := id2 + temp2</code>, <code>id1 := temp3</code>. Eniyilemeden sonra sabit çarpım birleştirilir: <code>temp1 := id3 * 60.0</code>, <code>id1 := id2 + temp1</code>. Son olarak assembly düzeyinde <code>MOVF</code>, <code>MULF</code>, <code>MOVF</code>, <code>ADDF</code>, <code>MOVF</code> komutları üretilir. <span class="ref">PD0, s. 100–105</span></p>
+
+  <pre><code># Ara kod (eniyileme öncesi)
+temp1 := inttoreal(60)
+temp2 := id3 * temp1
+temp3 := id2 + temp2
+id1   := temp3
+
+# Eniyileme sonrası
+temp1 := id3 * 60.0
+id1   := id2 + temp1</code></pre>
+
+  <p><strong>Eniyileme (optimization)</strong>, derleyicinin arka ucunda kodu daha etkin yapmaya çalışan bileşendir. Amaç programı otomatik olarak değiştirerek daha hızlı çalışmasını, daha az bellek kaplamasını ve kaynakları daha tutumlu kullanmasını sağlamaktır. Eniyileme <strong>makine bağımsız</strong> (kaynak programdan soyut programa kadar herhangi bir ara biçimde) ve <strong>makine bağımlı</strong> (makine dilinin özelliklerini kullanarak) olmak üzere ikiye ayrılır. <span class="ref">PD0, s. 72–75</span></p>
+
+  <p>Kaynakta listelenen başlıca eniyilemeler şunlardır: ölü kod eliminasyonu, gereksiz kodların eliminasyonu, ortak alt ifadelerin eliminasyonu (common subexpression elimination), sabit katlama (constant folding), sabit yayma (constant propagation), ortak blok (basic block), gösterici eliminasyonu, inline fonksiyon açımı, döngü değişmezleri (loop invariants), döngü açımı (loop unrolling), döngü ayırması (loop splitting), yazmaç tahsisi (register allocation), komut çizelgelemesi (instruction scheduling) ve komut seçimi (instruction selection). <span class="ref">PD0, s. 76–92</span></p>
+
+  <div class="example">
+    <span class="label">İki temel eniyileme</span>
+    <p><strong>Sabit katlama:</strong> <code>x = 10 + y + 2;</code> → <code>x = 12 + y;</code> Sabit ifadelerin değeri çalışma zamanına bırakılmadan derleme zamanında hesaplanır. <br>
+    <strong>Ortak alt ifade:</strong> <code>sonuc = f1(a+b) + f2(a+b)</code> ifadesinde <code>a+b</code> iki kez hesaplanır; <code>c = a+b</code> ile bir kez hesaplanıp iki yerde kullanılması eniyilemedir. <span class="ref">PD0, s. 74, 80</span></p>
+  </div>
+
+  <p>Eniyileme, çalıştırılan deyimlerin sırasını kaynak koddan farklılaştırabilir; bu da hata ayıklamayı güçleştirir. Bu nedenle hata ayıklama sırasında eniyilemeyi kapatmak gerekir. Ayrıca okunabilirlik açısından, derleyicinin zaten yapabildiği eniyilemeleri programcının elle yapması kodun okunabilirliğini azaltabilir; kritik kodlar dışında okunabilirlik önceliklidir. <span class="ref">PD0, s. 75, 79</span></p>
+
+  <p><strong>Kod üretimi</strong> aşamasında arka uç, soyut dilde ifade edilen kodu alır ve belirli bir bilgisayar için makine kodunu oluşturur. Bir derleyici üreticisi, aynı ön ucu kullanan farklı arka uçlarla <strong>derleyici aileleri</strong> üretebilir; bir bilgisayar üreticisi de iyi bir arka uçtan sonra farklı kaynak dilleri ortak ara koda çeviren ön uçlarla birçok dili destekleyebilir. <span class="ref">PD0, s. 70–71</span></p>
+
+  <h3>Derleyici ve yorumlayıcı karşılaştırması</h3>
+  <table class="data">
+    <thead><tr><th style="width:22%">Ölçüt</th><th>Derleme</th><th>Yorumlama</th></tr></thead>
+    <tbody>
+      <tr><td>Zaman etkinliği</td><td>Her deyim için makine kodu bir kez üretilir; program kaç kez çalışırsa çalışsın kullanılır. Daha hızlı yürütme.</td><td>Deyim her çalıştırıldığında yeniden çevrilir; daha yavaş.</td></tr>
+      <tr><td>Bellek kullanımı</td><td>Makine kodu üretilir; kod boyutu büyüyebilir.</td><td>Yüksek düzeyli deyimler özgün biçiminde kalır; yorumlayıcı altprogramları bellekte tutulur. Az deyim kullanan programlarda bellek israfı olabilir.</td></tr>
+      <tr><td>Hata bildirimi</td><td>Tüm program çevrildikten sonra toplu bildirim; hata kaynağını bulmak daha zor.</td><td>Her komut sırayla ele alındığı için hata doğrudan ve hemen bildirilir.</td></tr>
+    </tbody>
+  </table>
+  <p class="tiny">Kaynak: <span class="ref">PD0, s. 106–111; PD1, s. 120–129</span>. Tablodaki “daha hızlı/daha yavaş” değerlendirmeleri kaynak slaytların genel eğilimini yansıtır; uygulamaya göre ayrıntılar değişebilir.</p>
+
+  <h3>Hibrit çevrim ve diğer çeviriciler</h3>
+  <p>Tam yorumlama ve tam derleme iki uç durumdur. Bazı diller iki yöntemi birleştirir: program, sanal bir makinenin yorumlayacağı bir ara koda çevrilir. Java bu yaklaşımı uygular; Java programları <strong>bytecode</strong> adı verilen ara koda dönüştürülür ve JVM üzerinde yorumlanır. Bu yöntem taşınabilir kod üretmek için kullanılır. <span class="ref">PD0, s. 112–113</span></p>
+
+  <p>Kaynakta ayrıca <strong>derleyici derleyicileri</strong> (compiler compilers; bir dil için derleyici üreten programlar), <strong>çapraz bütünleştiriciler</strong> (cross assemblers; bir assembly dilinden diğerine çeviri) ve <strong>çapraz derleyiciler</strong> (cross compilers) sayılır. <span class="ref">PD0, s. 114</span></p>
+
+  <div class="note">
+    <span class="label">Kaynak notu / tutarsızlık</span>
+    <p>PD0’da çapraz derleyici, “herhangi bir programlama dilinde yazılmış bir programın başka bir programlama diline çevrilmesi” olarak tanımlanır. Yaygın literatürde “cross compiler” genellikle bir platformda çalışıp başka bir hedef platform için kod üreten derleyiciyi anlatır. Bu kılavuz kaynak slaytın tanımını esas alır; terim sınavda bu tanımla sorulabilir.</p>
+  </div>
+
+  <p class="small"><strong>Kaynakta ödev:</strong> PD0 s. 122’de Lex &amp; Yacc, Flex &amp; Bison konularının araştırılması istenir. Bu bir sınav sorusu değil, kaynakta verilen araştırma görevidir; kılavuzda yalnızca kapsam bilgisi olarak anılmıştır.</p>
+
+  <h2 id="s05"><span class="n">0.5</span>Programlama dillerinin yazılım yaşam döngüsündeki yeri</h2>
+
+  <p>Programlama dilleri, yazılım mühendisliğinin temelini oluşturan <strong>yazılım geliştirme yaşam döngüsünün (SDLC)</strong> gerçekleştirim aşamasında kullanılır. Kaynak, yaşam döngüsünü beş aşamada ele alır. <span class="ref">PD0, s. 115–121</span></p>
+
+  <figure>
+    <img src="assets/sdlc.svg" alt="Yazılım geliştirme yaşam döngüsünün beş aşaması">
+    <figcaption><span class="fig-no">Şekil 0.4</span>Beş aşamalı yazılım geliştirme yaşam döngüsü. Dil seçimi gerçekleştirimde yapılır; etkisi bakım aşamasına kadar uzanır. <span class="ref">PD0, s. 116–121</span></figcaption>
+  </figure>
+
+  <table class="data">
+    <thead><tr><th style="width:24%">Aşama</th><th>Ne yapılır? / dilin rolü</th></tr></thead>
+    <tbody>
+      <tr><td>1. Gereksinimlerin analizi ve belirlenmesi</td><td>Gereksinimler, kısıtlar ve hedefler belgelenir; dil seçimi henüz yapılmaz.</td></tr>
+      <tr><td>2. Sistem tasarımı</td><td>Gereksinimler donanım/yazılım bileşenlerine ayrılır; mimari ve modüller belirlenir. Tasarım yöntemi anlaşılabilirlik ve değiştirilebilirliği etkiler.</td></tr>
+      <tr><td>3. Gerçekleştirim ve birim sınama</td><td>Tasarıma uygun kod yazılır; her birim doğrulanır. Dilin okunabilirliği, yazılabilirliği ve kütüphaneleri burada öne çıkar.</td></tr>
+      <tr><td>4. Sınama</td><td>Birimler birleştirilir; sistemin gereksinimlere uygunluğu test edilir ve sistem teslim edilir.</td></tr>
+      <tr><td>5. Bakım</td><td>Hatalar düzeltilir, yeni gereksinimler eklenir. Kaynak, bunu en uzun ve en çok kaynak tüketen aşama olarak niteler; okunabilirlik bakımı doğrudan etkiler.</td></tr>
+    </tbody>
+  </table>
+
+  <p><strong>Bölüm 0’ın ana çizgisi:</strong> Programlama dili yalnızca kod yazma aracı değil, problem çözme ve soyutlama aracıdır. Dilin düzeyi makineye yakınlığı, çevrim yöntemi çalışma zamanını, okunabilirlik ise bakım maliyetini belirler. <span class="ref">PD0, s. 115–121</span></p>
+
+  <h3>Bölüm 0’ın kritik ayrımları</h3>
+  <table class="data" style="font-size:7.9pt;">
+    <thead><tr><th style="width:30%">Ayrım</th><th>Ana fikir</th></tr></thead>
+    <tbody>
+      <tr><td>Sözdizimi / anlambilim</td><td>Biçimsel geçerlilik ile anlam ayrıdır; parser ağaç kurar, anlam çözümleyici tipleri ve işlemleri denetler.</td></tr>
+      <tr><td>Derleyici / yorumlayıcı</td><td>Derleyici çeviriyi yürütmeden ayırır ve makine kodu üretir; yorumlayıcı deyimi çalışma sırasında çevirip yürütür.</td></tr>
+      <tr><td>Assembler / derleyici</td><td>Assembler bire bir çevirir; derleyici bir yüksek düzeyli deyimi birçok makine komutuna çevirir.</td></tr>
+      <tr><td>Ön uç / arka uç</td><td>Ön uç dile bağımlıdır ve ara kod üretir; arka uç makineye bağımlıdır; eniyileme ve kod üretimi yapar.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ==================== B. BÖLÜM 1 ==================== -->
+<section class="chapter" id="ch1">
+  <div class="chapter-open">
+    <div class="meta"><span class="left">B · Ayrıntılı inceleme</span><span class="right">Kaynak: PD1 · 137 slayt</span></div>
+    <h1 class="chapter-title" data-running="Bölüm 1 · Giriş"><span class="num">Bölüm 1</span>Giriş</h1>
+    <p class="chapter-lead">Dilleri neye göre değerlendiririz? Okunabilirlik, yazılabilirlik, güvenilirlik ve maliyet neden birbirleriyle çelişir? Von Neumann mimarisi dilleri nasıl şekillendirir; paradigmalar ve implementasyon yöntemleri bu tabloyu nasıl tamamlar?</p>
+    <div class="source">Kaynak aralığı: PD1, s. 1–137 · Alt bölümler: 1.1–1.8</div>
+  </div>
+
+  <h2 id="s11"><span class="n">1.1</span>Programlama dilleri kavramlarını öğrenmenin nedenleri</h2>
+
+  <p>PD1, derse “neden programlama dilleri kavramlarını öğreniyoruz?” sorusuyla başlar. Kaynak altı gerekçe sıralar: fikirleri ifade etme yeteneğini artırmak, uygun dilleri seçebilme bilinci geliştirmek, yeni diller öğrenme yeteneği kazanmak, implementasyonun önemini anlamak, bilinen dilleri daha iyi kullanmak ve bilgisayar biliminde kapsamlı ilerleme sağlamak. <span class="ref">PD1, s. 3</span></p>
+
+  <h3>Fikirleri ifade etme yeteneği</h3>
+  <p>Düşüncelerimizin derinliği, onları ilettiğimiz dilin ifade gücünden etkilenir. İnsanların sözlü veya yazılı olarak tanımlayamadığı yapıları kavramlaştırması zordur. Programcılar da benzer biçimde kullandıkları dilin kontrol yapıları, veri yapıları ve soyutlamalarıyla sınırlıdır. Farklı dillerin özelliklerini bilmek bu sınırları genişletir. <span class="ref">PD1, s. 4–6</span></p>
+
+  <p>Bir programcı zorunlu olarak belirli bir dili kullanıyorsa, o dilde olmayan bir özelliği <strong>benzetim (simülasyon)</strong> yoluyla gerçekleştirebilir. Örneğin FORTRAN 90’da substring arama fonksiyonu <code>INDEX</code>’tir; Pascal’da benzer bir fonksiyon yoktur, ancak programcı bu işi bir altprogram yazarak çözebilir. Ancak benzetim, özelliği doğrudan barındıran dile göre daha hantal ve karmaşıktır; seçim özgürse o özelliği gerçekten destekleyen dil tercih edilmelidir. <span class="ref">PD1, s. 7</span></p>
+
+  <h3>Dil seçimi, öğrenme ve implementasyon</h3>
+  <ul class="clean">
+    <li><strong>Dil seçimi:</strong> Bir programcının öğrendiği dilin ömrü uzun olmayabilir veya yeni özellikleri kaçırabilir. Farklı dillerin kavramlarını bilen programcı, yeni projede bildiği dili varsayılan olarak seçmek yerine en uygun dili değerlendirebilir. <span class="ref">PD1, s. 8</span></li>
+    <li><strong>Yeni dil öğrenme:</strong> Programlama genç ve sürekli gelişen bir alandır. Kavramları bilen bir programcı, yeni dilde bu kavramların nasıl birleştirildiğini daha hızlı anlar. Veri soyutlamasını bilen biri Java’daki soyut veri tiplerini; nesne tabanlı programlamayı bilen biri C++ veya Java’yı daha çabuk öğrenir. <span class="ref">PD1, s. 9–10</span></li>
+    <li><strong>İmplementasyon:</strong> Gerçekleştirim sorunları dil tasarımını etkiler. İmplementasyonu bilen programcı hataları daha kolay bulur, dil yapılarının makinede nasıl çalıştığını canlandırabilir ve aynı işi yapan yapılar arasında daha verimli olanı seçebilir. <span class="ref">PD1, s. 11–12</span></li>
+    <li><strong>Bilinen dilleri daha iyi kullanma:</strong> Diller büyük ve karmaşıktır; programcılar genellikle tüm özelliklerini bilmez. Kavram bilgisi, kullanılmayan özelliklerin öğrenilmesini kolaylaştırır. <span class="ref">PD1, s. 13</span></li>
+    <li><strong>Bilgisayar biliminde ilerleme:</strong> Popüler diller her zaman en iyi tasarım değildir. ALGOL 60’ın FORTRAN’ın yerini alacağı düşünülmüş, ancak okuma/yazma karmaşıklığı bu beklentiyi zayıflatmıştır. Kaynak, “Java sonsuza kadar kullanılacak mı?” sorusunu da sorar. <span class="ref">PD1, s. 14</span></li>
+  </ul>
+
+  <div class="critical">
+    <span class="label">Kritik ayrım</span>
+    <p>Kavram bilgisi bir dili <em>öğretmez</em>; dil öğrenmeyi ve dil seçmeyi <em>hızlandırır</em>. Bu dersin amacı da belirli bir dilin sözdizimini ezberletmek değil, dillerin ortak yapılarını karşılaştırmaktır.</p>
+  </div>
+
+  <h2 id="s12"><span class="n">1.2</span>Programlama alanları</h2>
+
+  <p>Farklı uygulama alanları, farklı dil özelliklerini öne çıkarır. Kaynak beş alanı ayırır: bilimsel uygulamalar, ticari uygulamalar, yapay zekâ, sistem programlama ve web yazılımı. <span class="ref">PD1, s. 15–16</span></p>
+
+  <table class="data">
+    <thead><tr><th style="width:19%">Alan</th><th>Baskın gereksinim</th><th>Tipik veri / özellik</th><th style="width:17%">Örnek dil</th></tr></thead>
+    <tbody>
+      <tr><td>Bilimsel</td><td>Sayısal hesaplama, çok sayıda kayan nokta işlemi</td><td>Diziler, matrisler; basit veri yapıları</td><td>Fortran</td></tr>
+      <tr><td>Ticari</td><td>Veri işleme, rapor üretme</td><td>Ondalık sayılar, karakterler</td><td>COBOL</td></tr>
+      <tr><td>Yapay zekâ</td><td>Sembol işleme, esneklik</td><td>Sayılar yerine semboller; bağlı listeler; çalışma sırasında üretilen kod</td><td>LISP, PROLOG</td></tr>
+      <tr><td>Sistem</td><td>Verimlilik, donanıma erişim</td><td>Düşük seviyeli özellikler; assembly yaygın</td><td>C (UNIX C ile yazılmıştır)</td></tr>
+      <tr><td>Web</td><td>İşaretleme + betik + genel amaçlı kod</td><td>XHTML, PHP, Java gibi seçmeci/derlemeci koleksiyon</td><td>XHTML, PHP, Java</td></tr>
+    </tbody>
+  </table>
+
+  <p>Bilimsel uygulamalar bilgisayarların ilk kullanım alanıydı; bu nedenle ilk diller sayısal programlama özelliklerini vurguladı. Ticari uygulamalar veri işleme ile ikinci sırada gelişti. Yapay zekâda sayılar yerine semboller ve bağlı listeler öne çıkar; bazı uygulamalarda kod segmentleri program çalışırken üretilir. Sistem programlamada işletim sistemleri ve destek araçları yazılır; sürekli kullanım nedeniyle verimlilik gerekir, bu yüzden assembly ve düşük seviyeli özellikler önemlidir. Web yazılımı ise işaretleme, betik ve genel amaçlı dillerin bir arada kullanıldığı melez bir alandır. <span class="ref">PD1, s. 15–16</span></p>
+
+  <h2 id="s13"><span class="n">1.3</span>Dil değerlendirme kriterleri</h2>
+
+  <p>Bir programlama dili dört temel ölçütle değerlendirilir: <strong>okunabilirlik (readability)</strong>, <strong>yazılabilirlik (writability)</strong>, <strong>güvenilirlik (reliability)</strong> ve <strong>maliyet (cost)</strong>. Bu ölçütler birbirinden bağımsız değildir; birini iyileştirmek diğerini zayıflatabilir. <span class="ref">PD1, s. 17</span></p>
+
+  <div class="definition">
+    <span class="label">Dört temel ölçüt</span>
+    <p><strong>Okunabilirlik:</strong> Programların okunma ve anlaşılma kolaylığı. <strong>Yazılabilirlik:</strong> Bir dilin program yazmada kullanılabilme kolaylığı. <strong>Güvenilirlik:</strong> Programın şartlara uygunluğu; istenen görevi doğru yapması. <strong>Maliyet:</strong> Eğitim, yazma, derleme, yürütme, bakım ve implementasyon dahil toplam maliyet. <span class="ref">PD1, s. 17</span></p>
+  </div>
+
+  <table class="data">
+    <thead><tr><th style="width:36%">Karakteristik</th><th class="center">Okunabilirlik</th><th class="center">Yazılabilirlik</th><th class="center">Güvenilirlik</th></tr></thead>
+    <tbody>
+      <tr><td>Sadelik (simplicity)</td><td class="center">✓</td><td class="center">✓</td><td class="center">✓</td></tr>
+      <tr><td>Kontrol yapıları</td><td class="center">✓</td><td class="center">✓</td><td class="center">✓</td></tr>
+      <tr><td>Veri tipleri ve yapıları</td><td class="center">✓</td><td class="center">✓</td><td class="center">✓</td></tr>
+      <tr><td>Sözdizimi tasarımı</td><td class="center">✓</td><td class="center">✓</td><td class="center">✓</td></tr>
+      <tr><td>Soyutlama desteği</td><td class="center">—</td><td class="center">✓</td><td class="center">✓</td></tr>
+      <tr><td>İfade gücü (expressivity)</td><td class="center">—</td><td class="center">✓</td><td class="center">✓</td></tr>
+      <tr><td>Tip kontrolü</td><td class="center">—</td><td class="center">—</td><td class="center">✓</td></tr>
+      <tr><td>İstisna yönetimi</td><td class="center">—</td><td class="center">—</td><td class="center">✓</td></tr>
+      <tr><td>Sınırlı aliasing (restricted aliasing)</td><td class="center">—</td><td class="center">—</td><td class="center">✓</td></tr>
+    </tbody>
+  </table>
+  <p class="tiny">Kaynak slayttaki ilişki matrisi. <span class="ref">PD1, s. 18, 37, 48</span></p>
+
+  <h3>Okunabilirlik</h3>
+  <p>Okunabilirlik, bir dilin değerlendirilmesinde en önemli ölçütlerden biridir. Okunabilir programlar hata olasılığını azaltır ve bakımı kolaylaştırır. Dilin kavramları, yapıları ve sözdizimi okunabilirliği doğrudan etkiler. Beş alt faktör sayılır: genel kolaylık, ortogonallik, kontrol ifadeleri, veri tipleri/yapıları ve sözdizimi tasarımı. <span class="ref">PD1, s. 19–20</span></p>
+
+  <p><strong>Genel kolaylık:</strong> Yönetimi kolay, kullanışlı özellikler kümesi okunabilirliği artırır. Aynı işi yapmanın birden çok yolu (<strong>feature multiplicity</strong>) istenmez; örneğin Java’da bir değişkeni artırmanın <code>Count++</code>, <code>++Count</code>, <code>Count+=1</code> gibi yolları vardır. Operatör aşırı yüklemesi de (operator overloading) okuyucuyu belirsizliğe düşürebilir. <span class="ref">PD1, s. 21–22</span></p>
+
+  <p><strong>Ortogonallik (orthogonality):</strong> Az sayıda ilkel yapı ve bunların az sayıda yolla birleştirilmesi; her mümkün kombinasyonun kurallara uygun olmasıdır. Dört ilkel tip ve array/pointer gibi birleştiricilerle çok sayıda yapı elde edilebilir. VAX’ın tek <code>ADDL</code> komutuyla kaydedici ve bellek operandlarını kullanabilmesi, IBM’in ayrı <code>A</code>/<code>AR</code> komutlarına göre daha ortogonal bir tasarımdır. <span class="ref">PD1, s. 24–25</span></p>
+
+  <p>Ortogonallik dili öğrenmeyi ve kodlamayı kolaylaştırır; istisna kurallarını azaltır. Ancak aşırı ortogonallik de sakıncalıdır: derleyici geliştirmeyi zorlaştırabilir ve hata yapma olasılığını artırabilir. Fonksiyonel diller (örneğin Lisp) basit ve ortogonal yapılarıyla bilinir; değişken ve atama yerine fonksiyon uygulamasına dayanırlar. <span class="ref">PD1, s. 26–28</span></p>
+
+  <p><strong>Kontrol ifadeleri:</strong> İyi organize edilmiş kontrol deyimleri (örneğin <code>while</code>) okunabilirliği artırır. <strong>Veri tipleri ve yapıları:</strong> <code>Timeout=true</code>, <code>Timeout=1</code>’e göre anlamı netleştirir. <strong>Sözdizimi tasarımı:</strong> Değişken adı uzunluğu, anahtar kelimeler ve anlam–biçim ilişkisi belirleyicidir. Fortran 77’de adlar 6 karakterle sınırlıdır; Fortran 95’te <code>Do</code>/<code>End</code> değişken adı olabilir; C’de <code>static</code> kullanıma göre farklı anlam taşır; <code>grep</code> ise işlevini çağrıştırmaz. <span class="ref">PD1, s. 29–36</span></p>
+
+  <h3>Yazılabilirlik</h3>
+  <p>Yazılabilirlik, bir program yazılırken dilin ne kadar kolay kullanıldığının ölçüsüdür. Okunabilirliği etkileyen faktörler (basitlik, ortogonallik, veri tipleri/yapıları, sözdizimi) yazılabilirliği de etkiler. Yazılabilirlik uygulamaya göre değişir: grafik arayüzlü bir program için Visual Basic, C’ye göre daha yazılabilir olabilir; bir işletim sistemi için C, Visual Basic’e göre daha uygundur. <span class="ref">PD1, s. 38–39</span></p>
+
+  <p>Üç alt faktör öne çıkar: <strong>basitlik ve ortogonallik</strong>, <strong>soyutlama desteği</strong> ve <strong>anlamlılık/açıklayıcılık (expressivity)</strong>. Çok fazla farklı yapı programcının öğrenme yükünü artırır; az sayıda ilkel yapı ve yasal kombinasyonlar yazılabilirliği artırır. Ancak aşırı ortogonallik hataları bulmayı zorlaştırabilir. <span class="ref">PD1, s. 40–41</span></p>
+
+  <p><strong>Soyutlama</strong>, karmaşık yapı veya işlemleri ayrıntıları göz ardı ederek tanımlama ve kullanma yeteneğidir. Proses soyutlamaya en iyi örnek altprogramlardır; veri soyutlamaya örnek olarak Fortran 77’de ikili ağaç (binary tree) tanımlamak verilebilir. Fortran 77 pointer ve heap tabanlı dinamik bellek yönetimini desteklemediği için bu yapı zor ve okunaksızdır; Java’da iki pointer ve bir integer ile aynı yapı çok daha kolay kurulur. Sınıf yapısı, proses ve veri soyutlamasını birleştirir. <span class="ref">PD1, s. 42–44</span></p>
+
+  <p><strong>Anlamlılık (expressivity):</strong> İşlemleri belirtmenin elverişli yollarını kullanmak yazılabilirliği artırır. Birçok modern dilin <code>for</code> ifadesi içermesi; C’de <code>count++</code> ifadesinin <code>count=count+1</code>’e göre daha açıklayıcı olması örnek verilebilir. <span class="ref">PD1, s. 45</span></p>
+
+  <h3>Güvenilirlik</h3>
+  <p>Bir program tüm şartlar altında istenen görevi doğru yapıyorsa güvenilirdir. Bir dilin güvenilirliği, o dille geliştirilen programların güvenilir olmasıdır. Güvenilirliği belirleyen başlıca faktörler <strong>tip kontrolü</strong>, <strong>istisna yönetimi</strong>, <strong>aliasing</strong> ve okunabilirlik/yazılabilirliktir. <span class="ref">PD1, s. 46–47</span></p>
+
+  <ul class="clean">
+    <li><strong>Tip kontrolü:</strong> Programın derlenmesi veya çalışması sırasında tip hatalarının test edilmesidir. Derleme zamanında tip kontrolü daha az maliyetli olduğu için tercih edilir; çalışma zamanı kontrolü maliyeti artırır. Erken tespit, hataların erken düzeltilmesini sağlar. <span class="ref">PD1, s. 49–50</span></li>
+    <li><strong>İstisna yönetimi:</strong> Çalışma zamanı hatalarını yakalama ve düzeltme önlemleridir. Ada, C++ ve Java bu özelliği içerir; C ve Fortran gibi diller içermez. <span class="ref">PD1, s. 51</span></li>
+    <li><strong>Aliasing:</strong> Aynı bellek hücresine erişmek için iki veya daha fazla farklı ismin tanımlanmasıdır. Tehlikeli kabul edilir; bazı diller bazı aliasing türlerine izin verir (örneğin iki pointer aynı değişkeni gösterebilir). Programcının dikkatli olması gerekir. <span class="ref">PD1, s. 52</span></li>
+    <li><strong>Okunabilirlik ve yazılabilirlik:</strong> Bir algoritmayı ifade etmenin doğal yollarını desteklemeyen dil, doğal olmayan ve güvenilirliği azalmış yaklaşımlara yol açar. Okunabilirlik, yazılabilirliği; yazılabilirlik de güvenilirliği etkiler. Ayrıca okunabilirlik, bakım ve onarımı etkilediği için güvenilirliği doğrudan etkiler. <span class="ref">PD1, s. 53</span></li>
+  </ul>
+
+  <h3>Maliyet</h3>
+  <p>Maliyet, dilin toplam kullanım maliyetidir. Kaynak yedi bileşen sayar: programcıların eğitimi (basitlik/ortogonallik ve deneyim), program yazma (yazılabilirlik ve uygulamaya yakınlık), derleme (örneğin Ada’nın ilk sürümlerinde yüksekti, sonra azaldı), yürütme (çalışma zamanı tip kontrolü gibi ek maliyetler), implementasyon sistemi (ücretsiz derleyiciler, gereken donanım), güvenilirlik (zayıf güvenilirlik yüksek maliyet doğurur; uzay ve kriptoloji örnekleri) ve bakım. <strong>Bakım, toplam maliyet içinde en yüksek paya sahiptir</strong>; yazılım projelerinde odak kodlamadan bakıma kaymıştır. <span class="ref">PD1, s. 54–56</span></p>
+
+  <p>Diğer ölçütler <strong>taşınabilirlik (portability)</strong>, <strong>genellik (generality)</strong> ve <strong>iyi-tanımlanmışlık (well-definedness)</strong> olarak sıralanır. Taşınabilirlik, programların bir implementasyondan diğerine taşınabilme kolaylığıdır ve dilin standartlaşma derecesine bağlıdır; BASIC’in standartlaşması zayıftır. Standartlaşma pahalı ve zaman alıcıdır: C++ standardı için 1989’da kurulan komite 1998’de çalışmasını tamamlamıştır. Genellik, dilin çok çeşitli uygulamalarda kullanılabilmesi; iyi-tanımlanmışlık ise resmî tanımın kesin ve tam olmasıdır. <span class="ref">PD1, s. 57–58</span></p>
+
+  <h2 id="s14"><span class="n">1.4</span>Dil tasarımını etkileyen faktörler</h2>
+
+  <p>Dil tasarımını iki ana faktör etkiler: <strong>bilgisayar mimarisi</strong> ve <strong>programlama tasarım yöntemleri</strong>. <span class="ref">PD1, s. 59</span></p>
+
+  <h3>Von Neumann mimarisi</h3>
+  <p>Son 50 yılda popüler olan dillerin çoğu, veri ve komutları tek bir depolama biriminde tutan <strong>Von Neumann mimarisi</strong> dikkate alınarak tasarlanmıştır. Bu mimaride bellek ile CPU ayrıdır; komutlar ve veri bellekten CPU’ya iletilir, işlem sonucu belleğe geri gönderilir. 1940’tan sonra üretilen bilgisayarların çoğunda bu mimari (Princeton mimarisi) hâkimdir. <span class="ref">PD1, s. 60–61</span></p>
+
+  <figure class="narrow">
+    <img src="assets/von-neumann.svg" alt="Von Neumann mimarisi: bellek, CPU ve giriş/çıkış">
+    <figcaption><span class="fig-no">Şekil 1.1</span>Von Neumann mimarisi. Komutlar ve veri aynı bellekte tutulur; CPU getir–çöz–yürüt döngüsüyle çalışır. <span class="ref">PD1, s. 61–67</span></figcaption>
+  </figure>
+
+  <p>Bu mimari, <strong>imperative (zorunlu/komut merkezli)</strong> dillerin temel yapılarını açıklar: değişkenler bellek hücrelerini modeller; atama ifadeleri bellek ile CPU arasındaki iletimi (piping) temsil eder; iterasyon, bu mimaride tekrarı gerçekleştirmenin en verimli yoludur. İfadelerdeki operatörler CPU tarafından bellekten alınır, işlemden geçtikten sonra sonuç belleğe geri gönderilir; bu, atamanın sol tarafıdır. <span class="ref">PD1, s. 63–64</span></p>
+
+  <p>Von Neumann bilgisayarlarda iterasyon hızlıdır, çünkü komutlar bellekte birbirine yakın hücrelerdedir ve aynı komut döngüde defalarca çağrılır. Bazı uygulamalar için özyineleme daha doğal olsa da bu mimaride iterasyon genellikle daha verimlidir. Komutların bellekte bulunup CPU’da işlenmesi <strong>fetch–execute</strong> işlemi olarak adlandırılır; sıradaki komutun adresi <strong>program sayacı (program counter)</strong> ile sağlanır. Bellek ile işlemci arasındaki bağlantı hızı bilgisayarın hızını sınırlar; buna <strong>Von Neumann darboğazı (bottleneck)</strong> denir. <span class="ref">PD1, s. 65–67, 119</span></p>
+
+  <div class="example">
+    <span class="label">Fetch–execute döngüsü</span>
+    <p>Program sayacını başlangıç durumuna getir. Tekrarla: program sayacının gösterdiği komutu bellekten getir (fetch); sayacı bir artır; komutu çöz (decode); komutu çalıştır (execute). <span class="ref">PD1, s. 67, 118</span></p>
+  </div>
+
+  <p>Fonksiyonel dillerde imperative dillerdeki değişkenler, atama ifadeleri ve iterasyonlar yoktur; hesaplamalar fonksiyonların doğrudan değerlere uygulanmasıyla yapılır. John Backus 1978’de, fonksiyonel dillerin birçok yararlı özelliğine rağmen imperative dillerin yerini almasının günümüzde olası olmadığını; bunun ancak fonksiyonel dilleri verimli işleyen bir Von Neumann mimarisi tasarlanırsa değişebileceğini söyler. Başka bir grup ise imperative dillerin daha doğal olduğunu savunur. <span class="ref">PD1, s. 68–69</span></p>
+
+  <h3>Programlama tasarım yöntemlerinin etkisi</h3>
+  <table class="data">
+    <thead><tr><th style="width:22%">Dönem</th><th>Eğilim</th><th style="width:34%">Dile yansıması</th></tr></thead>
+    <tbody>
+      <tr><td>1950’ler–1960’lar başı</td><td>Basit uygulamalar; makine verimliliği</td><td>Donanıma yakın, verimli diller</td></tr>
+      <tr><td>1960’ların sonu</td><td>İnsan verimliliği öne çıkar</td><td>Okunabilirlik, iyi kontrol yapıları, yapısal programlama, yukarıdan aşağıya tasarım, adım adım iyileştirme</td></tr>
+      <tr><td>1970’ler</td><td>Donanım maliyeti düşer, yazılım maliyeti artar; süreç odaklılıktan veri odaklılığa geçiş</td><td>Veri soyutlama</td></tr>
+      <tr><td>1980’lerin ortası</td><td>Nesneye yönelik programlama</td><td>Veri soyutlama + miras + polimorfizm; CLOS, Prolog++ gibi melezler</td></tr>
+    </tbody>
+  </table>
+  <p class="tiny">Kaynak: <span class="ref">PD1, s. 70–71</span>. İşleme dayalı programlama hiçbir zaman tamamen terk edilmedi; eşzamanlı (concurrent) dillerde hâlâ tercih edilir (Ada, C#, Java).</p>
+
+  <h2 id="s15"><span class="n">1.5</span>Dil kategorileri ve programlama paradigmaları</h2>
+
+  <p>Bir <strong>paradigma</strong>, bir grubun ortak kararlarını temsil eden ve konuya yeni bir bakış sağlayan kavramsal şemadır. Programlama paradigmaları, programcının problemlere çözüm üretme biçimini etkiler; farklı stiller getirir ve algoritmalara bakışı değiştirir. <span class="ref">PD1, s. 73</span></p>
+
+  <p>Belirli bir paradigmayı destekleyen dillere <strong>paradigma-yönelik diller</strong> denir. Programlama dilleri ile paradigmalar arasında bire bir ilişki yoktur; bazı diller birden çok paradigmayı destekler. Örneğin C++ hem imperative hem nesneye yönelik programlamayı destekler. Tasarım yöntemi ile dil paradigması aynıysa, tasarım–programlama eşlemesi kolaylaşır; aynı paradigmadaki bir dili öğrenmek diğerini öğrenmeyi de kolaylaştırır. <span class="ref">PD1, s. 74–75</span></p>
+
+  <table class="data">
+    <thead><tr><th style="width:17%">Paradigma</th><th>Ana fikir</th><th style="width:30%">Tipik diller</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Imperative</strong></td><td>Program bir dizi işlemdir; değişkenler ve prosedürlerle bellek güncellenir. Deyimler değişkenler üzerinden iletişim kurar.</td><td>C, FORTRAN, PL/I, Pascal, COBOL, Ada</td></tr>
+      <tr><td><strong>Nesneye yönelik</strong></td><td>Nesneler; veri ve işlemler tek bir birimde; veri soyutlama, miras, geç bağlama.</td><td>Simula, Smalltalk, C++, Java, C#</td></tr>
+      <tr><td><strong>Fonksiyonel</strong></td><td>Hesaplama, fonksiyonların değerlere uygulanmasıdır; fonksiyonlar başka fonksiyonları çağırabilir veya parametre olabilir.</td><td>Lisp, Scheme, ML, Haskell</td></tr>
+      <tr><td><strong>Mantıksal</strong></td><td>Ne yapılacağı belirtilir; kurallar ve gerçekler üzerinden sorgu yanıtlanır. Kural sırası belirli değildir.</td><td>Prolog</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Aynı problemin dört paradigma ile çözümü</h3>
+  <p>Kaynak, Dexter’in Mimi’ye çiçek göndermesi problemini dört paradigmayla karşılaştırır. Bu örnek, paradigmaların yalnızca sözdizimi değil, <em>probleme bakış</em> farkı olduğunu gösterir. <span class="ref">PD1, s. 91–99</span></p>
+
+  <table class="data">
+    <thead><tr><th style="width:20%">Yaklaşım</th><th>Çözümün biçimi</th></tr></thead>
+    <tbody>
+      <tr><td>Imperative</td><td>Adım adım işlemler: para al, sakla, çiçekçiye öde, çiçeği al, sakla, gönder.</td></tr>
+      <tr><td>Nesneye yönelik</td><td>Dexter, banka memuru, çiçekçi, dağıtımcı ve Mimi arasındaki nesne ilişkileri.</td></tr>
+      <tr><td>Fonksiyonel</td><td>Fonksiyon bileşimi: <code>Dagit(Satinal(Cek()))</code>; para çekme, satın alma, dağıtma.</td></tr>
+      <tr><td>Mantıksal</td><td>Sorgu: <code>CicekAlir(Mimi)?</code>; kurallar ve gerçekler üzerinden yanıt aranır. Eksik gerçek varsa yanıt “hayır” olur.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Diğer kategoriler</h3>
+  <p>Kaynak, dört temel paradigmanın yanında <strong>işaretleme (markup)</strong>, <strong>görsel (visual)</strong>, <strong>betik (scripting)</strong>, <strong>hibrit</strong> ve <strong>özel amaçlı</strong> dilleri sayar. XHTML ve XML işaretleme dilleridir; tek başına programlama dili değildir. Visual diller (örneğin VB.NET) sürükle-bırak mantığıyla grafik arayüz tasarlamaya yarar ve imperative dillerin alt kategorisi olarak görülür. Scripting diller (Perl, JavaScript, Ruby) de imperative dillerdir. Hibrit diller, işaretleme dili içine programlama yetenekleri serpiştirilmiş yapılardır (JSTL, XSLT). Özel amaçlı dillere RPG (ticari raporlar), APT (programlanabilir makineler) ve GPSS (sistem simülasyonu) örnek verilir. <span class="ref">PD1, s. 90, 100–104</span></p>
+
+  <h2 id="s16"><span class="n">1.6</span>Dil tasarımında verilen ödünler</h2>
+
+  <p>Dil tasarımındaki ölçütler birbiriyle çelişebilir. Hoare (1973), çok önemli birçok kriterin birbirleriyle çeliştiğini ve bu çelişkili kriterlerle iyi bir dil tasarlamanın zor bir mühendislik görevi olduğunu söyler. <span class="ref">PD1, s. 105</span></p>
+
+  <table class="data">
+    <thead><tr><th style="width:26%">Ödün</th><th>Örnek</th><th style="width:24%">Sonuç</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Güvenilirlik ↔ yürütme maliyeti</strong></td><td>Java tüm dizi indekslerinin aralıkta olup olmadığını kontrol eder; C etmez.</td><td>Java daha güvenilir ama daha yavaş; C daha hızlı ama daha az güvenli.</td></tr>
+      <tr><td><strong>Okunabilirlik ↔ yazılabilirlik</strong></td><td>APL çok güçlü operatörler ve yeni sembollerle karmaşık hesaplamaları kısa yazar; okunabilirlik azalır.</td><td>APL tasarımcıları yazılabilirlik için okunabilirlikten ödün vermiştir. McCracken: “4 satırdan oluşan APL programını anlamak için 4 saat uğraştım.”</td></tr>
+      <tr><td><strong>Yazılabilirlik ↔ güvenilirlik</strong></td><td>C++ pointer’ları çok güçlü ve esnektir; güvenilirliği azdır.</td><td>Java’da pointer kavramı yoktur; güvenilirlik için esneklikten ödün verilmiştir.</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="s17"><span class="n">1.7</span>İmplementasyon yöntemleri</h2>
+
+  <p>Bilgisayarın iki temel bileşeni <strong>dahili hafıza</strong> ve <strong>işlemci</strong>dir. Hafıza programları ve verileri saklar; işlemci mantıksal ve aritmetik işlemleri yapar. İşlemcinin yaptığı işlemleri belirten komutlara <strong>makrokomut</strong> denir; bunlar <strong>mikrokomut</strong> kümelerinden oluşur. <span class="ref">PD1, s. 108</span></p>
+
+  <p>Üç temel implementasyon yöntemi vardır: <strong>derleme</strong>, <strong>saf yorumlama</strong> ve <strong>hibrit implementasyon</strong>. <span class="ref">PD1, s. 109</span></p>
+
+  <p>Yöntemler, çevirinin yürütmeden ayrılma derecesine göre sıralanır: derleme → hibrit/JIT → saf yorumlama. <span class="ref">PD1, s. 109–124</span></p>
+
+  <h3>Derleme</h3>
+  <p>Derleme, yüksek düzeyli programı makine koduna çevirir. Çeviri yavaş, yürütme hızlıdır. Derleme işlemi birkaç evreden oluşur: sözcüksel analiz (karakterleri sözcüksel birimlere çevirir), sözdizim analizi (birimleri gramer/ayrıştırma ağaçlarına dönüştürür), anlamsal analiz (ara kod üretir) ve kod üretimi (makine kodu üretir). <span class="ref">PD1, s. 112</span></p>
+
+  <p>Geleneksel çevirici hattı şöyledir: iskelet kaynak program → önişlemci → değiştirilmiş kaynak program → derleyici → hedef assembly programı → assembler → yeniden yerleştirilebilir makine kodu → loader/linker (kütüphane ve nesne dosyalarıyla) → saf makine kodu. <span class="ref">PD1, s. 111</span></p>
+
+  <h3>Saf yorumlama</h3>
+  <p>Saf yorumlamada çeviri yoktur; program bir yorumlayıcı tarafından satır satır yorumlanır. Uygulaması daha kolaydır ve çalışma zamanı hataları hemen gösterilir; ancak derlenmiş programlardan <strong>10–100 kat daha yavaştır</strong>, çoğu kez daha fazla boş alan gerektirir ve yüksek düzeyli dillerde giderek daha nadir kullanılır. Web betik dillerinde (örneğin JavaScript) önemi artmıştır. <span class="ref">PD1, s. 120</span></p>
+
+  <h3>Hibrit ve JIT</h3>
+  <p>Hibrit implementasyon, derleme ile saf yorumlama arasında bir uzlaşmadır: yüksek düzeyli program kolayca yorumlanabilecek bir ara dile çevrilir; bu, saf yorumlamadan daha hızlıdır. Perl programları yorumlamadan önce hataları tespit etmek için kısmen derlenir. Java’nın ilk implementasyonları hibrittir; bytecode, bytecode yorumlayıcısı ve çalışma zamanı sistemi (JVM) taşınabilirlik sağlar. <span class="ref">PD1, s. 122</span></p>
+
+  <p><strong>Tam-zamanında (JIT)</strong> sistemler önce programı ara dile çevirir, sonra ara dili makine koduna derler; makine kodu sürümü sonraki çağrılar için saklanır. Java ve .NET dillerinde yaygın kullanılır. <span class="ref">PD1, s. 124</span></p>
+
+  <h3>Önişlemciler</h3>
+  <p>Önişlemci, programın derlenmesinden hemen önce çalışır; makroları genişletir, yorumları kaldırır, dil büyük-küçük harfe duyarlı değilse metni dönüştürebilir. C önişlemcisi <code>#include</code>, <code>#define</code> gibi makroları genişletir. <span class="ref">PD1, s. 125–126</span></p>
+
+  <h3>Derleyici mi, yorumlayıcı mı?</h3>
+  <table class="data">
+    <thead><tr><th style="width:23%">Soru</th><th>Derleyici</th><th>Yorumlayıcı</th></tr></thead>
+    <tbody>
+      <tr><td>Çeviri yürütmeden ayrı mı?</td><td>Evet</td><td>Hayır</td></tr>
+      <tr><td>Neden tercih edilir?</td><td>Doğruluk (erken statik hata kontrolü), maliyet (dağıtım), performans (bir kez derle, çok kez çalıştır), kaynak kodun korunması.</td><td>Esneklik (geç bağlama), çalışma zamanı durum desteği; betikler, dinamik ortamlar, sanal makineler.</td></tr>
+    </tbody>
+  </table>
+
+  <p>Çok geçişli derleyiciler karmaşıklığı, program kütüphanesi kullanarak (dili basit tutarak, örneğin Java) veya katmanlaştırarak (her seferinde bir problem üzerinde yoğunlaşarak) çözer. Bazı derleyiciler assembly’ye, bazıları başka bir yüksek düzeyli dile çevirir; ikinci yaklaşım var olan dilin optimizasyonunu kullanır, taşınabilirliği artırır ve karmaşıklığı azaltır. <span class="ref">PD1, s. 130–131</span></p>
+
+  <h2 id="s18"><span class="n">1.8</span>Programlama platformları</h2>
+
+  <p>Yazılım geliştirmede kullanılan araçlar koleksiyonuna <strong>programlama platformu (environment)</strong> denir. Platform bir dosya sistemi, metin editörü, bağlayıcı ve derleyici içerebilir; ya da araçlar arası geçişi grafik arayüzle sağlayan çok sayıda birleşik araçtan oluşabilir. Bu nedenle yazılım geliştirme sisteminin yeteneğini ölçmek için yalnızca dilin özelliklerine bakmak yeterli değildir. <span class="ref">PD1, s. 132</span></p>
+
+  <table class="data">
+    <thead><tr><th style="width:24%">Platform</th><th>Özellik</th></tr></thead>
+    <tbody>
+      <tr><td>UNIX</td><td>Eski bir işletim sistemi ve araç koleksiyonu. İlk sürümlerinde araçlar arası grafik geçiş yoktu; öğrenmesi ve kullanması zordu. Günümüzde CDE, GNOME, KDE gibi GUI’lerle Windows/Macintosh’a benzer hale gelmiştir.</td></tr>
+      <tr><td>Borland JBuilder</td><td>Java için tümleşik geliştirme ortamı (IDE): derleyici, editör, hata ayıklayıcı ve dosya sistemi tek grafik arayüzde.</td></tr>
+      <tr><td>Microsoft Visual Studio.NET</td><td>Büyük, karmaşık görsel platform; C#, VB.NET, JScript, J# ve C++ dillerinde geliştirme yapılabilir.</td></tr>
+      <tr><td>NetBeans</td><td>Öncelikli olarak Java ile web uygulaması geliştirme; JavaScript, Ruby ve PHP desteği de vardır. Platform ve framework özelliği taşır.</td></tr>
+    </tbody>
+  </table>
+
+  <p><strong>Bölüm 1’in özeti:</strong> Değerlendirme ölçütleri okunabilirlik, yazılabilirlik, güvenilirlik ve maliyettir; tasarımı makine mimarisi ve geliştirme metodolojileri etkiler; ana implementasyon yöntemleri derleme, saf yorumlama ve hibrittir. <span class="ref">PD1, s. 136</span></p>
+
+  <h3>Bölüm 1’in kritik ayrımları</h3>
+  <table class="data" style="font-size:7.9pt;">
+    <thead><tr><th style="width:31%">Ayrım</th><th>Ayırt edici nokta</th></tr></thead>
+    <tbody>
+      <tr><td>Okunabilirlik / yazılabilirlik</td><td>Okuma-anlama kolaylığı / yazma kolaylığı; APL örneğinde ikisi çelişir.</td></tr>
+      <tr><td>Güvenilirlik / yürütme maliyeti</td><td>Java’da dizi sınır kontrolü güvenilirliği artırır, yürütmeyi yavaşlatır; C’de tersi.</td></tr>
+      <tr><td>Derleme / yorumlama</td><td>Çevirinin yürütmeden ayrı olması; hata bildirimi ve bellek kullanımı farklıdır.</td></tr>
+      <tr><td>Von Neumann / imperative diller</td><td>Değişken, atama ve iterasyon, bellek–CPU ayrımını ve iletim modelini yansıtır.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ==================== C. KAVRAMLAR ==================== -->
+<section class="chapter" id="concepts">
+  <div class="chapter-open">
+    <div class="meta"><span class="left">C · Ortak bölümler</span><span class="right">Sözlük · PD0–PD1</span></div>
+    <h1 class="chapter-title" data-running="C · Kavramlar ve Tanımlar"><span class="num">C</span>Kavramlar ve tanımlar</h1>
+    <p class="chapter-lead">PD0 ve PD1’in sınav açısından kritik terimleri. Tanımlar kaynak slaytlara dayanır; benzer kavramlar yan yana verilerek ayrımları belirginleştirilir.</p>
+  </div>
+
+  <div class="two-col glossary">
+    <h3>Dil ve anlam</h3>
+    <p><strong>Programlama dili:</strong> Bir problemin çözümünün bilgisayardaki gerçekleştirimini ifade eden, insan ve bilgisayarın ortak anlayacağı kural ve semboller dizisi. <span class="ref">PD0, s. 14</span></p>
+    <p><strong>Sözdizimi (syntax):</strong> Deyimlerin biçimsel geçerliliğini belirleyen dilbilgisi kuralları. <span class="ref">PD0, s. 12</span></p>
+    <p><strong>Anlambilim (semantics):</strong> Geçerli bir deyimin ne anlama geldiği; anlam çözümlemenin konusu. <span class="ref">PD0, s. 66</span></p>
+    <p><strong>Lexeme / token:</strong> Token’ı belirten alt karakter katarı / sözdizimsel kategori (IDENTIFIER, NUMBER gibi). <span class="ref">PD0, s. 37</span></p>
+    <p><strong>Sembol tablosu:</strong> Her tanımlayıcı için indeks, ad ve tip bilgisini tutan, derleme boyunca güncellenen yapı. <span class="ref">PD0, s. 38</span></p>
+
+    <h3>Çevrim</h3>
+    <p><strong>Derleyici:</strong> Kaynak programı eşdeğer makine koduna çeviren program. <span class="ref">PD0, s. 28</span></p>
+    <p><strong>Yorumlayıcı:</strong> Deyimleri çalışma sırasında birer birer çevirip yürüten program. <span class="ref">PD0, s. 24</span></p>
+    <p><strong>Kaynak / amaç program:</strong> Derlemeye giren yüksek düzeyli program / çıkan makine dili programı. <span class="ref">PD0, s. 29</span></p>
+    <p><strong>Derleme / çalışma zamanı:</strong> Çevrimin gerçekleştiği zaman / amaç programın yürütüldüğü zaman. <span class="ref">PD0, s. 29</span></p>
+    <p><strong>Ön uç / arka uç:</strong> Dile bağımlı analiz ve ara kod üretimi / makineye bağımlı eniyileme ve kod üretimi. <span class="ref">PD0, s. 34, 70</span></p>
+    <p><strong>Ara kod:</strong> Kaynak ile amaç dil arasında, soyut bir makine için üretilen gösterim. <span class="ref">PD0, s. 67</span></p>
+
+    <h3>Ayrıştırma</h3>
+    <p><strong>Ayrıştırma ağacı (parse tree):</strong> Token dizisinin gramere göre yapısını gösteren ağaç. <span class="ref">PD0, s. 48</span></p>
+    <p><strong>CFG:</strong> Terminal/terminal olmayan semboller, başlangıç sembolü ve üretim kurallarından oluşan bağlam-bağımsız gramer. <span class="ref">PD0, s. 51</span></p>
+    <p><strong>Belirsizlik:</strong> Aynı dizi için iki veya daha fazla ayrıştırma ağacı oluşması. <span class="ref">PD0, s. 61</span></p>
+    <p><strong>Yukarıdan aşağıya / aşağıdan yukarıya:</strong> Ağacı kökten token’lara / token’lardan köke kurma. <span class="ref">PD0, s. 52–55</span></p>
+
+    <h3>Değerlendirme</h3>
+    <p><strong>Okunabilirlik:</strong> Programların okunma ve anlaşılma kolaylığı. <span class="ref">PD1, s. 17</span></p>
+    <p><strong>Yazılabilirlik:</strong> Dilin program yazmada kullanılabilme kolaylığı. <span class="ref">PD1, s. 17</span></p>
+    <p><strong>Güvenilirlik:</strong> Programın şartlara uygunluğu; görevi doğru yapması. <span class="ref">PD1, s. 17, 46</span></p>
+    <p><strong>Maliyet:</strong> Eğitim, yazma, derleme, yürütme, bakım ve implementasyon dahil toplam maliyet. <span class="ref">PD1, s. 54–56</span></p>
+    <p><strong>Ortogonallik:</strong> Az sayıda ilkel yapı ve bunların az sayıda yolla birleştirilmesi; her kombinasyonun yasal olması. <span class="ref">PD1, s. 24</span></p>
+    <p><strong>Aliasing:</strong> Aynı bellek hücresine iki veya daha fazla farklı isimle erişilmesi. <span class="ref">PD1, s. 52</span></p>
+
+    <h3>Mimari ve yöntem</h3>
+    <p><strong>Von Neumann mimarisi:</strong> Veri ve komutların aynı bellekte tutulduğu; CPU ile belleğin ayrı olduğu mimari. <span class="ref">PD1, s. 60–61</span></p>
+    <p><strong>Von Neumann darboğazı:</strong> Bellek–işlemci bağlantı hızının bilgisayar hızını sınırlaması. <span class="ref">PD1, s. 119</span></p>
+    <p><strong>Saf yorumlama / hibrit / JIT:</strong> Çevirisiz yürütme / ara kod üzerinden yürütme / ara kodu çalışma sırasında makine koduna derleme. <span class="ref">PD1, s. 120–124</span></p>
+    <p><strong>Önişlemci:</strong> Derlemeden önce makro genişletme ve yorum silme gibi dönüşümler yapan program. <span class="ref">PD1, s. 125</span></p>
+
+    <h3>Paradigmalar</h3>
+    <p><strong>Paradigma:</strong> Bir grubun ortak kararlarını temsil eden, konuya yeni bakış sağlayan kavramsal şema. <span class="ref">PD1, s. 73</span></p>
+    <p><strong>Imperative / fonksiyonel / mantıksal / OOP:</strong> Sırasıyla işlem dizisi; fonksiyon uygulaması; kural-gerçek sorgusu; nesnelerde veri+işlem birleşimi. <span class="ref">PD1, s. 76–90</span></p>
+    <p><strong>Markup / SDLC:</strong> İşaretleme dili (XHTML, XML) / gereksinim, tasarım, gerçekleştirim, sınama ve bakım aşamaları. <span class="ref">PD1, s. 90; PD0, s. 116–121</span></p>
+  </div>
+
+  <h3 style="margin-top:5mm;">Sık karıştırılan ayrımlar</h3>
+  <table class="data" style="font-size:7.8pt;">
+    <thead><tr><th style="width:30%">Karşılaştırma</th><th>Ayırt edici ölçüt</th></tr></thead>
+    <tbody>
+      <tr><td>Derleyici / yorumlayıcı</td><td>Çevirinin yürütmeden ayrı olup olmaması; derleyici makine kodu üretir, yorumlayıcı deyimi çalışma sırasında çevirir.</td></tr>
+      <tr><td>Assembler / derleyici</td><td>Bire bir çeviri / birden çoğa çeviri.</td></tr>
+      <tr><td>Sözdizimi / anlambilim</td><td>Biçimsel geçerlilik / anlam; parser ağaç kurar, anlam çözümleyici tipleri denetler.</td></tr>
+      <tr><td>Ön uç / arka uç</td><td>Dile bağımlı analiz ve ara kod / makineye bağımlı eniyileme ve kod üretimi.</td></tr>
+      <tr><td>Derleme zamanı / çalışma zamanı</td><td>Çevrim sırası / amaç programın yürütülmesi.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ==================== D. YÖNTEMLER ==================== -->
+<section class="chapter" id="methods">
+  <div class="chapter-open">
+    <div class="meta"><span class="left">D · Ortak bölümler</span><span class="right">Süreç kartları</span></div>
+    <h1 class="chapter-title" data-running="D · Yöntemler ve Süreçler"><span class="num">D</span>Yöntemler ve süreçler</h1>
+    <p class="chapter-lead">Derleme hattı, yorumlama döngüsü ve yaşam döngüsü adımlarının girdi–çıktı ilişkisiyle özeti. Ayrıntılı kuram sonraki bölümlerde; burada sınavda istenen akış ve görev ayrımı öne çıkar.</p>
+  </div>
+
+  <h3>D.1 Derleme hattı — adım adım</h3>
+  <table class="data">
+    <thead><tr><th style="width:6%">#</th><th style="width:22%">Evre</th><th>Girdi → Çıktı</th><th style="width:30%">Temel soru / not</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>Sözcüksel analiz</td><td>Karakter akışı → token dizisi + sembol tablosu</td><td>Boşluk ve yorumları temizle; lexeme’leri token’a ayır; satır bilgisi ver.</td></tr>
+      <tr><td>2</td><td>Sözdizim analizi</td><td>Token dizisi + gramer → ayrıştırma ağacı</td><td>Dizisi dilin gramerine uyuyor mu? Hataları bildir ve ağaç kur.</td></tr>
+      <tr><td>3</td><td>Anlamsal analiz</td><td>Ayrıştırma ağacı + sembol tablosu → soyut program / ara kod</td><td>Tipler, tanımlar ve işlemler tutarlı mı?</td></tr>
+      <tr><td>4</td><td>Ara kod üretimi</td><td>Soyut program → üç adresli/ara gösterim</td><td>Makineden bağımsız, taşınabilir ara biçim.</td></tr>
+      <tr><td>5</td><td>Eniyileme</td><td>Ara kod → eşdeğer, daha etkin ara kod</td><td>Daha hızlı / daha az bellek; makine bağımsız veya bağımlı.</td></tr>
+      <tr><td>6</td><td>Kod üretimi</td><td>Ara kod → hedef makine kodu</td><td>Kaydedici tahsisi, komut seçimi, komut çizelgelemesi.</td></tr>
+      <tr><td>+</td><td>Sembol tablosu yöneticisi</td><td>Tanımlayıcı bilgileri</td><td>Evrelere paralel; her evrede okunur/güncellenir.</td></tr>
+      <tr><td>+</td><td>Hata yöneticisi</td><td>Hata bilgileri</td><td>Evrelere paralel; anlaşılır mesaj ve toparlanma.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>D.2 Yorumlama döngüsü</h3>
+  <ol class="tight">
+    <li>Sıradaki deyimi al.</li>
+    <li>Yapılacak işlemleri belirle.</li>
+    <li>İşlemleri gerçekleştir; deyimler bitene kadar 1–3 arasını yinele. <span class="ref">PD0, s. 25</span></li>
+  </ol>
+
+  <h3>D.3 Ayrıştırma stratejileri</h3>
+  <table class="data">
+    <thead><tr><th style="width:22%">Strateji</th><th>Başlangıç</th><th>Yöntem</th><th style="width:24%">Risk / not</th></tr></thead>
+    <tbody>
+      <tr><td>Yukarıdan aşağıya (top-down)</td><td>Kök (başlangıç sembolü)</td><td>Üretimleri seçerek terminal olmayanları aç; token’lara in.</td><td>Çıkmazda geri izleme (backtracking) gerekebilir.</td></tr>
+      <tr><td>Aşağıdan yukarıya (bottom-up)</td><td>Token dizisi</td><td>Token’ları terminal olmayanlara indirgeyerek köke ulaş.</td><td>İndirgeme sırası ve çatışmalar yönetilmelidir.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>D.4 SDLC adımları</h3>
+  <table class="data">
+    <thead><tr><th style="width:8%">#</th><th style="width:30%">Aşama</th><th>Çıktı / odak</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>Gereksinimlerin analizi ve belirlenmesi</td><td>Gereksinim, kısıt ve hedeflerin belgelenmesi</td></tr>
+      <tr><td>2</td><td>Sistem tasarımı</td><td>Donanım/yazılım ayrımı, mimari, modüller</td></tr>
+      <tr><td>3</td><td>Gerçekleştirim ve birim sınama</td><td>Kodlama; her birimin doğrulanması</td></tr>
+      <tr><td>4</td><td>Sınama</td><td>Birimlerin birleştirilmesi; sistemin gereksinimlere uygunluğu</td></tr>
+      <tr><td>5</td><td>Bakım</td><td>Hata düzeltme, yeni gereksinimler; en uzun evre</td></tr>
+    </tbody>
+  </table>
+
+</section>
+
+<!-- ==================== E. FORMÜLLER / OLGULAR ==================== -->
+<section class="chapter" id="facts">
+  <div class="chapter-open">
+    <div class="meta"><span class="left">E · Ortak bölümler</span><span class="right">Sınav bilgileri</span></div>
+    <h1 class="chapter-title" data-running="E · Formüller, Kurallar ve Olgular"><span class="num">E</span>Formüller, kurallar ve olgular</h1>
+    <p class="chapter-lead">PD0–PD1’de geçen biçimsel gösterimler, sayısal değerler, tarihler ve sınıflandırmalar. Yalnızca kaynakta verilen bilgiler; ek açıklamalar etiketlidir.</p>
+  </div>
+
+  <h3>E.1 Gramer ve düzenli ifade gösterimleri</h3>
+  <pre><code>CFG bileşenleri: (terminal semboller, terminal olmayanlar, başlangıç sembolü, üretim kuralları)
+
+Dengeli parantezler:
+  S → (S)S
+  S → ε
+
+Belirsiz aritmetik ifade:
+  E → E + E | E - E | 0 | 1 | ... | 9
+
+Belirsizliği giderme:
+  E → E + T | E - T | T
+  T → 0 | 1 | ... | 9
+
+Lexical örüntü örnekleri:
+  [ \t\n]*           → boşluklar
+  [a-z][a-zA-Z0-9]*  → identifier
+  [0-9]+             → number
+
+Token birleşimi:
+  R = R1 | R2 | ... | Rn</code></pre>
+
+  <p class="small">Kaynak: <span class="ref">PD0, s. 42–43, 51, 62–63</span>. Bu gösterimlerde <code>→</code> üretim kuralını, <code>|</code> alternatifi, <code>ε</code> boş diziyi belirtir.</p>
+
+  <h3>E.2 Sayılar, tarihler ve sınıflandırmalar</h3>
+  <table class="data">
+    <thead><tr><th style="width:30%">Olgu</th><th>Değer / içerik</th><th style="width:20%">Kaynak</th></tr></thead>
+    <tbody>
+      <tr><td>Programlama dili sayısı</td><td>2.500’den fazla (2019)</td><td>PD0, s. 6</td></tr>
+      <tr><td>İlk programlama dilleri</td><td>1950’lerin başları</td><td>PD0, s. 19</td></tr>
+      <tr><td>TIOBE ilk 6 (Ekim 2019)</td><td>Java, C, Python, C++, C#, Visual Basic .NET</td><td>PD0, s. 7</td></tr>
+      <tr><td>Derleyici ana fazları</td><td>6 ana faz + 2 paralel aktivite (sembol tablosu, hata yöneticisi)</td><td>PD1, s. 115</td></tr>
+      <tr><td>SDLC aşamaları</td><td>5: gereksinim, tasarım, gerçekleştirim/birim sınama, sınama, bakım</td><td>PD0, s. 116</td></tr>
+      <tr><td>Paradigma sayısı</td><td>4 temel: imperative, fonksiyonel, mantıksal, nesneye yönelik</td><td>PD1, s. 75</td></tr>
+      <tr><td>İmplementasyon yöntemleri</td><td>3: derleme, saf yorumlama, hibrit</td><td>PD1, s. 109</td></tr>
+      <tr><td>Saf yorumlama yavaşlığı</td><td>Derlenmiş programa göre 10–100 kat daha yavaş</td><td>PD1, s. 120</td></tr>
+      <tr><td>C++ standardizasyonu</td><td>Komite 1989’da kuruldu; çalışma 1998’de tamamlandı</td><td>PD1, s. 57</td></tr>
+    </tbody>
+  </table>
+
+  <h3>E.3 Kaynak içi tutarsızlıklar</h3>
+  <ul class="tight">
+    <li><strong>TIOBE tablosu:</strong> Oranlar Ekim 2019 anlık görüntüsüdür; güncel sıralama olarak kullanılmamalıdır. <span class="ref">PD0, s. 7</span></li>
+    <li><strong>Çapraz derleyici tanımı:</strong> PD0, “başka bir programlama diline çevirme” der; yaygın literatürde farklı hedef platform için derleme anlamına gelir. Kaynak tanımı esas alınmıştır. <span class="ref">PD0, s. 114</span></li>
+    <li><strong>“Death Code Elimination” / “Const Propegation” yazımları:</strong> Kaynakta bu yazımlar geçer; kılavuzda doğru terimler (dead code elimination, constant propagation) kullanılmıştır. <span class="ref">PD0, s. 76</span></li>
+  </ul>
+</section>
+
+<!-- ==================== F. BAĞLANTILAR ==================== -->
+<section class="chapter" id="connections">
+  <div class="chapter-open">
+    <div class="meta"><span class="left">F · Ortak bölümler</span><span class="right">Bölümler arası ağ</span></div>
+    <h1 class="chapter-title" data-running="F · Bağlantılar ve Karşılaştırmalar"><span class="num">F</span>Bağlantılar ve karşılaştırmalar</h1>
+    <p class="chapter-lead">PD0 ile PD1 arasındaki köprüler ve sonraki bölümlerde derinleşecek konular. “Bu kılavuzun yorumu” etiketli bağlantılar, kaynak slaytlarda açıkça kurulmayan ancak metnin mantığından çıkan ilişkilerdir.</p>
+  </div>
+
+  <h3>F.1 PD0 → PD1: kavramdan değerlendirmeye</h3>
+  <table class="data">
+    <thead><tr><th style="width:34%">PD0’daki çıkış noktası</th><th>PD1’deki karşılığı</th><th style="width:24%">İlişki</th></tr></thead>
+    <tbody>
+      <tr><td>Dillerin çokluğu ve “neden bu kadar dil var?” (0.1)</td><td>Dil öğrenmenin nedenleri ve dil seçimi (1.1)</td><td>Çeşitlilik, seçim ve öğrenme gerekçesini doğurur.</td></tr>
+      <tr><td>Makine dili ve çevrim (0.2, 0.4)</td><td>Von Neumann mimarisi ve implementasyon yöntemleri (1.4, 1.7)</td><td>Makine modeli, çevrim yöntemlerinin nedenini açıklar.</td></tr>
+      <tr><td>Ön uç/arka uç ve derleme evreleri (0.4)</td><td>Derleme, saf yorumlama, hibrit/JIT (1.7)</td><td>Aynı hat, farklı soyutlama düzeyinde anlatılır.</td></tr>
+      <tr><td>Okunabilirlik ve bakım (0.5)</td><td>Okunabilirlik, maliyet, güvenilirlik (1.3)</td><td>SDLC’nin bakım evresi, dil değerlendirme ölçütlerine bağlanır.</td></tr>
+      <tr><td>Sözdizimi/anlambilim ayrımı (0.2, 0.4)</td><td>Tip kontrolü ve güvenilirlik (1.3)</td><td>Anlam denetimi, güvenilirliğin ön koşuludur.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>F.2 Sonraki bölümlerle bağlantı</h3>
+  <ul class="clean">
+    <li><strong>PD3 (sentaks/semantik):</strong> PD0’ın CFG, ayrıştırma ağacı ve anlam çözümleme özetini biçimselleştirir; özellik gramerleri ve dinamik semantik eklenir.</li>
+    <li><strong>PD4 (lexical/syntax analysis):</strong> PD0’ın sözcüksel analiz ve parser özetini algoritmik düzeye taşır; özyineli-azalan ve aşağıdan-yukarıya ayrıştırma ayrıntılanır.</li>
+    <li><strong>PD5 (adlar, bağlama, kapsam):</strong> PD1’in tip kontrolü ve güvenilirlik başlığını; PD0’ın sembol tablosu kavramını derinleştirir.</li>
+    <li><strong>PD6 (veri tipleri):</strong> PD1’in veri tipleri/okunabilirlik ve tip kontrolü başlıklarını genişletir.</li>
+    <li><strong>PD7 (yapısal programlama/akış):</strong> PD0’ın SDLC ve bakım vurgusunu, kontrol yapıları ve okunabilirlik üzerinden sürdürür.</li>
+    <li><strong>PD8 (altprogramlar):</strong> PD1’in proses soyutlama ve parametre aktarımı konularını ayrıntılandırır.</li>
+  </ul>
+
+  <div class="critical">
+    <span class="label">Bu kılavuzun yorumu</span>
+    <p>PD0 ve PD1’in kesişimi yalnızca “derleme” değildir; asıl kesişim <strong>soyutlama</strong> kavramıdır. Dil düzeyleri, veri tipleri, altprogramlar, soyut dil ve paradigmalar aynı sorunun farklı katmanlarıdır: ayrıntıyı gizleyip anlaşılır bir model kurmak. Bu nedenle ilerleyen bölümlerde “hangi ayrıntı gizleniyor?” sorusu, konuları birbirine bağlayan ortak eksen olarak izlenebilir.</p>
+  </div>
+
+<!-- ==================== G. KAPSAM DENETİMİ ==================== -->
+<section class="chapter" id="audit">
+  <div class="chapter-open">
+    <div class="meta"><span class="left">G · Ortak bölümler</span><span class="right">Pilot denetimi</span></div>
+    <h1 class="chapter-title" data-running="G · Kapsam Denetimi"><span class="num">G</span>Kapsam denetimi</h1>
+    <p class="chapter-lead">Bu bölüm, kılavuzun PD0 ve PD1’in hangi sayfalarını kapsadığını, hangi slaytların metin katmanı olmadan görsel olarak incelendiğini ve neyin bilinçli olarak dışarıda bırakıldığını raporlar.</p>
+  </div>
+
+  <h2><span class="n">G.1</span>Kaynak bazında kapsam</h2>
+  <table class="data audit">
+    <thead><tr><th style="width:9%">Kaynak</th><th style="width:9%">Slayt</th><th>Kapsanan bölümler ve sayfa aralıkları</th><th style="width:18%">Durum</th></tr></thead>
+    <tbody>
+      <tr><td><strong>PD0</strong></td><td>123</td><td>0.1 (s. 3–9) · 0.2 (s. 10–20) · 0.3 (s. 21) · 0.4 (s. 22–114) · 0.5 (s. 115–121) · kaynaklar (s. 123)</td><td><span class="status-ok">Tam kapsam</span></td></tr>
+      <tr><td><strong>PD1</strong></td><td>137</td><td>1.1 (s. 3–14) · 1.2 (s. 15–16) · 1.3 (s. 17–58) · 1.4 (s. 59–71) · 1.5 (s. 72–104) · 1.6 (s. 105–107) · 1.7 (s. 108–131) · 1.8 (s. 132–135) · özet (s. 136) · kaynaklar (s. 137)</td><td><span class="status-ok">Tam kapsam</span></td></tr>
+    </tbody>
+  </table>
+
+  <h2><span class="n">G.2</span>Metin katmanı olmayan / düşük metinli slaytlar</h2>
+  <p>PD0’da 40, PD1’de 15 slayt düşük metinlidir; bunların önemli bölümü diyagram, tablo veya kod görselidir. Aşağıdaki aralıklar sayfa görüntüsü olarak incelenmiş ve metne aktarılmıştır:</p>
+  <table class="data audit">
+    <thead><tr><th style="width:12%">Kaynak</th><th>İncelenen görsel slaytlar</th><th style="width:26%">Kullanım</th></tr></thead>
+    <tbody>
+      <tr><td>PD0</td><td>1, 7, 9, 16–17, 21, 23, 26–27, 32, 35, 49, 60–65, 68–69, 74, 77–78, 80–87, 89, 109, 111, 116–121</td><td>TIOBE tablosu, paydaş şeması, çevrim şemaları, ayrıştırma ağaçları, anlam analizi, eniyileme örnekleri, SDLC döngüsü</td></tr>
+      <tr><td>PD1</td><td>1, 29, 31, 40, 72, 79, 89, 91, 93, 95, 97–99, 113, 121</td><td>Paradigma haritası, çiçek örneği, katmanlı makine, çevirici hattı, yorumlama/hibrit şemaları</td></tr>
+    </tbody>
+  </table>
+  <p class="tiny">Not: Dekoratif fotoğraflar (örneğin çiçek ve köpek görselleri) yeniden üretilmemiş; yalnızca ilgili örnek bağlamında anılmıştır. Metin katmanı olmayan slaytlarda okuma görsele dayalıdır; TIOBE oranları gibi sayısal ayrıntılar Ekim 2019 anlık görüntüsü olarak aktarılmıştır.</p>
+
+  <h2><span class="n">G.3</span>Bilinçli dışarıda bırakılanlar ve sonuç</h2>
+  <p>PD0 s. 122’deki Lex &amp; Yacc / Flex &amp; Bison araştırma ödevi yalnızca kaynakta yer aldığı için not edildi; soruya dönüştürülmedi. Kapak ve “Bölüm konuları” slaytları içindekilere yansıtıldı; tekrarlanan kaynak listeleri birleştirildi; dekoratif fotoğraflar açıklanmadı. <strong>Sonuç:</strong> PD0 123/123 slayt ve 5/5 alt bölüm, PD1 137/137 slayt ve 8/8 alt bölüm olmak üzere toplam <strong>260/260 slayt</strong> kapsandı. Metin katmanı olmayan eğitsel slaytlar görsel olarak incelendi; erişilemeyen sayfa tespit edilmedi. <span class="ref">PD0, s. 1–123; PD1, s. 1–137</span></p>
+
+  <p class="small"><strong>Sonraki adım:</strong> Tasarım ve yoğunluk onayından sonra PD2–PD8 bölümleri aynı şablonla üretilecek; sözlük ve kapsam denetimi genişletilecektir.</p>
+</section>
+
+  <p class="tiny"><strong>Kaynakça notu:</strong> Birincil kaynaklar PD0 (123 slayt) ve PD1 (137 slayt); slaytlarda ortak kaynak olarak Sebesta (2013), Watt (2004), Scott (2009), Orhan, Şahin, Tanyıldızı ve Ahmet Yesevi Üniversitesi notları belirtilir. Tam liste PD0 s. 123 ve PD1 s. 137’dedir. Telif: bu çalışma, ders slaytlarının sınav hazırlığı amacıyla özetlenmesidir; haklar ilgili yazarlara/kurumlara aittir.</p>
+
+
+</body>
+</html>

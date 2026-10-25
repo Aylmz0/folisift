@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>{{TITLE}}</title>
+<meta name="author" content="{{COURSE}}">
+<meta name="description" content="{{SUBTITLE}}">
+<link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+
+<section class="cover">
+  <div class="cover-frame">
+    <div class="cover-top">{{COURSE}}</div>
+    <div class="cover-rule"></div>
+    <h1>{{TITLE}}<span>{{SUBTITLE}}</span></h1>
+    <div class="cover-sub">{{SOURCE_NAMES}}</div>
+    <div style="text-align:center;"><span class="cover-pilot">{{VERSION_LABEL}}</span></div>
+    <img class="cover-motif" src="../../assets/cover-motif.svg" alt="Soyut sözdizimi ağacı motifi">
+    <div class="cover-bottom">
+      Kaynak: {{SOURCE_NAMES}}<br>
+      <span class="small">Metin içermeyen eğitsel slaytlar görsel olarak incelenmiştir.</span><br>
+      <span class="small">Ek açıklamalar “Açıklayıcı not” etiketiyle işaretlenmiştir.</span>
+    </div>
+  </div>
+</section>
+
+<section class="front">
+  <div class="kicker">Ön kısım · Okuma notu</div>
+  <h1>Bu kitapçık hakkında</h1>
+  <p class="lead">{{LEAD}}</p>
+
+  <div class="about-grid">
+    <div class="row"><div class="cell">Kaynaklar</div><div class="cell">{{SOURCE_NAMES}} — toplam <strong>{{TOTAL_PAGES}} slayt</strong>.</div></div>
+    <div class="row"><div class="cell">Kapsam</div><div class="cell">Her kaynağın tüm bölümleri; kaynak sırası korunur. Sayfa referansları <span class="ref">[PD0, s. 3]</span> biçimindedir.</div></div>
+    <div class="row"><div class="cell">Yöntem</div><div class="cell">Metin katmanı çıkarıldı; metin içermeyen eğitsel slaytlar görsel olarak okundu; şemalar sadeleştirilerek yeniden çizildi.</div></div>
+    <div class="row"><div class="cell">Doğruluk</div><div class="cell">Kaynakta bulunmayan ek bilgi yalnızca <strong>Açıklayıcı not</strong> etiketiyle verilir; kaynak içi tutarsızlıklar sessizce düzeltilmez.</div></div>
+    <div class="row"><div class="cell">Sürüm</div><div class="cell">{{VERSION_LABEL}}</div></div>
+  </div>
+
+  <div class="definition" id="overview-box">
+    <span class="label">Kılavuzun ekseni</span>
+    <p>{{OVERVIEW_BOX}}</p>
+  </div>
+
+  <h3>Kısaltmalar</h3>
+  <p class="small">{{ABBREVIATIONS}}</p>
+</section>
+
+<section class="front page-break">
+  <div class="kicker">İçindekiler</div>
+  <div class="toc-title">Kılavuzun haritası</div>
+  <p class="toc-note">Sayfa numaraları bu PDF’e aittir; kaynak slayt referansları metin içinde verilmiştir.</p>
+  <table class="toc">
+    <tr class="part"><td colspan="2">A · Çerçeve</td></tr>
+    <tr><td><a href="#overview">Genel bakış</a></td><td class="pg"><a href="#overview"></a></td></tr>
+    <tr class="part"><td colspan="2">B · Ayrıntılı inceleme</td></tr>
+    <!-- Her kaynak için bir satır; id kaynak bölümüyle eşleşmeli. -->
+    <tr><td><a href="#ch1">Kaynak 1</a></td><td class="pg"><a href="#ch1"></a></td></tr>
+    <tr class="part"><td colspan="2">C–G · Ortak bölümler</td></tr>
+    <tr><td><a href="#concepts">C. Kavramlar ve tanımlar</a></td><td class="pg"><a href="#concepts"></a></td></tr>
+    <tr><td><a href="#methods">D. Yöntemler ve süreçler</a></td><td class="pg"><a href="#methods"></a></td></tr>
+    <tr><td><a href="#facts">E. Formüller, kurallar ve olgular</a></td><td class="pg"><a href="#facts"></a></td></tr>
+    <tr><td><a href="#connections">F. Bağlantılar</a></td><td class="pg"><a href="#connections"></a></td></tr>
+    <tr><td><a href="#audit">G. Kapsam denetimi</a></td><td class="pg"><a href="#audit"></a></td></tr>
+  </table>
+</section>
+
+<section class="chapter" id="overview">
+  <div class="chapter-open">
+    <div class="meta"><span class="left">A · Çerçeve</span><span class="right">{{VERSION_LABEL}}</span></div>
+    <h1 class="chapter-title" data-running="A · Genel Bakış"><span class="num">Genel bakış</span>Kaynakların haritadaki yeri</h1>
+    <p class="chapter-lead">Bu bölüm, kaynakların ana konularını ve birbirleriyle ilişkisini gösterir. Ayrıntılı anlatım B bölümündedir.</p>
+  </div>
+  <p><!-- Kaynakların sırası, ana konular ve bağımlılıklar. --></p>
+</section>
+
+<section class="chapter" id="ch1">
+  <div class="chapter-open">
+    <div class="meta"><span class="left">B · Ayrıntılı inceleme</span><span class="right">Kaynak: PD0</span></div>
+    <h1 class="chapter-title" data-running="Kaynak 1"><span class="num">Kaynak 1</span>Başlık</h1>
+    <p class="chapter-lead">Bu kaynağın ana sorusu ve kapsamı.</p>
+    <div class="source">Kaynak aralığı: PD0, s. 1–N · Alt bölümler: …</div>
+  </div>
+  <!-- Her alt bölüm için:
+  <h2 id="s1"><span class="n">0.1</span>Başlık</h2>
+  <p>… <span class="ref">PD0, s. 3</span></p>
+  -->
+</section>
+
+<section class="chapter" id="concepts">
+  <div class="chapter-open">
+    <div class="meta"><span class="left">C · Ortak bölümler</span><span class="right">Sözlük</span></div>
+    <h1 class="chapter-title" data-running="C · Kavramlar ve Tanımlar"><span class="num">C</span>Kavramlar ve tanımlar</h1>
+    <p class="chapter-lead">Sınav açısından kritik terimler; benzer kavramlar yan yana.</p>
+  </div>
+  <div class="two-col glossary">
+    <!-- <p><strong>Terim:</strong> tanım. <span class="ref">PD0, s. 3</span></p> -->
+  </div>
+</section>
+
+<section class="chapter" id="methods">
+  <div class="chapter-open">
+    <div class="meta"><span class="left">D · Ortak bölümler</span><span class="right">Süreç kartları</span></div>
+    <h1 class="chapter-title" data-running="D · Yöntemler ve Süreçler"><span class="num">D</span>Yöntemler ve süreçler</h1>
+    <p class="chapter-lead">Girdi–çıktı ilişkisiyle adım adım yöntemler.</p>
+  </div>
+  <!-- Yöntem tabloları -->
+</section>
+
+<section class="chapter" id="facts">
+  <div class="chapter-open">
+    <div class="meta"><span class="left">E · Ortak bölümler</span><span class="right">Sınav bilgileri</span></div>
+    <h1 class="chapter-title" data-running="E · Formüller, Kurallar ve Olgular"><span class="num">E</span>Formüller, kurallar ve olgular</h1>
+    <p class="chapter-lead">Biçimsel gösterimler, sayılar, tarihler ve sınıflandırmalar.</p>
+  </div>
+  <!-- Formüller, tablolar, tutarsızlıklar -->
+</section>
+
+<section class="chapter" id="connections">
+  <div class="chapter-open">
+    <div class="meta"><span class="left">F · Ortak bölümler</span><span class="right">Bölümler arası ağ</span></div>
+    <h1 class="chapter-title" data-running="F · Bağlantılar ve Karşılaştırmalar"><span class="num">F</span>Bağlantılar ve karşılaştırmalar</h1>
+    <p class="chapter-lead">Kaynaklar arası köprüler ve karşılaştırmalar.</p>
+  </div>
+  <!-- F.1, F.2 ... -->
+</section>
+
+<section class="chapter" id="audit">
+  <div class="chapter-open">
+    <div class="meta"><span class="left">G · Ortak bölümler</span><span class="right">Kapsam denetimi</span></div>
+    <h1 class="chapter-title" data-running="G · Kapsam Denetimi"><span class="num">G</span>Kapsam denetimi</h1>
+    <p class="chapter-lead">Hangi sayfalar kapsandı, hangi slaytlar görsel olarak incelendi, ne dışarıda bırakıldı?</p>
+  </div>
+  <table class="data audit">
+    <thead><tr><th>Kaynak</th><th>Slayt</th><th>Kapsanan bölümler</th><th>Durum</th></tr></thead>
+    <tbody>
+      {{SOURCE_ROWS}}
+    </tbody>
+  </table>
+  <p class="tiny"><strong>Kaynakça notu:</strong> …</p>
+</section>
+
+</body>
+</html>
