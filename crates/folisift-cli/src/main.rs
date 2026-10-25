@@ -3,7 +3,8 @@ use std::process::ExitCode;
 
 use clap::{Parser, Subcommand};
 use folisift_core::{Guide, Workspace, list_guides, version};
-use folisift_parse::{analyze_sources, parse_page_list, render_pages};
+use folisift_parse::{Inventory, analyze_sources, check_coverage, parse_page_list, render_pages};
+use folisift_render::{RenderOptions, render};
 use serde::Serialize;
 use serde_json::json;
 
@@ -44,6 +45,21 @@ enum Command {
         /// Low-text threshold in non-whitespace characters.
         #[arg(long, default_value_t = folisift_parse::LOW_TEXT_THRESHOLD)]
         low_threshold: usize,
+    },
+    /// Render a guide and optionally run the coverage gate.
+    Build {
+        /// Guide slug under guides/.
+        #[arg(long)]
+        guide: String,
+        /// Markdown content override (relative to the workspace).
+        #[arg(long)]
+        content: Option<PathBuf>,
+        /// PDF output override (relative to the workspace).
+        #[arg(long)]
+        output: Option<PathBuf>,
+        /// Run the coverage gate and fail on a missing section.
+        #[arg(long)]
+        check: bool,
     },
     /// Render PDF pages to PNG files for visual inspection.
     RenderPages {
@@ -148,6 +164,92 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 "low_text_pages": inventory.totals.low_text_pages,
             });
             println!("{}", serde_json::to_string_pretty(&value)?);
+        }
+        Command::Build {
+            guide,
+            content,
+            output,
+            check,
+        } => {
+            let guide = Guide::load(&workspace, &guide)?;
+            let content_path = match content {
+                Some(path) => workspace.resolve_read(path)?,
+                None => guide.content.clone(),
+            };
+            if content_path.extension().and_then(|value| value.to_str()) != Some("md") {
+                return Err(format!(
+                    "{} is not Markdown; pass --content guides/<slug>/guide.md during the v2 migration",
+                    content_path.display()
+                )
+                .into());
+            }
+            let output_path = match output {
+                Some(path) => workspace.resolve_write(path)?,
+                None => guide.output.clone(),
+            };
+            let markdown = std::fs::read_to_string(&content_path)?;
+            let sources = guide
+                .config
+                .sources
+                .iter()
+                .filter_map(|source| {
+                    std::path::Path::new(source)
+                        .file_stem()
+                        .and_then(|stem| stem.to_str())
+                        .map(ToString::to_string)
+                })
+                .collect::<Vec<_>>();
+            let rendered = render(
+                &markdown,
+                &RenderOptions {
+                    guide_root: &guide.dir,
+                    title: &guide.config.title,
+                    subtitle: "",
+                    course: "",
+                    language: &guide.config.language,
+                    sources: &sources,
+                },
+            )?;
+            std::fs::write(&output_path, &rendered.pdf)?;
+
+            let mut coverage = None;
+            if check {
+                let inventory = match &guide.inventory {
+                    Some(path) if path.exists() => {
+                        let bytes = std::fs::read(path)?;
+                        serde_json::from_slice::<Inventory>(&bytes)?
+                    }
+                    _ => analyze_sources(&guide.sources, 120).await?,
+                };
+                let report = check_coverage(&inventory, &markdown, 0.55);
+                if let Some(path) = &guide.coverage {
+                    report.write_markdown(path)?;
+                }
+                coverage = Some(report);
+            }
+            if let Some(report) = &coverage
+                && !report.passed
+            {
+                return Err(format!(
+                    "coverage gate failed: {}/{} sections missing",
+                    report.missing, report.total
+                )
+                .into());
+            }
+
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&json!({
+                    "output": output_path.display().to_string(),
+                    "pages": rendered.pages,
+                    "warnings": rendered.warnings.len(),
+                    "coverage": coverage.as_ref().map(|report| json!({
+                        "passed": report.passed,
+                        "total": report.total,
+                        "missing": report.missing,
+                    })),
+                }))?
+            );
         }
         Command::RenderPages { source, pages, out } => {
             let source = workspace.resolve_read(source)?;

@@ -1,0 +1,21 @@
+[package]
+name = "folisift-render"
+description = "Markdown + Typst renderer for Folisift guides"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+folisift-core = { path = "../folisift-core", version = "0.1.0" }
+pulldown-cmark.workspace = true
+regex.workspace = true
+serde.workspace = true
+serde_yaml.workspace = true
+thiserror.workspace = true
+typst.workspace = true
+typst-layout.workspace = true
+typst-pdf.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
