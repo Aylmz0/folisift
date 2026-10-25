@@ -1,7 +1,9 @@
 use std::fs;
 use std::path::Path;
 
-use folisift_core::{Error, Guide, Workspace, list_guides, validate_slug};
+use folisift_core::{
+    Error, Guide, ScaffoldOptions, Workspace, list_guides, scaffold, validate_slug,
+};
 
 fn fixture() -> tempfile::TempDir {
     let root = tempfile::tempdir().expect("tempdir");
@@ -169,6 +171,26 @@ fn rejects_a_symlink_that_escapes_the_workspace() {
         .resolve_read("linked/secret.pdf")
         .expect_err("must reject");
     assert!(matches!(error, Error::PathEscape { .. }));
+}
+
+#[test]
+fn scaffolds_a_schema_two_guide() {
+    let root = fixture();
+    let guide = scaffold(
+        &workspace(root.path()),
+        &ScaffoldOptions {
+            slug: "pd2".to_string(),
+            title: "Bölüm 2".to_string(),
+            course: "BMÜ325".to_string(),
+            sources: vec![root.path().join("sources/PD0.pdf")],
+        },
+    )
+    .expect("scaffold");
+
+    assert_eq!(guide.config.schema_version, 2);
+    assert!(guide.content.ends_with("guide.md"));
+    assert!(root.path().join("guides/pd2/guide.md").is_file());
+    assert!(root.path().join("guides/pd2/data").is_dir());
 }
 
 #[test]

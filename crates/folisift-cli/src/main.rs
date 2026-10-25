@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use std::process::ExitCode;
 
 use clap::{Parser, Subcommand};
-use folisift_core::{Guide, Workspace, list_guides, version};
+use folisift_core::{Guide, ScaffoldOptions, Workspace, list_guides, scaffold, version};
 use folisift_parse::{Inventory, analyze_sources, check_coverage, parse_page_list, render_pages};
 use folisift_render::{RenderOptions, render};
 use serde::Serialize;
@@ -25,6 +25,8 @@ struct Cli {
 
 #[derive(Debug, Subcommand)]
 enum Command {
+    /// Start the MCP stdio server.
+    Mcp,
     /// Show workspace root, version and guide count.
     WorkspaceInfo,
     /// List guides and whether each config is valid.
@@ -45,6 +47,17 @@ enum Command {
         /// Low-text threshold in non-whitespace characters.
         #[arg(long, default_value_t = folisift_parse::LOW_TEXT_THRESHOLD)]
         low_threshold: usize,
+    },
+    /// Create a new guide bundle from source PDFs.
+    Scaffold {
+        #[arg(long)]
+        slug: String,
+        #[arg(long)]
+        title: String,
+        #[arg(long, default_value = "")]
+        course: String,
+        #[arg(long = "source", required = true, num_args = 1..)]
+        sources: Vec<PathBuf>,
     },
     /// Render a guide and optionally run the coverage gate.
     Build {
@@ -106,6 +119,9 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
     let workspace = Workspace::open(&cli.root)?;
 
     match cli.command {
+        Command::Mcp => {
+            folisift_mcp::serve(workspace.root()).await?;
+        }
         Command::WorkspaceInfo => {
             let guides = list_guides(&workspace)?;
             let value = json!({
@@ -164,6 +180,34 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 "low_text_pages": inventory.totals.low_text_pages,
             });
             println!("{}", serde_json::to_string_pretty(&value)?);
+        }
+        Command::Scaffold {
+            slug,
+            title,
+            course,
+            sources,
+        } => {
+            let sources = sources
+                .iter()
+                .map(|path| workspace.resolve_read(path))
+                .collect::<Result<Vec<_>, _>>()?;
+            let guide = scaffold(
+                &workspace,
+                &ScaffoldOptions {
+                    slug,
+                    title,
+                    course,
+                    sources,
+                },
+            )?;
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&json!({
+                    "slug": guide.slug,
+                    "content": guide.content.display().to_string(),
+                    "output": guide.output.display().to_string(),
+                }))?
+            );
         }
         Command::Build {
             guide,

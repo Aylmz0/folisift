@@ -49,6 +49,16 @@ pub struct Totals {
     pub low_text_pages: usize,
 }
 
+impl SourceInventory {
+    pub fn title_or_filename(&self) -> &str {
+        if self.title.is_empty() {
+            &self.filename
+        } else {
+            &self.title
+        }
+    }
+}
+
 impl Inventory {
     pub fn new(low_text_threshold: usize, sources: Vec<SourceInventory>) -> Self {
         let totals = Totals {
