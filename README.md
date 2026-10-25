@@ -80,3 +80,5 @@ Poppler araçları (`pdfinfo`, `pdftotext`, `pdftoppm`) sistemde kurulu olmalıd
 - [Design system](docs/design-system.md)
 - [ADRs](docs/adr/)
 - [Agent configuration](docs/agents/)
+- [Agent operating rules](AGENTS.md)
+- [Domain context](CONTEXT.md)

@@ -8,6 +8,8 @@
 | [Design system](design-system.md) | Paper palette, typography and components |
 | [ADRs](adr/) | Architectural decisions and their consequences |
 | [Agent configuration](agents/) | Issue tracker, triage labels, domain-doc rules |
+| [Agent rules](../AGENTS.md) | Repo-specific operating rules and commands |
+| [Domain context](../CONTEXT.md) | Ubiquitous language and invariants |
 
 ## Where to start
 
