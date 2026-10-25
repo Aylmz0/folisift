@@ -6,7 +6,7 @@ table.
 
 | Tag | Date | Build | Commit | PDFium | What changed |
 |---|---|---:|---|---|---|
-| unreleased | 2026-10-26 | derived | `HEAD` | `chromium/8058` | Rust/Typst/MCP workspace; PD0–PD1 Markdown guide, 23 pages, coverage 13/13; Python engine removed |
+| `v0.1.0` | 2026-10-26 | 16 | `b28f3cb36870c5d816731928ddd75586d02b152f` | `chromium/8058` | First Rust/Typst/MCP release; PD0–PD1 guide, 23 pages, coverage 13/13; Python engine removed |
 
 ## Notes
 
