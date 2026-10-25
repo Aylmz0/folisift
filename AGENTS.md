@@ -29,7 +29,16 @@ python3 ../../engine/tools/prepare_pages.py ../../sources/PD0.pdf \
 # New guide bundle
 python3 engine/tools/scaffold.py --slug pd2 --title "..." \
   --sources sources/PD2.pdf
+
+# Rust v2 workspace (in progress; Python still builds the current guide)
+cargo test
+cargo clippy --all-targets --all-features -- -D warnings
+cargo run -p folisift-cli -- workspace-info
+cargo run -p folisift-cli -- guide-status pd0-pd1
 ```
+
+The v2 plan and Phase 0 evidence live in `docs/plans/`. Do not remove the
+Python engine until the Rust path reaches coverage/PDF parity.
 
 ## Architecture
 
