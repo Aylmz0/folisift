@@ -8,9 +8,13 @@ __pycache__/
 .DS_Store
 
 # Üretilen görsel önbelleği
-kitap/data/pages/
+guides/*/data/pages/
 
 # Geçici LaTeX/Ofis dosyaları
 *.aux
 *.log
 *.out
+
+# Python packaging / sanal ortam
+.venv/
+*.egg-info/

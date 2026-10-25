@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
-"""Generic PDF builder for study-guide projects.
+"""Build a Folisift guide PDF.
+
+A guide is a directory under ``guides/`` with a ``config.json``. Paths in that
+config are resolved relative to the guide directory, so a guide can be moved
+without changing the engine.
 
 Examples:
-    python3 build.py
-    python3 build.py --config config/pd0-pd1.json
-    python3 build.py --html pilot.html --output ../out.pdf
-    python3 build.py --config config/pd0-pd1.json --check
+    python3 engine/build.py --guide guides/pd0-pd1
+    python3 engine/build.py --guide guides/pd0-pd1 --check
+    python3 engine/build.py --guide guides/pd0-pd1 --output /tmp/preview.pdf
 """
 
 from __future__ import annotations
@@ -16,7 +19,8 @@ import subprocess
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parent.parent
+DEFAULT_GUIDE = ROOT / "guides/pd0-pd1"
 
 
 def page_count(pdf: Path) -> int | None:
@@ -35,60 +39,56 @@ def page_count(pdf: Path) -> int | None:
     return None
 
 
-def resolve(base: Path, value: str) -> Path:
-    path = Path(value)
-    return path if path.is_absolute() else (base / path).resolve()
-
-
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--config", type=Path, default=ROOT / "config/pd0-pd1.json")
+    parser.add_argument("--guide", type=Path, default=DEFAULT_GUIDE)
+    parser.add_argument("--config", type=Path, help="Varsayılan: <guide>/config.json")
     parser.add_argument("--html", type=Path)
     parser.add_argument("--output", type=Path)
-    parser.add_argument("--css", type=Path)
     parser.add_argument("--check", action="store_true", help="Kapsam denetimini de çalıştır")
     parser.add_argument("--no-optimize", action="store_true")
     args = parser.parse_args()
 
-    config = {}
-    if args.config.exists():
-        config = json.loads(args.config.read_text(encoding="utf-8"))
-        base = args.config.resolve().parent.parent
-    else:
-        base = ROOT
-
-    html_path = args.html or resolve(base, config.get("html", "pilot.html"))
-    output = args.output or resolve(
-        base, config.get("output", "../output/PD0-PD1_Calisma_Ozeti.pdf")
-    )
-    css_path = args.css or resolve(base, config.get("css", "style.css"))
-
-    if not html_path.exists():
-        print(f"HATA: HTML bulunamadı: {html_path}", file=sys.stderr)
+    guide = args.guide.resolve()
+    config_path = (args.config or (guide / "config.json")).resolve()
+    if not config_path.exists():
+        print(f"HATA: Guide config bulunamadı: {config_path}", file=sys.stderr)
         return 2
-    if not css_path.exists():
-        print(f"HATA: CSS bulunamadı: {css_path}", file=sys.stderr)
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    base = config_path.parent
+
+    content = (args.html or (base / config.get("content", "guide.html"))).resolve()
+    stylesheet = (base / config.get("stylesheet", "../../engine/style.css")).resolve()
+    output = (args.output or (base / config.get(
+        "output", f"../../output/{config.get('slug', guide.name)}_Calisma_Ozeti.pdf"
+    ))).resolve()
+
+    if not content.exists():
+        print(f"HATA: İçerik bulunamadı: {content}", file=sys.stderr)
+        return 2
+    if not stylesheet.exists():
+        print(f"HATA: Stil bulunamadı: {stylesheet}", file=sys.stderr)
         return 2
 
     if args.check:
-        source_json = resolve(base, config.get("source_json", "data/source.json"))
-        coverage_md = resolve(base, config.get("coverage_md", "data/coverage.md"))
-        checker = ROOT / "tools/check_coverage.py"
+        inventory = base / config.get("inventory", "data/source.json")
+        coverage = base / config.get("coverage", "data/coverage.md")
+        checker = ROOT / "engine/tools/check_coverage.py"
         result = subprocess.run(
             [
                 sys.executable,
                 str(checker),
                 "--source-json",
-                str(source_json),
+                str(inventory),
                 "--html",
-                str(html_path),
+                str(content),
                 "--out",
-                str(coverage_md),
+                str(coverage),
             ]
         )
         if result.returncode != 0:
             print(
-                "Kapsam denetimi geçmedi. Önce data/coverage.md dosyasını inceleyin.",
+                "Kapsam denetimi geçmedi. data/coverage.md dosyasını inceleyin.",
                 file=sys.stderr,
             )
             return result.returncode
@@ -104,7 +104,7 @@ def main() -> int:
         return 3
 
     output.parent.mkdir(parents=True, exist_ok=True)
-    HTML(filename=str(html_path), base_url=str(html_path.parent) + "/").write_pdf(
+    HTML(filename=str(content), base_url=str(content.parent) + "/").write_pdf(
         str(output),
         optimize_images=not args.no_optimize,
     )
