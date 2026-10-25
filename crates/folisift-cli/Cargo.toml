@@ -1,0 +1,17 @@
+[package]
+name = "folisift-cli"
+description = "Command-line interface for the Folisift study-guide pipeline"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "folisift"
+path = "src/main.rs"
+
+[dependencies]
+clap.workspace = true
+folisift-core = { path = "../folisift-core", version = "0.1.0" }
+serde.workspace = true
+serde_json.workspace = true
