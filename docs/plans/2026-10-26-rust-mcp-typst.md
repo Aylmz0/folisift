@@ -1,6 +1,6 @@
 # Folisift v2 — Rust MCP + Typst Migration Plan
 
-- **Status:** Phase 0 complete — architecture GO; packaging decision pending
+- **Status:** Phase 0–2 complete; Phase 1 CI/licences pending; Phase 3 next
 - **Date:** 2026-10-26
 - **Owner:** Maintainer
 - **Supersedes:** the Python-only engine described in `docs/architecture.md`
@@ -33,7 +33,7 @@ The maintainer accepted:
 | Decision | Choice | Status |
 |---|---|---|
 | Product surface | Local stdio MCP server + CLI in one binary | Proposed |
-| Distribution | One file; embedded PDFium extracted to a cache directory at first run (not static) | Proposed |
+| Distribution | Two-file archive: `folisift` + `libpdfium.so` sidecar next to it (not static) | Locked |
 | Language | Rust end-to-end | Proposed |
 | PDF parser | `liteparse` (Rust, PDFium, OCR off by default) | Locked |
 | PDF renderer | Typst embedded as a Rust library | Proposed |
@@ -47,10 +47,12 @@ The maintainer accepted:
 “Proposed” means this plan is the recommendation, not yet an implementation
 contract. The remaining open questions are in §16.
 
-Phase 0 (risk spike) is complete. The parser, renderer, Turkish glyphs and
-one-file distribution work; a literal static binary does not, because
-`liteparse` loads PDFium at runtime. See
-[`2026-10-26-phase0-report.md`](2026-10-26-phase0-report.md).
+Phase 0 (risk spike) is complete. The parser, renderer and Turkish glyphs work;
+a literal static binary does not, because `liteparse` loads PDFium at runtime.
+The maintainer selected the **two-file sidecar** variant: `folisift` and the
+platform's PDFium shared library are installed next to each other. No runtime
+extraction. See [`2026-10-26-phase0-report.md`](2026-10-26-phase0-report.md)
+and [ADR-0005](../adr/0005-pdfium-sidecar.md).
 
 ## 3. Target architecture
 
@@ -349,7 +351,12 @@ Additional:
 
 Primary:
 
-- GitHub Releases: Linux x86_64 (musl), macOS arm64/x86_64, Windows x86_64.
+- GitHub Releases: Linux x86_64 (glibc first; musl later), macOS arm64/x86_64,
+  Windows x86_64.
+- Each archive contains `folisift` and the platform PDFium shared library
+  (`libpdfium.so`, `libpdfium.dylib` or `pdfium.dll`) in the same directory.
+- The loader resolves PDFium next to the executable by default. A missing or
+  mismatched library is a clear startup error, not a panic.
 - MCP config:
 
 ```json
@@ -378,9 +385,9 @@ WeasyPrint, or a system Typst installation.
 - Built a throwaway Rust binary with liteparse + Typst.
 - Rendered the paper template with Turkish glyphs, TOC, bookmarks and metadata.
 - Measured liteparse inventory, low-text parity and screenshots on PD0/PD1.
-- **Gate result: GO with a packaging change.** One file is feasible by
-  embedding `libpdfium.so` and extracting it to a cache at first run. A static
-  binary is not feasible with liteparse's native loading model.
+- **Gate result: GO with a packaging change.** A static binary is not feasible
+  with liteparse's native loading model. The selected distribution is a
+  two-file archive: `folisift` + `libpdfium.so` next to it.
 - Details: [`2026-10-26-phase0-report.md`](2026-10-26-phase0-report.md).
 
 ### Phase 1 — Workspace skeleton — in progress
@@ -392,12 +399,16 @@ WeasyPrint, or a system Typst installation.
 - **Gate:** `cargo test` and `cargo clippy -D warnings` pass. Both pass as of
   this phase; CI and licence headers are still pending.
 
-### Phase 2 — Parser parity
+### Phase 2 — Parser parity — complete
 
-- liteparse adapter.
-- Inventory JSON/Markdown; low-text detection; page screenshots.
-- Compare against current PD0/PD1 inventory.
-- **Gate:** no unexplained differences; Turkish text intact.
+- `folisift-parse`: liteparse adapter, `SourceParser` trait, inventory
+  JSON/Markdown, low-text detection, page screenshots.
+- `folisift analyze` and `folisift render-pages` CLI commands.
+- PDFium sidecar loading with a clear error when the library is missing.
+- Parity against the current inventory: pages, chars, low-text pages, headings
+  and titles are exact. Words differ by +52/-4; 13/6 first-line strings differ
+  only in projected bullets, whitespace or curly/straight apostrophes.
+- **Gate:** pass with explained formatting differences; Turkish text intact.
 
 ### Phase 3 — Renderer and content
 
@@ -462,10 +473,9 @@ All project docs become English. The guide output remains Turkish.
 ## 16. Open questions
 
 1. **Q6 approval:** accept Typst + Markdown + 7 tools + sandbox + strangle,
-   with one-file distribution instead of a static binary?
-2. **Packaging variant:** embed PDFium and extract to a cache (validated), or
-   ship a two-file archive (`folisift` + `libpdfium.so`) and avoid runtime
-   extraction? The plan recommends the embedded single-file variant.
+   with the two-file sidecar distribution?
+2. **Packaging variant — resolved:** two-file archive (`folisift` +
+   `libpdfium.so`); no runtime extraction. See ADR-0005.
 3. **Platform priority:** Linux only for v0.1, or Linux/macOS/Windows at once?
    Linux glibc is validated; musl and the other platforms are not.
 4. **OCR:** off by default; when should image-only slides enable it?
@@ -478,9 +488,9 @@ All project docs become English. The guide output remains Turkish.
 
 ## 17. Success criteria
 
-- One `folisift` distributable file starts an MCP server on a clean machine
-  with no Python, Poppler, WeasyPrint or Typst installation. It may extract its
-  embedded PDFium shared library into a cache directory on first run.
+- The `folisift` binary plus its `libpdfium.so` sidecar start an MCP server on
+  a clean machine with no Python, Poppler, WeasyPrint or Typst installation.
+  There is no runtime extraction step.
 - An MCP client can analyze a source, scaffold a guide, build a PDF and run the
   coverage gate.
 - The PD0–PD1 guide preserves its sections, design language, Turkish text and

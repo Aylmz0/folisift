@@ -1,7 +1,7 @@
 # Phase 0 — Risk Spike Report
 
 - **Date:** 2026-10-26
-- **Status:** Complete — gate passed with a packaging caveat
+- **Status:** Complete — gate passed; two-file sidecar selected
 - **Plan:** [`2026-10-26-rust-mcp-typst.md`](2026-10-26-rust-mcp-typst.md)
 - **Spike:** throwaway crate at `/tmp/opencode/folisift-phase0` (not committed)
 
@@ -11,7 +11,8 @@ Can one Rust process parse source PDFs with `liteparse`, render the paper design
 with Typst, and produce a Turkish PDF without Python, Poppler, WeasyPrint or a
 system Typst installation?
 
-A second question was implicit: can that process be shipped as **one file**?
+A second question was implicit: how must the process be packaged so that a
+clean machine needs no Python, Poppler, WeasyPrint or Typst installation?
 
 ## Environment
 
@@ -67,7 +68,7 @@ Measured on the real sources:
   the current low-text rule (it also flags sparse text and images). It should
   be used for routing/OCR, not as a drop-in replacement for `low_text_pages`.
 
-### Packaging — the caveat
+### Packaging — sidecar selected
 
 Three runs, each from a clean directory:
 
@@ -75,7 +76,12 @@ Three runs, each from a clean directory:
 |---|---|
 | Binary alone, PDFium cache removed | **Fails**: `failed to load pdfium shared library: LibraryUnavailable` |
 | Binary + `libpdfium.so` in the same directory | **Works** |
-| Binary with `libpdfium.so` embedded via `include_bytes!`, extracted to a cache directory at startup, `PDFIUM_LIB_PATH` set before parsing | **Works from an empty cache** |
+| Binary with `libpdfium.so` embedded and extracted to a cache at startup | **Works**, but rejected as a product shape |
+
+The maintainer selected the **sidecar** variant (B): the release archive
+contains `folisift` and the platform PDFium shared library next to it. The
+loader resolves the library next to the executable; there is no runtime
+extraction, no executable written to a cache and no antivirus surprise.
 
 Sizes:
 
@@ -83,8 +89,8 @@ Sizes:
 |---|---:|
 | Native binary, no PDFium payload, unstripped | 73 MB |
 | Native binary, no PDFium payload, stripped | 56 MB |
-| Embedded PDFium, unstripped | 80 MB |
-| Embedded PDFium, stripped | 63 MB |
+| `libpdfium.so` sidecar | 7.3 MB |
+| Embedded PDFium, stripped (rejected variant) | 63 MB |
 
 `ldd` shows only glibc, `libgcc_s`, `libm`, `libdl`, `librt` and `libpthread`;
 there is no link-time dependency on PDFium.
@@ -97,22 +103,38 @@ experiment; it is not required for the one-file distribution test above.
 
 ## Gate verdict
 
-**GO for the architecture, with a packaging change.**
+**GO for the architecture, with the two-file sidecar.**
 
-- Parser, renderer, Turkish text and one-file distribution are feasible.
-- “Single static binary” is **not** what liteparse provides. The realistic
-  target is **one distributable file** that embeds `libpdfium.so` and extracts
-  it to a cache directory on first use.
-- If a literal static binary is a hard requirement, stop and revisit the
-  parser choice before Phase 1.
+- Parser, renderer, Turkish text and sidecar distribution are feasible.
+- “Single static binary” is **not** what liteparse provides. The selected
+  target is **two files installed together**: `folisift` + `libpdfium.so`.
+- The binary must fail with a clear message when the sidecar is missing or has
+  the wrong platform/version.
+- If a literal static binary becomes a hard requirement later, stop and revisit
+  the parser choice rather than adding runtime extraction.
+
+## Production sidecar check
+
+The `folisift` binary was copied to a clean directory with `libpdfium.so` next
+to it. `folisift analyze --source sources/PD0.pdf` produced 123 pages / 5,386
+words. With the library and the build cache removed, the same command failed
+cleanly:
+
+```text
+error: PDFium is not usable: pdfium shared library unavailable. Place
+libpdfium.so next to the folisift executable or set FOLISIFT_PDFIUM_DIR.
+```
+
+No panic, no implicit extraction. The error is the intended installation
+contract for the two-file release.
 
 ## Risks to carry into Phase 1
 
-- Extracting an executable shared library into a cache is a security/AV
-  surface. It needs a fixed, versioned path, atomic writes, checksum/length
-  validation and no world-writable directory.
+- The sidecar can be missing, stale, or from the wrong platform. Startup must
+  resolve it next to the executable, verify it loads, and print an actionable
+  error. Pin the PDFium build in the release notes.
 - PDFium's licence and version must be recorded with the release.
-- Binary size is ~63 MB stripped with PDFium and fonts; this is acceptable for
+- Binary size is ~56 MB stripped plus a 7.3 MB sidecar; this is acceptable for
   a desktop/MCP tool but must be measured again after `rmcp` and the real
   template are linked.
 - `is_complex` over-flags compared with the current low-text rule; the
@@ -138,4 +160,5 @@ cargo build --release
 ```
 
 The spike source is not a production artefact. Phase 1 starts from the
-workspace in `crates/`.
+workspace in `crates/`; the production loader resolves `libpdfium.so` next to
+the `folisift` executable.
