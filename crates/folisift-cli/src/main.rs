@@ -3,6 +3,7 @@ use std::process::ExitCode;
 
 use clap::{Parser, Subcommand};
 use folisift_core::{Guide, Workspace, list_guides, version};
+use folisift_parse::{analyze_sources, parse_page_list, render_pages};
 use serde::Serialize;
 use serde_json::json;
 
@@ -29,6 +30,33 @@ enum Command {
     ListGuides,
     /// Show a validated guide config and resolved paths.
     GuideStatus { slug: String },
+    /// Build a source inventory with liteparse.
+    Analyze {
+        /// Source PDFs, relative to the workspace root.
+        #[arg(long = "source", required = true, num_args = 1..)]
+        sources: Vec<PathBuf>,
+        /// Inventory JSON path.
+        #[arg(long, default_value = "data/source.json")]
+        out: PathBuf,
+        /// Inventory Markdown path.
+        #[arg(long, default_value = "data/source.md")]
+        md: PathBuf,
+        /// Low-text threshold in non-whitespace characters.
+        #[arg(long, default_value_t = folisift_parse::LOW_TEXT_THRESHOLD)]
+        low_threshold: usize,
+    },
+    /// Render PDF pages to PNG files for visual inspection.
+    RenderPages {
+        /// Source PDF, relative to the workspace root.
+        #[arg(long)]
+        source: PathBuf,
+        /// Page list such as `1,3-5`. Omit for all pages.
+        #[arg(long)]
+        pages: Option<String>,
+        /// Output directory.
+        #[arg(long, default_value = "data/pages")]
+        out: PathBuf,
+    },
 }
 
 #[derive(Debug, Serialize)]
@@ -46,8 +74,9 @@ struct GuideStatus {
     target_pages: Option<String>,
 }
 
-fn main() -> ExitCode {
-    match run() {
+#[tokio::main]
+async fn main() -> ExitCode {
+    match run().await {
         Ok(()) => ExitCode::SUCCESS,
         Err(error) => {
             eprintln!("error: {error}");
@@ -56,7 +85,7 @@ fn main() -> ExitCode {
     }
 }
 
-fn run() -> Result<(), Box<dyn std::error::Error>> {
+async fn run() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
     let workspace = Workspace::open(&cli.root)?;
 
@@ -96,6 +125,44 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
                 target_pages: guide.config.target_pages,
             };
             println!("{}", serde_json::to_string_pretty(&status)?);
+        }
+        Command::Analyze {
+            sources,
+            out,
+            md,
+            low_threshold,
+        } => {
+            let sources = sources
+                .iter()
+                .map(|path| workspace.resolve_read(path))
+                .collect::<Result<Vec<_>, _>>()?;
+            let out = workspace.resolve_write(out)?;
+            let md = workspace.resolve_write(md)?;
+            let inventory = analyze_sources(&sources, low_threshold).await?;
+            inventory.write_files(&out, &md)?;
+            let value = json!({
+                "inventory": out.display().to_string(),
+                "markdown": md.display().to_string(),
+                "pages": inventory.totals.pages,
+                "words": inventory.totals.words,
+                "low_text_pages": inventory.totals.low_text_pages,
+            });
+            println!("{}", serde_json::to_string_pretty(&value)?);
+        }
+        Command::RenderPages { source, pages, out } => {
+            let source = workspace.resolve_read(source)?;
+            let out = workspace.resolve_write(out)?;
+            let pages = pages.as_deref().map(parse_page_list).transpose()?;
+            let images = render_pages(&source, pages, &out).await?;
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&json!({
+                    "source": source.display().to_string(),
+                    "out": out.display().to_string(),
+                    "pages": images.len(),
+                    "images": images,
+                }))?
+            );
         }
     }
     Ok(())
