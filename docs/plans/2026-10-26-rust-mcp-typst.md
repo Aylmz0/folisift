@@ -1,6 +1,6 @@
 # Folisift v2 — Rust MCP + Typst Migration Plan
 
-- **Status:** Phase 0–3 complete; Phase 1 CI/licences pending; Phase 4 next
+- **Status:** Phase 0–4 complete; Phase 1 CI/licences pending; Phase 5 next
 - **Date:** 2026-10-26
 - **Owner:** Maintainer
 - **Supersedes:** the Python-only engine described in `docs/architecture.md`
@@ -424,13 +424,18 @@ WeasyPrint, or a system Typst installation.
   PDF bookmarks present, Turkish glyphs intact, no clipped tables/figures.
 - Details: [`2026-10-26-phase3-report.md`](2026-10-26-phase3-report.md).
 
-### Phase 4 — MCP server
+### Phase 4 — MCP server — complete
 
-- `rmcp` stdio server.
-- Tools/resources/prompts in §5.
-- Workspace sandbox tests, path traversal tests.
-- CLI `mcp`, `build`, `analyze`, `render-pages`, `scaffold`.
-- **Gate:** an MCP client can run analyze → scaffold → build → check.
+- `folisift-mcp`: `rmcp` stdio server with 8 tools:
+  `workspace_info`, `list_guides`, `guide_status`, `analyze_source`,
+  `render_pages`, `scaffold_guide`, `build_guide`, `check_coverage`.
+- Resources: `folisift://authoring-spec`, `folisift://design-system`,
+  `folisift://guide/{slug}`.
+- Prompt: `write-study-guide`.
+- CLI `folisift mcp`; host agent can analyze → scaffold → build → check.
+- **Gate:** MCP handshake, `tools/list`, `tools/call`, resources, prompts and
+  the full analyze → scaffold → build → check flow all pass.
+- Details: [`2026-10-26-phase4-report.md`](2026-10-26-phase4-report.md).
 
 ### Phase 5 — Docs and agent contract
 
