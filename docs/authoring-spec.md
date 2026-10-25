@@ -1,4 +1,11 @@
 # MASTER STUDY-GUIDE SPECIFICATION — v2
+
+> **v3 implementation note (2026-10-26).** The A–G structure, coverage,
+> accuracy and terminology rules below remain normative. The v2 implementation
+> writes `guide.md` (Markdown + YAML frontmatter + `definition`, `critical`,
+> `example`, `note` directives) and renders it with Typst. HTML/CSS details
+> apply to the Python reference only. See `docs/architecture.md`,
+> `docs/authoring.md` and ADR-0007.
 # Reusable prompt + production contract for university exam study guides.
 # Fill the CONFIG block for each course, then give this file to the agent.
 # The guide itself must be written in Turkish.

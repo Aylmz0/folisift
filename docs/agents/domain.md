@@ -20,10 +20,14 @@ Single-context repository:
 ├── CONTEXT.md
 ├── docs/
 │   ├── adr/
+│   ├── plans/
+│   ├── agents/
 │   ├── architecture.md
 │   ├── authoring.md
 │   └── design-system.md
-├── engine/
+├── engine/             # Python reference
+├── crates/             # Rust v2: core, parse, render, mcp, cli
+├── templates/          # paper.typ + embedded fonts
 ├── guides/
 └── sources/            # local only, gitignored
 ```

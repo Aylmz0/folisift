@@ -1,25 +1,27 @@
 # Authoring a guide
 
-This document describes the day-to-day workflow for producing a Folisift
-guide. The normative prompt/spec is `docs/authoring-spec.md`; this file is the
-practical runbook.
+This is the practical runbook. `docs/authoring-spec.md` is the normative
+content contract; `docs/architecture.md` explains the layers.
 
 ## Prerequisites
 
+For the Python reference:
+
 - Python 3.10+
-- Poppler utilities: `pdfinfo`, `pdftotext`, `pdftoppm`
-- Pillow
-- WeasyPrint
+- Poppler: `pdfinfo`, `pdftotext`, `pdftoppm`
+- Pillow and WeasyPrint
 
-```bash
-python3 -m pip install --user weasyprint pillow
-```
+For the Rust v2 path:
 
-## Guide bundle anatomy
+- Rust 1.92+
+- `cargo`
+- `libpdfium.so` next to the `folisift` binary, or `FOLISIFT_PDFIUM_DIR`
 
-```
+## Guide bundle anatomy (schema 2)
+
+```text
 guides/<slug>/
-├── guide.html       # A–G content; source order preserved inside B
+├── guide.md         # Markdown + directives; source order preserved
 ├── config.json      # paths relative to this directory
 ├── assets/          # guide-specific SVG diagrams
 └── data/
@@ -28,124 +30,113 @@ guides/<slug>/
     └── coverage.md  # generated coverage report
 ```
 
-Source PDFs are **not** in the bundle. Place them in the repository-level
-`sources/` directory; that directory is gitignored.
+Schema 1 bundles use `guide.html` and the Python engine. Keep them readable
+during the migration; do not create new schema-1 bundles.
 
-## Workflow
-
-### 1. Put the sources in place
+## First pass: inventory and visual review
 
 ```bash
-sources/PD2.pdf
-```
+# Rust
+cargo run -p folisift-cli -- analyze \
+  --source sources/PD0.pdf --source sources/PD1.pdf \
+  --out guides/pd0-pd1/data/source.json \
+  --md guides/pd0-pd1/data/source.md
 
-Never commit them. `sources/README.md` explains the local convention.
-
-### 2. Create the bundle
-
-```bash
-python3 engine/tools/scaffold.py \
-  --slug pd2 \
-  --title "Bölüm 2: Önemli Programlama Dillerinin Gelişimi" \
-  --course "BMÜ325 Programlama Dilleri" \
-  --sources sources/PD2.pdf
-```
-
-This creates `guides/pd2/` from `engine/templates/guide.html`, writes
-`config.json`, and runs the source inventory.
-
-### 3. Read the inventory
-
-```bash
-cd guides/pd2
+# Python reference
+cd guides/pd0-pd1
 python3 ../../engine/tools/analyze_sources.py \
-  ../../sources/PD2.pdf \
+  ../../sources/PD0.pdf ../../sources/PD1.pdf \
   --out data/source.json --md data/source.md
 ```
 
-Use `source.md` as the coverage checklist. Do not hand-count pages or headings.
-
-### 4. Inspect low-text pages
+Low-text pages need a visual pass:
 
 ```bash
-python3 ../../engine/tools/prepare_pages.py ../../sources/PD2.pdf \
-  --source-json data/source.json --filename PD2.pdf \
-  --out data/pages/pd2 --cols 2 --rows 2
+cargo run -p folisift-cli -- render-pages \
+  --source sources/PD0.pdf --pages 7,9,17 \
+  --out guides/pd0-pd1/data/pages
 ```
 
-Open the contact sheets. Transcribe meaningful diagrams, tables and code.
-Mark decorative images as decorative; do not reproduce them.
+Read the images. Do not invent content for a page you cannot see. Record
+inaccessible or ambiguous content in the guide’s G section.
 
-### 5. Write `guide.html`
+## Write the guide
 
-Follow `docs/authoring-spec.md`:
+Use the headings from the inventory, in source order:
 
-- preserve source order in B;
-- every section/subsection gets an explanation;
-- use `[PD2, s. 57]` references;
-- label added clarifications **Açıklayıcı not**;
-- flag inconsistencies instead of silently fixing them;
-- no quizzes, flashcards or generic study advice.
+```markdown
+---
+title: "Programlama Dilleri — Çalışma Kılavuzu"
+language: tr
+sources: [PD0, PD1]
+---
 
-Build early and often:
+# Bölüm 0 — Hazırlık
+
+## 0.1 Giriş ve amaçlar
+
+Metin... [PD0, s. 3]
+
+::: definition
+**Programlama dili:** ...
+:::
+
+::: critical
+**Sözdizimi / anlambilim:** ...
+:::
+```
+
+Rules:
+
+- Use `## <section number> <title>` for every inventory subsection.
+- Cite the source after claims: `[PD0, s. 3]`.
+- Label added explanation with **Açıklayıcı not** inside `::: note`.
+- Keep Turkish terminology; give the English term in parentheses on first use.
+- Tables use Markdown tables; figures use `![caption](assets/x.svg)`.
+- Do not write raw HTML, CSS or Typst.
+
+## Build and gate
 
 ```bash
-cd ../..
-python3 engine/build.py --guide guides/pd2
+cargo run -p folisift-cli -- build --guide pd0-pd1 \
+  --output output/PD0-PD1_v2.pdf --check
 ```
 
-### 6. Finish C–G
+The command fails if a numbered source subsection has no matching heading. The
+coverage report is written to `data/coverage.md`. A passing gate is necessary,
+not sufficient: the G section still needs a human audit of tables, figures,
+examples and low-text pages.
 
-- C: consolidated glossary and “sık karıştırılan ayrımlar”.
-- D: methods as input → operation → output.
-- E: formulas, rules, dates, numbers; inconsistencies.
-- F: cross-source connections; label interpretation.
-- G: coverage table, low-text pages, exclusions, final counts.
-
-### 7. Run the coverage gate
-
-```bash
-python3 engine/build.py --guide guides/pd2 --check
-```
-
-`data/coverage.md` must say **GEÇTİ**. The gate checks top-level section
-numbers and heading matches. Tables, figures, formulas and examples still need
-the manual audit in G.
-
-### 8. Review the PDF
-
-Check:
-
-- TOC page numbers and PDF bookmarks;
-- running headers match page content;
-- no orphan section openers;
-- no table/code overflow;
-- Turkish characters and hyphenation;
-- figure captions and source refs;
-- G counts match `data/source.json`.
-
-## Current guide
+Python reference:
 
 ```bash
 python3 engine/build.py --guide guides/pd0-pd1 --check
 ```
 
-Output: `output/PD0-PD1_Calisma_Ozeti.pdf` (22 pages).
+## New guide
 
-## Common problems
+```bash
+cargo run -p folisift-cli -- scaffold \
+  --slug pd2 --title "Bölüm 2" --course "BMÜ325" \
+  --source sources/PD2.pdf
+```
 
-| Problem | Fix |
-|---|---|
-| `pdfinfo`/`pdftotext` missing | Install Poppler. |
-| `weasyprint` missing | `python3 -m pip install --user weasyprint`. |
-| Coverage says `EKSİK` | Add the missing section to B or fix the heading; re-run. |
-| TOC numbers wrong | Ensure the link target IDs exist and rebuild. |
-| Image missing | Check the path is relative to `guide.html`; guide images live in `assets/`. |
-| Source PDF accidentally staged | Remove from index; never commit `sources/*.pdf`. |
+The MCP `scaffold_guide` tool performs the same operation and generates
+headings from the source inventory.
 
-## Related docs
+## Design changes
 
-- `docs/authoring-spec.md` — normative content and design rules
-- `docs/architecture.md` — engine/guide data flow
-- `docs/design-system.md` — paper palette and components
-- `CONTEXT.md` — domain vocabulary
+Change `templates/paper.typ` for the shared design. A guide-specific visual
+change belongs in the guide only when it carries meaning; otherwise it is a
+design-system change and needs an ADR (ADR-0002, ADR-0007).
+
+## Checklist
+
+- [ ] All source PDFs are under `sources/` and not committed.
+- [ ] Inventory regenerated after a source change.
+- [ ] Low-text pages inspected visually.
+- [ ] Every numbered subsection has a `##` heading.
+- [ ] Source references present; no invented facts.
+- [ ] `build --check` passes.
+- [ ] G section records coverage, exclusions and weak spots.
+- [ ] PDF page count and Turkish glyphs checked.

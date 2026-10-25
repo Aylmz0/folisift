@@ -1,38 +1,37 @@
 # AGENTS.md
 
 Folisift is a domain-agnostic study-guide production pipeline. It turns lecture
-PDFs into paper-like, exam-oriented guides. The engine is shared; each course
-lives in its own guide bundle under `guides/`.
+PDFs into paper-like, exam-oriented Turkish guides. The engine is shared; each
+course lives in its own guide bundle under `guides/`.
+
+**One-sentence constraint:** any course, any source, one engine; every guide is
+reproducible and auditable.
+
+## How to decide
+
+- Evidence over preference. Measure the output, the page count, the parse
+  parity and the coverage report before calling a change an improvement.
+- Boring technology, narrowly applied. Do not add a framework to avoid a small
+  function.
+- The Python engine is the reference until the Rust path reaches parity. Keep
+  both working during the strangle; do not delete the reference early.
+- A guide bundle is data and content, never a fork of the engine.
+- Documentation is English. The generated guide content is Turkish.
+- Prefer one clear rule in `docs/` over repeated explanations in prompts.
 
 ## Commands
 
 Run from the repository root unless stated otherwise.
 
 ```bash
-# Build the current guide
-python3 engine/build.py --guide guides/pd0-pd1
-
-# Build + coverage gate
+# Python reference
 python3 engine/build.py --guide guides/pd0-pd1 --check
+make verify
 
-# Source inventory
-cd guides/pd0-pd1
-python3 ../../engine/tools/analyze_sources.py \
-  ../../sources/PD0.pdf ../../sources/PD1.pdf \
-  --out data/source.json --md data/source.md
-
-# Low-text page contact sheets
-python3 ../../engine/tools/prepare_pages.py ../../sources/PD0.pdf \
-  --source-json data/source.json --filename PD0.pdf \
-  --out data/pages/pd0 --cols 2 --rows 2
-
-# New guide bundle
-python3 engine/tools/scaffold.py --slug pd2 --title "..." \
-  --sources sources/PD2.pdf
-
-# Rust v2 workspace (in progress; Python still builds the current guide)
+# Rust v2 workspace
 cargo test
 cargo clippy --all-targets --all-features -- -D warnings
+cargo fmt --all -- --check
 cargo run -p folisift-cli -- workspace-info
 cargo run -p folisift-cli -- guide-status pd0-pd1
 cargo run -p folisift-cli -- analyze --source sources/PD0.pdf \
@@ -48,21 +47,22 @@ cargo run -p folisift-cli -- mcp
 
 The Rust binary loads `libpdfium.so` (or the platform equivalent) from its own
 directory. Set `FOLISIFT_PDFIUM_DIR` for a development copy. Do not add runtime
-extraction. The v2 plan and Phase 0 evidence live in `docs/plans/`. Do not
-remove the Python engine until the Rust path reaches coverage/PDF parity.
+extraction.
 
 ## Architecture
 
-- `engine/` — reusable code, templates, CSS and SVG brand assets.
-- `crates/` — Rust v2 workspace: `folisift-core` (config/schema/path safety),
-  `folisift-parse` (liteparse/inventory/screenshots), `folisift-render`
-  (Markdown/Typst), `folisift-mcp` (stdio tools/resources/prompts),
-  `folisift-cli`.
+- `engine/` — Python reference: build, tools, templates, CSS and SVG assets.
+- `crates/` — Rust v2 workspace:
+  - `folisift-core` — config/schema, workspace path safety, scaffold, version.
+  - `folisift-parse` — liteparse adapter, inventory, coverage, screenshots.
+  - `folisift-render` — Markdown/directives to Typst PDF.
+  - `folisift-mcp` — stdio tools, resources and prompts.
+  - `folisift-cli` — the `folisift` binary.
 - `guides/<slug>/` — one self-contained course/material bundle:
   `guide.md` (v2) or `guide.html` (legacy), `config.json`, `assets/`, `data/`.
 - `sources/` — personal/course PDFs; **not tracked by git**.
 - `output/` — generated PDFs, tracked for review.
-- `docs/` — architecture, authoring, design system, ADRs and agent config.
+- `docs/` — architecture, authoring, design system, ADRs, plans and agent config.
 
 Guide config paths are relative to the guide directory. Do not hard-code a
 course name, a page count or a source path in the engine.
@@ -70,12 +70,27 @@ course name, a page count or a source path in the engine.
 ## Invariants
 
 - `sources/*.pdf` must never be committed. They are local inputs.
-- Never claim full coverage without `engine/tools/check_coverage.py` passing.
-- Keep the paper design system in `engine/style.css`; guide-specific styling
-  belongs in the guide bundle only when it carries meaning.
+- Never claim full coverage without a passing coverage gate
+  (`engine/tools/check_coverage.py` for legacy, `folisift build --check` for v2).
 - Do not invent facts, formulas, dates or page references.
 - Label added clarifications with **Açıklayıcı not** in the guide.
+- The design system stays stable across guides; deviations need an ADR.
 - One guide bundle must be usable without changing another bundle.
+- No LLM call, shell execution or network access inside the MCP server.
+- Writes stay under `guides/`, `output/` and `data/`; `sources/` is read-only.
+
+## Working agreement
+
+1. Read `CONTEXT.md`, the relevant ADRs and `docs/plans/` before changing
+   architecture.
+2. Make the smallest change that proves the point; add tests for behavior that
+   can regress.
+3. Run the relevant gate before reporting done. If a gate cannot run, say why.
+4. Keep docs links valid and update the contract when behavior changes.
+5. Commit with Conventional Commits. Do not push branches; the maintainer owns
+   remote pushes and releases.
+6. Record a decision in `docs/adr/` when it changes a boundary, not when it
+   merely renames a local variable.
 
 ## Agent skills
 
@@ -89,5 +104,19 @@ The five canonical labels are used unchanged. See `docs/agents/triage-labels.md`
 
 ### Domain docs
 
-Single-context repository: read `CONTEXT.md` and `docs/adr/` before changing
-architecture. See `docs/agents/domain.md`.
+Single-context repository: read `CONTEXT.md`, `docs/adr/`, `docs/architecture.md`
+and the active plan before changing architecture. See `docs/agents/domain.md`.
+
+### Versioning
+
+`docs/agents/versioning.md` is the authority; `AGENTS.md` only points to it.
+`docs/VERSIONS.md` records released tags and builds.
+
+## Where detail lives
+
+- Product boundaries and data flow: `docs/architecture.md`.
+- Authoring workflow: `docs/authoring.md`.
+- Normative content rules: `docs/authoring-spec.md`.
+- Paper design: `docs/design-system.md` and `templates/paper.typ`.
+- Migration decisions: `docs/plans/` and `docs/adr/`.
+- Active work: GitHub Issues and `docs/plans/`.

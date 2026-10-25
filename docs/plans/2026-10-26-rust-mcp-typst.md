@@ -1,6 +1,6 @@
 # Folisift v2 — Rust MCP + Typst Migration Plan
 
-- **Status:** Phase 0–4 complete; Phase 1 CI/licences pending; Phase 5 next
+- **Status:** Phase 0–6 parity audit complete; removal/CI pending
 - **Date:** 2026-10-26
 - **Owner:** Maintainer
 - **Supersedes:** the Python-only engine described in `docs/architecture.md`
@@ -332,7 +332,7 @@ Adopt the TradeSeeker three-layer model, adapted:
 | Layer | Source | Owner |
 |---|---|---|
 | Build | `git rev-list --count HEAD`, embedded at compile time | nobody (derived) |
-| SemVer | annotated tag `vX.Y.Z` | agent creates and pushes tags |
+| SemVer | annotated tag `vX.Y.Z` | maintainer creates and pushes tags |
 | Commit | Conventional Commits | author |
 
 Additional:
@@ -343,7 +343,7 @@ Additional:
 - Build from a shallow clone must fail in CI.
 - `docs/VERSIONS.md` records tag, date, build, commit, what changed, what
   invalidates prior measurements.
-- Agent may commit and tag; **branch pushes remain human-owned**.
+- Agents may commit; **tag and branch pushes remain maintainer-owned**.
 - A distributed binary must embed build/semver identity; do not read `.git` at
   runtime.
 
@@ -437,20 +437,29 @@ WeasyPrint, or a system Typst installation.
   the full analyze → scaffold → build → check flow all pass.
 - Details: [`2026-10-26-phase4-report.md`](2026-10-26-phase4-report.md).
 
-### Phase 5 — Docs and agent contract
+### Phase 5 — Docs and agent contract — complete
 
-- Translate all docs to English.
-- Rewrite `AGENTS.md` in the TradeSeeker working-agreement style.
-- Add ADRs for Rust/Typst/liteparse/sandbox.
-- Add versioning authority and `docs/VERSIONS.md`.
-- **Gate:** docs links valid, AGENTS commands run.
+- `AGENTS.md` rewritten in the one-sentence-constraint / working-agreement
+  style; commands point at both paths.
+- `docs/architecture.md`, `docs/authoring.md`, `docs/design-system.md`,
+  `docs/agents/domain.md`, `README.md` and `docs/README.md` updated for v2.
+- ADRs 0006–0009: Rust workspace, Typst renderer, liteparse, workspace sandbox.
+- `docs/agents/versioning.md` and `docs/VERSIONS.md` added.
+- **Gate:** local doc links valid (two example links inside code blocks are
+  intentionally not files); all AGENTS commands run.
+- Details: [`2026-10-26-phase5-report.md`](2026-10-26-phase5-report.md).
 
-### Phase 6 — Parity and removal
+### Phase 6 — Parity and removal — audit complete, removal pending
 
-- Full PD0–PD1 visual/content comparison.
-- Remove Python engine and WeasyPrint after parity.
-- Release v0.1.0 of the single binary.
-- **Gate:** no Python runtime needed; output accepted.
+- Full PD0–PD1 content comparison: headings, directives, figures and coverage
+  match; Rust PDF is 23 pages vs 22 (+4.5%).
+- Python engine intentionally stays in the tree until the maintainer signs off
+  on removal; it is the reference build.
+- Output remains split: Python `PD0-PD1_Calisma_Ozeti.pdf`, Rust
+  `PD0-PD1_v2.pdf`.
+- **Gate:** removal and a `v0.1.0` release are not executed yet. No Python
+  runtime claim is made for the release until the reference is removed.
+- Details: [`2026-10-26-phase6-parity-report.md`](2026-10-26-phase6-parity-report.md).
 
 ## 14. Testing and verification
 
