@@ -250,7 +250,9 @@ Why Markdown over JSON/Typst:
 Port the current paper design to `templates/paper.typ`:
 
 - A4, margins, cream paper, ink/brick/sage/gold palette.
-- Noto Serif body, Inter headings, DejaVu Sans Mono code.
+- Noto Serif body, Inter headings, and a permissively licensed mono for code.
+  DejaVu Sans Mono is acceptable only if its Bitstream Vera licence is shipped;
+  an OFL mono is simpler. Typst's embedded fonts must be licensed explicitly.
 - Cover, front matter, TOC, running headers, page numbers, bookmarks.
 - Definition, critical, example, note boxes.
 - Tables without vertical rules; figure captions; code blocks.
