@@ -1,0 +1,1732 @@
+{
+  "generated_at": "2026-10-25T19:36:37+00:00",
+  "low_text_threshold": 120,
+  "sources": [
+    {
+      "path": "../sources/PD0.pdf",
+      "filename": "PD0.pdf",
+      "title": "Programlama Dilleri",
+      "pages": 123,
+      "chars": 32228,
+      "words": 5334,
+      "low_text_threshold": 120,
+      "low_text_pages": [
+        1,
+        7,
+        9,
+        16,
+        17,
+        21,
+        23,
+        26,
+        27,
+        32,
+        35,
+        49,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        68,
+        69,
+        74,
+        77,
+        78,
+        80,
+        81,
+        82,
+        83,
+        84,
+        85,
+        86,
+        87,
+        89,
+        109,
+        111,
+        116,
+        117,
+        118,
+        119,
+        120,
+        121
+      ],
+      "headings": [
+        {
+          "heading": "1 Giriş ve Amaçlar",
+          "page": 2
+        },
+        {
+          "heading": "0.1 Giriş ve Amaçlar",
+          "page": 3
+        },
+        {
+          "heading": "0.2 Programlama Dili Nedir?",
+          "page": 10
+        },
+        {
+          "heading": "0.3 Programlama Dillerini Düzeylere",
+          "page": 21
+        },
+        {
+          "heading": "0.4 Dil Çevrimi",
+          "page": 22
+        },
+        {
+          "heading": "1 Bir düzenli ifade özel bir token tipinin tüm durumlarını",
+          "page": 42
+        },
+        {
+          "heading": "1 Terminal semboller (a, b)",
+          "page": 51
+        },
+        {
+          "heading": "0.5 Programlama Dillerinin Yazılım",
+          "page": 115
+        }
+      ],
+      "page_map": [
+        {
+          "page": 1,
+          "first_line": "Bölüm: 0",
+          "chars": 8,
+          "low_text": true
+        },
+        {
+          "page": 2,
+          "first_line": "Hazırlık",
+          "chars": 140,
+          "low_text": false
+        },
+        {
+          "page": 3,
+          "first_line": "0.1. Giriş ve Amaçlar",
+          "chars": 392,
+          "low_text": false
+        },
+        {
+          "page": 4,
+          "first_line": "Amaç",
+          "chars": 699,
+          "low_text": false
+        },
+        {
+          "page": 5,
+          "first_line": "Amaç",
+          "chars": 318,
+          "low_text": false
+        },
+        {
+          "page": 6,
+          "first_line": "• Şu ana kadar 2500’den fazla programlama dili yapılmıştır.",
+          "chars": 315,
+          "low_text": false
+        },
+        {
+          "page": 7,
+          "first_line": "Ekim 2019 için TIOBE Programlama Kominite İndeksi",
+          "chars": 44,
+          "low_text": true
+        },
+        {
+          "page": 8,
+          "first_line": "Neden Programlama Dilleri Dersi?",
+          "chars": 866,
+          "low_text": false
+        },
+        {
+          "page": 9,
+          "first_line": "Dil amaçları ve trade-off’lar",
+          "chars": 112,
+          "low_text": true
+        },
+        {
+          "page": 10,
+          "first_line": "0.2. Programlama Dili Nedir?",
+          "chars": 420,
+          "low_text": false
+        },
+        {
+          "page": 11,
+          "first_line": "Programlama Dili Nedir?",
+          "chars": 495,
+          "low_text": false
+        },
+        {
+          "page": 12,
+          "first_line": "Doğal Dil - Programlama Dili (1)",
+          "chars": 497,
+          "low_text": false
+        },
+        {
+          "page": 13,
+          "first_line": "Doğal Dil - Programlama Dili (2)",
+          "chars": 476,
+          "low_text": false
+        },
+        {
+          "page": 14,
+          "first_line": "Programlama Dili Nedir?",
+          "chars": 285,
+          "low_text": false
+        },
+        {
+          "page": 15,
+          "first_line": "Programlama",
+          "chars": 140,
+          "low_text": false
+        },
+        {
+          "page": 16,
+          "first_line": "program gcd(input, output);",
+          "chars": 116,
+          "low_text": true
+        },
+        {
+          "page": 17,
+          "first_line": "",
+          "chars": 2,
+          "low_text": true
+        },
+        {
+          "page": 18,
+          "first_line": "Programlama Dili Nedir?",
+          "chars": 338,
+          "low_text": false
+        },
+        {
+          "page": 19,
+          "first_line": "Neden Farklı Programlama Dilleri? (1)",
+          "chars": 429,
+          "low_text": false
+        },
+        {
+          "page": 20,
+          "first_line": "Neden Farklı Programlama Dilleri? (1)",
+          "chars": 692,
+          "low_text": false
+        },
+        {
+          "page": 21,
+          "first_line": "0.3. Programlama Dillerini Düzeylere",
+          "chars": 106,
+          "low_text": true
+        },
+        {
+          "page": 22,
+          "first_line": "0.4. Dil Çevrimi",
+          "chars": 401,
+          "low_text": false
+        },
+        {
+          "page": 23,
+          "first_line": "0.4. Dil Çevrimi",
+          "chars": 98,
+          "low_text": true
+        },
+        {
+          "page": 24,
+          "first_line": "Yorumlayıcılar (Interpreters)",
+          "chars": 384,
+          "low_text": false
+        },
+        {
+          "page": 25,
+          "first_line": "Yorumlayıcılar (Interpreters)",
+          "chars": 362,
+          "low_text": false
+        },
+        {
+          "page": 26,
+          "first_line": "Yorumlayıcılar",
+          "chars": 16,
+          "low_text": true
+        },
+        {
+          "page": 27,
+          "first_line": "Yorumlayıcının Genel Çalışma Şekli",
+          "chars": 113,
+          "low_text": true
+        },
+        {
+          "page": 28,
+          "first_line": "Derleme Yaklaşımı ile Dil Çevrimi",
+          "chars": 313,
+          "low_text": false
+        },
+        {
+          "page": 29,
+          "first_line": "Derleme Sürecine Genel Bir Bakış",
+          "chars": 488,
+          "low_text": false
+        },
+        {
+          "page": 30,
+          "first_line": "Derleme",
+          "chars": 120,
+          "low_text": false
+        },
+        {
+          "page": 31,
+          "first_line": "Derleme",
+          "chars": 187,
+          "low_text": false
+        },
+        {
+          "page": 32,
+          "first_line": "Derleme Sürecine Genel Bir Bakış",
+          "chars": 30,
+          "low_text": true
+        },
+        {
+          "page": 33,
+          "first_line": "Derleyicinin Genel Çalışma Şekli",
+          "chars": 176,
+          "low_text": false
+        },
+        {
+          "page": 34,
+          "first_line": "Derleme Sürecinin Aşamaları",
+          "chars": 446,
+          "low_text": false
+        },
+        {
+          "page": 35,
+          "first_line": "Derleme Sürecinin Aşamaları",
+          "chars": 27,
+          "low_text": true
+        },
+        {
+          "page": 36,
+          "first_line": "Metinsel (Lexical) Analiz",
+          "chars": 132,
+          "low_text": false
+        },
+        {
+          "page": 37,
+          "first_line": "Metinsel (Lexical) Analiz",
+          "chars": 589,
+          "low_text": false
+        },
+        {
+          "page": 38,
+          "first_line": "Metinsel (Lexical) Analiz-Sembol Tablosu",
+          "chars": 670,
+          "low_text": false
+        },
+        {
+          "page": 39,
+          "first_line": "Sözcüksel veya Metinsel (Lexical) Analiz",
+          "chars": 147,
+          "low_text": false
+        },
+        {
+          "page": 40,
+          "first_line": "Sözcüksel veya Metinsel (Lexical) Analiz",
+          "chars": 327,
+          "low_text": false
+        },
+        {
+          "page": 41,
+          "first_line": "Sözcüksel veya Metinsel (Lexical) Analiz",
+          "chars": 419,
+          "low_text": false
+        },
+        {
+          "page": 42,
+          "first_line": "Sözcüksel veya Metinsel (Lexical) Analiz",
+          "chars": 536,
+          "low_text": false
+        },
+        {
+          "page": 43,
+          "first_line": "Sözcüksel Analiz Şekli",
+          "chars": 240,
+          "low_text": false
+        },
+        {
+          "page": 44,
+          "first_line": "Sözcüksel veya Metinsel (Lexical) Analiz",
+          "chars": 288,
+          "low_text": false
+        },
+        {
+          "page": 45,
+          "first_line": "Sözcüksel veya Metinsel (Lexical) Analiz",
+          "chars": 210,
+          "low_text": false
+        },
+        {
+          "page": 46,
+          "first_line": "Sözcüksel veya Metinsel (Lexical) Analiz",
+          "chars": 221,
+          "low_text": false
+        },
+        {
+          "page": 47,
+          "first_line": "Sözcüksel veya Metinsel (Lexical) Analiz",
+          "chars": 206,
+          "low_text": false
+        },
+        {
+          "page": 48,
+          "first_line": "Sözdizim (Syntax) Çözümleme",
+          "chars": 639,
+          "low_text": false
+        },
+        {
+          "page": 49,
+          "first_line": "Sözdizim (Syntax) Çözümleme",
+          "chars": 27,
+          "low_text": true
+        },
+        {
+          "page": 50,
+          "first_line": "Sözdizim (Syntax) Çözümleme",
+          "chars": 281,
+          "low_text": false
+        },
+        {
+          "page": 51,
+          "first_line": "Sözdizim (Syntax) Çözümleme",
+          "chars": 366,
+          "low_text": false
+        },
+        {
+          "page": 52,
+          "first_line": "Sözdizim (Syntax) Çözümleme -Ayrıştırma Ağacı",
+          "chars": 174,
+          "low_text": false
+        },
+        {
+          "page": 53,
+          "first_line": "Sözdizim (Syntax) Çözümleme -Ayrıştırma Ağacı",
+          "chars": 441,
+          "low_text": false
+        },
+        {
+          "page": 54,
+          "first_line": "Sözdizim (Syntax) Çözümleme -Ayrıştırma Ağacı",
+          "chars": 310,
+          "low_text": false
+        },
+        {
+          "page": 55,
+          "first_line": "Sözdizim (Syntax) Çözümleme -Ayrıştırma Ağacı",
+          "chars": 254,
+          "low_text": false
+        },
+        {
+          "page": 56,
+          "first_line": "Sözdizim Analizi",
+          "chars": 358,
+          "low_text": false
+        },
+        {
+          "page": 57,
+          "first_line": "Ayrıştırma",
+          "chars": 285,
+          "low_text": false
+        },
+        {
+          "page": 58,
+          "first_line": "Sözdizim Analiz- Tanıma- Bottom Up",
+          "chars": 224,
+          "low_text": false
+        },
+        {
+          "page": 59,
+          "first_line": "Sözdizim Analiz- Üretim-Top Down",
+          "chars": 233,
+          "low_text": false
+        },
+        {
+          "page": 60,
+          "first_line": "Sözcüksel ve Sözdizim Analiz Şekli",
+          "chars": 32,
+          "low_text": true
+        },
+        {
+          "page": 61,
+          "first_line": "Belirsizlik",
+          "chars": 107,
+          "low_text": true
+        },
+        {
+          "page": 62,
+          "first_line": "• İki türetme:",
+          "chars": 68,
+          "low_text": true
+        },
+        {
+          "page": 63,
+          "first_line": "Belirsizliği Giderme",
+          "chars": 87,
+          "low_text": true
+        },
+        {
+          "page": 64,
+          "first_line": "Örnek analiz",
+          "chars": 53,
+          "low_text": true
+        },
+        {
+          "page": 65,
+          "first_line": "Örnek analiz",
+          "chars": 13,
+          "low_text": true
+        },
+        {
+          "page": 66,
+          "first_line": "Anlam (Semantics) Çözümleme",
+          "chars": 282,
+          "low_text": false
+        },
+        {
+          "page": 67,
+          "first_line": "Anlam (Semantics) Çözümleme",
+          "chars": 320,
+          "low_text": false
+        },
+        {
+          "page": 68,
+          "first_line": "Örnek: Anlam Analizi",
+          "chars": 20,
+          "low_text": true
+        },
+        {
+          "page": 69,
+          "first_line": "Örnek: Anlam Analizi",
+          "chars": 20,
+          "low_text": true
+        },
+        {
+          "page": 70,
+          "first_line": "Kod Oluşturma",
+          "chars": 190,
+          "low_text": false
+        },
+        {
+          "page": 71,
+          "first_line": "Kod Oluşturma",
+          "chars": 328,
+          "low_text": false
+        },
+        {
+          "page": 72,
+          "first_line": "Optimizasyon (Eniyileme)",
+          "chars": 705,
+          "low_text": false
+        },
+        {
+          "page": 73,
+          "first_line": "Optimizasyon - Makine Bağımsız Optimizasyon",
+          "chars": 482,
+          "low_text": false
+        },
+        {
+          "page": 74,
+          "first_line": "Optimizasyon - Makine Bağımsız Optimizasyon",
+          "chars": 41,
+          "low_text": true
+        },
+        {
+          "page": 75,
+          "first_line": "Optimizasyon - Makine Bağımlı Optimizasyon",
+          "chars": 507,
+          "low_text": false
+        },
+        {
+          "page": 76,
+          "first_line": "Optimizasyon Temaları",
+          "chars": 938,
+          "low_text": false
+        },
+        {
+          "page": 77,
+          "first_line": "Ölü Kod Eliminasyonu (Death Code Elimination)",
+          "chars": 42,
+          "low_text": true
+        },
+        {
+          "page": 78,
+          "first_line": "Gereksiz Kodların Elimine Edilmesi",
+          "chars": 33,
+          "low_text": true
+        },
+        {
+          "page": 79,
+          "first_line": "Ortak Alt İfadelerin Elimine Edilmesi (Common Subexpression",
+          "chars": 392,
+          "low_text": false
+        },
+        {
+          "page": 80,
+          "first_line": "Sabit İfadesi Yerleştirme (Constant Folding)",
+          "chars": 42,
+          "low_text": true
+        },
+        {
+          "page": 81,
+          "first_line": "Sabit İfadelerinin Yaydırılması (Const Propegation)",
+          "chars": 49,
+          "low_text": true
+        },
+        {
+          "page": 82,
+          "first_line": "Ortak Blok (Basic Block)",
+          "chars": 23,
+          "low_text": true
+        },
+        {
+          "page": 83,
+          "first_line": "Göstericilerin Eliminasyonu",
+          "chars": 28,
+          "low_text": true
+        },
+        {
+          "page": 84,
+          "first_line": "Göstericilerin Eliminasyonu (devam)",
+          "chars": 35,
+          "low_text": true
+        },
+        {
+          "page": 85,
+          "first_line": "Inline Fonksiyon Açımı",
+          "chars": 22,
+          "low_text": true
+        },
+        {
+          "page": 86,
+          "first_line": "Döngü Değişmezleri (Loop Invariants)",
+          "chars": 35,
+          "low_text": true
+        },
+        {
+          "page": 87,
+          "first_line": "Döngü Değişmezleri (Loop Invariants) (devam)",
+          "chars": 42,
+          "low_text": true
+        },
+        {
+          "page": 88,
+          "first_line": "Döngü Açımı (Loop Unrolling)",
+          "chars": 272,
+          "low_text": false
+        },
+        {
+          "page": 89,
+          "first_line": "Döngü Ayırması (Loop Splitting)",
+          "chars": 30,
+          "low_text": true
+        },
+        {
+          "page": 90,
+          "first_line": "Kod Üretimi Aşamasında Yapılan Optimizasyonlar",
+          "chars": 1119,
+          "low_text": false
+        },
+        {
+          "page": 91,
+          "first_line": "Yazmaç Tahsisatı (Register Allocation)",
+          "chars": 538,
+          "low_text": false
+        },
+        {
+          "page": 92,
+          "first_line": "Komut Çizelgelemesi (Instruction Scheduling)",
+          "chars": 451,
+          "low_text": false
+        },
+        {
+          "page": 93,
+          "first_line": "ÖZETLE DERLEME",
+          "chars": 211,
+          "low_text": false
+        },
+        {
+          "page": 94,
+          "first_line": "ÖZETLE DERLEME",
+          "chars": 170,
+          "low_text": false
+        },
+        {
+          "page": 95,
+          "first_line": "Kaynak Program         Örnek Derleme",
+          "chars": 179,
+          "low_text": false
+        },
+        {
+          "page": 96,
+          "first_line": "Kaynak Program         Örnek Derleme",
+          "chars": 228,
+          "low_text": false
+        },
+        {
+          "page": 97,
+          "first_line": "Kaynak Program          Örnek Derleme",
+          "chars": 277,
+          "low_text": false
+        },
+        {
+          "page": 98,
+          "first_line": "Kaynak Program          Örnek Derleme",
+          "chars": 247,
+          "low_text": false
+        },
+        {
+          "page": 99,
+          "first_line": "Kaynak Program          Örnek Derleme",
+          "chars": 264,
+          "low_text": false
+        },
+        {
+          "page": 100,
+          "first_line": "Kaynak Program         Örnek Derleme",
+          "chars": 282,
+          "low_text": false
+        },
+        {
+          "page": 101,
+          "first_line": "Kaynak Program         Örnek Derleme",
+          "chars": 273,
+          "low_text": false
+        },
+        {
+          "page": 102,
+          "first_line": "Kaynak Program          Örnek Derleme",
+          "chars": 262,
+          "low_text": false
+        },
+        {
+          "page": 103,
+          "first_line": "Kaynak Program          Örnek Derleme",
+          "chars": 244,
+          "low_text": false
+        },
+        {
+          "page": 104,
+          "first_line": "Kaynak Program          Örnek Derleme",
+          "chars": 304,
+          "low_text": false
+        },
+        {
+          "page": 105,
+          "first_line": "Derleme ÖZET",
+          "chars": 362,
+          "low_text": false
+        },
+        {
+          "page": 106,
+          "first_line": "Dil Çevrim Yöntemlerinin Karşılaştırılması",
+          "chars": 332,
+          "low_text": false
+        },
+        {
+          "page": 107,
+          "first_line": "Zaman Etkinliği Açısından",
+          "chars": 528,
+          "low_text": false
+        },
+        {
+          "page": 108,
+          "first_line": "Bellek Kullanma Etkinliği Açısından",
+          "chars": 519,
+          "low_text": false
+        },
+        {
+          "page": 109,
+          "first_line": "Bellek Kullanma Etkinliği Açısından",
+          "chars": 35,
+          "low_text": true
+        },
+        {
+          "page": 110,
+          "first_line": "Hata Bildirme Yöntemleri Açısından",
+          "chars": 427,
+          "low_text": false
+        },
+        {
+          "page": 111,
+          "first_line": "Hata Bildirme Yöntemleri Açısından",
+          "chars": 34,
+          "low_text": true
+        },
+        {
+          "page": 112,
+          "first_line": "Taşınabilir Kod",
+          "chars": 435,
+          "low_text": false
+        },
+        {
+          "page": 113,
+          "first_line": "Taşınabilir Kod",
+          "chars": 140,
+          "low_text": false
+        },
+        {
+          "page": 114,
+          "first_line": "Diğer Çeviriciler",
+          "chars": 413,
+          "low_text": false
+        },
+        {
+          "page": 115,
+          "first_line": "0.5. Programlama Dillerinin Yazılım",
+          "chars": 279,
+          "low_text": false
+        },
+        {
+          "page": 116,
+          "first_line": "Yazılım Geliştirme Yaşam Döngüsü Nedir?",
+          "chars": 101,
+          "low_text": true
+        },
+        {
+          "page": 117,
+          "first_line": "Geliştirme Yaşam Döngüsü Nedir?",
+          "chars": 31,
+          "low_text": true
+        },
+        {
+          "page": 118,
+          "first_line": "Yazılım Geliştirme Yaşam Döngüsü Nedir?",
+          "chars": 38,
+          "low_text": true
+        },
+        {
+          "page": 119,
+          "first_line": "Yazılım Geliştirme Yaşam Döngüsü Nedir?",
+          "chars": 38,
+          "low_text": true
+        },
+        {
+          "page": 120,
+          "first_line": "Yazılım Geliştirme Yaşam Döngüsü Nedir?",
+          "chars": 38,
+          "low_text": true
+        },
+        {
+          "page": 121,
+          "first_line": "Yazılım Geliştirme Yaşam Döngüsü Nedir?",
+          "chars": 38,
+          "low_text": true
+        },
+        {
+          "page": 122,
+          "first_line": "ÖDEV",
+          "chars": 151,
+          "low_text": false
+        },
+        {
+          "page": 123,
+          "first_line": "Kaynaklar",
+          "chars": 374,
+          "low_text": false
+        }
+      ]
+    },
+    {
+      "path": "../sources/PD1.pdf",
+      "filename": "PD1.pdf",
+      "title": "Chapter 1",
+      "pages": 137,
+      "chars": 46049,
+      "words": 6856,
+      "low_text_threshold": 120,
+      "low_text_pages": [
+        1,
+        29,
+        31,
+        40,
+        72,
+        79,
+        89,
+        91,
+        93,
+        95,
+        97,
+        98,
+        99,
+        113,
+        121
+      ],
+      "headings": [
+        {
+          "heading": "Bölüm 1: Giriş",
+          "page": 1
+        },
+        {
+          "heading": "Bölüm 1 Konular",
+          "page": 2
+        },
+        {
+          "heading": "1.1 Programlama Dilleri Kavramlarını",
+          "page": 3
+        },
+        {
+          "heading": "1.2 Programlama Alanları",
+          "page": 15
+        },
+        {
+          "heading": "1.3 Dil Değerlendirme Kriterleri",
+          "page": 17
+        },
+        {
+          "heading": "1.4 Dil Tasarımını Etkileyen Faktörler",
+          "page": 59
+        },
+        {
+          "heading": "1.5 Dil Kategorileri",
+          "page": 72
+        },
+        {
+          "heading": "1.6 Dil Tasarımında Verilen Ödünler",
+          "page": 105
+        },
+        {
+          "heading": "1.7 İmplementasyon Metotları",
+          "page": 108
+        },
+        {
+          "heading": "1 Lexical analizör",
+          "page": 115
+        },
+        {
+          "heading": "1.8 Programlama Platformları",
+          "page": 132
+        }
+      ],
+      "page_map": [
+        {
+          "page": 1,
+          "first_line": "Bölüm 1: Giriş",
+          "chars": 13,
+          "low_text": true
+        },
+        {
+          "page": 2,
+          "first_line": "Bölüm 1 Konular",
+          "chars": 270,
+          "low_text": false
+        },
+        {
+          "page": 3,
+          "first_line": "1.1 Programlama Dilleri Kavramlarını",
+          "chars": 372,
+          "low_text": false
+        },
+        {
+          "page": 4,
+          "first_line": "Fikirleri ifade etme yeteneğinin arttırılması",
+          "chars": 245,
+          "low_text": false
+        },
+        {
+          "page": 5,
+          "first_line": "Fikirleri ifade etme yeteneğinin arttırılması",
+          "chars": 418,
+          "low_text": false
+        },
+        {
+          "page": 6,
+          "first_line": "Fikirleri ifade etme yeteneğinin arttırılması",
+          "chars": 180,
+          "low_text": false
+        },
+        {
+          "page": 7,
+          "first_line": "Fikirleri ifade etme yeteneğinin arttırılması",
+          "chars": 495,
+          "low_text": false
+        },
+        {
+          "page": 8,
+          "first_line": "Uygun dilleri seçebilme bilincinin geliştirilmesi",
+          "chars": 380,
+          "low_text": false
+        },
+        {
+          "page": 9,
+          "first_line": "Yeni diller öğrenebilme yeteneğinin",
+          "chars": 460,
+          "low_text": false
+        },
+        {
+          "page": 10,
+          "first_line": "Yeni diller öğrenebilme yeteneğinin",
+          "chars": 482,
+          "low_text": false
+        },
+        {
+          "page": 11,
+          "first_line": "İmplementasyonun öneminin daha iyi",
+          "chars": 474,
+          "low_text": false
+        },
+        {
+          "page": 12,
+          "first_line": "İmplementasyonun öneminin daha iyi",
+          "chars": 484,
+          "low_text": false
+        },
+        {
+          "page": 13,
+          "first_line": "Bilinen programlama dillerinin daha iyi",
+          "chars": 293,
+          "low_text": false
+        },
+        {
+          "page": 14,
+          "first_line": "Bilgisayar biliminde kapsamlı ilerleme",
+          "chars": 343,
+          "low_text": false
+        },
+        {
+          "page": 15,
+          "first_line": "1.2 Programlama Alanları",
+          "chars": 637,
+          "low_text": false
+        },
+        {
+          "page": 16,
+          "first_line": "1.2 Programlama Alanları",
+          "chars": 747,
+          "low_text": false
+        },
+        {
+          "page": 17,
+          "first_line": "1.3 Dil Değerlendirme Kriterleri",
+          "chars": 295,
+          "low_text": false
+        },
+        {
+          "page": 18,
+          "first_line": "Dil Değerlendirme Kriterleri",
+          "chars": 226,
+          "low_text": false
+        },
+        {
+          "page": 19,
+          "first_line": "Değerlendirme Kriterleri : Okunabilirlik",
+          "chars": 369,
+          "low_text": false
+        },
+        {
+          "page": 20,
+          "first_line": "Değerlendirme Kriterleri : Okunabilirlik",
+          "chars": 124,
+          "low_text": false
+        },
+        {
+          "page": 21,
+          "first_line": "Genel Kolaylık",
+          "chars": 542,
+          "low_text": false
+        },
+        {
+          "page": 22,
+          "first_line": "Genel Kolaylık",
+          "chars": 723,
+          "low_text": false
+        },
+        {
+          "page": 23,
+          "first_line": "Genel Kolaylık (Özet)",
+          "chars": 298,
+          "low_text": false
+        },
+        {
+          "page": 24,
+          "first_line": "Ortogonallik (Orthogonality)",
+          "chars": 1052,
+          "low_text": false
+        },
+        {
+          "page": 25,
+          "first_line": "Örnek: Hangisi ortogonaldir? Neden?",
+          "chars": 617,
+          "low_text": false
+        },
+        {
+          "page": 26,
+          "first_line": "• C dilinde toplama işlemi (+) bulunmakta ve ortogonallik gereği",
+          "chars": 777,
+          "low_text": false
+        },
+        {
+          "page": 27,
+          "first_line": "Ortogonallik (Orthogonality)",
+          "chars": 282,
+          "low_text": false
+        },
+        {
+          "page": 28,
+          "first_line": "Ortogonallik (Orthogonality)",
+          "chars": 138,
+          "low_text": false
+        },
+        {
+          "page": 29,
+          "first_line": "Kontrol İfadeleri",
+          "chars": 106,
+          "low_text": true
+        },
+        {
+          "page": 30,
+          "first_line": "Veri Tipleri ve Veri yapıları",
+          "chars": 208,
+          "low_text": false
+        },
+        {
+          "page": 31,
+          "first_line": "Veri Tipleri ve Veri yapıları",
+          "chars": 68,
+          "low_text": true
+        },
+        {
+          "page": 32,
+          "first_line": "Syntax Tasarımı",
+          "chars": 277,
+          "low_text": false
+        },
+        {
+          "page": 33,
+          "first_line": "Syntax Tasarımı",
+          "chars": 363,
+          "low_text": false
+        },
+        {
+          "page": 34,
+          "first_line": "Syntax Tasarımı",
+          "chars": 407,
+          "low_text": false
+        },
+        {
+          "page": 35,
+          "first_line": "Syntax Tasarımı",
+          "chars": 302,
+          "low_text": false
+        },
+        {
+          "page": 36,
+          "first_line": "Syntax Tasarımı",
+          "chars": 231,
+          "low_text": false
+        },
+        {
+          "page": 37,
+          "first_line": "Dil Değerlendirme Kriterleri",
+          "chars": 228,
+          "low_text": false
+        },
+        {
+          "page": 38,
+          "first_line": "Yazılabilirlik",
+          "chars": 235,
+          "low_text": false
+        },
+        {
+          "page": 39,
+          "first_line": "Yazılabilirlik",
+          "chars": 284,
+          "low_text": false
+        },
+        {
+          "page": 40,
+          "first_line": "Yazılabilirlik",
+          "chars": 109,
+          "low_text": true
+        },
+        {
+          "page": 41,
+          "first_line": "Basitlik ve Ortogonallik",
+          "chars": 507,
+          "low_text": false
+        },
+        {
+          "page": 42,
+          "first_line": "Soyutlama (Abstraction) desteği",
+          "chars": 335,
+          "low_text": false
+        },
+        {
+          "page": 43,
+          "first_line": "Soyutlama (Abstraction) desteği",
+          "chars": 640,
+          "low_text": false
+        },
+        {
+          "page": 44,
+          "first_line": "Soyutlama (Abstraction) desteği",
+          "chars": 141,
+          "low_text": false
+        },
+        {
+          "page": 45,
+          "first_line": "Anlamlılık (Açıklayıcılık)(Expressivity)",
+          "chars": 263,
+          "low_text": false
+        },
+        {
+          "page": 46,
+          "first_line": "Değerlendirme Kriterleri : Güvenilirlik",
+          "chars": 482,
+          "low_text": false
+        },
+        {
+          "page": 47,
+          "first_line": "Değerlendirme Kriterleri : Güvenilirlik",
+          "chars": 501,
+          "low_text": false
+        },
+        {
+          "page": 48,
+          "first_line": "Dil Değerlendirme Kriterleri",
+          "chars": 228,
+          "low_text": false
+        },
+        {
+          "page": 49,
+          "first_line": "Tip Kontrolü (Type Checking)",
+          "chars": 455,
+          "low_text": false
+        },
+        {
+          "page": 50,
+          "first_line": "Tip Kontrolü (Type Checking)",
+          "chars": 218,
+          "low_text": false
+        },
+        {
+          "page": 51,
+          "first_line": "İstisna İşleme (Exception Handling)",
+          "chars": 221,
+          "low_text": false
+        },
+        {
+          "page": 52,
+          "first_line": "Farklı Adlandırma (Aliasing)",
+          "chars": 338,
+          "low_text": false
+        },
+        {
+          "page": 53,
+          "first_line": "Okunabilirlik ve Yazılabilirlik",
+          "chars": 512,
+          "low_text": false
+        },
+        {
+          "page": 54,
+          "first_line": "Değerlendirme Kriterleri : Maliyet",
+          "chars": 384,
+          "low_text": false
+        },
+        {
+          "page": 55,
+          "first_line": "Değerlendirme Kriterleri : Maliyet",
+          "chars": 443,
+          "low_text": false
+        },
+        {
+          "page": 56,
+          "first_line": "Değerlendirme Kriterleri : Maliyet",
+          "chars": 484,
+          "low_text": false
+        },
+        {
+          "page": 57,
+          "first_line": "Değerlendirme Kriterleri: Diğerleri",
+          "chars": 401,
+          "low_text": false
+        },
+        {
+          "page": 58,
+          "first_line": "Değerlendirme Kriterleri: Diğerleri",
+          "chars": 227,
+          "low_text": false
+        },
+        {
+          "page": 59,
+          "first_line": "1.4 Dil Tasarımını Etkileyen Faktörler",
+          "chars": 363,
+          "low_text": false
+        },
+        {
+          "page": 60,
+          "first_line": "Bilgisayar Mimarisi Etkisi",
+          "chars": 340,
+          "low_text": false
+        },
+        {
+          "page": 61,
+          "first_line": "Bilgisayar Mimarisi Etkisi",
+          "chars": 300,
+          "low_text": false
+        },
+        {
+          "page": 62,
+          "first_line": "Von Neumann Mimarisi",
+          "chars": 158,
+          "low_text": false
+        },
+        {
+          "page": 63,
+          "first_line": "– Von Neumann’dan dolayı İmperatif",
+          "chars": 242,
+          "low_text": false
+        },
+        {
+          "page": 64,
+          "first_line": "• İfadelerdeki operatörler CPU tarafından",
+          "chars": 180,
+          "low_text": false
+        },
+        {
+          "page": 65,
+          "first_line": "• Von Neumann bilgisayarlarda iterasyon",
+          "chars": 351,
+          "low_text": false
+        },
+        {
+          "page": 66,
+          "first_line": "• Makina kodunun bir Von Neumann",
+          "chars": 291,
+          "low_text": false
+        },
+        {
+          "page": 67,
+          "first_line": "• von Neumann mimarisi bilgisayarda Fetch-Execute",
+          "chars": 302,
+          "low_text": false
+        },
+        {
+          "page": 68,
+          "first_line": "• Fonksiyonel dillerde imperative dillerdeki",
+          "chars": 401,
+          "low_text": false
+        },
+        {
+          "page": 69,
+          "first_line": "• Başka bir grup bilim adamı ise",
+          "chars": 198,
+          "low_text": false
+        },
+        {
+          "page": 70,
+          "first_line": "Programlama Tasarım Yöntemlerinin",
+          "chars": 755,
+          "low_text": false
+        },
+        {
+          "page": 71,
+          "first_line": "• 1980’lerin ortaları: Nesneye-dayalı (Object-",
+          "chars": 268,
+          "low_text": false
+        },
+        {
+          "page": 72,
+          "first_line": "1.5 Dil Kategorileri",
+          "chars": 44,
+          "low_text": true
+        },
+        {
+          "page": 73,
+          "first_line": "Programlama Paradigmaları",
+          "chars": 339,
+          "low_text": false
+        },
+        {
+          "page": 74,
+          "first_line": "Programlama Paradigmaları",
+          "chars": 520,
+          "low_text": false
+        },
+        {
+          "page": 75,
+          "first_line": "Programlama Paradigmaları",
+          "chars": 489,
+          "low_text": false
+        },
+        {
+          "page": 76,
+          "first_line": "Programlama Paradigmaları",
+          "chars": 623,
+          "low_text": false
+        },
+        {
+          "page": 77,
+          "first_line": "Programlama Paradigmaları",
+          "chars": 283,
+          "low_text": false
+        },
+        {
+          "page": 78,
+          "first_line": "Programlama Paradigmaları",
+          "chars": 248,
+          "low_text": false
+        },
+        {
+          "page": 79,
+          "first_line": "Programlama Paradigmaları",
+          "chars": 65,
+          "low_text": true
+        },
+        {
+          "page": 80,
+          "first_line": "Programlama Paradigmaları",
+          "chars": 394,
+          "low_text": false
+        },
+        {
+          "page": 81,
+          "first_line": "Programlama Paradigmaları",
+          "chars": 394,
+          "low_text": false
+        },
+        {
+          "page": 82,
+          "first_line": "Programlama Paradigmaları",
+          "chars": 448,
+          "low_text": false
+        },
+        {
+          "page": 83,
+          "first_line": "Programlama Paradigmaları",
+          "chars": 154,
+          "low_text": false
+        },
+        {
+          "page": 84,
+          "first_line": "Programlama Paradigmaları",
+          "chars": 367,
+          "low_text": false
+        },
+        {
+          "page": 85,
+          "first_line": "• Mantıksal diller kural tabanlı dillerdir. İmperative",
+          "chars": 439,
+          "low_text": false
+        },
+        {
+          "page": 86,
+          "first_line": "Programlama Paradigmaları",
+          "chars": 213,
+          "low_text": false
+        },
+        {
+          "page": 87,
+          "first_line": "Programlama Paradigmaları",
+          "chars": 441,
+          "low_text": false
+        },
+        {
+          "page": 88,
+          "first_line": "Programlama Paradigmaları",
+          "chars": 145,
+          "low_text": false
+        },
+        {
+          "page": 89,
+          "first_line": "Şekil:",
+          "chars": 80,
+          "low_text": true
+        },
+        {
+          "page": 90,
+          "first_line": "Programlama Paradigmaları",
+          "chars": 793,
+          "low_text": false
+        },
+        {
+          "page": 91,
+          "first_line": "Program Örneği",
+          "chars": 62,
+          "low_text": true
+        },
+        {
+          "page": 92,
+          "first_line": "Imperative Çözüm",
+          "chars": 169,
+          "low_text": false
+        },
+        {
+          "page": 93,
+          "first_line": "Nesne Tabanlı Çözüm",
+          "chars": 53,
+          "low_text": true
+        },
+        {
+          "page": 94,
+          "first_line": "Fonksiyonel Çözüm",
+          "chars": 195,
+          "low_text": false
+        },
+        {
+          "page": 95,
+          "first_line": "Mantıksal Çözüm",
+          "chars": 71,
+          "low_text": true
+        },
+        {
+          "page": 96,
+          "first_line": "Kurallar",
+          "chars": 158,
+          "low_text": false
+        },
+        {
+          "page": 97,
+          "first_line": "Gerçekler",
+          "chars": 105,
+          "low_text": true
+        },
+        {
+          "page": 98,
+          "first_line": "Gerçekler",
+          "chars": 54,
+          "low_text": true
+        },
+        {
+          "page": 99,
+          "first_line": "Problem Örneği",
+          "chars": 47,
+          "low_text": true
+        },
+        {
+          "page": 100,
+          "first_line": "Programlama Paradigmaları",
+          "chars": 434,
+          "low_text": false
+        },
+        {
+          "page": 101,
+          "first_line": "Programlama Paradigmaları",
+          "chars": 442,
+          "low_text": false
+        },
+        {
+          "page": 102,
+          "first_line": "Programlama Paradigmaları",
+          "chars": 176,
+          "low_text": false
+        },
+        {
+          "page": 103,
+          "first_line": "Programlama Paradigmaları",
+          "chars": 384,
+          "low_text": false
+        },
+        {
+          "page": 104,
+          "first_line": "Programlama Paradigmaları",
+          "chars": 348,
+          "low_text": false
+        },
+        {
+          "page": 105,
+          "first_line": "1.6 Dil Tasarımında Verilen Ödünler",
+          "chars": 401,
+          "low_text": false
+        },
+        {
+          "page": 106,
+          "first_line": "1.6 Dil Tasarımında Verilen Ödünler",
+          "chars": 495,
+          "low_text": false
+        },
+        {
+          "page": 107,
+          "first_line": "1.6 Dil Tasarımında Verilen Ödünler",
+          "chars": 527,
+          "low_text": false
+        },
+        {
+          "page": 108,
+          "first_line": "1.7 İmplementasyon Metotları",
+          "chars": 347,
+          "low_text": false
+        },
+        {
+          "page": 109,
+          "first_line": "1.7 İmplementasyon Metotları",
+          "chars": 321,
+          "low_text": false
+        },
+        {
+          "page": 110,
+          "first_line": "Bilgisayarın katmanlı (layered) görünümü",
+          "chars": 242,
+          "low_text": false
+        },
+        {
+          "page": 111,
+          "first_line": "Geleneksel Çevirici",
+          "chars": 209,
+          "low_text": false
+        },
+        {
+          "page": 112,
+          "first_line": "Derleme (Compilation)",
+          "chars": 566,
+          "low_text": false
+        },
+        {
+          "page": 113,
+          "first_line": "Kaynak",
+          "chars": 66,
+          "low_text": true
+        },
+        {
+          "page": 114,
+          "first_line": "Derleme",
+          "chars": 222,
+          "low_text": false
+        },
+        {
+          "page": 115,
+          "first_line": "Bir Derleyicinin 8 Fazı",
+          "chars": 404,
+          "low_text": false
+        },
+        {
+          "page": 116,
+          "first_line": "Biraz daha derleme terminolojisi",
+          "chars": 214,
+          "low_text": false
+        },
+        {
+          "page": 117,
+          "first_line": "Derleme ve Yürütme",
+          "chars": 304,
+          "low_text": false
+        },
+        {
+          "page": 118,
+          "first_line": "Makine kodunun yürütülmesi",
+          "chars": 337,
+          "low_text": false
+        },
+        {
+          "page": 119,
+          "first_line": "Von Neumann Darboğazı (Bottleneck)",
+          "chars": 361,
+          "low_text": false
+        },
+        {
+          "page": 120,
+          "first_line": "Saf Yorumlama (Pure Interpretation)",
+          "chars": 414,
+          "low_text": false
+        },
+        {
+          "page": 121,
+          "first_line": "Saf Yorumlama (Pure Interpretation) İşlemi",
+          "chars": 88,
+          "low_text": true
+        },
+        {
+          "page": 122,
+          "first_line": "Hibrit İmplementasyon Sistemleri",
+          "chars": 557,
+          "low_text": false
+        },
+        {
+          "page": 123,
+          "first_line": "Hibrit İmplementasyon İşlemi",
+          "chars": 169,
+          "low_text": false
+        },
+        {
+          "page": 124,
+          "first_line": "Tam-zamanında (Just-in-Time)",
+          "chars": 316,
+          "low_text": false
+        },
+        {
+          "page": 125,
+          "first_line": "Önişlemciler (Preprocessors)",
+          "chars": 435,
+          "low_text": false
+        },
+        {
+          "page": 126,
+          "first_line": "Önişlemciler( Preprocessors)",
+          "chars": 221,
+          "low_text": false
+        },
+        {
+          "page": 127,
+          "first_line": "Derleyicilere Karşı Yorumlayıcılar",
+          "chars": 258,
+          "low_text": false
+        },
+        {
+          "page": 128,
+          "first_line": "Neden Derleyici",
+          "chars": 332,
+          "low_text": false
+        },
+        {
+          "page": 129,
+          "first_line": "Neden Yorumlayıcı",
+          "chars": 259,
+          "low_text": false
+        },
+        {
+          "page": 130,
+          "first_line": "Çok Geçişli Derleyiciler",
+          "chars": 367,
+          "low_text": false
+        },
+        {
+          "page": 131,
+          "first_line": "Başka Dile Derleme",
+          "chars": 301,
+          "low_text": false
+        },
+        {
+          "page": 132,
+          "first_line": "1.8 Programlama Platformları",
+          "chars": 398,
+          "low_text": false
+        },
+        {
+          "page": 133,
+          "first_line": "1.8 Programlama Platformları",
+          "chars": 444,
+          "low_text": false
+        },
+        {
+          "page": 134,
+          "first_line": "1.8 Programlama Platformları",
+          "chars": 659,
+          "low_text": false
+        },
+        {
+          "page": 135,
+          "first_line": "• NetBeans, öncelikli kullanım amacı Java ile",
+          "chars": 229,
+          "low_text": false
+        },
+        {
+          "page": 136,
+          "first_line": "Özet",
+          "chars": 555,
+          "low_text": false
+        },
+        {
+          "page": 137,
+          "first_line": "Kaynaklar",
+          "chars": 371,
+          "low_text": false
+        }
+      ]
+    }
+  ],
+  "totals": {
+    "pages": 260,
+    "words": 12190,
+    "low_text_pages": 55
+  }
+}

@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 270" font-family="Inter, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#5E574B"/>
+    </marker>
+  </defs>
+  <rect width="860" height="270" fill="#FAF6EC"/>
+  <!-- source -->
+  <rect x="16" y="86" width="112" height="58" fill="#F1EADB" stroke="#8A3E2F" stroke-width="1.1"/>
+  <text x="72" y="109" text-anchor="middle" font-size="11" fill="#211E19">Kaynak</text>
+  <text x="72" y="125" text-anchor="middle" font-size="11" fill="#211E19">program</text>
+  <line x1="128" y1="115" x2="158" y2="115" stroke="#5E574B" stroke-width="1.1" marker-end="url(#arrow)"/>
+  <!-- front end -->
+  <rect x="160" y="34" width="250" height="162" fill="none" stroke="#42594F" stroke-width="1.1"/>
+  <text x="285" y="52" text-anchor="middle" font-size="10" letter-spacing="1.2" fill="#42594F">ÖN UÇ · DİLE BAĞIMLI</text>
+  <rect x="178" y="64" width="214" height="30" fill="#F1EADB" stroke="#D8CEBD" stroke-width="0.8"/>
+  <text x="285" y="83" text-anchor="middle" font-size="11" fill="#211E19">Sözcüksel analiz</text>
+  <rect x="178" y="100" width="214" height="30" fill="#F1EADB" stroke="#D8CEBD" stroke-width="0.8"/>
+  <text x="285" y="119" text-anchor="middle" font-size="11" fill="#211E19">Sözdizim analizi</text>
+  <rect x="178" y="136" width="214" height="30" fill="#F1EADB" stroke="#D8CEBD" stroke-width="0.8"/>
+  <text x="285" y="155" text-anchor="middle" font-size="11" fill="#211E19">Anlamsal analiz</text>
+  <line x1="410" y1="115" x2="440" y2="115" stroke="#5E574B" stroke-width="1.1" marker-end="url(#arrow)"/>
+  <!-- intermediate -->
+  <rect x="442" y="86" width="106" height="58" fill="#F1EADB" stroke="#B08A4F" stroke-width="1.1"/>
+  <text x="495" y="109" text-anchor="middle" font-size="11" fill="#211E19">Ara kod</text>
+  <text x="495" y="125" text-anchor="middle" font-size="9" fill="#5E574B">soyut program</text>
+  <line x1="548" y1="115" x2="578" y2="115" stroke="#5E574B" stroke-width="1.1" marker-end="url(#arrow)"/>
+  <!-- back end -->
+  <rect x="580" y="34" width="184" height="162" fill="none" stroke="#8A3E2F" stroke-width="1.1"/>
+  <text x="672" y="52" text-anchor="middle" font-size="10" letter-spacing="1.2" fill="#8A3E2F">ARKA UÇ · MAKİNEYE BAĞIMLI</text>
+  <rect x="598" y="64" width="148" height="30" fill="#F1EADB" stroke="#D8CEBD" stroke-width="0.8"/>
+  <text x="672" y="83" text-anchor="middle" font-size="11" fill="#211E19">Eniyileme</text>
+  <rect x="598" y="100" width="148" height="30" fill="#F1EADB" stroke="#D8CEBD" stroke-width="0.8"/>
+  <text x="672" y="119" text-anchor="middle" font-size="11" fill="#211E19">Kod üretimi</text>
+  <text x="672" y="154" text-anchor="middle" font-size="8.5" fill="#5E574B">hedef makine</text>
+  <text x="672" y="167" text-anchor="middle" font-size="8.5" fill="#5E574B">mimarisi</text>
+  <line x1="764" y1="115" x2="794" y2="115" stroke="#5E574B" stroke-width="1.1" marker-end="url(#arrow)"/>
+  <rect x="796" y="86" width="50" height="58" fill="#F1EADB" stroke="#8A3E2F" stroke-width="1.1"/>
+  <text x="821" y="109" text-anchor="middle" font-size="10" fill="#211E19">Amaç</text>
+  <text x="821" y="124" text-anchor="middle" font-size="10" fill="#211E19">kod</text>
+  <!-- symbol table / error handler -->
+  <rect x="160" y="222" width="250" height="30" fill="none" stroke="#D8CEBD" stroke-width="0.8" stroke-dasharray="3 3"/>
+  <text x="285" y="242" text-anchor="middle" font-size="9.5" fill="#5E574B">Sembol tablosu · her evrede güncellenir</text>
+  <rect x="580" y="222" width="184" height="30" fill="none" stroke="#D8CEBD" stroke-width="0.8" stroke-dasharray="3 3"/>
+  <text x="672" y="242" text-anchor="middle" font-size="9.5" fill="#5E574B">Hata yöneticisi</text>
+  <line x1="285" y1="196" x2="285" y2="222" stroke="#D8CEBD" stroke-width="0.8" stroke-dasharray="3 3"/>
+  <line x1="672" y1="196" x2="672" y2="222" stroke="#D8CEBD" stroke-width="0.8" stroke-dasharray="3 3"/>
+</svg>

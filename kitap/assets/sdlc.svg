@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 180" font-family="Inter, sans-serif">
+  <defs>
+    <marker id="sa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#8A3E2F"/>
+    </marker>
+  </defs>
+  <rect width="860" height="180" fill="#FAF6EC"/>
+  <g font-size="9.5" fill="#211E19">
+    <rect x="8" y="52" width="150" height="70" fill="#F1EADB" stroke="#B08A4F" stroke-width="1"/>
+    <text x="83" y="78" text-anchor="middle">Gereksinimlerin</text>
+    <text x="83" y="93" text-anchor="middle">analizi ve</text>
+    <text x="83" y="108" text-anchor="middle">belirlenmesi</text>
+
+    <rect x="180" y="52" width="150" height="70" fill="#F1EADB" stroke="#B08A4F" stroke-width="1"/>
+    <text x="255" y="85" text-anchor="middle">Sistem</text>
+    <text x="255" y="100" text-anchor="middle">tasarımı</text>
+
+    <rect x="352" y="52" width="150" height="70" fill="#F1EADB" stroke="#B08A4F" stroke-width="1"/>
+    <text x="427" y="78" text-anchor="middle">Gerçekleştirim</text>
+    <text x="427" y="93" text-anchor="middle">ve birim</text>
+    <text x="427" y="108" text-anchor="middle">sınama</text>
+
+    <rect x="524" y="52" width="150" height="70" fill="#F1EADB" stroke="#B08A4F" stroke-width="1"/>
+    <text x="599" y="85" text-anchor="middle">Sınama</text>
+    <text x="599" y="100" text-anchor="middle">(sistem)</text>
+
+    <rect x="696" y="52" width="150" height="70" fill="#F1EADB" stroke="#8A3E2F" stroke-width="1"/>
+    <text x="771" y="85" text-anchor="middle">Bakım</text>
+    <text x="771" y="100" text-anchor="middle">(en uzun evre)</text>
+  </g>
+  <g stroke="#8A3E2F" stroke-width="1" marker-end="url(#sa)">
+    <line x1="158" y1="87" x2="178" y2="87"/>
+    <line x1="330" y1="87" x2="350" y2="87"/>
+    <line x1="502" y1="87" x2="522" y2="87"/>
+    <line x1="674" y1="87" x2="694" y2="87"/>
+  </g>
+  <path d="M 771 128 C 771 168, 83 168, 83 128" fill="none" stroke="#D8CEBD" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#sa)"/>
+  <text x="430" y="160" text-anchor="middle" font-size="8.5" fill="#5E574B">geri besleme · bakım yeni gereksinimler doğurabilir</text>
+  <text x="8" y="30" font-size="9" letter-spacing="1.2" fill="#8A3E2F">YAZILIM GELİŞTİRME YAŞAM DÖNGÜSÜ · 5 AŞAMA</text>
+</svg>

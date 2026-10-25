@@ -1,0 +1,548 @@
+/* ============================================================
+   BMÜ325 Programlama Dilleri — Çalışma Kılavuzu
+   Paper-like akademik çalışma dosyası / pilot tasarım
+   ============================================================ */
+
+@page {
+  size: A4;
+  margin: 16mm 16.5mm 14mm 16.5mm;
+  background: #FAF6EC;
+
+  @top-left {
+    content: string(chapter);
+    font-family: "Inter", sans-serif;
+    font-size: 7pt;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #7A6F5E;
+    vertical-align: bottom;
+    padding-bottom: 2.5mm;
+  }
+  @top-right {
+    content: "Programlama Dilleri · Çalışma Kılavuzu";
+    font-family: "Inter", sans-serif;
+    font-size: 7pt;
+    letter-spacing: 0.06em;
+    color: #8A7A63;
+    vertical-align: bottom;
+    padding-bottom: 2.5mm;
+  }
+  @bottom-center {
+    content: counter(page);
+    font-family: "Inter", sans-serif;
+    font-size: 8pt;
+    font-weight: 500;
+    color: #8A3E2F;
+    vertical-align: top;
+    padding-top: 3mm;
+  }
+}
+
+@page cover {
+  margin: 0;
+  background: #F3EBDD;
+  @top-left { content: none; }
+  @top-right { content: none; }
+  @bottom-center { content: none; }
+}
+
+@page front {
+  @top-left { content: none; }
+  @top-right { content: none; }
+}
+
+html {
+  font-family: "Noto Serif", serif;
+  font-size: 9.5pt;
+  line-height: 1.33;
+  color: #211E19;
+  background: #FAF6EC;
+}
+
+body { margin: 0; }
+
+p {
+  margin: 0 0 1.8mm 0;
+  text-align: justify;
+  hyphens: auto;
+  hyphenate-limit-chars: 7 3 3;
+  orphans: 3;
+  widows: 3;
+}
+
+strong { font-weight: 700; color: #211E19; }
+em { font-style: italic; }
+a { color: #8A3E2F; text-decoration: none; }
+
+/* ---------- kapak ---------- */
+.cover {
+  page: cover;
+  height: 297mm;
+  width: 210mm;
+  padding: 18mm 20mm 15mm 20mm;
+  box-sizing: border-box;
+  position: relative;
+  background: #F3EBDD;
+}
+.cover-frame {
+  border: 0.8pt solid #B08A4F;
+  height: 264mm;
+  padding: 16mm 16mm 12mm 16mm;
+  box-sizing: border-box;
+  position: relative;
+}
+.cover-frame::before {
+  content: "";
+  position: absolute;
+  top: 4mm; left: 4mm; right: 4mm; bottom: 4mm;
+  border: 0.4pt solid #C9B99E;
+}
+.cover-top {
+  font-family: "Inter", sans-serif;
+  font-size: 8pt;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #8A3E2F;
+  text-align: center;
+  margin-top: 4mm;
+}
+.cover-rule {
+  width: 28mm;
+  height: 0.8pt;
+  background: #8A3E2F;
+  margin: 5mm auto 0 auto;
+}
+.cover h1 {
+  font-family: "Noto Serif", serif;
+  font-size: 33pt;
+  font-weight: 400;
+  line-height: 1.08;
+  letter-spacing: -0.015em;
+  text-align: center;
+  margin: 28mm 0 0 0;
+  color: #211E19;
+}
+.cover h1 span {
+  display: block;
+  font-size: 17pt;
+  font-style: italic;
+  font-weight: 400;
+  color: #5E574B;
+  margin-top: 5mm;
+  letter-spacing: 0;
+}
+.cover-sub {
+  text-align: center;
+  margin-top: 9mm;
+  font-family: "Inter", sans-serif;
+  font-size: 9.5pt;
+  letter-spacing: 0.04em;
+  color: #5E574B;
+}
+.cover-pilot {
+  display: inline-block;
+  margin-top: 7mm;
+  padding: 1.6mm 4mm;
+  border: 0.6pt solid #8A3E2F;
+  font-family: "Inter", sans-serif;
+  font-size: 7pt;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #8A3E2F;
+}
+.cover-motif {
+  position: absolute;
+  left: 50%;
+  bottom: 42mm;
+  transform: translateX(-50%);
+  width: 95mm;
+  opacity: 0.95;
+}
+.cover-bottom {
+  position: absolute;
+  left: 0; right: 0; bottom: 14mm;
+  text-align: center;
+  font-family: "Inter", sans-serif;
+  font-size: 7.4pt;
+  line-height: 1.7;
+  letter-spacing: 0.05em;
+  color: #6B6152;
+}
+.cover-bottom .small {
+  font-size: 6.6pt;
+  color: #8A7A63;
+}
+
+/* ---------- ön kısım ---------- */
+.front { page: front; }
+.front h1 {
+  font-family: "Inter", sans-serif;
+  font-size: 19pt;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0 0 3mm 0;
+}
+.front .kicker {
+  font-family: "Inter", sans-serif;
+  font-size: 7.2pt;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #8A3E2F;
+  margin-bottom: 2mm;
+}
+.front .lead {
+  font-size: 11.2pt;
+  line-height: 1.45;
+  color: #3B352D;
+  margin-bottom: 5mm;
+}
+.about-grid {
+  display: table;
+  width: 100%;
+  border-collapse: collapse;
+  margin: 4mm 0 5mm 0;
+}
+.about-grid .row { display: table-row; }
+.about-grid .cell {
+  display: table-cell;
+  vertical-align: top;
+  padding: 2.2mm 3mm 2.2mm 0;
+  border-top: 0.5pt solid #D8CEBD;
+}
+.about-grid .cell:first-child {
+  width: 34mm;
+  font-family: "Inter", sans-serif;
+  font-size: 7.4pt;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #8A3E2F;
+}
+.about-grid .cell:last-child { font-size: 9.4pt; }
+
+/* ---------- içindekiler ---------- */
+.toc-title {
+  font-family: "Inter", sans-serif;
+  font-size: 19pt;
+  font-weight: 600;
+  margin: 0 0 1.8mm 0;
+}
+.toc-note {
+  font-size: 8.6pt;
+  color: #5E574B;
+  margin-bottom: 7mm;
+}
+table.toc {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 9.6pt;
+}
+table.toc td {
+  padding: 1.9mm 0;
+  border-bottom: 0.35pt solid #E2D8C6;
+  vertical-align: bottom;
+}
+table.toc td.pg {
+  text-align: right;
+  width: 15mm;
+  padding-left: 4mm;
+  font-family: "Inter", sans-serif;
+  font-size: 8.2pt;
+  color: #8A3E2F;
+}
+table.toc a { color: #211E19; }
+table.toc a::after { content: none; }
+table.toc td.pg a::after { content: target-counter(attr(href), page); }
+table.toc .sub td { padding-left: 7mm; font-size: 8.9pt; color: #5E574B; }
+table.toc .sub td.pg { color: #8A7A63; }
+table.toc .part td {
+  padding-top: 4mm;
+  font-family: "Inter", sans-serif;
+  font-size: 7.2pt;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #8A3E2F;
+  border-bottom: none;
+}
+
+/* ---------- bölüm açılışı ---------- */
+.chapter {
+  break-before: page;
+}
+.chapter-open {
+  border-top: 1.4pt solid #8A3E2F;
+  padding-top: 4mm;
+  margin-top: 0;
+  margin-bottom: 5mm;
+}
+.chapter-open .meta {
+  display: table;
+  width: 100%;
+  font-family: "Inter", sans-serif;
+  font-size: 7pt;
+  letter-spacing: 0.08em;
+  color: #7A6F5E;
+  text-transform: uppercase;
+  margin-bottom: 3mm;
+}
+.chapter-open .meta .left { display: table-cell; text-align: left; }
+.chapter-open .meta .right { display: table-cell; text-align: right; }
+h1.chapter-title {
+  font-family: "Inter", sans-serif;
+  font-size: 21pt;
+  font-weight: 600;
+  line-height: 1.13;
+  letter-spacing: -0.02em;
+  margin: 0 0 2.5mm 0;
+  string-set: chapter attr(data-running);
+  bookmark-level: 1;
+}
+h1.chapter-title .num {
+  display: block;
+  font-size: 8pt;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #8A3E2F;
+  margin-bottom: 2mm;
+}
+.chapter-lead {
+  font-size: 10.8pt;
+  line-height: 1.4;
+  color: #3B352D;
+  margin: 0 0 1.8mm 0;
+  max-width: 150mm;
+}
+.chapter-open .source {
+  font-family: "Inter", sans-serif;
+  font-size: 7.4pt;
+  letter-spacing: 0.04em;
+  color: #6B6152;
+  margin-top: 3mm;
+}
+
+h2 {
+  font-family: "Inter", sans-serif;
+  font-size: 12pt;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  color: #211E19;
+  border-bottom: 0.5pt solid #D8CEBD;
+  padding-bottom: 1.4mm;
+  margin: 5.5mm 0 2.2mm 0;
+  break-after: avoid;
+  bookmark-level: 2;
+}
+h2 .n {
+  color: #8A3E2F;
+  font-weight: 500;
+  margin-right: 2.2mm;
+}
+h3 {
+  font-family: "Inter", sans-serif;
+  font-size: 8.2pt;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #42594F;
+  margin: 3.6mm 0 1.2mm 0;
+  break-after: avoid;
+}
+.lead-in {
+  font-size: 10.5pt;
+  color: #3B352D;
+}
+
+/* ---------- kutular ---------- */
+.definition, .critical, .example, .note {
+  break-inside: avoid;
+  margin: 3mm 0 3.2mm 0;
+}
+.definition {
+  background: #F4ECDE;
+  border-left: 2pt solid #8A3E2F;
+  padding: 2.5mm 3.2mm 2mm 3.2mm;
+}
+.critical {
+  background: #F1EEE4;
+  border-left: 2pt solid #42594F;
+  padding: 2.5mm 3.2mm 2mm 3.2mm;
+}
+.example {
+  border-top: 0.5pt solid #D8CEBD;
+  border-bottom: 0.5pt solid #D8CEBD;
+  padding: 2.2mm 0 1.8mm 0;
+  font-size: 9.5pt;
+}
+.note {
+  border-left: 1pt solid #B08A4F;
+  padding: 1.2mm 0 1.2mm 3.2mm;
+  font-size: 8.9pt;
+  color: #5E574B;
+}
+.label {
+  display: block;
+  font-family: "Inter", sans-serif;
+  font-size: 6.9pt;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #8A3E2F;
+  margin-bottom: 1.2mm;
+}
+.critical .label { color: #42594F; }
+.example .label { color: #B08A4F; }
+.definition p:last-child, .critical p:last-child, .example p:last-child, .note p:last-child { margin-bottom: 0; }
+
+/* ---------- kaynak referansı ---------- */
+.ref {
+  font-family: "Inter", sans-serif;
+  font-size: 6.9pt;
+  letter-spacing: 0.02em;
+  color: #8A7A63;
+  white-space: nowrap;
+}
+.ref::before { content: "["; }
+.ref::after { content: "]"; }
+
+/* ---------- tablolar ---------- */
+table.data {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 7.9pt;
+  line-height: 1.26;
+  margin: 3mm 0 4mm 0;
+  break-inside: avoid;
+}
+table.data th {
+  font-family: "Inter", sans-serif;
+  font-size: 6.9pt;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  text-align: left;
+  color: #211E19;
+  background: #EFE7D8;
+  border-top: 1pt solid #211E19;
+  border-bottom: 0.5pt solid #211E19;
+  padding: 1.6mm 1.5mm;
+  vertical-align: bottom;
+}
+table.data td {
+  border-bottom: 0.35pt solid #D8CEBD;
+  padding: 1.4mm 1.5mm;
+  vertical-align: top;
+}
+table.data tr:last-child td { border-bottom: 1pt solid #211E19; }
+table.data tbody tr:nth-child(even) td { background: #F7F1E5; }
+table.data .center { text-align: center; }
+table.data .nowrap { white-space: nowrap; }
+table.data .small { font-size: 7.8pt; color: #5E574B; }
+
+/* ---------- şekiller ---------- */
+figure {
+  margin: 3.6mm 0 3.8mm 0;
+  break-inside: avoid;
+}
+figure img { width: 100%; display: block; }
+figure.narrow img { width: 78%; margin: 0 auto; }
+figcaption {
+  font-size: 7.9pt;
+  line-height: 1.3;
+  font-style: italic;
+  color: #5E574B;
+  margin-top: 2mm;
+  padding-top: 1.4mm;
+  border-top: 0.35pt solid #D8CEBD;
+}
+figcaption .fig-no {
+  font-family: "Inter", sans-serif;
+  font-style: normal;
+  font-size: 6.8pt;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #8A3E2F;
+  margin-right: 1.8mm;
+}
+
+/* ---------- kod ---------- */
+pre {
+  font-family: "DejaVu Sans Mono", monospace;
+  font-size: 7.4pt;
+  line-height: 1.32;
+  background: #F1EADB;
+  border-left: 1.4pt solid #B08A4F;
+  padding: 2mm 2.6mm;
+  margin: 2.4mm 0 2.8mm 0;
+  white-space: pre-wrap;
+  break-inside: avoid;
+  color: #2B261F;
+}
+code {
+  font-family: "DejaVu Sans Mono", monospace;
+  font-size: 8.4pt;
+  background: #F1EADB;
+  padding: 0 0.7mm;
+}
+pre code { background: none; padding: 0; font-size: 7.7pt; }
+
+/* ---------- listeler ---------- */
+ul, ol {
+  margin: 1.4mm 0 2.4mm 0;
+  padding-left: 5mm;
+}
+li {
+  margin-bottom: 1.1mm;
+  text-align: justify;
+}
+ul.tight li, ol.tight li { margin-bottom: 0.5mm; }
+ul.clean { list-style: none; padding-left: 0; }
+ul.clean li { padding-left: 4mm; text-indent: -4mm; }
+ul.clean li::before { content: "—"; color: #8A3E2F; margin-right: 2mm; }
+
+/* ---------- iki sütun ---------- */
+.two-col {
+  column-count: 2;
+  column-gap: 7mm;
+  column-rule: 0.35pt solid #D8CEBD;
+}
+.two-col h3 { margin-top: 0; }
+.two-col p, .two-col li { font-size: 8.8pt; }
+
+/* ---------- kapsam tablosu ---------- */
+.audit td { font-size: 8pt; }
+.status-ok {
+  font-family: "Inter", sans-serif;
+  font-size: 6.8pt;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #42594F;
+  white-space: nowrap;
+}
+
+/* ---------- yardımcı ---------- */
+.small { font-size: 8.6pt; color: #5E574B; }
+.tiny { font-size: 7.6pt; color: #6B6152; }
+.center { text-align: center; }
+.page-break { break-before: page; }
+.keep { break-inside: avoid; }
+.mt0 { margin-top: 0 !important; }
+.mb0 { margin-bottom: 0 !important; }
+.mt2 { margin-top: 2mm !important; }
+.mt4 { margin-top: 4mm !important; }
+.mb2 { margin-bottom: 2mm !important; }
+.mb4 { margin-bottom: 4mm !important; }
+
+/* Akışkan ortak bölümler: yeni sayfa açmadan devam eder */
+.chapter.flow { break-before: auto; margin-top: 9mm; }
+.chapter.flow .chapter-open { break-inside: avoid; }
+.chapter.flow h1.chapter-title { font-size: 19pt; }
+
+/* Sözlük sayfası: daha kompakt iki sütun */
+.glossary p { font-size: 8.25pt; line-height: 1.27; margin-bottom: 1.15mm; }
+.glossary h3 { font-size: 7.4pt; margin: 2.4mm 0 0.9mm 0; }
+.glossary .ref { font-size: 6.3pt; }
+
+/* Bölüm açılışının altında içerik olmadan sayfa bitmesin */
+.chapter-open { break-after: avoid; }

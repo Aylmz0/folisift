@@ -1,0 +1,78 @@
+O R TA K B Ö L Ü M L E R · C – G                                                                        Programlama Dilleri · Çalışma Kılavuzu
+
+
+
+C · ORTAK BÖLÜMLER                                                                                                        SÖZLÜK · PD0–PD1
+
+C
+
+
+Kavramlar ve tanımlar
+PD0 ve PD1’in sınav açısından kritik terimleri. Tanımlar kaynak slaytlara dayanır;
+benzer kavramlar yan yana verilerek ayrımları belirginleştirilir.
+
+                                                                        Yukarıdan aşağıya / aşağıdan yukarıya: Ağacı kökten
+DİL VE ANLAM
+                                                                        token’lara / token’lardan köke kurma. [PD0, s. 52–55]
+Programlama       dili:   Bir   problemin   çözümünün
+bilgisayardaki gerçekleştirimini ifade eden, insan ve                   DEĞERLENDİRME
+bilgisayarın ortak anlayacağı kural ve semboller dizisi.                Okunabilirlik: Programların okunma ve anlaşılma kolaylığı.
+[PD0, s. 14]                                                            [PD1, s. 17]
+
+Sözdizimi (syntax): Deyimlerin biçimsel            geçerliliğini        Yazılabilirlik: Dilin           program   yazmada     kullanılabilme
+belirleyen dilbilgisi kuralları. [PD0, s. 12]                           kolaylığı. [PD1, s. 17]
+Anlambilim (semantics): Geçerli bir deyimin ne anlama                   Güvenilirlik: Programın şartlara uygunluğu; görevi doğru
+geldiği; anlam çözümlemenin konusu. [PD0, s. 66]                        yapması. [PD1, s. 17, 46]
+Lexeme / token: Token’ı belirten alt karakter katarı /                  Maliyet: Eğitim, yazma, derleme, yürütme, bakım ve
+sözdizimsel kategori (IDENTIFIER, NUMBER gibi). [PD0, s. 37]            implementasyon dahil toplam maliyet. [PD1, s. 54–56]
+Sembol tablosu: Her tanımlayıcı için indeks, ad ve tip                  Ortogonallik: Az sayıda ilkel yapı ve bunların az sayıda
+bilgisini tutan, derleme boyunca güncellenen yapı. [PD0, s. 38]         yolla birleştirilmesi; her kombinasyonun yasal olması.
+                                                                        [PD1, s. 24]
+ÇEVRİM
+                                                                        Aliasing: Aynı bellek hücresine iki veya daha fazla farklı
+Derleyici: Kaynak programı eşdeğer makine koduna çeviren
+                                                                        isimle erişilmesi. [PD1, s. 52]
+program. [PD0, s. 28]
+Yorumlayıcı: Deyimleri çalışma sırasında birer birer çevirip            M İ M A R İ V E YÖ N T E M
+yürüten program. [PD0, s. 24]                                           Von Neumann mimarisi: Veri ve komutların aynı bellekte
+Kaynak / amaç program: Derlemeye giren yüksek düzeyli                   tutulduğu; CPU ile belleğin ayrı olduğu mimari. [PD1, s. 60–61]
+program / çıkan makine dili programı. [PD0, s. 29]                      Von Neumann darboğazı: Bellek–işlemci bağlantı hızının
+Derleme / çalışma zamanı: Çevrimin gerçekleştiği zaman /                bilgisayar hızını sınırlaması. [PD1, s. 119]
+amaç programın yürütüldüğü zaman. [PD0, s. 29]                          Saf yorumlama / hibrit / JIT: Çevirisiz yürütme / ara kod
+Ön uç / arka uç: Dile bağımlı analiz ve ara kod üretimi /               üzerinden yürütme / ara kodu çalışma sırasında makine
+makineye bağımlı eniyileme ve kod üretimi. [PD0, s. 34, 70]             koduna derleme. [PD1, s. 120–124]
+
+Ara kod: Kaynak ile amaç dil arasında, soyut bir makine için            Önişlemci: Derlemeden önce makro genişletme ve yorum
+üretilen gösterim. [PD0, s. 67]                                         silme gibi dönüşümler yapan program. [PD1, s. 125]
+
+AY R I Ş T I R M A                                                      PA R A D İ G M A L A R
+
+Ayrıştırma ağacı (parse tree): Token dizisinin gramere göre             Paradigma: Bir grubun ortak kararlarını temsil eden,
+yapısını gösteren ağaç. [PD0, s. 48]                                    konuya yeni bakış sağlayan kavramsal şema. [PD1, s. 73]
+
+CFG: Terminal/terminal olmayan semboller, başlangıç                     Imperative / fonksiyonel / mantıksal / OOP: Sırasıyla işlem
+sembolü ve üretim kurallarından oluşan bağlam-bağımsız                  dizisi; fonksiyon uygulaması; kural-gerçek sorgusu;
+gramer. [PD0, s. 51]                                                    nesnelerde veri+işlem birleşimi. [PD1, s. 76–90]
+
+Belirsizlik: Aynı dizi için iki veya daha fazla ayrıştırma ağacı        Markup / SDLC: İşaretleme dili (XHTML, XML) / gereksinim,
+oluşması. [PD0, s. 61]                                                  tasarım, gerçekleştirim, sınama ve bakım aşamaları.
+                                                                        [PD1, s. 90; PD0, s. 116–121]
+
+
+
+
+D · ORTAK BÖLÜMLER                                                                                                          SÜREÇ KARTLARI
+
+D
+
+
+Yöntemler ve süreçler
+Derleme hattı, yorumlama döngüsü ve yaşam döngüsü adımlarının girdi–çıktı
+ilişkisiyle özeti. Ayrıntılı kuram sonraki bölümlerde; burada sınavda istenen akış
+ve görev ayrımı öne çıkar.
+
+
+
+
+                                                                   18
+
