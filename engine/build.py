@@ -57,7 +57,10 @@ def main() -> int:
     config = json.loads(config_path.read_text(encoding="utf-8"))
     base = config_path.parent
 
-    content = (args.html or (base / config.get("content", "guide.html"))).resolve()
+    content = (
+        args.html
+        or (base / config.get("legacy_content", config.get("content", "guide.html")))
+    ).resolve()
     stylesheet = (base / config.get("stylesheet", "../../engine/style.css")).resolve()
     output = (args.output or (base / config.get(
         "output", f"../../output/{config.get('slug', guide.name)}_Calisma_Ozeti.pdf"
