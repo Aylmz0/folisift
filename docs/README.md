@@ -7,6 +7,7 @@
 | [Authoring specification](authoring-spec.md) | Normative content, coverage and design rules |
 | [Design system](design-system.md) | Paper palette, typography and components |
 | [ADRs](adr/) | Architectural decisions and their consequences |
+| [Plans](plans/) | Proposed architecture and migration plans |
 | [Agent configuration](agents/) | Issue tracker, triage labels, domain-doc rules |
 | [Agent rules](../AGENTS.md) | Repo-specific operating rules and commands |
 | [Domain context](../CONTEXT.md) | Ubiquitous language and invariants |
