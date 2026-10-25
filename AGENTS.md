@@ -13,8 +13,6 @@ reproducible and auditable.
   parity and the coverage report before calling a change an improvement.
 - Boring technology, narrowly applied. Do not add a framework to avoid a small
   function.
-- The Python engine is the reference until the Rust path reaches parity. Keep
-  both working during the strangle; do not delete the reference early.
 - A guide bundle is data and content, never a fork of the engine.
 - Documentation is English. The generated guide content is Turkish.
 - Prefer one clear rule in `docs/` over repeated explanations in prompts.
@@ -24,11 +22,7 @@ reproducible and auditable.
 Run from the repository root unless stated otherwise.
 
 ```bash
-# Python reference
-python3 engine/build.py --guide guides/pd0-pd1 --check
-make verify
-
-# Rust v2 workspace
+# Build, test and inspect
 cargo test
 cargo clippy --all-targets --all-features -- -D warnings
 cargo fmt --all -- --check
@@ -38,8 +32,7 @@ cargo run -p folisift-cli -- analyze --source sources/PD0.pdf \
   --out guides/pd0-pd1/data/source.json --md guides/pd0-pd1/data/source.md
 cargo run -p folisift-cli -- render-pages --source sources/PD0.pdf \
   --pages 7 --out guides/pd0-pd1/data/pages
-cargo run -p folisift-cli -- build --guide pd0-pd1 \
-  --output output/PD0-PD1_v2.pdf --check
+cargo run -p folisift-cli -- build --guide pd0-pd1 --check
 cargo run -p folisift-cli -- scaffold --slug pd2 --title "..." \
   --course "BMÜ325" --source sources/PD2.pdf
 cargo run -p folisift-cli -- mcp
@@ -51,15 +44,14 @@ extraction.
 
 ## Architecture
 
-- `engine/` — Python reference: build, tools, templates, CSS and SVG assets.
-- `crates/` — Rust v2 workspace:
+- `crates/` — Rust workspace:
   - `folisift-core` — config/schema, workspace path safety, scaffold, version.
   - `folisift-parse` — liteparse adapter, inventory, coverage, screenshots.
   - `folisift-render` — Markdown/directives to Typst PDF.
   - `folisift-mcp` — stdio tools, resources and prompts.
   - `folisift-cli` — the `folisift` binary.
 - `guides/<slug>/` — one self-contained course/material bundle:
-  `guide.md` (v2) or `guide.html` (legacy), `config.json`, `assets/`, `data/`.
+  `guide.md`, `config.json`, `assets/`, `data/`.
 - `sources/` — personal/course PDFs; **not tracked by git**.
 - `output/` — generated PDFs, tracked for review.
 - `docs/` — architecture, authoring, design system, ADRs, plans and agent config.
@@ -70,8 +62,7 @@ course name, a page count or a source path in the engine.
 ## Invariants
 
 - `sources/*.pdf` must never be committed. They are local inputs.
-- Never claim full coverage without a passing coverage gate
-  (`engine/tools/check_coverage.py` for legacy, `folisift build --check` for v2).
+- Never claim full coverage without `folisift build --check` passing.
 - Do not invent facts, formulas, dates or page references.
 - Label added clarifications with **Açıklayıcı not** in the guide.
 - The design system stays stable across guides; deviations need an ADR.

@@ -1,14 +1,14 @@
 {
-  "generated_at": "2026-10-25T20:26:52+00:00",
+  "generated_at": "2026-10-25T22:51:11+00:00",
   "low_text_threshold": 120,
   "sources": [
     {
-      "path": "../../sources/PD0.pdf",
+      "path": "/home/yilmaz/projects/folisift/sources/PD0.pdf",
       "filename": "PD0.pdf",
       "title": "Programlama Dilleri",
       "pages": 123,
       "chars": 32228,
-      "words": 5334,
+      "words": 5386,
       "low_text_threshold": 120,
       "low_text_pages": [
         1,
@@ -101,13 +101,13 @@
         },
         {
           "page": 3,
-          "first_line": "0.1. Giriş ve Amaçlar",
+          "first_line": "• 0.1. Giriş ve Amaçlar",
           "chars": 392,
           "low_text": false
         },
         {
           "page": 4,
-          "first_line": "Amaç",
+          "first_line": "• Amaç",
           "chars": 699,
           "low_text": false
         },
@@ -119,7 +119,7 @@
         },
         {
           "page": 6,
-          "first_line": "• Şu ana kadar 2500’den fazla programlama dili yapılmıştır.",
+          "first_line": "• Şu ana kadar 2500'den fazla programlama dili yapılmıştır.",
           "chars": 315,
           "low_text": false
         },
@@ -137,7 +137,7 @@
         },
         {
           "page": 9,
-          "first_line": "Dil amaçları ve trade-off’lar",
+          "first_line": "Dil amaçları ve trade-off'lar",
           "chars": 112,
           "low_text": true
         },
@@ -341,7 +341,7 @@
         },
         {
           "page": 43,
-          "first_line": "Sözcüksel Analiz Şekli",
+          "first_line": "Sözcüksel             Analiz Şekli",
           "chars": 240,
           "low_text": false
         },
@@ -653,19 +653,19 @@
         },
         {
           "page": 95,
-          "first_line": "Kaynak Program         Örnek Derleme",
+          "first_line": "Kaynak Program       Örnek Derleme",
           "chars": 179,
           "low_text": false
         },
         {
           "page": 96,
-          "first_line": "Kaynak Program         Örnek Derleme",
+          "first_line": "Kaynak Program        Örnek Derleme",
           "chars": 228,
           "low_text": false
         },
         {
           "page": 97,
-          "first_line": "Kaynak Program          Örnek Derleme",
+          "first_line": "Kaynak Program        Örnek Derleme",
           "chars": 277,
           "low_text": false
         },
@@ -683,25 +683,25 @@
         },
         {
           "page": 100,
-          "first_line": "Kaynak Program         Örnek Derleme",
+          "first_line": "Kaynak Program        Örnek Derleme",
           "chars": 282,
           "low_text": false
         },
         {
           "page": 101,
-          "first_line": "Kaynak Program         Örnek Derleme",
+          "first_line": "Kaynak Program        Örnek Derleme",
           "chars": 273,
           "low_text": false
         },
         {
           "page": 102,
-          "first_line": "Kaynak Program          Örnek Derleme",
+          "first_line": "Kaynak Program        Örnek Derleme",
           "chars": 262,
           "low_text": false
         },
         {
           "page": 103,
-          "first_line": "Kaynak Program          Örnek Derleme",
+          "first_line": "Kaynak Program        Örnek Derleme",
           "chars": 244,
           "low_text": false
         },
@@ -713,7 +713,7 @@
         },
         {
           "page": 105,
-          "first_line": "Derleme ÖZET",
+          "first_line": "Kaynak           Derleme ÖZET",
           "chars": 362,
           "low_text": false
         },
@@ -828,12 +828,12 @@
       ]
     },
     {
-      "path": "../../sources/PD1.pdf",
+      "path": "/home/yilmaz/projects/folisift/sources/PD1.pdf",
       "filename": "PD1.pdf",
       "title": "Chapter 1",
       "pages": 137,
       "chars": 46049,
-      "words": 6856,
+      "words": 6852,
       "low_text_threshold": 120,
       "low_text_pages": [
         1,
@@ -1051,7 +1051,7 @@
         },
         {
           "page": 26,
-          "first_line": "• C dilinde toplama işlemi (+) bulunmakta ve ortogonallik gereği",
+          "first_line": "•   C dilinde toplama işlemi (+) bulunmakta ve ortogonallik gereği",
           "chars": 777,
           "low_text": false
         },
@@ -1273,7 +1273,7 @@
         },
         {
           "page": 63,
-          "first_line": "– Von Neumann’dan dolayı İmperatif",
+          "first_line": "-Von Neumann'dan dolayı İmperatif",
           "chars": 242,
           "low_text": false
         },
@@ -1297,7 +1297,7 @@
         },
         {
           "page": 67,
-          "first_line": "• von Neumann mimarisi bilgisayarda Fetch-Execute",
+          "first_line": "•  von Neumann mimarisi bilgisayarda Fetch-Execute",
           "chars": 302,
           "low_text": false
         },
@@ -1321,7 +1321,7 @@
         },
         {
           "page": 71,
-          "first_line": "• 1980’lerin ortaları: Nesneye-dayalı (Object-",
+          "first_line": "• 1980'lerin ortaları: Nesneye-dayalı (Object-",
           "chars": 268,
           "low_text": false
         },
@@ -1573,7 +1573,7 @@
         },
         {
           "page": 113,
-          "first_line": "Kaynak",
+          "first_line": "Kaynak    Veri Girişi",
           "chars": 66,
           "low_text": true
         },
@@ -1585,7 +1585,7 @@
         },
         {
           "page": 115,
-          "first_line": "Bir Derleyicinin 8 Fazı",
+          "first_line": "Bir Derleyicinin 8 Fazı                   Kaynak",
           "chars": 404,
           "low_text": false
         },
@@ -1726,7 +1726,7 @@
   ],
   "totals": {
     "pages": 260,
-    "words": 12190,
+    "words": 12238,
     "low_text_pages": 55
   }
 }

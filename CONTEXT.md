@@ -20,9 +20,9 @@ course-specific material is the guide bundle under `guides/<slug>/`.
 | **Inventory** | Machine-readable map of a source: pages, headings, low-text pages, page map. |
 | **Low-text page** | A page with little/no text layer; usually a figure, code screenshot or table. |
 | **Coverage report** | Comparison of source sections against the guide content. |
-| **Engine** | Domain-agnostic code under `engine/` (reference) and `crates/` (v2). |
-| **Template** | Reusable A–G skeleton: `engine/templates/guide.html` (reference) or `templates/paper.typ` (v2). |
-| **Design system** | Paper palette, typography and layout rules in `engine/style.css` and `templates/paper.typ`. |
+| **Engine** | Domain-agnostic Rust code under `crates/`. |
+| **Template** | Reusable A–G paper design in `templates/paper.typ`. |
+| **Design system** | Paper palette, typography and layout rules in `templates/paper.typ`. |
 | **Output** | A generated PDF under `output/`; not a source of truth. |
 
 ## Invariants
@@ -36,8 +36,7 @@ course-specific material is the guide bundle under `guides/<slug>/`.
 ## Layout
 
 ```
-engine/                 Python reference pipeline
-crates/                 Rust v2: core, parse, render, mcp, cli
+crates/                 Rust workspace: core, parse, render, mcp, cli
 templates/              paper.typ + embedded fonts
 guides/<slug>/          one course/material guide (guide.md in v2)
 sources/                local PDF inputs (gitignored)
@@ -49,8 +48,7 @@ docs/                   architecture, authoring, design, ADRs, plans, agent conf
 
 | Slug | Sources | Output | State |
 |---|---|---|---|
-| `pd0-pd1` | PD0, PD1 | `output/PD0-PD1_Calisma_Ozeti.pdf` | Python reference, 22 pages |
-| `pd0-pd1` (v2) | PD0, PD1 | `output/PD0-PD1_v2.pdf` | Rust/Typst port, 23 pages, coverage 13/13 |
+| `pd0-pd1` | PD0, PD1 | `output/PD0-PD1_Calisma_Ozeti.pdf` | 23 pages, coverage 13/13 |
 
 ## Non-goals
 

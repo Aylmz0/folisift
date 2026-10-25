@@ -5,17 +5,11 @@ content contract; `docs/architecture.md` explains the layers.
 
 ## Prerequisites
 
-For the Python reference:
-
-- Python 3.10+
-- Poppler: `pdfinfo`, `pdftotext`, `pdftoppm`
-- Pillow and WeasyPrint
-
-For the Rust v2 path:
-
 - Rust 1.92+
 - `cargo`
 - `libpdfium.so` next to the `folisift` binary, or `FOLISIFT_PDFIUM_DIR`
+
+No Python, Poppler, WeasyPrint or system Typst installation is needed.
 
 ## Guide bundle anatomy (schema 2)
 
@@ -30,23 +24,13 @@ guides/<slug>/
     └── coverage.md  # generated coverage report
 ```
 
-Schema 1 bundles use `guide.html` and the Python engine. Keep them readable
-during the migration; do not create new schema-1 bundles.
-
 ## First pass: inventory and visual review
 
 ```bash
-# Rust
 cargo run -p folisift-cli -- analyze \
   --source sources/PD0.pdf --source sources/PD1.pdf \
   --out guides/pd0-pd1/data/source.json \
   --md guides/pd0-pd1/data/source.md
-
-# Python reference
-cd guides/pd0-pd1
-python3 ../../engine/tools/analyze_sources.py \
-  ../../sources/PD0.pdf ../../sources/PD1.pdf \
-  --out data/source.json --md data/source.md
 ```
 
 Low-text pages need a visual pass:
@@ -98,20 +82,13 @@ Rules:
 ## Build and gate
 
 ```bash
-cargo run -p folisift-cli -- build --guide pd0-pd1 \
-  --output output/PD0-PD1_v2.pdf --check
+cargo run -p folisift-cli -- build --guide pd0-pd1 --check
 ```
 
 The command fails if a numbered source subsection has no matching heading. The
 coverage report is written to `data/coverage.md`. A passing gate is necessary,
 not sufficient: the G section still needs a human audit of tables, figures,
 examples and low-text pages.
-
-Python reference:
-
-```bash
-python3 engine/build.py --guide guides/pd0-pd1 --check
-```
 
 ## New guide
 

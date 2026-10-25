@@ -14,7 +14,7 @@ Bu pilot, PD0 ve PD1 ders destelerinin sınav odaklı, kâğıt hissi veren bir 
 |---|---|
 | Kaynaklar | PD0 “Hazırlık” (123 slayt) ve PD1 “Giriş” (137 slayt). Toplam **260 slayt**. |
 | Kapsam | PD0’ın beş, PD1’in sekiz alt bölümünün tamamı. Kaynak sırası korunmuştur; sayfa referansları [PD0, s. 3] biçimindedir. |
-| Yöntem | Metin katmanı `pdftotext` ile çıkarıldı; metin içermeyen eğitsel slaytlar sayfa görüntüsü olarak okundu. Şekiller sadeleştirilerek yeniden çizildi. |
+| Yöntem | Metin katmanı PDF’den çıkarıldı; metin içermeyen eğitsel slaytlar sayfa görüntüsü olarak okundu. Şekiller sadeleştirilerek yeniden çizildi. |
 | Doğruluk | Kaynakta bulunmayan ek bilgi yalnızca **Açıklayıcı not** etiketiyle verilir. Kaynak içindeki tutarsızlıklar sessizce düzeltilmez; ilgili yerde belirtilir. |
 | Sürüm | Pilot: PD0–PD1. PD2–PD8 bölümleri aynı şablonla eklenecektir. |
 

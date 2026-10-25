@@ -3,15 +3,14 @@
 **Folisift** is a domain-agnostic production pipeline that turns lecture slides
 into Turkish, paper-like, exam-oriented study guides.
 
-First guide: **BMÜ325 Programlama Dilleri, PD0–PD1** — 22 pages in the Python
-reference, 23 pages in the Rust v2 port, 260/260 slides.
+First guide: **BMÜ325 Programlama Dilleri, PD0–PD1** — 23 pages, 260/260
+slides.
 
 ## Layout
 
 ```text
 folisift/
-├── engine/          # Python reference: build, tools, template, CSS
-├── crates/          # Rust v2 workspace
+├── crates/          # Rust workspace
 │   ├── folisift-core/   # config, schema, paths, scaffold, version
 │   ├── folisift-parse/  # liteparse, inventory, coverage, screenshots
 │   ├── folisift-render/ # Markdown/directives → Typst → PDF
@@ -20,8 +19,7 @@ folisift/
 ├── templates/       # paper.typ and embedded OFL fonts
 ├── guides/          # one bundle per course/material
 │   └── pd0-pd1/
-│       ├── guide.md     # v2 content
-│       ├── guide.html   # Python reference content
+│       ├── guide.md
 │       ├── config.json
 │       ├── assets/
 │       └── data/
@@ -32,19 +30,10 @@ folisift/
 
 ## Quick start
 
-Python reference:
-
-```bash
-python3 engine/build.py --guide guides/pd0-pd1 --check
-```
-
-Rust v2:
-
 ```bash
 cargo build --release
 # put libpdfium.so next to target/release/folisift, or set FOLISIFT_PDFIUM_DIR
-cargo run -p folisift-cli -- build --guide pd0-pd1 \
-  --output output/PD0-PD1_v2.pdf --check
+cargo run -p folisift-cli -- build --guide pd0-pd1 --check
 ```
 
 MCP server:
@@ -72,16 +61,6 @@ made public; evaluate the rights of the derivative PDFs under `output/`
 separately.
 
 ## Requirements
-
-Python reference:
-
-```bash
-python3 -m pip install --user -r requirements.txt
-```
-
-Poppler tools (`pdfinfo`, `pdftotext`, `pdftoppm`) must be installed.
-
-Rust v2:
 
 - Rust 1.92+
 - PDFium shared library: `libpdfium.so` (Linux), `libpdfium.dylib` (macOS) or

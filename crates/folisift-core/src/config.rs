@@ -151,7 +151,7 @@ impl Guide {
             resolve_optional(workspace, &dir, config.coverage.as_deref(), PathKind::Write)?;
 
         if let Some(stylesheet) = &config.stylesheet {
-            // v1 compatibility: the stylesheet lives in engine/, outside the bundle.
+            // Legacy schema-1 compatibility: a stylesheet may live outside the bundle.
             let _ = resolve_guide_path(workspace, &dir, stylesheet, PathKind::Read)?;
         }
 

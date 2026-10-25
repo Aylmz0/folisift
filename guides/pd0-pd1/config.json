@@ -4,8 +4,6 @@
   "title": "Programlama Dilleri — Çalışma Kılavuzu (Pilot: PD0–PD1)",
   "language": "tr",
   "content": "guide.md",
-  "legacy_content": "guide.html",
-  "stylesheet": "../../engine/style.css",
   "output": "../../output/PD0-PD1_Calisma_Ozeti.pdf",
   "sources": [
     "../../sources/PD0.pdf",
@@ -13,5 +11,5 @@
   ],
   "inventory": "data/source.json",
   "coverage": "data/coverage.md",
-  "target_pages": "18-22"
+  "target_pages": "18-23"
 }

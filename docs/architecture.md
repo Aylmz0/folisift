@@ -1,33 +1,25 @@
 # Architecture
 
-Folisift has one product boundary and two implementations during the strangle
-migration:
-
-- the **Python reference** (`engine/`, `guide.html`) that produced the 22-page
-  PD0–PD1 pilot;
-- the **Rust v2 workspace** (`crates/`, `guide.md`) that is replacing it.
-
-The guide bundle is the unit of content. The engine never knows a course name,
-a source filename or a slide count.
+Folisift is a Rust workspace that turns source PDFs into Turkish, paper-like,
+exam-oriented study guides. The guide bundle is the unit of content; the engine
+never knows a course name, a source filename or a slide count.
 
 ## Layers
 
 ```text
 sources/                      local PDF inputs (gitignored)
     │
-    ├── engine/tools/         Python reference: inventory, pages, coverage
-    │       └── engine/build.py → WeasyPrint → output/*.pdf
+    ▼
+folisift-parse                liteparse inventory, coverage, screenshots
     │
-    └── folisift-parse        liteparse inventory, coverage, screenshots
-            │
-            ▼
-       folisift-render        Markdown + directives → Typst → PDF
-            │
-            ▼
-       guides/<slug>/         guide.md + config.json + assets/ + data/
-            │
-            ▼
-       folisift-cli / mcp     CLI and stdio MCP tools
+    ▼
+folisift-render               Markdown + directives → Typst → PDF
+    │
+    ▼
+guides/<slug>/                guide.md + config.json + assets/ + data/
+    │
+    ▼
+folisift-cli / mcp            CLI and stdio MCP tools
 ```
 
 | Layer | Path | Responsibility |
@@ -37,12 +29,12 @@ sources/                      local PDF inputs (gitignored)
 | Render | `crates/folisift-render/` | Markdown/directives, Typst world, PDF. |
 | MCP | `crates/folisift-mcp/` | stdio tools, resources and prompt. |
 | CLI | `crates/folisift-cli/` | `folisift` binary. |
-| Reference | `engine/` | Python build, tools, CSS, HTML template. |
+| Template | `templates/paper.typ` | Shared paper design and embedded fonts. |
 | Guide | `guides/<slug>/` | Content, config, assets, generated data. |
 | Inputs | `sources/` | Original PDFs; local only. |
 | Outputs | `output/` | Generated guides for review. |
 
-## v2 build flow
+## Build flow
 
 1. `folisift build --guide <slug>` loads `guides/<slug>/config.json`.
 2. Paths resolve relative to the guide directory and are checked against the
@@ -66,7 +58,7 @@ analyzes, renders and audits.
   "title": "Programlama Dilleri — Çalışma Kılavuzu",
   "language": "tr",
   "content": "guide.md",
-  "output": "../../output/PD0-PD1_v2.pdf",
+  "output": "../../output/PD0-PD1_Calisma_Ozeti.pdf",
   "sources": ["../../sources/PD0.pdf", "../../sources/PD1.pdf"],
   "inventory": "data/source.json",
   "coverage": "data/coverage.md",
@@ -80,10 +72,7 @@ Rules:
   directory.
 - `sources` are read-only inputs and must stay under `sources/`.
 - No absolute paths. A guide must work after the repository is moved.
-- `schema_version` 1 (`guide.html`, Python reference) remains accepted during
-  the strangle; schema 2 is the Markdown format.
-- `legacy_content: "guide.html"` lets the Python reference build a schema-2
-  bundle while the Rust path is under parity review.
+- `schema_version` 1 is legacy and is no longer used by a live guide.
 
 ## Content format
 
@@ -96,11 +85,11 @@ the source. Raw Typst/CSS in a guide is forbidden.
 
 | Artifact | Producer | Committed? |
 |---|---|---|
-| `guides/<slug>/data/source.json` | Python or Rust inventory | yes; reviewable |
+| `guides/<slug>/data/source.json` | `folisift analyze` | yes; reviewable |
 | `guides/<slug>/data/source.md` | same | yes; checklist |
-| `guides/<slug>/data/coverage.md` | coverage gate | yes; audit trail |
-| `guides/<slug>/data/pages/` | page renderer | no; visual cache |
-| `output/*.pdf` | renderer | yes, for review |
+| `guides/<slug>/data/coverage.md` | `folisift build --check` | yes; audit trail |
+| `guides/<slug>/data/pages/` | `folisift render-pages` | no; visual cache |
+| `output/*.pdf` | `folisift build` | yes, for review |
 | `sources/*.pdf` | instructor/user | **no**; gitignored |
 
 ## Coverage model
@@ -117,14 +106,9 @@ completeness on its own.
 ## Testing
 
 ```bash
-# Rust v2
 cargo test --workspace
 cargo clippy --workspace --all-targets --all-features -- -D warnings
-cargo run -p folisift-cli -- build --guide pd0-pd1 \
-  --output output/PD0-PD1_v2.pdf --check
-
-# Python reference
-python3 engine/build.py --guide guides/pd0-pd1 --check
+cargo run -p folisift-cli -- build --guide pd0-pd1 --check
 ```
 
 The Rust tests cover path safety, config validation, Markdown directives,

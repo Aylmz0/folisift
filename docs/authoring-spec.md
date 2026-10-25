@@ -1,11 +1,11 @@
 # MASTER STUDY-GUIDE SPECIFICATION — v2
 
 > **v3 implementation note (2026-10-26).** The A–G structure, coverage,
-> accuracy and terminology rules below remain normative. The v2 implementation
+> accuracy and terminology rules below remain normative. The implementation
 > writes `guide.md` (Markdown + YAML frontmatter + `definition`, `critical`,
-> `example`, `note` directives) and renders it with Typst. HTML/CSS details
-> apply to the Python reference only. See `docs/architecture.md`,
-> `docs/authoring.md` and ADR-0007.
+> `example`, `note` directives) and renders it with Typst. Commands and HTML
+> details in this file are historical; use `docs/authoring.md`,
+> `docs/architecture.md` and ADR-0007 for the current workflow.
 # Reusable prompt + production contract for university exam study guides.
 # Fill the CONFIG block for each course, then give this file to the agent.
 # The guide itself must be written in Turkish.
@@ -95,10 +95,10 @@ Do not start writing prose before steps 1–3 are complete.
 Run:
 
 ```bash
-cd guides/pd0-pd1
-python3 ../../engine/tools/analyze_sources.py ../../sources/PD0.pdf ../../sources/PD1.pdf \
-  --out data/source.json \
-  --md  data/source.md
+cargo run -p folisift-cli -- analyze \
+  --source sources/PD0.pdf --source sources/PD1.pdf \
+  --out guides/pd0-pd1/data/source.json \
+  --md guides/pd0-pd1/data/source.md
 ```
 
 This produces, for every PDF:
@@ -113,9 +113,9 @@ Use this as the **coverage checklist**. Do not hand-count pages.
 ### Step 2 — Visual audit (only low-text pages)
 
 ```bash
-python3 ../../engine/tools/prepare_pages.py ../../sources/PD0.pdf \
-  --source-json data/source.json --filename PD0.pdf \
-  --out data/pages/pd0 --cols 2 --rows 2
+cargo run -p folisift-cli -- render-pages \
+  --source sources/PD0.pdf --pages 7,9,17 \
+  --out guides/pd0-pd1/data/pages
 ```
 
 Inspect the contact sheets. For every pedagogical figure/table/code image:
@@ -157,7 +157,7 @@ paragraph. Build and inspect after each batch; do not wait until the end.
 ### Step 5 — Build
 
 ```bash
-python3 engine/build.py --guide guides/pd0-pd1 --check
+cargo run -p folisift-cli -- build --guide pd0-pd1 --check
 ```
 
 `--check` runs the automated coverage audit before building. If it fails, fix
@@ -165,7 +165,7 @@ the missing section; do not ignore the report.
 
 ### Step 6 — Manual audit
 
-Read the PDF, not only the HTML. Check:
+Read the PDF. Check:
 
 - TOC page numbers and PDF bookmarks;
 - running headers match the page content;
@@ -385,7 +385,7 @@ Accent colours are for section numbers, rules, labels and small marks only.
 - Embed fonts; Turkish characters and hyphenation must work.
 - No content relying on colour alone.
 - PDF metadata: title, author/course, language `tr`.
-- Build with WeasyPrint; do not use a screenshot of HTML.
+- Build with Typst; do not use a screenshot of HTML.
 
 ## 9. AUTOMATION CONTRACT
 
@@ -393,23 +393,23 @@ Use the scripts; do not redo their work manually.
 
 | Tool | Purpose |
 |---|---|
-| `engine/tools/analyze_sources.py` | page/heading/low-text inventory → JSON + Markdown |
-| `engine/tools/prepare_pages.py` | render low-text pages into labelled contact sheets |
-| `engine/tools/check_coverage.py` | compare top-level sections with the guide HTML |
-| `engine/tools/scaffold.py` | create a new guide bundle + config + source inventory |
-| `engine/build.py` | build a guide PDF; `--check` runs coverage first |
-| `engine/style.css` | shared paper design system |
+| `folisift analyze` | page/heading/low-text inventory → JSON + Markdown |
+| `folisift render-pages` | render low-text pages to PNG |
+| `folisift build --check` | build a guide PDF and run the Markdown coverage gate |
+| `folisift scaffold` | create a new guide bundle + config + source headings |
+| `folisift mcp` | expose the same operations to an MCP client |
+| `templates/paper.typ` | shared paper design system |
 | `guides/<slug>/config.json` | per-guide paths and metadata |
-| `engine/templates/guide.html` | reusable A–G HTML skeleton |
 
 ### Config schema
 
 ```json
 {
-  "title": "…",
+  "schema_version": 2,
   "slug": "pd0-pd1",
-  "content": "guide.html",
-  "stylesheet": "../../engine/style.css",
+  "title": "…",
+  "language": "tr",
+  "content": "guide.md",
   "output": "../../output/PD0-PD1_Calisma_Ozeti.pdf",
   "sources": ["../../sources/PD0.pdf", "../../sources/PD1.pdf"],
   "inventory": "data/source.json",
@@ -424,9 +424,9 @@ Use the scripts; do not redo their work manually.
 
 ### Coverage gate
 
-`engine/tools/check_coverage.py` must report **GEÇTİ** before final delivery.
-It checks top-level section numbers and fuzzy heading matches; tables, figures,
-formulas and examples still require manual review in G.
+`folisift build --check` must report a passing coverage gate before final
+delivery. It checks top-level section numbers and fuzzy heading matches;
+tables, figures, formulas and examples still require manual review in G.
 
 ### Performance rules (avoid the slow loop)
 
@@ -462,7 +462,7 @@ Before declaring completion:
 Deliver:
 
 1. Final PDF at the configured path.
-2. Editable HTML content and shared CSS.
+2. Editable Markdown content and the shared Typst template.
 3. Source inventory JSON + Markdown.
 4. Coverage report Markdown.
 5. A short completion note: page count, covered slides/sections, low-text
@@ -472,12 +472,12 @@ Do not deliver only a chat response when a PDF was requested.
 
 ## 12. REUSE FOR A NEW COURSE
 
-1. Create a new guide bundle with `engine/tools/scaffold.py`, or copy
-   `guides/<slug>/` as a starting point. Never copy `engine/` per course.
-2. Keep `engine/style.css` and `engine/assets/` shared; do not fork the design per chapter.
-3. Run `analyze_sources.py` on the new PDFs.
+1. Create a new guide bundle with `folisift scaffold`, or copy
+   `guides/<slug>/` as a starting point.
+2. Keep `templates/paper.typ` shared; do not fork the design per chapter.
+3. Run `folisift analyze` on the new PDFs.
 4. Fill the outline and write B parts in source order.
-5. Build with `python3 engine/build.py --guide guides/<slug> --check`.
+5. Build with `folisift build --guide <slug> --check`.
 6. Update G with the new source map counts.
 7. Only then write the final completion note.
 

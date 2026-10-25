@@ -6,7 +6,7 @@ How the engineering skills consume this repository's domain documentation.
 
 - **`CONTEXT.md`** at the repo root.
 - **`docs/adr/`** — read ADRs that touch the area you are about to change.
-- **`docs/architecture.md`** for the engine/guide split and data flow.
+- **`docs/architecture.md`** for the workspace layers and data flow.
 
 If a file does not exist, proceed silently. Do not flag its absence; create
 documentation lazily when a term or decision actually needs recording.
@@ -25,8 +25,7 @@ Single-context repository:
 │   ├── architecture.md
 │   ├── authoring.md
 │   └── design-system.md
-├── engine/             # Python reference
-├── crates/             # Rust v2: core, parse, render, mcp, cli
+├── crates/             # Rust workspace: core, parse, render, mcp, cli
 ├── templates/          # paper.typ + embedded fonts
 ├── guides/
 └── sources/            # local only, gitignored
