@@ -1,56 +1,72 @@
 # Architecture
 
-Folisift separates the reusable production engine from the course-specific
-guide bundles. The split is the central architectural decision; see
-`docs/adr/0001-separate-engine-and-guides.md`.
+Folisift has one product boundary and two implementations during the strangle
+migration:
+
+- the **Python reference** (`engine/`, `guide.html`) that produced the 22-page
+  PD0–PD1 pilot;
+- the **Rust v2 workspace** (`crates/`, `guide.md`) that is replacing it.
+
+The guide bundle is the unit of content. The engine never knows a course name,
+a source filename or a slide count.
 
 ## Layers
 
-```
-sources/                    local PDF inputs (gitignored)
+```text
+sources/                      local PDF inputs (gitignored)
     │
-    ▼
-engine/tools/               inventory, page rendering, coverage, scaffold
+    ├── engine/tools/         Python reference: inventory, pages, coverage
+    │       └── engine/build.py → WeasyPrint → output/*.pdf
     │
-    ▼
-guides/<slug>/              guide.html + config.json + assets/ + data/
-    │
-    ▼
-engine/build.py             HTML → PDF (WeasyPrint)
-    │
-    ▼
-output/                     generated PDFs
+    └── folisift-parse        liteparse inventory, coverage, screenshots
+            │
+            ▼
+       folisift-render        Markdown + directives → Typst → PDF
+            │
+            ▼
+       guides/<slug>/         guide.md + config.json + assets/ + data/
+            │
+            ▼
+       folisift-cli / mcp     CLI and stdio MCP tools
 ```
 
 | Layer | Path | Responsibility |
 |---|---|---|
-| Engine | `engine/` | Build, templates, tools, CSS, brand assets. No course names. |
-| Guide | `guides/<slug>/` | Content, config, guide-specific SVGs, generated data. |
+| Core | `crates/folisift-core/` | Config/schema, workspace sandbox, scaffold, version. |
+| Parse | `crates/folisift-parse/` | liteparse adapter, inventory, coverage, screenshots. |
+| Render | `crates/folisift-render/` | Markdown/directives, Typst world, PDF. |
+| MCP | `crates/folisift-mcp/` | stdio tools, resources and prompt. |
+| CLI | `crates/folisift-cli/` | `folisift` binary. |
+| Reference | `engine/` | Python build, tools, CSS, HTML template. |
+| Guide | `guides/<slug>/` | Content, config, assets, generated data. |
 | Inputs | `sources/` | Original PDFs; local only. |
 | Outputs | `output/` | Generated guides for review. |
-| Docs | `docs/` | Architecture, authoring, design, ADRs, agent config. |
 
-## Build flow
+## v2 build flow
 
-1. `engine/build.py --guide guides/<slug>` reads `config.json`.
-2. Paths are resolved **relative to the guide directory**.
-3. The content HTML is loaded with its guide directory as base URL, so
-   `assets/...` resolves inside the bundle.
-4. The shared stylesheet is `engine/style.css`; it is linked from the content
-   with a relative path.
-5. WeasyPrint writes the configured output path.
-6. With `--check`, the coverage gate runs before the PDF is written.
+1. `folisift build --guide <slug>` loads `guides/<slug>/config.json`.
+2. Paths resolve relative to the guide directory and are checked against the
+   workspace root.
+3. `folisift-render` parses Markdown + YAML frontmatter + four directives.
+4. The Typst template renders the PDF with embedded fonts.
+5. `--check` compares the inventory with the Markdown headings and writes
+   `data/coverage.md`.
+6. The PDF is written to the configured output path.
 
-## Guide config
+The MCP server wraps the same operations. It performs no LLM call, no shell
+execution and no network access. The host agent writes content; the server
+analyzes, renders and audits.
+
+## Guide config (schema 2)
 
 ```json
 {
+  "schema_version": 2,
   "slug": "pd0-pd1",
-  "title": "…",
+  "title": "Programlama Dilleri — Çalışma Kılavuzu",
   "language": "tr",
-  "content": "guide.html",
-  "stylesheet": "../../engine/style.css",
-  "output": "../../output/PD0-PD1_Calisma_Ozeti.pdf",
+  "content": "guide.md",
+  "output": "../../output/PD0-PD1_v2.pdf",
   "sources": ["../../sources/PD0.pdf", "../../sources/PD1.pdf"],
   "inventory": "data/source.json",
   "coverage": "data/coverage.md",
@@ -60,51 +76,60 @@ output/                     generated PDFs
 
 Rules:
 
-- `content`, `stylesheet`, `output`, `inventory`, `coverage` are resolved
-  relative to the guide directory.
-- `sources` is documentation and a scaffold input; the build itself does not
-  read the PDFs.
+- `content`, `output`, `inventory` and `coverage` resolve relative to the guide
+  directory.
+- `sources` are read-only inputs and must stay under `sources/`.
 - No absolute paths. A guide must work after the repository is moved.
+- `schema_version` 1 (`guide.html`, Python reference) remains accepted during
+  the strangle; schema 2 is the Markdown format.
+- `legacy_content: "guide.html"` lets the Python reference build a schema-2
+  bundle while the Rust path is under parity review.
+
+## Content format
+
+Markdown + YAML frontmatter + `::: definition`, `::: critical`, `::: example`
+and `::: note` directives. Source references use `[PD0, s. 3]`. Figures use
+Markdown images; the Typst template owns numbering and captions are kept from
+the source. Raw Typst/CSS in a guide is forbidden.
 
 ## Generated artifacts
 
 | Artifact | Producer | Committed? |
 |---|---|---|
-| `guides/<slug>/data/source.json` | `engine/tools/analyze_sources.py` | yes; reviewable inventory |
-| `guides/<slug>/data/source.md` | same | yes; human-readable checklist |
-| `guides/<slug>/data/coverage.md` | `engine/tools/check_coverage.py` | yes; audit trail |
-| `guides/<slug>/data/pages/` | `engine/tools/prepare_pages.py` | no; visual cache |
-| `output/*.pdf` | `engine/build.py` | yes, for review |
+| `guides/<slug>/data/source.json` | Python or Rust inventory | yes; reviewable |
+| `guides/<slug>/data/source.md` | same | yes; checklist |
+| `guides/<slug>/data/coverage.md` | coverage gate | yes; audit trail |
+| `guides/<slug>/data/pages/` | page renderer | no; visual cache |
+| `output/*.pdf` | renderer | yes, for review |
 | `sources/*.pdf` | instructor/user | **no**; gitignored |
 
 ## Coverage model
 
 The inventory is the mechanical checklist: sources, pages, headings and
-low-text pages. The coverage tool checks that every top-level numbered section
-has a matching heading/number in the guide. It is deliberately conservative:
-a missing number is reported, not guessed.
+low-text pages. The gate checks that every top-level numbered section has a
+matching normalized heading in the guide. It is deliberately conservative: a
+missing number is reported, never guessed.
 
-The guide’s G section is the human audit: table/figure/example coverage,
-low-text pages, exclusions and inaccessible content. The automated gate is not
-allowed to claim completeness on its own.
-
-## Extending the engine
-
-Add course-independent behaviour to `engine/`. Add course-specific diagrams,
-config and prose to `guides/<slug>/`. If a change would make the engine know a
-course name, a source filename or a slide count, it belongs in the guide
-config instead.
+The guide’s G section is the human audit: tables, figures, examples, low-text
+pages, exclusions and inaccessible content. The automated gate cannot claim
+completeness on its own.
 
 ## Testing
 
-There is no test suite yet. The minimum verification loop is:
-
 ```bash
+# Rust v2
+cargo test --workspace
+cargo clippy --workspace --all-targets --all-features -- -D warnings
+cargo run -p folisift-cli -- build --guide pd0-pd1 \
+  --output output/PD0-PD1_v2.pdf --check
+
+# Python reference
 python3 engine/build.py --guide guides/pd0-pd1 --check
-pdfinfo output/PD0-PD1_Calisma_Ozeti.pdf
 ```
 
-For engine changes, also scaffold a throwaway guide in `/tmp` and build it.
+The Rust tests cover path safety, config validation, Markdown directives,
+inventory/coverage logic and a minimal Typst render. The MCP server is probed
+with a stdio client during release checks.
 
 ## Non-goals
 

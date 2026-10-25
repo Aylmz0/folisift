@@ -8,7 +8,8 @@
 | [Design system](design-system.md) | Paper palette, typography and components |
 | [ADRs](adr/) | Architectural decisions and their consequences |
 | [Plans](plans/) | Proposed architecture and migration plans |
-| [Agent configuration](agents/) | Issue tracker, triage labels, domain-doc rules |
+| [Agent configuration](agents/) | Issue tracker, triage labels, domain-doc rules, versioning |
+| [Versions](VERSIONS.md) | Released tags, builds and release notes |
 | [Agent rules](../AGENTS.md) | Repo-specific operating rules and commands |
 | [Domain context](../CONTEXT.md) | Ubiquitous language and invariants |
 
@@ -17,7 +18,7 @@
 - New contributor: `README.md` → `docs/architecture.md` → `docs/authoring.md`.
 - New guide: `docs/authoring.md`.
 - Design change: `docs/design-system.md` + an ADR if the change is structural.
-- Agent/issue work: `AGENTS.md` and `docs/agents/`.
+- Agent/issue work: `AGENTS.md`, `docs/agents/` and `docs/agents/versioning.md`.
 
 ## Invariants
 

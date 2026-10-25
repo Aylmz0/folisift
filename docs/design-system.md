@@ -2,8 +2,9 @@
 
 The guide is a study object, not a slide deck. The visual language is warm,
 editorial and print-friendly. The design system is shared by every guide and
-lives in `engine/style.css` and `engine/assets/`. See
-`docs/adr/0002-paper-design-system.md`.
+lives in `engine/style.css` (Python reference) and `templates/paper.typ`
+(Rust v2). See `docs/adr/0002-paper-design-system.md` and
+`docs/adr/0007-typst-renderer.md`.
 
 ## Palette
 
@@ -24,10 +25,10 @@ meaning alone.
 
 ## Typography
 
-- Body: Noto Serif (fallback Source Serif 4, Georgia), 9.5–10.2 pt,
-  line-height 1.33–1.43.
-- Headings: Inter (fallback Helvetica/Arial), semibold.
-- Code: DejaVu Sans Mono, 7.4–8.2 pt.
+- Body: Noto Serif (embedded), 10.2 pt in the v2 template, line-height 1.33–1.43.
+- Headings: Inter (embedded, variable), semibold.
+- Code: Noto Sans Mono (embedded), 8.5 pt. DejaVu is only a fallback and
+  requires its own licence if shipped.
 - Captions: serif italic, 7.9–8.4 pt.
 - Labels: Inter, uppercase, letter-spacing 0.12–0.18em.
 
@@ -78,9 +79,9 @@ Turkish characters and hyphenation must be checked in the final PDF.
 ## Guide-specific assets
 
 Put diagrams used by one guide in `guides/<slug>/assets/`. Put brand assets
-(cover motif) and shared components in `engine/assets/`. Do not fork
-`engine/style.css` for one guide; if a visual exception is needed, document it
-and keep the change local.
+(cover motif) in `engine/assets/` for the reference and in `templates/` for v2.
+Do not fork the shared stylesheet or template for one guide; if a visual
+exception is needed, document it and keep the change local.
 
 ## Print checks
 

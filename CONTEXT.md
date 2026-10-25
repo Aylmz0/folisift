@@ -20,9 +20,9 @@ course-specific material is the guide bundle under `guides/<slug>/`.
 | **Inventory** | Machine-readable map of a source: pages, headings, low-text pages, page map. |
 | **Low-text page** | A page with little/no text layer; usually a figure, code screenshot or table. |
 | **Coverage report** | Comparison of source sections against the guide content. |
-| **Engine** | Domain-agnostic code, templates and design system under `engine/`. |
-| **Template** | Reusable A–G HTML skeleton under `engine/templates/`. |
-| **Design system** | Paper palette, typography and layout rules in `engine/style.css`. |
+| **Engine** | Domain-agnostic code under `engine/` (reference) and `crates/` (v2). |
+| **Template** | Reusable A–G skeleton: `engine/templates/guide.html` (reference) or `templates/paper.typ` (v2). |
+| **Design system** | Paper palette, typography and layout rules in `engine/style.css` and `templates/paper.typ`. |
 | **Output** | A generated PDF under `output/`; not a source of truth. |
 
 ## Invariants
@@ -36,11 +36,13 @@ course-specific material is the guide bundle under `guides/<slug>/`.
 ## Layout
 
 ```
-engine/                 reusable pipeline
+engine/                 Python reference pipeline
+crates/                 Rust v2: core, parse, render, mcp, cli
+templates/              paper.typ + embedded fonts
 guides/<slug>/          one course/material guide (guide.md in v2)
 sources/                local PDF inputs (gitignored)
 output/                 generated PDFs
-docs/                   architecture, authoring, design, ADRs, agent config
+docs/                   architecture, authoring, design, ADRs, plans, agent config
 ```
 
 ## Current guides
