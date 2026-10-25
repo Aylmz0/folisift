@@ -1,7 +1,7 @@
 # Kapsam Denetimi
 
-Kaynak envanteri: `data/pd0-pd1.source.json`
-Kılavuz: `pilot.html`
+Kaynak envanteri: `/home/yilmaz/projects/folisift/guides/pd0-pd1/data/source.json`
+Kılavuz: `/home/yilmaz/projects/folisift/guides/pd0-pd1/guide.html`
 
 ## PD0.pdf — 123 slayt
 

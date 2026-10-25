@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-10-25T19:36:37+00:00",
+  "generated_at": "2026-10-25T20:26:52+00:00",
   "low_text_threshold": 120,
   "sources": [
     {
-      "path": "../sources/PD0.pdf",
+      "path": "../../sources/PD0.pdf",
       "filename": "PD0.pdf",
       "title": "Programlama Dilleri",
       "pages": 123,
@@ -828,7 +828,7 @@
       ]
     },
     {
-      "path": "../sources/PD1.pdf",
+      "path": "../../sources/PD1.pdf",
       "filename": "PD1.pdf",
       "title": "Chapter 1",
       "pages": 137,

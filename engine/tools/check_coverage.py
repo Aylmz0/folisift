@@ -6,10 +6,10 @@ failure mode where the first half of a deck is covered well and later sections
 are silently skipped.
 
 Usage:
-    python3 tools/check_coverage.py \
-        --source-json data/pd0-pd1.source.json \
-        --html pilot.html \
-        --out data/pd0-pd1.coverage.md
+    python3 ../../engine/tools/check_coverage.py \
+        --source-json data/source.json \
+        --html guide.html \
+        --out data/coverage.md
 """
 
 from __future__ import annotations

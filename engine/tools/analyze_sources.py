@@ -11,9 +11,9 @@ It deliberately uses only poppler utilities (pdfinfo, pdftotext), so it works
 without Python PDF libraries.
 
 Usage:
-    python3 tools/analyze_sources.py ../sources/PD0.pdf ../sources/PD1.pdf \
-        --out data/pd0-pd1.source.json \
-        --md data/pd0-pd1.source.md
+    python3 ../../engine/tools/analyze_sources.py ../../sources/PD0.pdf ../../sources/PD1.pdf \
+        --out data/source.json \
+        --md data/source.md
 """
 
 from __future__ import annotations
@@ -222,8 +222,8 @@ def markdown_report(data: dict) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("pdfs", nargs="+", type=Path)
-    parser.add_argument("--out", type=Path, default=Path("data/source_map.json"))
-    parser.add_argument("--md", type=Path, default=Path("data/source_map.md"))
+    parser.add_argument("--out", type=Path, default=Path("data/source.json"))
+    parser.add_argument("--md", type=Path, default=Path("data/source.md"))
     parser.add_argument("--low-threshold", type=int, default=120)
     args = parser.parse_args()
 

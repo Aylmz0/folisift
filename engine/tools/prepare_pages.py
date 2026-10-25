@@ -5,11 +5,11 @@ The study-guide workflow uses this for slides whose text layer is missing or
 insufficient: diagrams, code screenshots, tables and scanned figures.
 
 Examples:
-    python3 tools/prepare_pages.py ../sources/PD0.pdf --pages 7,17,21-23 \
+    python3 ../../engine/tools/prepare_pages.py ../../sources/PD0.pdf --pages 7,17,21-23 \
         --out data/pages/pd0 --cols 2 --rows 2
 
-    python3 tools/prepare_pages.py ../sources/PD1.pdf \
-        --source-json data/pd0-pd1.source.json --filename PD1.pdf \
+    python3 ../../engine/tools/prepare_pages.py ../../sources/PD1.pdf \
+        --source-json data/source.json --filename PD1.pdf \
         --out data/pages/pd1
 """
 

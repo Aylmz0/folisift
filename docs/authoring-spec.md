@@ -88,10 +88,10 @@ Do not start writing prose before steps 1–3 are complete.
 Run:
 
 ```bash
-cd kitap
-python3 tools/analyze_sources.py ../sources/PD0.pdf ../sources/PD1.pdf \
-  --out data/pd0-pd1.source.json \
-  --md  data/pd0-pd1.source.md
+cd guides/pd0-pd1
+python3 ../../engine/tools/analyze_sources.py ../../sources/PD0.pdf ../../sources/PD1.pdf \
+  --out data/source.json \
+  --md  data/source.md
 ```
 
 This produces, for every PDF:
@@ -106,8 +106,8 @@ Use this as the **coverage checklist**. Do not hand-count pages.
 ### Step 2 — Visual audit (only low-text pages)
 
 ```bash
-python3 tools/prepare_pages.py ../sources/PD0.pdf \
-  --source-json data/pd0-pd1.source.json --filename PD0.pdf \
+python3 ../../engine/tools/prepare_pages.py ../../sources/PD0.pdf \
+  --source-json data/source.json --filename PD0.pdf \
   --out data/pages/pd0 --cols 2 --rows 2
 ```
 
@@ -150,7 +150,7 @@ paragraph. Build and inspect after each batch; do not wait until the end.
 ### Step 5 — Build
 
 ```bash
-python3 build.py --config config/pd0-pd1.json --check
+python3 engine/build.py --guide guides/pd0-pd1 --check
 ```
 
 `--check` runs the automated coverage audit before building. If it fails, fix
@@ -386,14 +386,14 @@ Use the scripts; do not redo their work manually.
 
 | Tool | Purpose |
 |---|---|
-| `tools/analyze_sources.py` | page/heading/low-text inventory → JSON + Markdown |
-| `tools/prepare_pages.py` | render low-text pages into labelled contact sheets |
-| `tools/check_coverage.py` | compare top-level sections with the guide HTML |
-| `tools/scaffold.py` | create a new guide skeleton + config + source inventory |
-| `build.py` | build PDF from a config; `--check` runs coverage first |
-| `style.css` | shared paper design system |
-| `config/*.json` | per-guide paths and metadata |
-| `templates/guide_skeleton.html` | reusable A–G HTML skeleton |
+| `engine/tools/analyze_sources.py` | page/heading/low-text inventory → JSON + Markdown |
+| `engine/tools/prepare_pages.py` | render low-text pages into labelled contact sheets |
+| `engine/tools/check_coverage.py` | compare top-level sections with the guide HTML |
+| `engine/tools/scaffold.py` | create a new guide bundle + config + source inventory |
+| `engine/build.py` | build a guide PDF; `--check` runs coverage first |
+| `engine/style.css` | shared paper design system |
+| `guides/<slug>/config.json` | per-guide paths and metadata |
+| `engine/templates/guide.html` | reusable A–G HTML skeleton |
 
 ### Config schema
 
@@ -401,23 +401,23 @@ Use the scripts; do not redo their work manually.
 {
   "title": "…",
   "slug": "pd0-pd1",
-  "html": "pilot.html",
-  "css": "style.css",
-  "output": "../output/PD0-PD1_Calisma_Ozeti.pdf",
-  "sources": ["../sources/PD0.pdf", "../sources/PD1.pdf"],
-  "source_json": "data/pd0-pd1.source.json",
-  "coverage_md": "data/pd0-pd1.coverage.md"
+  "content": "guide.html",
+  "stylesheet": "../../engine/style.css",
+  "output": "../../output/PD0-PD1_Calisma_Ozeti.pdf",
+  "sources": ["../../sources/PD0.pdf", "../../sources/PD1.pdf"],
+  "inventory": "data/source.json",
+  "coverage": "data/coverage.md"
 }
 ```
 
 ### Source map schema
 
-`data/<slug>.source.json` contains `sources[]` with `filename`, `pages`,
+`guides/<slug>/data/source.json` contains `sources[]` with `filename`, `pages`,
 `words`, `low_text_pages`, `headings[]`, `page_map[]`, plus `totals`.
 
 ### Coverage gate
 
-`tools/check_coverage.py` must report **GEÇTİ** before final delivery.
+`engine/tools/check_coverage.py` must report **GEÇTİ** before final delivery.
 It checks top-level section numbers and fuzzy heading matches; tables, figures,
 formulas and examples still require manual review in G.
 
@@ -465,12 +465,12 @@ Do not deliver only a chat response when a PDF was requested.
 
 ## 12. REUSE FOR A NEW COURSE
 
-1. Copy `kitap/` to the new course folder, or keep one shared `kitap/` and add
-   a new `config/<slug>.json` + content HTML.
-2. Keep `style.css` and `assets/` shared; do not fork the design per chapter.
+1. Create a new guide bundle with `engine/tools/scaffold.py`, or copy
+   `guides/<slug>/` as a starting point. Never copy `engine/` per course.
+2. Keep `engine/style.css` and `engine/assets/` shared; do not fork the design per chapter.
 3. Run `analyze_sources.py` on the new PDFs.
 4. Fill the outline and write B parts in source order.
-5. Build with `python3 build.py --config config/<slug>.json --check`.
+5. Build with `python3 engine/build.py --guide guides/<slug> --check`.
 6. Update G with the new source map counts.
 7. Only then write the final completion note.
 
