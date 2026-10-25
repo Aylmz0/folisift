@@ -39,6 +39,8 @@ cargo run -p folisift-cli -- analyze --source sources/PD0.pdf \
   --out guides/pd0-pd1/data/source.json --md guides/pd0-pd1/data/source.md
 cargo run -p folisift-cli -- render-pages --source sources/PD0.pdf \
   --pages 7 --out guides/pd0-pd1/data/pages
+cargo run -p folisift-cli -- build --guide pd0-pd1 \
+  --output output/PD0-PD1_v2.pdf --check
 ```
 
 The Rust binary loads `libpdfium.so` (or the platform equivalent) from its own
@@ -50,9 +52,10 @@ remove the Python engine until the Rust path reaches coverage/PDF parity.
 
 - `engine/` — reusable code, templates, CSS and SVG brand assets.
 - `crates/` — Rust v2 workspace: `folisift-core` (config/schema/path safety),
-  `folisift-parse` (liteparse/inventory/screenshots), `folisift-cli`.
+  `folisift-parse` (liteparse/inventory/screenshots), `folisift-render`
+  (Markdown/Typst), `folisift-cli`.
 - `guides/<slug>/` — one self-contained course/material bundle:
-  `guide.html`, `config.json`, `assets/`, `data/`.
+  `guide.md` (v2) or `guide.html` (legacy), `config.json`, `assets/`, `data/`.
 - `sources/` — personal/course PDFs; **not tracked by git**.
 - `output/` — generated PDFs, tracked for review.
 - `docs/` — architecture, authoring, design system, ADRs and agent config.

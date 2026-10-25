@@ -1,6 +1,6 @@
 # Folisift v2 — Rust MCP + Typst Migration Plan
 
-- **Status:** Phase 0–2 complete; Phase 1 CI/licences pending; Phase 3 next
+- **Status:** Phase 0–3 complete; Phase 1 CI/licences pending; Phase 4 next
 - **Date:** 2026-10-26
 - **Owner:** Maintainer
 - **Supersedes:** the Python-only engine described in `docs/architecture.md`
@@ -191,10 +191,10 @@ Migration note: existing `guide.html`, `data/source.json`, `style.css` are
 reference inputs, not the final format. The HTML is ported once; CSS becomes a
 Typst template.
 
-Schema note: the current `pd0-pd1` bundle has no `schema_version` and uses
-`guide.html`; it is treated as schema 1 during the strangle migration. Schema 2
-is the Markdown format above. Both are accepted until the HTML port and the
-coverage gate move to Markdown headings.
+Schema note: `pd0-pd1` is now schema 2 (`content: guide.md`). Its
+`legacy_content: guide.html` field keeps the Python reference build and its
+HTML coverage checker working until Phase 6. Schema 1 remains accepted for
+other bundles during the strangle.
 
 ## 7. Content format
 
@@ -410,12 +410,19 @@ WeasyPrint, or a system Typst installation.
   only in projected bullets, whitespace or curly/straight apostrophes.
 - **Gate:** pass with explained formatting differences; Turkish text intact.
 
-### Phase 3 — Renderer and content
+### Phase 3 — Renderer and content — complete
 
-- Markdown/directive parser.
-- `paper.typ` design port; fonts; TOC/bookmarks.
-- Port PD0–PD1 content from `guide.html` to `guide.md`.
-- **Gate:** PDF parity checks in §8.
+- `folisift-render`: Markdown + frontmatter + four directives, Typst world with
+  embedded fonts and sandboxed asset loading.
+- `templates/paper.typ`: paper palette, cover, TOC, running headers, page
+  numbers, boxes, tables, figures, code.
+- `guides/pd0-pd1/guide.md`: PD0–PD1 content ported from `guide.html`.
+- `folisift build` and Rust Markdown coverage gate.
+- Config is schema 2 (`content: guide.md`); `legacy_content: guide.html` keeps
+  the Python reference build working during the strangle.
+- **Gate:** 23 pages vs 22 (+4.5%, inside ±10%), coverage 13/13 PASS, TOC and
+  PDF bookmarks present, Turkish glyphs intact, no clipped tables/figures.
+- Details: [`2026-10-26-phase3-report.md`](2026-10-26-phase3-report.md).
 
 ### Phase 4 — MCP server
 

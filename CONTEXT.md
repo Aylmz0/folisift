@@ -37,7 +37,7 @@ course-specific material is the guide bundle under `guides/<slug>/`.
 
 ```
 engine/                 reusable pipeline
-guides/<slug>/          one course/material guide
+guides/<slug>/          one course/material guide (guide.md in v2)
 sources/                local PDF inputs (gitignored)
 output/                 generated PDFs
 docs/                   architecture, authoring, design, ADRs, agent config
@@ -47,7 +47,8 @@ docs/                   architecture, authoring, design, ADRs, agent config
 
 | Slug | Sources | Output | State |
 |---|---|---|---|
-| `pd0-pd1` | PD0, PD1 | `output/PD0-PD1_Calisma_Ozeti.pdf` | Pilot, 22 pages |
+| `pd0-pd1` | PD0, PD1 | `output/PD0-PD1_Calisma_Ozeti.pdf` | Python reference, 22 pages |
+| `pd0-pd1` (v2) | PD0, PD1 | `output/PD0-PD1_v2.pdf` | Rust/Typst port, 23 pages, coverage 13/13 |
 
 ## Non-goals
 
