@@ -8,6 +8,7 @@ publish.workspace = true
 
 [dependencies]
 async-trait.workspace = true
+blake3.workspace = true
 chrono.workspace = true
 folisift-core = { path = "../folisift-core", version = "0.1.0" }
 liteparse.workspace = true

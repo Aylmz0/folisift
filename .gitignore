@@ -4,8 +4,10 @@ sources/**/*.pdf
 
 .DS_Store
 
-# Generated page screenshots.
+# Generated source text and page screenshots.
+guides/*/data/cache/
 guides/*/data/pages/
+data/cache/
 
 # Temporary LaTeX/Office files.
 *.aux
