@@ -34,6 +34,10 @@ folisift/
 cargo build --release
 # put libpdfium.so next to target/release/folisift, or set FOLISIFT_PDFIUM_DIR
 cargo run -p folisift-cli -- build --guide pd0-pd1 --check
+
+# Read/search bounded source text
+cargo run -p folisift-cli -- read-source --source sources/PD0.pdf --pages 1-20
+cargo run -p folisift-cli -- search-source --source sources/PD0.pdf --query TIOBE
 ```
 
 MCP server:

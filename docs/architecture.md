@@ -41,8 +41,8 @@ folisift-cli / mcp            CLI and stdio MCP tools
    workspace root.
 3. `folisift-render` parses Markdown + YAML frontmatter + four directives.
 4. The Typst template renders the PDF with embedded fonts.
-5. `--check` compares the inventory with the Markdown headings and writes
-   `data/coverage.md`.
+5. `--check` compares the inventory with the Markdown headings and section
+   bodies, then writes `data/coverage.md`.
 6. The PDF is written to the configured output path.
 
 The MCP server wraps the same operations. It performs no LLM call, no shell
@@ -88,6 +88,7 @@ the source. Raw Typst/CSS in a guide is forbidden.
 | `guides/<slug>/data/source.json` | `folisift analyze` | yes; reviewable |
 | `guides/<slug>/data/source.md` | same | yes; checklist |
 | `guides/<slug>/data/coverage.md` | `folisift build --check` | yes; audit trail |
+| `data/cache/` | `folisift analyze` / `read_source` | no; source text cache |
 | `guides/<slug>/data/pages/` | `folisift render-pages` | no; visual cache |
 | `output/*.pdf` | `folisift build` | yes, for review |
 | `sources/*.pdf` | instructor/user | **no**; gitignored |

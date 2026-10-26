@@ -32,6 +32,8 @@ cargo run -p folisift-cli -- analyze --source sources/PD0.pdf \
   --out guides/pd0-pd1/data/source.json --md guides/pd0-pd1/data/source.md
 cargo run -p folisift-cli -- render-pages --source sources/PD0.pdf \
   --pages 7 --out guides/pd0-pd1/data/pages
+cargo run -p folisift-cli -- read-source --source sources/PD0.pdf --pages 1-20
+cargo run -p folisift-cli -- search-source --source sources/PD0.pdf --query TIOBE
 cargo run -p folisift-cli -- build --guide pd0-pd1 --check
 cargo run -p folisift-cli -- scaffold --slug pd2 --title "..." \
   --course "BMÜ325" --source sources/PD2.pdf
@@ -62,7 +64,8 @@ course name, a page count or a source path in the engine.
 ## Invariants
 
 - `sources/*.pdf` must never be committed. They are local inputs.
-- Never claim full coverage without `folisift build --check` passing.
+- Never claim full coverage without `folisift build --check` passing; the v0.2
+  gate also rejects empty sections.
 - Do not invent facts, formulas, dates or page references.
 - Label added clarifications with **Açıklayıcı not** in the guide.
 - The design system stays stable across guides; deviations need an ADR.

@@ -33,6 +33,9 @@ cargo run -p folisift-cli -- analyze \
   --md guides/pd0-pd1/data/source.md
 ```
 
+The MCP flow reads source text in bounded chunks with `read_source` and can
+search it with `search_source`; the host LLM writes the prose.
+
 Low-text pages need a visual pass:
 
 ```bash
