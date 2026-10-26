@@ -7,7 +7,7 @@ rust-version.workspace = true
 publish.workspace = true
 
 [dependencies]
-folisift-core = { path = "../folisift-core", version = "0.1.0" }
+folisift-core = { path = "../folisift-core", version = "0.2.0" }
 pulldown-cmark.workspace = true
 regex.workspace = true
 serde.workspace = true
