@@ -58,6 +58,8 @@ pub struct GuideSummary {
     pub schema_version: u32,
     pub output: String,
     pub sources: usize,
+    pub content_words: usize,
+    pub section_count: usize,
     pub valid: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
@@ -186,15 +188,23 @@ pub fn list_guides(workspace: &Workspace) -> Result<Vec<GuideSummary>> {
             continue;
         };
         match Guide::load(workspace, slug) {
-            Ok(guide) => summaries.push(GuideSummary {
-                slug: guide.slug,
-                title: guide.config.title,
-                schema_version: guide.config.schema_version,
-                output: guide.config.output,
-                sources: guide.sources.len(),
-                valid: true,
-                error: None,
-            }),
+            Ok(guide) => {
+                let content = fs::read_to_string(&guide.content).unwrap_or_default();
+                summaries.push(GuideSummary {
+                    slug: guide.slug,
+                    title: guide.config.title,
+                    schema_version: guide.config.schema_version,
+                    output: guide.config.output,
+                    sources: guide.sources.len(),
+                    content_words: content.split_whitespace().count(),
+                    section_count: content
+                        .lines()
+                        .filter(|line| line.trim_start().starts_with("## "))
+                        .count(),
+                    valid: true,
+                    error: None,
+                });
+            }
             Err(error) => {
                 let title = read_title(&path.join("config.json")).unwrap_or_default();
                 summaries.push(GuideSummary {
@@ -203,6 +213,8 @@ pub fn list_guides(workspace: &Workspace) -> Result<Vec<GuideSummary>> {
                     schema_version: 0,
                     output: String::new(),
                     sources: 0,
+                    content_words: 0,
+                    section_count: 0,
                     valid: false,
                     error: Some(error.to_string()),
                 });

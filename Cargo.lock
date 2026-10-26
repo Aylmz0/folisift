@@ -1100,6 +1100,7 @@ dependencies = [
  "folisift-render",
  "serde",
  "serde_json",
+ "tempfile",
  "tokio",
 ]
 
@@ -1136,6 +1137,7 @@ dependencies = [
  "blake3",
  "chrono",
  "folisift-core",
+ "image",
  "liteparse",
  "liteparse-pdfium",
  "regex",

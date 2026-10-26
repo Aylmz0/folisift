@@ -191,6 +191,11 @@ impl CoverageReport {
     }
 }
 
+/// Body character counts for every `## <number> <title>` guide section.
+pub fn guide_body_chars(markdown: &str) -> std::collections::HashMap<String, usize> {
+    guide_section_chars(markdown)
+}
+
 fn guide_section_chars(markdown: &str) -> std::collections::HashMap<String, usize> {
     let markdown = strip_frontmatter(markdown);
     let mut sections = std::collections::HashMap::new();

@@ -102,12 +102,18 @@ enum Command {
         /// Source PDF, relative to the workspace root.
         #[arg(long)]
         source: PathBuf,
-        /// Page list such as `1,3-5`. Omit for all pages.
+        /// Page list such as `1,3-5`. Omit for the first 8 pages.
         #[arg(long)]
         pages: Option<String>,
         /// Output directory.
         #[arg(long, default_value = "data/pages")]
         out: PathBuf,
+        /// Compose a 2-column contact sheet.
+        #[arg(long)]
+        contact_sheet: bool,
+        /// Render DPI (72–200).
+        #[arg(long)]
+        dpi: Option<f32>,
     },
 }
 
@@ -124,6 +130,9 @@ struct GuideStatus {
     inventory: Option<String>,
     coverage: Option<String>,
     target_pages: Option<String>,
+    content_words: usize,
+    section_count: usize,
+    empty_sections: Vec<String>,
 }
 
 #[tokio::main]
@@ -162,6 +171,13 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
         }
         Command::GuideStatus { slug } => {
             let guide = Guide::load(&workspace, &slug)?;
+            let markdown = std::fs::read_to_string(&guide.content)?;
+            let body_chars = folisift_parse::guide_body_chars(&markdown);
+            let empty_sections = body_chars
+                .iter()
+                .filter(|(_, chars)| **chars < folisift_parse::MIN_SECTION_CHARS)
+                .map(|(number, _)| number.clone())
+                .collect();
             let status = GuideStatus {
                 slug: guide.slug,
                 title: guide.config.title,
@@ -178,6 +194,9 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 inventory: guide.inventory.map(|path| path.display().to_string()),
                 coverage: guide.coverage.map(|path| path.display().to_string()),
                 target_pages: guide.config.target_pages,
+                content_words: markdown.split_whitespace().count(),
+                section_count: body_chars.len(),
+                empty_sections,
             };
             println!("{}", serde_json::to_string_pretty(&status)?);
         }
@@ -378,18 +397,23 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
             let result = search_source(&cache, &source, &query, limit, context_chars).await?;
             println!("{}", serde_json::to_string_pretty(&result)?);
         }
-        Command::RenderPages { source, pages, out } => {
+        Command::RenderPages {
+            source,
+            pages,
+            out,
+            contact_sheet,
+            dpi,
+        } => {
             let source = workspace.resolve_read(source)?;
             let out = workspace.resolve_write(out)?;
             let pages = pages.as_deref().map(parse_page_list).transpose()?;
-            let images = render_pages(&source, pages, &out).await?;
+            let result = render_pages(&source, pages, &out, contact_sheet, dpi).await?;
             println!(
                 "{}",
                 serde_json::to_string_pretty(&json!({
                     "source": source.display().to_string(),
                     "out": out.display().to_string(),
-                    "pages": images.len(),
-                    "images": images,
+                    "result": result,
                 }))?
             );
         }

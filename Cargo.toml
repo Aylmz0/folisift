@@ -19,6 +19,7 @@ async-trait = "0.1"
 blake3 = "1"
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
 clap = { version = "4.5", features = ["derive", "env"] }
+image = { version = "0.25", default-features = false, features = ["png"] }
 liteparse = { version = "2.17", default-features = false }
 liteparse-pdfium = "1.13"
 pathdiff = "0.2"
