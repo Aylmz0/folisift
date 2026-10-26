@@ -11,6 +11,7 @@ async-trait.workspace = true
 blake3.workspace = true
 chrono.workspace = true
 folisift-core = { path = "../folisift-core", version = "0.1.0" }
+image.workspace = true
 liteparse.workspace = true
 liteparse-pdfium.workspace = true
 regex.workspace = true

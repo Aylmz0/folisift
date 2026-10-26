@@ -60,6 +60,8 @@ pub struct RenderPagesParams {
     pub source: String,
     pub pages: Option<String>,
     pub out: Option<String>,
+    pub contact_sheet: Option<bool>,
+    pub dpi: Option<f32>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -93,33 +95,57 @@ impl FolisiftServer {
         })
     }
 
-    #[tool(description = "Show workspace root, version and guide count")]
+    #[tool(
+        description = "Show workspace root, version and guide count",
+        annotations(
+            title = "Workspace info",
+            read_only_hint = true,
+            open_world_hint = false
+        )
+    )]
     fn workspace_info(&self) -> Json<Value> {
-        let guides = list_guides(&self.workspace)
-            .map(|guides| guides.len())
-            .unwrap_or(0);
+        let guides = list_guides(&self.workspace).unwrap_or_default();
+        let source_count = guides.iter().map(|guide| guide.sources).sum::<usize>();
         Json(json!({
             "root": self.workspace.root().display().to_string(),
             "version": version::VERSION,
             "build": version::BUILD,
             "mcp_tool_schema_version": version::MCP_TOOL_SCHEMA_VERSION,
-            "guides": guides,
+            "guides": guides.len(),
+            "source_count": source_count,
+            "pdfium_version": folisift_parse::pdfium::PDFIUM_VERSION,
+            "sidecar_path": folisift_parse::pdfium::sidecar_path().map(|path| path.display().to_string()),
+            "cache_dir": self.workspace.root().join("data/cache").display().to_string(),
         }))
     }
 
-    #[tool(description = "List guides and their validation status")]
+    #[tool(
+        description = "List guides and their validation status",
+        annotations(title = "List guides", read_only_hint = true, open_world_hint = false)
+    )]
     fn list_guides(&self) -> Result<Json<Value>, String> {
         let guides = list_guides(&self.workspace).map_err(|error| error.to_string())?;
         let value = serde_json::to_value(guides).map_err(|error| error.to_string())?;
         Ok(Json(value))
     }
 
-    #[tool(description = "Show a guide config and resolved paths")]
+    #[tool(
+        description = "Show a guide config and resolved paths",
+        annotations(title = "Guide status", read_only_hint = true, open_world_hint = false)
+    )]
     fn guide_status(
         &self,
         Parameters(GuideStatusParams { slug }): Parameters<GuideStatusParams>,
     ) -> Result<Json<Value>, String> {
         let guide = Guide::load(&self.workspace, &slug).map_err(|error| error.to_string())?;
+        let markdown =
+            std::fs::read_to_string(&guide.content).map_err(|error| error.to_string())?;
+        let body_chars = folisift_parse::guide_body_chars(&markdown);
+        let empty_sections = body_chars
+            .iter()
+            .filter(|(_, chars)| **chars < folisift_parse::MIN_SECTION_CHARS)
+            .map(|(number, _)| number.clone())
+            .collect::<Vec<_>>();
         Ok(Json(json!({
             "slug": guide.slug,
             "title": guide.config.title,
@@ -129,10 +155,20 @@ impl FolisiftServer {
             "sources": guide.sources.iter().map(|path| path.display().to_string()).collect::<Vec<_>>(),
             "inventory": guide.inventory.as_ref().map(|path| path.display().to_string()),
             "coverage": guide.coverage.as_ref().map(|path| path.display().to_string()),
+            "content_words": markdown.split_whitespace().count(),
+            "section_count": body_chars.len(),
+            "empty_sections": empty_sections,
         })))
     }
 
-    #[tool(description = "Analyze a source PDF with liteparse and write inventory JSON/Markdown")]
+    #[tool(
+        description = "Analyze a source PDF with liteparse and write inventory JSON/Markdown",
+        annotations(
+            title = "Analyze source",
+            idempotent_hint = true,
+            open_world_hint = false
+        )
+    )]
     async fn analyze_source(
         &self,
         Parameters(params): Parameters<AnalyzeSourceParams>,
@@ -192,7 +228,10 @@ impl FolisiftServer {
         })))
     }
 
-    #[tool(description = "Read a bounded page range from the cached source text")]
+    #[tool(
+        description = "Read a bounded page range from the cached source text",
+        annotations(title = "Read source", read_only_hint = true, open_world_hint = false)
+    )]
     async fn read_source(
         &self,
         Parameters(params): Parameters<ReadSourceParams>,
@@ -209,7 +248,14 @@ impl FolisiftServer {
         Ok(Json(value))
     }
 
-    #[tool(description = "Search cached source text and return page-numbered snippets")]
+    #[tool(
+        description = "Search cached source text and return page-numbered snippets",
+        annotations(
+            title = "Search source",
+            read_only_hint = true,
+            open_world_hint = false
+        )
+    )]
     async fn search_source(
         &self,
         Parameters(params): Parameters<SearchSourceParams>,
@@ -232,7 +278,14 @@ impl FolisiftServer {
         Ok(Json(value))
     }
 
-    #[tool(description = "Render source PDF pages to PNG files")]
+    #[tool(
+        description = "Render source PDF pages to PNG files",
+        annotations(
+            title = "Render pages",
+            idempotent_hint = true,
+            open_world_hint = false
+        )
+    )]
     async fn render_pages(
         &self,
         Parameters(params): Parameters<RenderPagesParams>,
@@ -257,18 +310,27 @@ impl FolisiftServer {
                 .resolve_write("data/pages")
                 .map_err(|error| error.to_string())?,
         };
-        let images = render_page_images(&source, pages, &out)
-            .await
-            .map_err(|error| error.to_string())?;
-        Ok(Json(json!({
-            "source": source.display().to_string(),
-            "out": out.display().to_string(),
-            "pages": images.len(),
-            "images": images,
-        })))
+        let result = render_page_images(
+            &source,
+            pages,
+            &out,
+            params.contact_sheet.unwrap_or(false),
+            params.dpi,
+        )
+        .await
+        .map_err(|error| error.to_string())?;
+        let mut value = serde_json::to_value(result).map_err(|error| error.to_string())?;
+        if let Some(object) = value.as_object_mut() {
+            object.insert("source".to_string(), json!(source.display().to_string()));
+            object.insert("out".to_string(), json!(out.display().to_string()));
+        }
+        Ok(Json(value))
     }
 
-    #[tool(description = "Create a new schema-2 guide bundle with source section headings")]
+    #[tool(
+        description = "Create a new schema-2 guide bundle with source section headings",
+        annotations(title = "Scaffold guide", open_world_hint = false)
+    )]
     async fn scaffold_guide(
         &self,
         Parameters(params): Parameters<ScaffoldGuideParams>,
@@ -322,7 +384,10 @@ impl FolisiftServer {
         })))
     }
 
-    #[tool(description = "Render a guide PDF and optionally run the coverage gate")]
+    #[tool(
+        description = "Render a guide PDF and optionally run the coverage gate",
+        annotations(title = "Build guide", idempotent_hint = true, open_world_hint = false)
+    )]
     async fn build_guide(
         &self,
         Parameters(params): Parameters<BuildGuideParams>,
@@ -409,7 +474,14 @@ impl FolisiftServer {
         })))
     }
 
-    #[tool(description = "Run the Markdown coverage gate for a guide")]
+    #[tool(
+        description = "Run the Markdown coverage gate for a guide",
+        annotations(
+            title = "Check coverage",
+            read_only_hint = true,
+            open_world_hint = false
+        )
+    )]
     async fn check_coverage(
         &self,
         Parameters(params): Parameters<CheckCoverageParams>,

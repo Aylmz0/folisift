@@ -13,7 +13,9 @@ pub mod source_cache;
 pub mod source_read;
 pub mod text;
 
-pub use coverage::{CoverageReport, DEFAULT_THRESHOLD, check_coverage};
+pub use coverage::{
+    CoverageReport, DEFAULT_THRESHOLD, MIN_SECTION_CHARS, check_coverage, guide_body_chars,
+};
 pub use error::{Error, Result};
 pub use inventory::{Heading, Inventory, PageRow, SourceInventory, Totals};
 pub use parser::{LiteparseParser, SourceParser, analyze_source, analyze_sources, parse_page_list};

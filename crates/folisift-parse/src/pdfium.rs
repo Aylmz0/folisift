@@ -6,6 +6,10 @@ use crate::error::{Error, Result};
 /// Optional directory containing the PDFium shared library.
 pub const PDFIUM_DIR_ENV: &str = "FOLISIFT_PDFIUM_DIR";
 
+/// PDFium build pinned by `liteparse-pdfium-sys`. Keep this in sync with the
+/// sidecar release artifact.
+pub const PDFIUM_VERSION: &str = "chromium/8058";
+
 static INIT: OnceLock<std::result::Result<(), String>> = OnceLock::new();
 
 /// Load PDFium once, preferring the sidecar next to the executable.
@@ -65,6 +69,13 @@ fn library_name() -> &'static str {
     } else {
         "libpdfium.so"
     }
+}
+
+/// Directory containing the loaded PDFium sidecar, if known.
+pub fn sidecar_path() -> Option<std::path::PathBuf> {
+    std::env::var_os("PDFIUM_LIB_PATH")
+        .map(PathBuf::from)
+        .or_else(executable_dir)
 }
 
 /// Read the PDF `/Info` title without going through the full parser.
