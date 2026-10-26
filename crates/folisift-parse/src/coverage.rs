@@ -13,12 +13,17 @@ pub const DEFAULT_THRESHOLD: f64 = 0.55;
 static SECTION_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^(\d+\.\d+)\s+(.+)$").expect("valid section regex"));
 
+pub const MIN_SECTION_CHARS: usize = 400;
+pub const WEAK_SECTION_CHARS: usize = 600;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CoverageReport {
     pub passed: bool,
     pub threshold: f64,
     pub total: usize,
     pub missing: usize,
+    pub empty_sections: Vec<String>,
+    pub weak_sections: Vec<String>,
     pub sources: Vec<SourceCoverage>,
 }
 
@@ -37,6 +42,8 @@ pub struct SectionResult {
     pub page: usize,
     pub score: f64,
     pub matched: String,
+    pub body_chars: usize,
+    pub empty: bool,
     pub ok: bool,
 }
 
@@ -47,9 +54,12 @@ pub fn check_coverage(
     threshold: f64,
 ) -> CoverageReport {
     let lines = guide_lines(guide_markdown);
+    let sections_by_number = guide_section_chars(guide_markdown);
     let mut sources = Vec::with_capacity(inventory.sources.len());
     let mut total = 0;
     let mut missing = 0;
+    let mut empty_sections = Vec::new();
+    let mut weak_sections = Vec::new();
 
     for source in &inventory.sources {
         let mut sections = Vec::new();
@@ -72,9 +82,16 @@ pub fn check_coverage(
                 .to_string();
             total += 1;
             let (score, matched) = best_line(&number, &title, &lines);
-            let ok = score >= threshold;
-            if !ok {
+            let heading_ok = score >= threshold;
+            if !heading_ok {
                 missing += 1;
+            }
+            let body_chars = sections_by_number.get(&number).copied().unwrap_or(0);
+            let empty = body_chars < MIN_SECTION_CHARS;
+            if empty {
+                empty_sections.push(format!("{number} {title}"));
+            } else if body_chars < WEAK_SECTION_CHARS {
+                weak_sections.push(format!("{number} {title}"));
             }
             sections.push(SectionResult {
                 number,
@@ -82,7 +99,9 @@ pub fn check_coverage(
                 page: heading.page,
                 score,
                 matched,
-                ok,
+                body_chars,
+                empty,
+                ok: heading_ok && !empty,
             });
         }
         sources.push(SourceCoverage {
@@ -94,10 +113,12 @@ pub fn check_coverage(
     }
 
     CoverageReport {
-        passed: missing == 0,
+        passed: missing == 0 && empty_sections.is_empty(),
         threshold,
         total,
         missing,
+        empty_sections,
+        weak_sections,
         sources,
     }
 }
@@ -118,16 +139,27 @@ impl CoverageReport {
             let _ = writeln!(out, "## {} — {} slayt\n", source.filename, source.pages);
             let _ = writeln!(
                 out,
-                "| Bölüm | Kaynak sayfa | Durum | Eşleşen kılavuz satırı |\n|---|---:|---|---|"
+                "| Bölüm | Kaynak sayfa | Durum | Gövde karakteri | Eşleşen kılavuz satırı |\n|---|---:|---|---:|---|"
             );
             for section in &source.sections {
-                let status = if section.ok { "OK" } else { "EKSİK" };
+                let status = if section.empty {
+                    "BOŞ"
+                } else if section.ok {
+                    "OK"
+                } else {
+                    "EKSİK"
+                };
                 let matched = section.matched.replace('|', "\\|");
                 let matched = matched.chars().take(150).collect::<String>();
                 let _ = writeln!(
                     out,
-                    "| {} {} | {} | {} | {} |",
-                    section.number, section.title, section.page, status, matched
+                    "| {} {} | {} | {} | {} | {} |",
+                    section.number,
+                    section.title,
+                    section.page,
+                    status,
+                    section.body_chars,
+                    matched
                 );
             }
             let _ = writeln!(
@@ -140,6 +172,8 @@ impl CoverageReport {
         let _ = writeln!(out, "## Sonuç\n");
         let _ = writeln!(out, "- Denetlenen alt bölüm: **{}**", self.total);
         let _ = writeln!(out, "- Eksik/weak match: **{}**", self.missing);
+        let _ = writeln!(out, "- Boş bölüm: **{}**", self.empty_sections.len());
+        let _ = writeln!(out, "- Zayıf bölüm: **{}**", self.weak_sections.len());
         let _ = writeln!(
             out,
             "- Sonuç: **{}**\n",
@@ -155,6 +189,72 @@ impl CoverageReport {
         );
         out
     }
+}
+
+fn guide_section_chars(markdown: &str) -> std::collections::HashMap<String, usize> {
+    let markdown = strip_frontmatter(markdown);
+    let mut sections = std::collections::HashMap::new();
+    let mut current: Option<(String, String)> = None;
+    let mut fenced = false;
+
+    for line in markdown.lines() {
+        let trimmed = line.trim();
+        if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
+            fenced = !fenced;
+            if let Some((_, body)) = &mut current {
+                body.push('\n');
+            }
+            continue;
+        }
+        if !fenced && let Some(heading) = trimmed.strip_prefix("## ") {
+            finalize_section(&mut sections, current.take());
+            if let Some(captures) = SECTION_RE.captures(heading) {
+                let number = captures
+                    .get(1)
+                    .map_or("", |value| value.as_str())
+                    .to_string();
+                let title = captures
+                    .get(2)
+                    .map_or("", |value| value.as_str())
+                    .trim()
+                    .to_string();
+                current = Some((number, title));
+            }
+        } else if let Some((_, body)) = &mut current
+            && !fenced
+        {
+            body.push_str(trimmed);
+            body.push('\n');
+        }
+    }
+    finalize_section(&mut sections, current);
+    sections
+}
+
+fn finalize_section(
+    sections: &mut std::collections::HashMap<String, usize>,
+    current: Option<(String, String)>,
+) {
+    if let Some((number, body)) = current {
+        sections.insert(number, count_body_chars(&body));
+    }
+}
+
+fn count_body_chars(body: &str) -> usize {
+    body.lines()
+        .filter(|line| {
+            let trimmed = line.trim();
+            !trimmed.starts_with("|---") && !trimmed.starts_with("| ---")
+        })
+        .flat_map(|line| line.chars())
+        .filter(|character| {
+            !character.is_whitespace()
+                && !matches!(
+                    character,
+                    '|' | '*' | '_' | '`' | '#' | '>' | '[' | ']' | '(' | ')'
+                )
+        })
+        .count()
 }
 
 fn guide_lines(markdown: &str) -> Vec<String> {
@@ -305,8 +405,11 @@ mod tests {
 
     #[test]
     fn passes_when_all_sections_are_named() {
-        let markdown = "# Bölüm 0\n\n## 0.1 Giriş ve amaçlar\n\n## 0.2 Programlama dili nedir?\n";
-        let report = check_coverage(&inventory(), markdown, DEFAULT_THRESHOLD);
+        let body = "Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. ";
+        let markdown = format!(
+            "# Bölüm 0\n\n## 0.1 Giriş ve amaçlar\n\n{body}\n\n## 0.2 Programlama dili nedir?\n\n{body}\n"
+        );
+        let report = check_coverage(&inventory(), &markdown, DEFAULT_THRESHOLD);
         assert!(report.passed);
         assert_eq!(report.total, 2);
     }
@@ -321,8 +424,11 @@ mod tests {
 
     #[test]
     fn tolerates_a_longer_guide_title() {
-        let markdown = "# Bölüm 1\n\n## 1.5 Dil kategorileri ve programlama paradigmaları\n## 0.1 Giriş ve amaçlar\n## 0.2 Programlama dili nedir?\n";
-        let report = check_coverage(&inventory(), markdown, DEFAULT_THRESHOLD);
+        let body = "Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. ";
+        let markdown = format!(
+            "# Bölüm 1\n\n## 1.5 Dil kategorileri ve programlama paradigmaları\n\n{body}\n## 0.1 Giriş ve amaçlar\n\n{body}\n## 0.2 Programlama dili nedir?\n\n{body}\n"
+        );
+        let report = check_coverage(&inventory(), &markdown, DEFAULT_THRESHOLD);
         assert!(report.passed);
     }
 

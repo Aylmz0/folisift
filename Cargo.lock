@@ -1133,6 +1133,7 @@ name = "folisift-parse"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "blake3",
  "chrono",
  "folisift-core",
  "liteparse",

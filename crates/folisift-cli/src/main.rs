@@ -3,7 +3,10 @@ use std::process::ExitCode;
 
 use clap::{Parser, Subcommand};
 use folisift_core::{Guide, ScaffoldOptions, Workspace, list_guides, scaffold, version};
-use folisift_parse::{Inventory, analyze_sources, check_coverage, parse_page_list, render_pages};
+use folisift_parse::{
+    Inventory, SourceCache, analyze_sources, check_coverage, parse_page_list, read_source,
+    render_pages, search_source,
+};
 use folisift_render::{RenderOptions, render};
 use serde::Serialize;
 use serde_json::json;
@@ -73,6 +76,26 @@ enum Command {
         /// Run the coverage gate and fail on a missing section.
         #[arg(long)]
         check: bool,
+    },
+    /// Read a bounded page range from cached source text.
+    ReadSource {
+        #[arg(long)]
+        source: PathBuf,
+        #[arg(long, default_value = "1-20")]
+        pages: String,
+        #[arg(long)]
+        max_chars: Option<usize>,
+    },
+    /// Search cached source text for a term.
+    SearchSource {
+        #[arg(long)]
+        source: PathBuf,
+        #[arg(long)]
+        query: String,
+        #[arg(long)]
+        limit: Option<usize>,
+        #[arg(long)]
+        context_chars: Option<usize>,
     },
     /// Render PDF pages to PNG files for visual inspection.
     RenderPages {
@@ -172,9 +195,21 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
             let md = workspace.resolve_write(md)?;
             let inventory = analyze_sources(&sources, low_threshold).await?;
             inventory.write_files(&out, &md)?;
+            let cache = SourceCache::new(workspace.root().join("data/cache"));
+            let mut texts = Vec::new();
+            for source in &sources {
+                let text = cache.load(source, false).await?;
+                texts.push(json!({
+                    "source": source.display().to_string(),
+                    "text": text.cache_path.display().to_string(),
+                    "sha256": text.sha256,
+                    "cache_hit": text.cache_hit,
+                }));
+            }
             let value = json!({
                 "inventory": out.display().to_string(),
                 "markdown": md.display().to_string(),
+                "texts": texts,
                 "pages": inventory.totals.pages,
                 "words": inventory.totals.words,
                 "low_text_pages": inventory.totals.low_text_pages,
@@ -191,15 +226,38 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 .iter()
                 .map(|path| workspace.resolve_read(path))
                 .collect::<Result<Vec<_>, _>>()?;
+            let title_for_content = title.clone();
             let guide = scaffold(
                 &workspace,
                 &ScaffoldOptions {
                     slug,
                     title,
                     course,
-                    sources,
+                    sources: sources.clone(),
                 },
             )?;
+            let inventory = analyze_sources(&sources, folisift_parse::LOW_TEXT_THRESHOLD).await?;
+            let mut body =
+                format!("---\ntitle: {title_for_content:?}\nlanguage: tr\nsources: []\n---\n\n");
+            for source in &inventory.sources {
+                body.push_str(&format!("# {}\n\n", source.title_or_filename()));
+                for heading in &source.headings {
+                    let number = heading
+                        .heading
+                        .split_whitespace()
+                        .next()
+                        .unwrap_or_default();
+                    if number.matches('.').count() == 1
+                        && number.chars().next().is_some_and(|c| c.is_ascii_digit())
+                    {
+                        body.push_str(&format!(
+                            "## {}\n\nKaynak: [{}]\n\n",
+                            heading.heading, source.filename
+                        ));
+                    }
+                }
+            }
+            std::fs::write(&guide.content, body)?;
             println!(
                 "{}",
                 serde_json::to_string_pretty(&json!({
@@ -275,8 +333,10 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 && !report.passed
             {
                 return Err(format!(
-                    "coverage gate failed: {}/{} sections missing",
-                    report.missing, report.total
+                    "coverage gate failed: {}/{} headings missing, {} empty sections",
+                    report.missing,
+                    report.total,
+                    report.empty_sections.len()
                 )
                 .into());
             }
@@ -291,9 +351,32 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                         "passed": report.passed,
                         "total": report.total,
                         "missing": report.missing,
+                        "empty_sections": report.empty_sections.len(),
+                        "weak_sections": report.weak_sections.len(),
                     })),
                 }))?
             );
+        }
+        Command::ReadSource {
+            source,
+            pages,
+            max_chars,
+        } => {
+            let source = workspace.resolve_read(source)?;
+            let cache = SourceCache::new(workspace.root().join("data/cache"));
+            let result = read_source(&cache, &source, Some(&pages), max_chars).await?;
+            println!("{}", serde_json::to_string_pretty(&result)?);
+        }
+        Command::SearchSource {
+            source,
+            query,
+            limit,
+            context_chars,
+        } => {
+            let source = workspace.resolve_read(source)?;
+            let cache = SourceCache::new(workspace.root().join("data/cache"));
+            let result = search_source(&cache, &source, &query, limit, context_chars).await?;
+            println!("{}", serde_json::to_string_pretty(&result)?);
         }
         Command::RenderPages { source, pages, out } => {
             let source = workspace.resolve_read(source)?;
