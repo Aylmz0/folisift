@@ -38,11 +38,12 @@ A breaking tool-schema change requires at least a MINOR SemVer bump.
 2. `cargo clippy --workspace --all-targets --all-features -- -D warnings`
 3. `cargo fmt --all -- --check`
 4. `cargo run -p folisift-cli -- build --guide pd0-pd1 --check`
-5. Verify the sidecar `libpdfium.so` is next to the binary.
-6. Verify `pdfinfo`: page count, title, author, PDF version and bookmarks.
-7. Record the tag, build, commit, PDFium build and what changed in
+5. `cargo run -p folisift-cli -- doctor` and `audit --expected-pages 22`.
+6. Verify the sidecar `libpdfium.so` is next to the binary.
+7. Verify `pdfinfo`: page count, title, author, PDF version and bookmarks.
+8. Record the tag, build, commit, PDFium build and what changed in
    `docs/VERSIONS.md`.
-8. Attach the platform archive (binary + PDFium sidecar) to the release.
+9. Attach the platform archive (binary + PDFium sidecar) to the release.
 
 ## Commit rules
 
