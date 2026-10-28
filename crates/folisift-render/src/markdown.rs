@@ -127,7 +127,7 @@ fn markdown_to_typst_with(markdown: &str, config: &RenderConfig) -> Result<Strin
                     }
                     depth -= 1;
                 } else if let Some((nested, _)) = directive_start(lines[end])
-                    && nested != "columnbreak"
+                    && !matches!(nested, "columnbreak" | "pagebreak")
                 {
                     depth += 1;
                 }

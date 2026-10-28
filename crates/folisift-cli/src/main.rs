@@ -189,6 +189,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                     .map(|m| !m.permissions().readonly())
                     .unwrap_or(false);
             let guides = list_guides(&workspace).unwrap_or_default();
+            let invalid_guides = guides.iter().filter(|guide| !guide.valid).count();
             let output = workspace.root().join("output");
             let output_ok = output.is_dir()
                 && output
@@ -200,7 +201,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 json!({"name": "pdfium", "ok": pdfium.is_ok(), "detail": pdfium.as_ref().err().map(ToString::to_string).unwrap_or_else(|| folisift_parse::pdfium::PDFIUM_VERSION.to_string())}),
                 json!({"name": "cache", "ok": cache_ok, "detail": cache.display().to_string()}),
                 json!({"name": "output", "ok": output_ok, "detail": output.display().to_string()}),
-                json!({"name": "guides", "ok": !guides.is_empty(), "detail": format!("{} guide(s)", guides.len())}),
+                json!({"name": "guides", "ok": !guides.is_empty() && invalid_guides == 0, "detail": format!("{} guide(s), {invalid_guides} invalid", guides.len())}),
                 json!({"name": "fonts", "ok": font_count > 0, "detail": format!("{font_count} embedded face(s)")}),
             ];
             let ok = checks.iter().all(|check| check["ok"] == true);
