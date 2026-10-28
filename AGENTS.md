@@ -35,9 +35,12 @@ cargo run -p folisift-cli -- render-pages --source sources/PD0.pdf \
 cargo run -p folisift-cli -- read-source --source sources/PD0.pdf --pages 1-20
 cargo run -p folisift-cli -- search-source --source sources/PD0.pdf --query TIOBE
 cargo run -p folisift-cli -- build --guide pd0-pd1 --check
+cargo run -p folisift-cli -- doctor
+cargo run -p folisift-cli -- audit --pdf output/PD0-PD1_Calisma_Ozeti.pdf \
+  --expected-pages 22
+cargo run -p folisift-cli -- mcp
 cargo run -p folisift-cli -- scaffold --slug pd2 --title "..." \
   --course "BMÜ325" --source sources/PD2.pdf
-cargo run -p folisift-cli -- mcp
 ```
 
 The Rust binary loads `libpdfium.so` (or the platform equivalent) from its own

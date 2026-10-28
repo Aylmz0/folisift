@@ -3,6 +3,7 @@
 //! The production parser is liteparse only. OCR is disabled; low-text pages
 //! are routed to rendered screenshots for the host agent to inspect.
 
+pub mod audit;
 pub mod coverage;
 pub mod error;
 pub mod inventory;
@@ -13,6 +14,7 @@ pub mod source_cache;
 pub mod source_read;
 pub mod text;
 
+pub use audit::{LayoutAudit, PageAudit, audit_pdf};
 pub use coverage::{
     CoverageReport, DEFAULT_THRESHOLD, MIN_SECTION_CHARS, check_coverage, guide_body_chars,
 };
