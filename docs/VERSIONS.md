@@ -6,15 +6,14 @@ table.
 
 | Tag | Date | Build | Commit | PDFium | What changed |
 |---|---|---:|---|---|---|
+| `v0.3.0` | 2026-10-28 | 40 | `8fba8aebe303e8524d595086ba977ac6904d82de` | `chromium/8058` | 22-page `paper` parity, front/TOC/chapter directives, `prepare_guide`, doctor and layout audit |
 | `v0.2.0` | 2026-10-27 | 22 | `e41c1f8b1e1e5ff84716b6c8ab20dddaf0732f4e` | `chromium/8058` | Chunked source reads/search, source cache, empty-section coverage gate, 10 MCP tools |
 | `v0.1.0` | 2026-10-26 | 16 | `bb261447e5d20ca8da5de0e868ab8d821b0cda63` | `chromium/8058` | First Rust/Typst/MCP release; PD0–PD1 guide, 23 pages, coverage 13/13; Python engine removed |
 
-## Prepared (not tagged)
+## Notes
 
-- `0.3.0` candidate: 22-page `paper` parity, front/TOC/chapter directives,
-  real font weights, `prepare_guide`, `doctor` and the deterministic
-  page-map/layout audit. Tag only after the checklist and maintainer approval.
-
+- `v0.3.0` is the paper-parity release: the default template matches the
+  22-page reference, and `make parity` checks the page map plus layout audit.
 ## Notes
 
 - `v0.2.0` is the LLM-hands release: the server provides bounded source text,
