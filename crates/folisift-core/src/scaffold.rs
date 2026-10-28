@@ -85,10 +85,25 @@ pub fn scaffold(workspace: &Workspace, options: &ScaffoldOptions) -> Result<Guid
     )
     .map_err(|error| io(&config_path, error))?;
 
+    let course = options.course.replace('"', "'");
+    let title = options.title.replace('"', "'");
     let guide_content = format!(
-        "---\ntitle: {title:?}\ncourse: {course:?}\nlanguage: tr\nsources: []\n---\n\n# Bölüm 1\n\n## 1.1 Giriş\n\nKaynak içeriği buraya gelecek. [PD0, s. 1]\n",
-        title = options.title,
-        course = options.course,
+        "---\ntitle: {title:?}\ncourse: {course:?}\nrunning: {running:?}\nlanguage: tr\nsources: []\n---\n\n\
+         ::: front kicker=\"Ön kısım · Okuma notu\" title=\"Bu kitapçık hakkında\" lead=\"Bu kılavuz, kaynak slaytlardan sınav odaklı bir çalışma metni üretir.\"\n\
+         Bu bölüm host LLM tarafından yazılacaktır.\n\
+         :::\n\n\
+         ::: toc title=\"Kılavuzun haritası\" note=\"Sayfa numaraları bu PDF’e aittir.\"\n\
+         :::\n\n\
+         ::: chapter part=\"B · AYRINTILI İNCELEME\" side=\"KAYNAK\" kicker=\"BÖLÜM 1\" title=\"Giriş\" toc=\"Bölüm 1 — Giriş\" running=\"Bölüm 1 · Giriş\"\n\
+         :::\n\n\
+         ## 1.1 Giriş\n\nKaynak içeriği buraya gelecek. [PD0, s. 1]\n",
+        title = title,
+        course = course,
+        running = if options.course.trim().is_empty() {
+            &options.title
+        } else {
+            &options.course
+        },
     );
     let content_path = guide_dir.join("guide.md");
     fs::write(&content_path, guide_content).map_err(|error| io(&content_path, error))?;

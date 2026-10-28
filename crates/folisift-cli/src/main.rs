@@ -318,10 +318,18 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 },
             )?;
             let inventory = analyze_sources(&sources, folisift_parse::LOW_TEXT_THRESHOLD).await?;
-            let mut body =
-                format!("---\ntitle: {title_for_content:?}\nlanguage: tr\nsources: []\n---\n\n");
-            for source in &inventory.sources {
-                body.push_str(&format!("# {}\n\n", source.title_or_filename()));
+            let mut body = format!(
+                "---\ntitle: {title_for_content:?}\nrunning: {title_for_content:?}\nlanguage: tr\nsources: []\n---\n\n"
+            );
+            body.push_str(
+                "::: front kicker=\"Ön kısım · Okuma notu\" title=\"Bu kitapçık hakkında\" lead=\"Bu kılavuz, kaynak slaytlardan sınav odaklı bir çalışma metni üretir.\"\nBu bölüm host LLM tarafından yazılacaktır.\n:::\n\n::: toc title=\"Kılavuzun haritası\" note=\"Sayfa numaraları bu PDF’e aittir.\"\n:::\n\n",
+            );
+            for (index, source) in inventory.sources.iter().enumerate() {
+                let id = source.filename.trim_end_matches(".pdf");
+                let name = source.title_or_filename().replace('"', "'");
+                body.push_str(&format!(
+                    "::: chapter part=\"B · AYRINTILI İNCELEME\" side=\"KAYNAK: {id}\" kicker=\"BÖLÜM {index}\" title=\"{name}\" toc=\"{name}\" running=\"{name}\" subs=true\n:::\n\n"
+                ));
                 for heading in &source.headings {
                     let number = heading
                         .heading
