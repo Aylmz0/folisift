@@ -4,13 +4,17 @@
 - **Date:** 2026-10-28
 - **Reference:** `output/old-python.pdf` (22 pages, WeasyPrint, 209 KB)
 - **Current:** `output/PD0-PD1_Calisma_Ozeti.pdf` (23 pages, Typst, 420 KB)
-- **Related:** `docs/plans/2026-10-26-mcp-v0.2-plan.md`,
+- **Related:** `docs/plans/2026-10-28-style-language-profiles.md`,
+  `docs/plans/2026-10-26-mcp-v0.2-plan.md`,
   `docs/plans/2026-10-26-rust-mcp-typst.md`, ADR-0002, ADR-0005–0009
 
 ## 1. Goal
 
-Make the Rust/Typst output **visually and structurally indistinguishable** from
-the old Python/WeasyPrint output while keeping the v0.2 MCP architecture:
+Make the default `paper` style **visually and structurally indistinguishable**
+from the old Python/WeasyPrint output while keeping the v0.2 MCP architecture.
+Other styles are additive and follow the shared content/coverage gates in
+`2026-10-28-style-language-profiles.md`; they do not need to look like the old
+PDF.
 
 - same 22-page structure;
 - same cover, front matter, TOC, chapter openers and running header/footer;
@@ -573,7 +577,8 @@ LICENSES/
 - [ ] 24/24 tables, 4/4 figures, 13/13 coverage, 0 empty sections.
 - [ ] Visual diff under threshold for selected pages.
 - [ ] `folisift doctor` and clean-install test pass.
-- [ ] MCP stdio and OpenCode config smoke pass.
+- [ ] MCP stdio and OpenCode config smoke pass (10 core tools; v0.4 adds one
+  `style` tool).
 - [ ] Release archive checksum verifies.
 
 ## 14. Risks
