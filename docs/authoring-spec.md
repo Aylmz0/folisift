@@ -2,8 +2,9 @@
 
 > **v3 implementation note (2026-10-26).** The A–G structure, coverage,
 > accuracy and terminology rules below remain normative. The implementation
-> writes `guide.md` (Markdown + YAML frontmatter + `definition`, `critical`,
-> `example`, `note` directives) and renders it with Typst. Commands and HTML
+> writes `guide.md` (Markdown + YAML frontmatter + `front`, `toc`, `chapter`,
+> `definition`, `critical`, `example`, `note`, `table`, `columns` and
+> `pagebreak` directives) and renders it with Typst. Commands and HTML
 > details in this file are historical; use `docs/authoring.md`,
 > `docs/architecture.md` and ADR-0007 for the current workflow.
 # Reusable prompt + production contract for university exam study guides.
@@ -57,8 +58,9 @@ A guide is successful only if all of these are true:
 4. **Exam usefulness.** Definitions are precise; distinctions are explicit;
    mechanisms are explained as cause → effect, not as bullet lists.
 5. **Consistency.** Later sections receive the same depth as earlier ones.
-6. **Readability.** A4, paper-like, single-column, comfortable leading; no
-   cramped tables, no clipped code, no orphan headings.
+6. **Readability.** A4, paper-like, comfortable leading; the body is
+   single-column and the C glossary may use two columns; no cramped tables, no
+   clipped code, no orphan headings.
 7. **Auditability.** The final coverage report states exactly what was covered,
    what was image-only, and what was inaccessible.
 8. **No quiz material.** No questions, flashcards, mock exams or generic
@@ -368,7 +370,8 @@ Accent colours are for section numbers, rules, labels and small marks only.
 - A4, margins 16–19 mm; single column; generous but not wasteful.
 - Cover: cream, double thin rule, serif title, small-caps course line, simple
   geometry/syntax-tree motif; no photo.
-- Running header: chapter title left, guide title right; thin rule.
+- Running header: chapter title left, guide title right; the brick chapter
+  opener rule sits below it.
 - Footer: page number centred, brick red.
 - TOC: right-aligned page numbers via `target-counter`; no noisy leaders.
 - Section openers: top rule, small meta line, large title, short lead. Do not

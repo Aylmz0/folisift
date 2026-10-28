@@ -9,7 +9,7 @@ pub mod world;
 
 use std::path::Path;
 
-use typst::compile;
+use typst::{World, WorldExt, compile};
 use typst_layout::PagedDocument;
 
 pub use error::{Error, Result};
@@ -62,13 +62,32 @@ pub fn render(content: &str, options: &RenderOptions<'_>) -> Result<Rendered> {
         source_list.push(',');
     }
 
+    let running = frontmatter.running.as_deref().unwrap_or(title);
+    let cover_notes = frontmatter
+        .cover_notes
+        .iter()
+        .map(|note| typst_string(note))
+        .collect::<Vec<_>>()
+        .join(", ");
+    let cover_notes = if cover_notes.is_empty() {
+        "()".to_string()
+    } else {
+        format!("({cover_notes},)")
+    };
     let source = format!(
-        "{TEMPLATE}\n\n#show: paper.with(\n  title: {},\n  subtitle: {},\n  course: {},\n  language: {},\n  sources: ({}),\n)\n\n{}",
+        "{TEMPLATE}\n\n#show: paper.with(\n  title: {},\n  subtitle: {},\n  course: {},\n  language: {},\n  sources: ({}),\n  running: {},\n  pilot: {},\n  deck: {},\n  cover_kicker: {},\n  cover_title: {},\n  cover_motif: {},\n  cover_notes: {},\n)\n\n{}",
         typst_string(title),
         typst_string(subtitle),
         typst_string(course),
         typst_string(language),
         source_list,
+        typst_string(running),
+        optional_string(frontmatter.pilot.as_deref()),
+        optional_string(frontmatter.deck.as_deref()),
+        optional_string(frontmatter.cover_kicker.as_deref()),
+        optional_string(frontmatter.cover_title.as_deref()),
+        optional_string(frontmatter.cover_motif.as_deref()),
+        cover_notes,
         body,
     );
 
@@ -76,7 +95,7 @@ pub fn render(content: &str, options: &RenderOptions<'_>) -> Result<Rendered> {
     let warned = compile::<PagedDocument>(&world);
     let document = warned
         .output
-        .map_err(|errors| Error::Typst(format!("{errors:?}")))?;
+        .map_err(|errors| Error::Typst(format_diagnostics(&world, &errors)))?;
     let pages = document.pages().len();
     let pdf = typst_pdf::pdf(&document, &typst_pdf::PdfOptions::default())
         .map_err(|errors| Error::Typst(format!("{errors:?}")))?;
@@ -93,6 +112,27 @@ pub fn render(content: &str, options: &RenderOptions<'_>) -> Result<Rendered> {
     })
 }
 
+fn format_diagnostics(world: &TypstWorld, errors: &[typst::diag::SourceDiagnostic]) -> String {
+    errors
+        .iter()
+        .map(|error| {
+            let location = world.range(error.span).map(|range| {
+                let line = world
+                    .source(world.main())
+                    .map(|source| source.text()[..range.start].lines().count())
+                    .unwrap_or(0);
+                format!("line {line}: ")
+            });
+            format!("{}{}", location.unwrap_or_default(), error.message)
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
 fn typst_string(value: &str) -> String {
     format!("\"{}\"", value.replace('\\', "\\\\").replace('"', "\\\""))
+}
+
+fn optional_string(value: Option<&str>) -> String {
+    value.map_or_else(|| "none".to_string(), typst_string)
 }

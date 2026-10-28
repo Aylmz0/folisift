@@ -54,21 +54,43 @@ Use the headings from the inventory, in source order:
 ```markdown
 ---
 title: "Programlama Dilleri — Çalışma Kılavuzu"
+subtitle: "Kavramlar, diller ve çevrim süreçleri"
+course: "BMÜ325 Programlama Dilleri"
+running: "Programlama Dilleri · Çalışma Kılavuzu"
+cover_kicker: "BMÜ325 · Programlama Dilleri"
+cover_title: "Çalışma Kılavuzu"
+deck: "Bölüm 0: Hazırlık · Bölüm 1: Giriş"
+pilot: "PİLOT SÜRÜM · PD0–PD1"
+cover_motif: "assets/cover-motif.svg"
+cover_notes:
+  - "Ders slaytlarından derlenmiştir: PD0 (123 slayt) · PD1 (137 slayt)"
+  - "Metin içermeyen eğitsel slaytlar görsel olarak incelenmiştir."
+  - "Ek açıklamalar “Açıklayıcı not” etiketiyle işaretlenmiştir."
 language: tr
 sources: [PD0, PD1]
 ---
 
-# Bölüm 0 — Hazırlık
+::: front kicker="Ön kısım · Okuma notu" title="Bu kitapçık hakkında" lead="..."
+|  |  |
+|---|---|
+| Kaynaklar | PD0 ve PD1. |
+:::
+
+::: toc title="Kılavuzun haritası" note="Sayfa numaraları bu PDF’e aittir."
+:::
+
+::: chapter part="B · AYRINTILI İNCELEME" side="KAYNAK: PD0 · 123 SLAYT" kicker="BÖLÜM 0" title="Hazırlık" toc="Bölüm 0 — Hazırlık" running="Bölüm 0 · Hazırlık" lead="..." range="Kaynak aralığı: PD0, s. 1–123"
+:::
 
 ## 0.1 Giriş ve amaçlar
 
 Metin... [PD0, s. 3]
 
-::: definition
+::: definition label="Tanım"
 **Programlama dili:** ...
 :::
 
-::: critical
+::: critical label="Kritik ayrım"
 **Sözdizimi / anlambilim:** ...
 :::
 ```
@@ -81,6 +103,32 @@ Rules:
 - Keep Turkish terminology; give the English term in parentheses on first use.
 - Tables use Markdown tables; figures use `![caption](assets/x.svg)`.
 - Do not write raw HTML, CSS or Typst.
+
+### Layout directives
+
+The template owns pagination and typography; content uses semantic blocks.
+
+| Directive | Purpose |
+|---|---|
+| `::: front kicker=... title=... lead=...` | front-matter page before the TOC |
+| `::: toc title=... note=...` | custom part-aware table of contents |
+| `::: chapter ...` | chapter opener with part/source/kicker/title/lead |
+| `::: definition label=...` | cream definition box |
+| `::: critical label=...` | sage critical-distinction box |
+| `::: example label=...` | rule-top/bottom example box |
+| `::: note label=...` | gold note box (use for **Açıklayıcı not**) |
+| `::: table widths="5,20,35,40" kind="facts"` | table metadata; wrap the Markdown table |
+| `::: columns` … `::: columnbreak` … `:::` | two-column region and explicit break |
+| `::: pagebreak` | start the next block on a new page (rare) |
+
+`chapter` attributes: `part`, `side`, `kicker`, `title`, `toc`, `running`,
+`lead`, `range`, `compact`, `subs`. Use `compact=true` for C–G chapters; use
+`subs=false` when a chapter's `##` headings should not appear in the TOC.
+The first `::: definition` in the front matter may carry
+`toc="A · ÇERÇEVE"` so the box gets a TOC entry.
+
+`::: table` attributes: `widths` is a comma-separated percentage list;
+`kind="facts"` renders a label/value grid instead of a data table.
 
 ## Build and gate
 

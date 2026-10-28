@@ -11,5 +11,5 @@
   ],
   "inventory": "data/source.json",
   "coverage": "data/coverage.md",
-  "target_pages": "18-23"
+  "target_pages": "22"
 }

@@ -24,10 +24,10 @@ meaning alone.
 
 ## Typography
 
-- Body: Noto Serif (embedded), 10.2 pt in the v2 template, line-height 1.33–1.43.
-- Headings: Inter (embedded, variable), semibold.
-- Code: Noto Sans Mono (embedded), 8.5 pt. DejaVu is only a fallback and
-  requires its own licence if shipped.
+- Body: Noto Serif (embedded), 9.5 pt, line-height 1.33.
+- Headings: Inter (embedded, Regular/Medium/SemiBold/Bold), semibold.
+- Code: Noto Sans Mono (embedded), 7.4 pt in blocks; DejaVu is only a fallback
+  and requires its own licence if shipped.
 - Captions: serif italic, 7.9–8.4 pt.
 - Labels: Inter, uppercase, letter-spacing 0.12–0.18em.
 
@@ -35,13 +35,13 @@ Turkish characters and hyphenation must be checked in the final PDF.
 
 ## Page layout
 
-- A4, margins 16–19 mm.
-- Single column; generous but not wasteful.
-- Running header: guide/chapter left, “Programlama Dilleri · Çalışma Kılavuzu”
-  right, thin linen rule.
+- A4, margins `16mm 16.5mm 14mm 16.5mm`.
+- Single-column body; the C glossary uses two columns with a 7–10 mm gutter.
+- Running header: chapter left, “Programlama Dilleri · Çalışma Kılavuzu” right;
+  no separate header rule. The brick chapter-opener rule follows it.
 - Footer: page number centred, brick red.
-- Cover: cream, double thin rule, serif title, small-caps course line, simple
-  syntax-tree motif. No photograph.
+- Cover: darker cream `#F3EBDD`, double thin rule, 33 pt serif title, 17 pt
+  italic subtitle, pilot badge and syntax-tree motif. No photograph.
 - Section opener: top rule, small meta line, large title, short lead. The
   opener must not sit alone at the bottom of a page.
 

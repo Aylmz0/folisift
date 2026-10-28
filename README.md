@@ -3,7 +3,7 @@
 **Folisift** is a domain-agnostic production pipeline that turns lecture slides
 into Turkish, paper-like, exam-oriented study guides.
 
-First guide: **BMÜ325 Programlama Dilleri, PD0–PD1** — 23 pages, 260/260
+First guide: **BMÜ325 Programlama Dilleri, PD0–PD1** — 22 pages, 260/260
 slides.
 
 ## Layout
@@ -54,8 +54,9 @@ cargo run -p folisift-cli -- scaffold \
   --source sources/PD2.pdf
 ```
 
-The MCP `scaffold_guide` tool creates the same bundle and seeds headings from
-the source inventory.
+The MCP `prepare_guide` tool is the default entry point: it analyzes the
+sources, creates the same bundle and returns the read/write plan in one call.
+`scaffold_guide` remains for granular recovery.
 
 ## Source PDF policy
 

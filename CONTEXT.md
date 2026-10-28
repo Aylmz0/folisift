@@ -48,7 +48,7 @@ docs/                   architecture, authoring, design, ADRs, plans, agent conf
 
 | Slug | Sources | Output | State |
 |---|---|---|---|
-| `pd0-pd1` | PD0, PD1 | `output/PD0-PD1_Calisma_Ozeti.pdf` | 23 pages, coverage 13/13 |
+| `pd0-pd1` | PD0, PD1 | `output/PD0-PD1_Calisma_Ozeti.pdf` | 22 pages, coverage 13/13 |
 
 ## Non-goals
 
