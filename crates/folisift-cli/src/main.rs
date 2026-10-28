@@ -36,6 +36,17 @@ enum Command {
     ListGuides,
     /// Show a validated guide config and resolved paths.
     GuideStatus { slug: String },
+    /// Diagnose PDFium, guides, cache and output paths before a build.
+    Doctor,
+    /// Audit a rendered PDF for empty pages, overflow and missing glyphs.
+    Audit {
+        /// PDF path, relative to the workspace root.
+        #[arg(long)]
+        pdf: PathBuf,
+        /// Expected page count, e.g. 22.
+        #[arg(long)]
+        expected_pages: Option<usize>,
+    },
     /// Build a source inventory with liteparse.
     Analyze {
         /// Source PDFs, relative to the workspace root.
@@ -168,6 +179,53 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
         Command::ListGuides => {
             let guides = list_guides(&workspace)?;
             println!("{}", serde_json::to_string_pretty(&guides)?);
+        }
+        Command::Doctor => {
+            let pdfium = folisift_parse::init_pdfium(None).map_err(|error| error.to_string());
+            let cache = workspace.root().join("data/cache");
+            let cache_ok = std::fs::create_dir_all(&cache).is_ok()
+                && cache
+                    .metadata()
+                    .map(|m| !m.permissions().readonly())
+                    .unwrap_or(false);
+            let guides = list_guides(&workspace).unwrap_or_default();
+            let output = workspace.root().join("output");
+            let output_ok = output.is_dir()
+                && output
+                    .metadata()
+                    .map(|m| !m.permissions().readonly())
+                    .unwrap_or(false);
+            let font_count = folisift_render::embedded_font_count();
+            let checks = vec![
+                json!({"name": "pdfium", "ok": pdfium.is_ok(), "detail": pdfium.as_ref().err().map(ToString::to_string).unwrap_or_else(|| folisift_parse::pdfium::PDFIUM_VERSION.to_string())}),
+                json!({"name": "cache", "ok": cache_ok, "detail": cache.display().to_string()}),
+                json!({"name": "output", "ok": output_ok, "detail": output.display().to_string()}),
+                json!({"name": "guides", "ok": !guides.is_empty(), "detail": format!("{} guide(s)", guides.len())}),
+                json!({"name": "fonts", "ok": font_count > 0, "detail": format!("{font_count} embedded face(s)")}),
+            ];
+            let ok = checks.iter().all(|check| check["ok"] == true);
+            let value = json!({
+                "ok": ok,
+                "root": workspace.root().display().to_string(),
+                "version": version::VERSION,
+                "checks": checks,
+                "next": if ok { "build a guide with `folisift build --guide <slug> --check`" } else { "fix the failing checks, then rerun `folisift doctor`" },
+            });
+            println!("{}", serde_json::to_string_pretty(&value)?);
+            if !ok {
+                return Err("doctor found environment problems".into());
+            }
+        }
+        Command::Audit {
+            pdf,
+            expected_pages,
+        } => {
+            let pdf = workspace.resolve_read(&pdf)?;
+            let report = folisift_parse::audit_pdf(&pdf, expected_pages)?;
+            println!("{}", serde_json::to_string_pretty(&report)?);
+            if !report.passed {
+                return Err("layout audit failed".into());
+            }
         }
         Command::GuideStatus { slug } => {
             let guide = Guide::load(&workspace, &slug)?;

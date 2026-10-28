@@ -527,7 +527,10 @@ LICENSES/
 
 ### 11.6 Deterministic layout audit
 
-The server checks layout, not the LLM:
+`folisift audit --pdf <file> --expected-pages 22` now checks page count,
+empty pages, text outside the page box and missing glyphs, and
+`scripts/check-parity.sh` checks the section page map. The remaining checks
+below are the next slice:
 
 | Check | Hard gate |
 |---|---|
@@ -594,7 +597,7 @@ text extraction. The LLM receives a short diagnostic list only.
 - `prepare_guide` one-call analyze + scaffold + read/write plan.
 - Exit: gates pass; only explained anti-aliasing differences remain.
 
-### Phase 5 — Install/doctor/CI (1–2 days)
+### Phase 5 — Install/doctor/CI (1–2 days) — doctor landed
 
 - `doctor`, `mcp-config`, install script.
 - CI matrix Linux; macOS/Windows next.
@@ -620,7 +623,10 @@ text extraction. The LLM receives a short diagnostic list only.
 - [x] Source refs match `[PD0, s. 3]` style.
 - [x] 24/24 tables, 4/4 figures, 13/13 coverage, 0 empty sections.
 - [ ] Visual diff under threshold for selected pages.
-- [ ] `folisift doctor` and clean-install test pass.
+- [x] `folisift doctor` checks PDFium, cache, output, guides and embedded fonts.
+- [ ] Clean-install test passes on a machine without the dev toolchain.
+- [x] Layout audit catches page count, empty pages, outside-page text and
+  missing glyphs.
 - [ ] MCP stdio and OpenCode config smoke pass (v0.3 adds `prepare_guide`;
   v0.4 adds one `style` tool).
 - [ ] `prepare_guide` reduces analyze → scaffold → plan to one tool call.

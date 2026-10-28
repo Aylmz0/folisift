@@ -64,6 +64,11 @@ static FONTS: LazyLock<Vec<Font>> = LazyLock::new(|| {
     fonts
 });
 
+/// Number of font faces embedded in the binary.
+pub fn font_count() -> usize {
+    FONTS.len()
+}
+
 static BOOK: LazyLock<LazyHash<FontBook>> =
     LazyLock::new(|| LazyHash::new(FontBook::from_fonts(FONTS.iter())));
 

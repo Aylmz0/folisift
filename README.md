@@ -38,6 +38,10 @@ cargo run -p folisift-cli -- build --guide pd0-pd1 --check
 # Read/search bounded source text
 cargo run -p folisift-cli -- read-source --source sources/PD0.pdf --pages 1-20
 cargo run -p folisift-cli -- search-source --source sources/PD0.pdf --query TIOBE
+
+# Diagnose the environment and audit the rendered layout
+cargo run -p folisift-cli -- doctor
+cargo run -p folisift-cli -- audit --pdf output/PD0-PD1_Calisma_Ozeti.pdf --expected-pages 22
 ```
 
 MCP server:

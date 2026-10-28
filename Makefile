@@ -8,12 +8,15 @@ PAGES ?= 1
 DATA ?= guides/$(GUIDE)/data
 OUTPUT ?= output/PD0-PD1_Calisma_Ozeti.pdf
 
-.PHONY: help build check verify test fmt clippy analyze pages scaffold parity-capture
+.PHONY: help build check verify audit doctor parity parity-capture test fmt clippy analyze pages scaffold
 
 help:
 	@echo "make build      # guide PDF"
 	@echo "make check      # build + coverage gate"
-	@echo "make verify     # check + pdfinfo"
+	@echo "make verify     # check + layout audit + pdfinfo"
+	@echo "make audit      # layout audit of the built PDF"
+	@echo "make doctor     # PDFium/cache/guides/fonts checks"
+	@echo "make parity     # page map + layout audit against the paper reference"
 	@echo "make test       # cargo test"
 	@echo "make fmt        # cargo fmt --check"
 	@echo "make clippy     # clippy -D warnings"
@@ -27,8 +30,17 @@ build:
 check:
 	cargo run -p folisift-cli -- build --guide $(GUIDE) --check
 
-verify: check
+verify: check audit
 	@pdfinfo $(OUTPUT) | grep -E '^(Title|Author|Pages|Page size|Tagged):'
+
+audit:
+	cargo run -p folisift-cli -- audit --pdf $(OUTPUT) --expected-pages 22
+
+doctor:
+	cargo run -p folisift-cli -- doctor
+
+parity: check
+	./scripts/check-parity.sh $(OUTPUT)
 
 test:
 	cargo test --workspace

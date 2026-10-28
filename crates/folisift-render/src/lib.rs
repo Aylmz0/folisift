@@ -14,6 +14,11 @@ use typst_layout::PagedDocument;
 
 pub use error::{Error, Result};
 pub use markdown::{Frontmatter, markdown_to_typst, parse_document};
+
+/// Number of font faces compiled into the renderer.
+pub fn embedded_font_count() -> usize {
+    world::font_count()
+}
 use world::TypstWorld;
 
 const TEMPLATE: &str = include_str!(concat!(
