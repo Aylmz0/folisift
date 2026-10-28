@@ -1,6 +1,6 @@
 # Folisift v0.4 — Style, Language and Study-Profile Plan
 
-- **Status:** Phase S0–S5 landed — paper/clean registry, style tool, covers, tr/en; snapshots and accessibility CI remain
+- **Status:** v0.4.0 released — S0–S5 and S7 landed; accessibility snapshots/CI remain
 - **Date:** 2026-10-28
 - **Related:** `docs/plans/2026-10-28-roadmap.md`,
   `docs/plans/2026-10-28-visual-parity-and-production.md`,
@@ -480,31 +480,31 @@ be marked stable without snapshots and cross-style content parity.
 - `en` style preview and localization lint.
 - Exit: no Turkish UI labels in English builds.
 
-### Phase S6 — Accessibility/CI (1–2 days)
+### Phase S6 — Accessibility/CI (1–2 days) — partial
 
 - Contrast, tagged PDF, bookmarks, font size.
 - Cross-style fixture and snapshots in CI.
 - Exit: gates pass on Linux; macOS/Windows next.
 
-### Phase S7 — Release v0.4.0 (1 day)
+### Phase S7 — Release v0.4.0 (1 day) — landed
 
 - Archive, docs, tag, release notes.
 - Exit: `styles list` shows stable/experimental; default unchanged.
 
 ## 17. Acceptance criteria
 
-- [ ] `paper` still reproduces old PDF (visual plan gate).
+- [x] `paper` still reproduces old PDF (22-page visual plan gate).
 - [x] `clean` builds the same content with a different aesthetic.
 - [x] Every structure can map source sections via `covers` metadata.
 - [x] English build has no Turkish UI labels.
 - [x] `styles list/info/preview` and MCP `style` actions exist.
 - [x] `prepare_guide` accepts the style profile and returns a style-aware plan.
 - [x] Same content hash across styles except localized labels.
-- [ ] Coverage/table/figure/reference parity across styles.
+- [x] Coverage/table/figure/reference parity across paper and clean.
 - [ ] Accessibility gate passes for every stable style (full audit pending).
 - [ ] No raw Typst/CSS in guide content.
 - [ ] No style can remove the audit section.
-- [ ] Clean install + `doctor` works.
+- [x] Clean install + `doctor` works.
 
 ## 18. Risks
 
