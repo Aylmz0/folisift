@@ -1,10 +1,11 @@
 # Folisift v0.3 — Visual Parity and Production Readiness Plan
 
-- **Status:** Draft for approval
+- **Status:** Implementation in progress — Phase 0 fixture and `prepare_guide` landed
 - **Date:** 2026-10-28
 - **Reference:** `output/old-python.pdf` (22 pages, WeasyPrint, 209 KB)
 - **Current:** `output/PD0-PD1_Calisma_Ozeti.pdf` (23 pages, Typst, 420 KB)
-- **Related:** `docs/plans/2026-10-28-style-language-profiles.md`,
+- **Related:** `docs/plans/2026-10-28-roadmap.md`,
+  `docs/plans/2026-10-28-style-language-profiles.md`,
   `docs/plans/2026-10-26-mcp-v0.2-plan.md`,
   `docs/plans/2026-10-26-rust-mcp-typst.md`, ADR-0002, ADR-0005–0009
 
@@ -28,6 +29,11 @@ PDF.
 “Perfect” here means **all parity gates pass**, not a claim that every
 anti-aliased pixel is identical. The old PDF is the reference, not a license to
 stop thinking.
+
+**Plan boundary:** v0.3 implements the default `paper` style and the
+`prepare_guide`/layout-audit foundations. The style registry, non-paper
+layouts and `style` tool are v0.4; see `2026-10-28-style-language-profiles.md`
+and the roadmap. Do not start alternate styles before `paper` is stable.
 
 ## 2. Reference audit
 
@@ -435,8 +441,10 @@ Implementation pieces:
 The host LLM remains the writer. The visual work must not turn the server into
 an LLM or a content generator.
 
+- `prepare_guide` is the default entry point: analyze all sources, create the
+  skeleton and return the chunk/write plan in one call.
 - `read_source` gives bounded text chunks; `search_source` finds terms.
-- `scaffold_guide` creates chapter directives and section headings.
+- `scaffold_guide` remains for granular recovery.
 - `build_guide(check=true)` renders and enforces content-aware coverage.
 - `render_pages` returns page/contact-sheet paths for visual checks.
 - `write-study-guide` prompt tells the host to write `guide.md` with its native
@@ -517,12 +525,47 @@ LICENSES/
 - `build --check` produces 22 pages and coverage pass.
 - No Python/Poppler/WeasyPrint/system Typst.
 
+### 11.6 Deterministic layout audit
+
+The server checks layout, not the LLM:
+
+| Check | Hard gate |
+|---|---|
+| Empty page | no content and no intentional full-page figure |
+| Text outside content box | fail |
+| Heading orphan at page bottom | fail |
+| Widow line/paragraph | fail or warn by threshold |
+| Small table split | fail |
+| Table header not repeated on continuation | fail |
+| Figure separated from caption | fail |
+| Box split across pages | fail |
+| Code overflow/clipping | fail |
+| TOC/bookmark mismatch | fail |
+| Missing Turkish glyph | fail |
+| Page count (paper) | exactly 22 |
+
+Use Typst compile output, PDFium page boxes, `liteparse` page images and PDF
+text extraction. The LLM receives a short diagnostic list only.
+
+### 11.7 No repeated LLM work
+
+- `prepare_guide` performs analyze + scaffold + outline plan in one call.
+- `read_source` returns `next_pages`; the agent does not re-read to discover
+  the next range.
+- `search_source` avoids whole-document dumps.
+- `build_guide` returns `content_hash`; unchanged content returns the cached
+  PDF.
+- Style preview renders one sample, not the full guide.
+- `doctor` checks environment before the agent starts.
+- Coverage/layout responses name only failing sections/pages.
+
 ## 12. Phases
 
-### Phase 0 — Golden capture (0.5 day)
+### Phase 0 — Golden capture (0.5 day) — landed
 
-- Add old PDF fixture and selected page images.
-- Freeze old page map and design tokens.
+- Old PDF committed at `output/old-python.pdf`.
+- `tests/golden/` manifest and `make parity-capture` added.
+- Selected page capture writes to `target/parity/reference/` (gitignored).
 - Exit: golden images and text are reproducible.
 
 ### Phase 1 — Template parity (2–3 days)
@@ -544,10 +587,11 @@ LICENSES/
 - Chapter metadata, labels, captions.
 - Exit: 22 pages; C on one page; G on one page.
 
-### Phase 4 — Visual/content gates (1–2 days)
+### Phase 4 — Visual/content gates and `prepare_guide` (1–2 days) — `prepare_guide` landed
 
 - Golden comparison harness.
-- Page/table/figure/bookmark tests.
+- Page/table/figure/bookmark and layout-audit tests.
+- `prepare_guide` one-call analyze + scaffold + read/write plan.
 - Exit: gates pass; only explained anti-aliasing differences remain.
 
 ### Phase 5 — Install/doctor/CI (1–2 days)
@@ -577,8 +621,9 @@ LICENSES/
 - [ ] 24/24 tables, 4/4 figures, 13/13 coverage, 0 empty sections.
 - [ ] Visual diff under threshold for selected pages.
 - [ ] `folisift doctor` and clean-install test pass.
-- [ ] MCP stdio and OpenCode config smoke pass (10 core tools; v0.4 adds one
-  `style` tool).
+- [ ] MCP stdio and OpenCode config smoke pass (v0.3 adds `prepare_guide`;
+  v0.4 adds one `style` tool).
+- [ ] `prepare_guide` reduces analyze → scaffold → plan to one tool call.
 - [ ] Release archive checksum verifies.
 
 ## 14. Risks
