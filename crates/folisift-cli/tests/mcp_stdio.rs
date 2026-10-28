@@ -57,7 +57,7 @@ fn mcp_stdio_lists_tools() {
         .iter()
         .filter_map(|tool| tool["name"].as_str())
         .collect::<Vec<_>>();
-    assert_eq!(tools.len(), 10);
+    assert_eq!(tools.len(), 11);
     for expected in [
         "read_source",
         "search_source",
