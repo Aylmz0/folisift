@@ -1,8 +1,9 @@
 # Folisift v0.4 — Style, Language and Study-Profile Plan
 
-- **Status:** Draft for approval
+- **Status:** Draft for approval — depends on v0.3 paper stability
 - **Date:** 2026-10-28
-- **Related:** `docs/plans/2026-10-28-visual-parity-and-production.md`,
+- **Related:** `docs/plans/2026-10-28-roadmap.md`,
+  `docs/plans/2026-10-28-visual-parity-and-production.md`,
   `docs/plans/2026-10-26-mcp-v0.2-plan.md`, ADR-0002, ADR-0007
 - **Goal:** one engine, many standards. The default `paper` style reproduces the
   old PDF; other styles serve different audiences, languages, domains and study
@@ -195,6 +196,7 @@ styles/<id>/
   "tokens": "tokens.json",
   "strings": ["tr", "en"],
   "engine_min": "0.4.0",
+  "page_target": "22",
   "preview": "preview.md"
 }
 ```
@@ -376,14 +378,26 @@ folisift guide-status pd2
 | Tool | Purpose |
 |---|---|
 | `style` | `action: list \| info \| preview`; ids, tokens, compatibility, sample PDF/PNG |
-| `scaffold_guide` | accepts style/structure/language/domain |
+| `prepare_guide` | accepts style/structure/language/domain; one-call prepare |
+| `scaffold_guide` | accepts style/structure/language/domain; granular fallback |
 | `build_guide` | uses config style; no style override in build |
 | `guide_status` | reports style and compatibility |
 
 Resources: `folisift://styles/{id}`, `folisift://styles/{id}/strings/{lang}`.
 
 Do not expose 20 style tools. One `style` tool with three actions is enough:
-v0.2 has 10 core tools; v0.4 adds this one (11 total).
+v0.2 has 10 core tools; v0.3 adds `prepare_guide` (11); v0.4 adds `style`
+(12 total).
+
+## 13.1 Caching and no repeated work
+
+- Source text/inventory cache from v0.2 is reused; style does not reparse.
+- `prepare_guide` is the default entry point; granular tools exist for recovery.
+- `style` preview renders one sample page, not a full guide.
+- `build_guide` returns `content_hash`; unchanged content/style returns cache.
+- A style change must not rewrite prose; it re-renders the same content with a
+  different layout family/labels.
+- Cross-style test builds reuse the same source cache.
 
 ## 14. Consistency gates
 
@@ -397,9 +411,12 @@ Every style build must pass:
 5. **Localization lint** — no missing strings; no Turkish UI labels in `en`.
 6. **Accessibility lint** — contrast, font size, tagged PDF, bookmarks.
 7. **Visual snapshot** — selected pages per style; threshold review.
-8. **Compatibility** — style supports the chosen structure/language/domain.
-9. **No raw Typst/CSS** in guide content.
-10. **Deterministic build** — same input → same content hash/page structure.
+8. **Layout audit** — the same empty-page, overflow, orphan, table/figure/box
+   split and bookmark checks from the visual parity plan.
+9. **Compatibility** — style supports the chosen structure/language/domain.
+10. **No raw Typst/CSS** in guide content.
+11. **Deterministic build** — same input → same content hash/page structure.
+12. **Page target** — every style declares a range; deviations are explained.
 
 Cross-style fixture:
 
@@ -481,6 +498,7 @@ be marked stable without snapshots and cross-style content parity.
 - [ ] Every structure maps every source section via `covers` metadata.
 - [ ] English build has no Turkish UI labels.
 - [ ] `styles list/info/preview` and MCP `style` actions exist.
+- [ ] `prepare_guide` accepts the style profile and returns a style-aware plan.
 - [ ] Same content hash across styles except localized labels.
 - [ ] Coverage/table/figure/reference parity across styles.
 - [ ] Accessibility gate passes for every stable style.
@@ -500,7 +518,7 @@ be marked stable without snapshots and cross-style content parity.
 | Visual snapshots brittle | Selected semantic pages + threshold, not full pixel equality. |
 | RTL scope creep | Deferred; explicit non-goal for v0.4. |
 | Font licensing | Embedded OFL fonts; per-style licence manifest. |
-| Tool schema bloat | Three style tools; style data via resources. |
+| Tool schema bloat | One `style` tool with three actions; style data via resources. |
 
 ## 19. Open questions
 
