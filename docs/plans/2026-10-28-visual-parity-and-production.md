@@ -592,7 +592,8 @@ LICENSES/
 
 ## 15. Open questions
 
-1. Should the old PDF be a committed test fixture or a downloaded local artifact?
+1. Resolved: the old PDF is committed at `output/old-python.pdf` for now;
+   Phase 0 may move it to `tests/golden/` if the fixture layout settles.
 2. Is a 22-page exact match mandatory, or is 23 acceptable if C is one page and
    type is 9.5 pt?
 3. Do we keep DejaVu Mono or switch to Noto Sans Mono for the old look?
