@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "slug": "pd0-pd1",
   "title": "Programlama Dilleri — Çalışma Kılavuzu (Pilot: PD0–PD1)",
   "language": "tr",
@@ -11,5 +11,15 @@
   ],
   "inventory": "data/source.json",
   "coverage": "data/coverage.md",
-  "target_pages": "22"
+  "target_pages": "22",
+  "style": {
+    "aesthetic": "paper",
+    "structure": "a-g",
+    "language": "tr",
+    "source_language": "tr",
+    "voice": "academic",
+    "study_mode": "exam",
+    "domain": "cs",
+    "citation": "page-ref"
+  }
 }

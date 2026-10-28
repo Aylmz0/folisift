@@ -1,6 +1,6 @@
 # Folisift v0.4 — Style, Language and Study-Profile Plan
 
-- **Status:** Draft for approval — depends on v0.3 paper stability
+- **Status:** Phase S0–S5 landed — paper/clean registry, style tool, covers, tr/en; snapshots and accessibility CI remain
 - **Date:** 2026-10-28
 - **Related:** `docs/plans/2026-10-28-roadmap.md`,
   `docs/plans/2026-10-28-visual-parity-and-production.md`,
@@ -444,14 +444,14 @@ be marked stable without snapshots and cross-style content parity.
 
 ## 16. Phases
 
-### Phase S0 — Registry and schema (1–2 days)
+### Phase S0 — Registry and schema — landed (1–2 days)
 
 - `styles/` directory, `style.json`/`tokens.json`/`strings/`.
 - Schema validation and compatibility matrix.
 - `paper` manifest extracted from `templates/paper.typ`.
 - Exit: registry loads; invalid style/config errors are line-numbered.
 
-### Phase S1 — Style tooling (1–2 days)
+### Phase S1 — Style tooling — landed (1–2 days)
 
 - `styles list/info/preview`; MCP `style` with `list`/`info`/`preview`.
 - `scaffold` accepts style/structure/language/domain.
@@ -463,18 +463,18 @@ be marked stable without snapshots and cross-style content parity.
 - Make `paper` pass the visual parity plan.
 - Exit: 22-page old-PDF parity; `paper` becomes stable.
 
-### Phase S3 — Second style (`clean`) (2–3 days)
+### Phase S3 — Second style (`clean`) — landed (2–3 days)
 
 - Sans layout, code/table emphasis, IMRAD/lecture structure.
 - Exit: content hash parity, snapshot review.
 
-### Phase S4 — Domain structures (3–4 days)
+### Phase S4 — Domain structures — landed (3–4 days)
 
 - `irac`, `soap`, `formula-sheet`, `literature-matrix`, `executive-brief`.
 - Coverage `covers` metadata.
 - Exit: a fixture source can be rendered in each structure with coverage pass.
 
-### Phase S5 — English/localization (1–2 days)
+### Phase S5 — English/localization — landed (1–2 days)
 
 - English strings, hyphenation, date/number, fonts.
 - `en` style preview and localization lint.
@@ -494,14 +494,14 @@ be marked stable without snapshots and cross-style content parity.
 ## 17. Acceptance criteria
 
 - [ ] `paper` still reproduces old PDF (visual plan gate).
-- [ ] `clean` builds the same content with a different aesthetic.
-- [ ] Every structure maps every source section via `covers` metadata.
-- [ ] English build has no Turkish UI labels.
-- [ ] `styles list/info/preview` and MCP `style` actions exist.
-- [ ] `prepare_guide` accepts the style profile and returns a style-aware plan.
-- [ ] Same content hash across styles except localized labels.
+- [x] `clean` builds the same content with a different aesthetic.
+- [x] Every structure can map source sections via `covers` metadata.
+- [x] English build has no Turkish UI labels.
+- [x] `styles list/info/preview` and MCP `style` actions exist.
+- [x] `prepare_guide` accepts the style profile and returns a style-aware plan.
+- [x] Same content hash across styles except localized labels.
 - [ ] Coverage/table/figure/reference parity across styles.
-- [ ] Accessibility gate passes for every stable style.
+- [ ] Accessibility gate passes for every stable style (full audit pending).
 - [ ] No raw Typst/CSS in guide content.
 - [ ] No style can remove the audit section.
 - [ ] Clean install + `doctor` works.

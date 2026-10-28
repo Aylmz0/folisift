@@ -64,15 +64,44 @@ pub fn parse_document(input: &str) -> Result<(Frontmatter, String)> {
     Ok((frontmatter, body.to_string()))
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 struct RenderConfig {
     table_widths: Option<Vec<String>>,
     table_kind: Option<String>,
+    figure_label: String,
+    toc_label: String,
+}
+
+impl Default for RenderConfig {
+    fn default() -> Self {
+        Self {
+            table_widths: None,
+            table_kind: None,
+            figure_label: "Şekil".to_string(),
+            toc_label: "İÇİNDEKİLER".to_string(),
+        }
+    }
 }
 
 /// Convert guide Markdown to Typst content.
 pub fn markdown_to_typst(markdown: &str) -> Result<String> {
     markdown_to_typst_with(markdown, &RenderConfig::default())
+}
+
+/// Convert Markdown to Typst with style-owned labels.
+pub fn markdown_to_typst_styled(
+    markdown: &str,
+    figure_label: &str,
+    toc_label: &str,
+) -> Result<String> {
+    markdown_to_typst_with(
+        markdown,
+        &RenderConfig {
+            figure_label: figure_label.to_string(),
+            toc_label: toc_label.to_string(),
+            ..RenderConfig::default()
+        },
+    )
 }
 
 fn markdown_to_typst_with(markdown: &str, config: &RenderConfig) -> Result<String> {
@@ -189,9 +218,10 @@ fn markdown_to_typst_with(markdown: &str, config: &RenderConfig) -> Result<Strin
                         });
                     }
                     out.push_str(&format!(
-                        "#toc_page(title: {}, note: {})\n\n",
+                        "#toc_page(title: {}, note: {}, label: {})\n\n",
                         typst_string(attr(&attrs, "title").unwrap_or("")),
                         typst_string(attr(&attrs, "note").unwrap_or("")),
+                        typst_string(&config.toc_label),
                     ));
                 }
                 "columns" => {
@@ -412,6 +442,7 @@ struct Renderer {
     code_lang: String,
     table_widths: Option<Vec<String>>,
     table_kind: Option<String>,
+    figure_label: String,
 }
 
 impl Renderer {
@@ -426,6 +457,7 @@ impl Renderer {
             code_lang: String::new(),
             table_widths: config.table_widths.clone(),
             table_kind: config.table_kind.clone(),
+            figure_label: config.figure_label.clone(),
         }
     }
 
@@ -569,8 +601,9 @@ impl Renderer {
                     let (number, caption) = figure_parts(&image.alt);
                     let caption = match number {
                         Some(number) => format!(
-                            "#fig_label({}) {}",
+                            "#fig_label({}, word: {}) {}",
                             typst_string(&number),
+                            typst_string(&self.figure_label),
                             caption_typst(&caption)
                         ),
                         None => caption_typst(&caption),

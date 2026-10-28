@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "id": "paper",
+  "name": "Paper exam reader",
+  "status": "stable",
+  "layout": "paper",
+  "aesthetic": "paper",
+  "supported_structures": ["a-g", "lecture-notes"],
+  "supported_languages": ["tr", "en"],
+  "supported_domains": ["general", "cs", "math", "humanities"],
+  "supported_voices": ["academic", "technical", "plain"],
+  "tokens": "tokens.json",
+  "strings": ["tr", "en"],
+  "engine_min": "0.4.0",
+  "page_target": "22",
+  "preview": "preview.md"
+}

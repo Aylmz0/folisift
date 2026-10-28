@@ -24,6 +24,7 @@ pub struct CoverageReport {
     pub missing: usize,
     pub empty_sections: Vec<String>,
     pub weak_sections: Vec<String>,
+    pub unknown_claims: Vec<String>,
     pub sources: Vec<SourceCoverage>,
 }
 
@@ -55,6 +56,21 @@ pub fn check_coverage(
 ) -> CoverageReport {
     let lines = guide_lines(guide_markdown);
     let sections_by_number = guide_section_chars(guide_markdown);
+    let claim_chars = guide_claim_chars(guide_markdown);
+    let mut known_claims = std::collections::HashSet::new();
+    for source in &inventory.sources {
+        let id = source.filename.trim_end_matches(".pdf");
+        for heading in &source.headings {
+            if let Some(captures) = SECTION_RE.captures(heading.heading.trim()) {
+                known_claims.insert(format!("{id}:{}", &captures[1]));
+            }
+        }
+    }
+    let unknown_claims = claim_chars
+        .keys()
+        .filter(|key| !known_claims.contains(*key))
+        .cloned()
+        .collect::<Vec<_>>();
     let mut sources = Vec::with_capacity(inventory.sources.len());
     let mut total = 0;
     let mut missing = 0;
@@ -81,12 +97,21 @@ pub fn check_coverage(
                 .trim()
                 .to_string();
             total += 1;
-            let (score, matched) = best_line(&number, &title, &lines);
-            let heading_ok = score >= threshold;
+            let source_id = source.filename.trim_end_matches(".pdf");
+            let claim_key = format!("{source_id}:{number}");
+            let claimed = claim_chars.get(&claim_key).copied();
+            let (score, matched) = if claimed.is_some() {
+                (1.0, format!("<!-- covers: {claim_key} -->"))
+            } else {
+                best_line(&number, &title, &lines)
+            };
+            let heading_ok = claimed.is_some() || score >= threshold;
             if !heading_ok {
                 missing += 1;
             }
-            let body_chars = sections_by_number.get(&number).copied().unwrap_or(0);
+            let body_chars = claimed
+                .or_else(|| sections_by_number.get(&number).copied())
+                .unwrap_or(0);
             let empty = body_chars < MIN_SECTION_CHARS;
             if empty {
                 empty_sections.push(format!("{number} {title}"));
@@ -113,12 +138,13 @@ pub fn check_coverage(
     }
 
     CoverageReport {
-        passed: missing == 0 && empty_sections.is_empty(),
+        passed: missing == 0 && empty_sections.is_empty() && unknown_claims.is_empty(),
         threshold,
         total,
         missing,
         empty_sections,
         weak_sections,
+        unknown_claims,
         sources,
     }
 }
@@ -173,6 +199,11 @@ impl CoverageReport {
         let _ = writeln!(out, "- Denetlenen alt bölüm: **{}**", self.total);
         let _ = writeln!(out, "- Eksik/weak match: **{}**", self.missing);
         let _ = writeln!(out, "- Boş bölüm: **{}**", self.empty_sections.len());
+        let _ = writeln!(
+            out,
+            "- Bilinmeyen covers: **{}**",
+            self.unknown_claims.len()
+        );
         let _ = writeln!(out, "- Zayıf bölüm: **{}**", self.weak_sections.len());
         let _ = writeln!(
             out,
@@ -194,6 +225,63 @@ impl CoverageReport {
 /// Body character counts for every `## <number> <title>` guide section.
 pub fn guide_body_chars(markdown: &str) -> std::collections::HashMap<String, usize> {
     guide_section_chars(markdown)
+}
+
+fn guide_claim_chars(markdown: &str) -> std::collections::HashMap<String, usize> {
+    let markdown = strip_frontmatter(markdown);
+    let mut claims = std::collections::HashMap::new();
+    let mut pending: Vec<String> = Vec::new();
+    let mut current: Option<(Vec<String>, String)> = None;
+    let mut fenced = false;
+
+    let finalize = |claims: &mut std::collections::HashMap<String, usize>,
+                    current: Option<(Vec<String>, String)>| {
+        if let Some((keys, body)) = current {
+            for key in keys {
+                claims.insert(key, count_body_chars(&body));
+            }
+        }
+    };
+
+    for line in markdown.lines() {
+        let trimmed = line.trim();
+        if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
+            fenced = !fenced;
+            continue;
+        }
+        if fenced {
+            continue;
+        }
+        if let Some(keys) = covers_comment(trimmed) {
+            pending.extend(keys);
+            continue;
+        }
+        if trimmed.starts_with('#') {
+            finalize(&mut claims, current.take());
+            if !pending.is_empty() {
+                current = Some((std::mem::take(&mut pending), String::new()));
+            }
+            continue;
+        }
+        if let Some((_, body)) = &mut current {
+            body.push_str(trimmed);
+            body.push('\n');
+        }
+    }
+    finalize(&mut claims, current);
+    claims
+}
+
+fn covers_comment(line: &str) -> Option<Vec<String>> {
+    let rest = line.strip_prefix("<!--")?.strip_suffix("-->")?.trim();
+    let list = rest.strip_prefix("covers:")?.trim();
+    let keys = list
+        .split(',')
+        .map(str::trim)
+        .filter(|key| !key.is_empty())
+        .map(ToString::to_string)
+        .collect::<Vec<_>>();
+    (!keys.is_empty()).then_some(keys)
 }
 
 fn guide_section_chars(markdown: &str) -> std::collections::HashMap<String, usize> {
@@ -435,6 +523,23 @@ mod tests {
         );
         let report = check_coverage(&inventory(), &markdown, DEFAULT_THRESHOLD);
         assert!(report.passed);
+    }
+
+    #[test]
+    fn covers_metadata_claims_non_a_g_sections() {
+        let body = "Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. ";
+        let markdown = format!("<!-- covers: PD0:0.1, PD0:0.2 -->\n## Foundations\n\n{body}\n");
+        let report = check_coverage(&inventory(), &markdown, DEFAULT_THRESHOLD);
+        assert!(report.passed, "{report:?}");
+        assert_eq!(report.unknown_claims.len(), 0);
+    }
+
+    #[test]
+    fn rejects_unknown_covers_claims() {
+        let markdown = "<!-- covers: PD0:9.9 -->\n## Foundations\n\nshort\n";
+        let report = check_coverage(&inventory(), markdown, DEFAULT_THRESHOLD);
+        assert!(!report.passed);
+        assert_eq!(report.unknown_claims, vec!["PD0:9.9"]);
     }
 
     #[test]

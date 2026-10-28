@@ -16,7 +16,8 @@ folisift/
 │   ├── folisift-render/ # Markdown/directives → Typst → PDF
 │   ├── folisift-mcp/    # stdio MCP tools/resources/prompts
 │   └── folisift-cli/    # folisift binary
-├── templates/       # paper.typ and embedded OFL fonts
+├── templates/       # paper.typ, clean.typ and embedded OFL fonts
+├── styles/          # versioned paper/clean style packs
 ├── guides/          # one bundle per course/material
 │   └── pd0-pd1/
 │       ├── guide.md
@@ -42,6 +43,10 @@ cargo run -p folisift-cli -- search-source --source sources/PD0.pdf --query TIOB
 # Diagnose the environment and audit the rendered layout
 cargo run -p folisift-cli -- doctor
 cargo run -p folisift-cli -- audit --pdf output/PD0-PD1_Calisma_Ozeti.pdf --expected-pages 22
+
+# Style packs
+cargo run -p folisift-cli -- styles list
+cargo run -p folisift-cli -- styles preview clean --language en
 ```
 
 MCP server:
@@ -55,6 +60,7 @@ folisift mcp --root /path/to/workspace
 ```bash
 cargo run -p folisift-cli -- scaffold \
   --slug pd2 --title "Bölüm 2" --course "BMÜ325" \
+  --style paper --structure a-g --language tr --domain cs \
   --source sources/PD2.pdf
 ```
 

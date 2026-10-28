@@ -7,7 +7,7 @@ use folisift_parse::{
     read_source as read_source_pages, render_pages as render_page_images,
     search_source as search_source_text,
 };
-use folisift_render::{RenderOptions, render as render_guide};
+use folisift_render::{RenderOptions, render as render_guide, styles};
 use rmcp::handler::server::router::tool::ToolRouter;
 use rmcp::handler::server::wrapper::Parameters;
 use rmcp::model::{
@@ -70,6 +70,29 @@ pub struct ScaffoldGuideParams {
     pub title: String,
     pub course: Option<String>,
     pub sources: Vec<String>,
+    /// Aesthetic/layout id: paper or clean.
+    pub style: Option<String>,
+    /// a-g, imrad, irac, soap, ...
+    pub structure: Option<String>,
+    /// tr or en.
+    pub language: Option<String>,
+    /// general, cs, math, medicine, law, ...
+    pub domain: Option<String>,
+    pub voice: Option<String>,
+    pub study_mode: Option<String>,
+    pub citation: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct StyleParams {
+    /// list, info or preview
+    pub action: String,
+    /// Style id for info/preview.
+    pub id: Option<String>,
+    /// Language for labels and preview.
+    pub language: Option<String>,
+    /// Optional preview output path.
+    pub output: Option<String>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -78,6 +101,17 @@ pub struct PrepareGuideParams {
     pub title: String,
     pub course: Option<String>,
     pub sources: Vec<String>,
+    /// Aesthetic/layout id: paper or clean.
+    pub style: Option<String>,
+    /// a-g, imrad, irac, soap, ...
+    pub structure: Option<String>,
+    /// tr or en.
+    pub language: Option<String>,
+    /// general, cs, math, medicine, law, ...
+    pub domain: Option<String>,
+    pub voice: Option<String>,
+    pub study_mode: Option<String>,
+    pub citation: Option<String>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -339,6 +373,103 @@ impl FolisiftServer {
     }
 
     #[tool(
+        description = "List, inspect or preview engine-owned style packs",
+        annotations(title = "Style", idempotent_hint = true, open_world_hint = false)
+    )]
+    async fn style(
+        &self,
+        Parameters(params): Parameters<StyleParams>,
+    ) -> Result<Json<Value>, String> {
+        match params.action.as_str() {
+            "list" => {
+                let packs =
+                    styles::list(self.workspace.root()).map_err(|error| error.to_string())?;
+                Ok(Json(json!(packs)))
+            }
+            "info" => {
+                let id = params.id.ok_or("info requires id")?;
+                let language = params.language.unwrap_or_else(|| "tr".to_string());
+                let loaded =
+                    styles::load(self.workspace.root(), &id).map_err(|error| error.to_string())?;
+                let strings = styles::strings(self.workspace.root(), &id, &language)
+                    .map_err(|error| error.to_string())?;
+                Ok(Json(json!({
+                    "pack": loaded.pack,
+                    "tokens": loaded.tokens,
+                    "strings": strings,
+                })))
+            }
+            "preview" => {
+                let id = params.id.ok_or("preview requires id")?;
+                let language = params.language.unwrap_or_else(|| "tr".to_string());
+                let loaded =
+                    styles::load(self.workspace.root(), &id).map_err(|error| error.to_string())?;
+                let content = styles::preview(self.workspace.root(), &id, &language)
+                    .map_err(|error| error.to_string())?;
+                let profile = folisift_core::StyleProfile {
+                    aesthetic: loaded.pack.aesthetic.clone(),
+                    structure: loaded
+                        .pack
+                        .supported_structures
+                        .first()
+                        .cloned()
+                        .unwrap_or_else(|| "a-g".to_string()),
+                    language: language.clone(),
+                    source_language: language.clone(),
+                    voice: loaded
+                        .pack
+                        .supported_voices
+                        .first()
+                        .cloned()
+                        .unwrap_or_else(|| "academic".to_string()),
+                    study_mode: "exam".to_string(),
+                    domain: loaded
+                        .pack
+                        .supported_domains
+                        .first()
+                        .cloned()
+                        .unwrap_or_else(|| "general".to_string()),
+                    citation: "page-ref".to_string(),
+                };
+                let output = match params.output {
+                    Some(path) => self
+                        .workspace
+                        .resolve_write(path)
+                        .map_err(|error| error.to_string())?,
+                    None => self
+                        .workspace
+                        .resolve_write(format!("output/style-preview-{id}-{language}.pdf"))
+                        .map_err(|error| error.to_string())?,
+                };
+                let rendered = render_guide(
+                    &content,
+                    &RenderOptions {
+                        guide_root: self.workspace.root(),
+                        title: &loaded.pack.name,
+                        subtitle: "",
+                        course: "Folisift",
+                        language: &language,
+                        sources: &[],
+                        style: Some(&profile),
+                        styles_root: Some(self.workspace.root()),
+                    },
+                )
+                .map_err(|error| error.to_string())?;
+                std::fs::write(&output, &rendered.pdf).map_err(|error| error.to_string())?;
+                Ok(Json(json!({
+                    "style": id,
+                    "language": language,
+                    "output": output.display().to_string(),
+                    "pages": rendered.pages,
+                })))
+            }
+            other => Err(format!(
+                "unknown style action {other:?}; use list, info or preview"
+            )),
+        }
+    }
+
+    #[tool(
         description = "Analyze sources, create a guide skeleton and return one read/write plan",
         annotations(
             title = "Prepare guide",
@@ -350,6 +481,18 @@ impl FolisiftServer {
         &self,
         Parameters(params): Parameters<PrepareGuideParams>,
     ) -> Result<Json<Value>, String> {
+        let style = build_style(
+            params.style.clone(),
+            params.structure.clone(),
+            params.language.clone(),
+            params.domain.clone(),
+            params.voice.clone(),
+            params.study_mode.clone(),
+            params.citation.clone(),
+        )?;
+        let loaded_style = styles::load(self.workspace.root(), &style.aesthetic)
+            .map_err(|error| error.to_string())?;
+        styles::validate_profile(&loaded_style.pack, &style).map_err(|error| error.to_string())?;
         let sources = params
             .sources
             .iter()
@@ -368,6 +511,7 @@ impl FolisiftServer {
                     title: params.title,
                     course: params.course.unwrap_or_default(),
                     sources: sources.clone(),
+                    style: style.clone(),
                 },
             )
             .map_err(|error| error.to_string())?,
@@ -377,8 +521,11 @@ impl FolisiftServer {
             .await
             .map_err(|error| error.to_string())?;
         if !was_existing || !guide.content.exists() {
-            std::fs::write(&guide.content, skeleton_markdown(&title, &inventory))
-                .map_err(|error| error.to_string())?;
+            std::fs::write(
+                &guide.content,
+                skeleton_markdown(&title, &style.language, &inventory),
+            )
+            .map_err(|error| error.to_string())?;
         }
 
         let cache = SourceCache::new(self.workspace.root().join("data/cache"));
@@ -430,6 +577,7 @@ impl FolisiftServer {
             "output": guide.output.display().to_string(),
             "pages": inventory.totals.pages,
             "words": inventory.totals.words,
+            "style": style,
             "sources": source_rows,
             "outline": outline,
             "next": [
@@ -448,6 +596,18 @@ impl FolisiftServer {
         &self,
         Parameters(params): Parameters<ScaffoldGuideParams>,
     ) -> Result<Json<Value>, String> {
+        let style = build_style(
+            params.style.clone(),
+            params.structure.clone(),
+            params.language.clone(),
+            params.domain.clone(),
+            params.voice.clone(),
+            params.study_mode.clone(),
+            params.citation.clone(),
+        )?;
+        let loaded_style = styles::load(self.workspace.root(), &style.aesthetic)
+            .map_err(|error| error.to_string())?;
+        styles::validate_profile(&loaded_style.pack, &style).map_err(|error| error.to_string())?;
         let sources = params
             .sources
             .iter()
@@ -462,6 +622,7 @@ impl FolisiftServer {
                 title: params.title,
                 course: params.course.unwrap_or_default(),
                 sources: sources.clone(),
+                style: folisift_core::StyleProfile::default(),
             },
         )
         .map_err(|error| error.to_string())?;
@@ -469,7 +630,7 @@ impl FolisiftServer {
         let inventory = analyze_sources(&sources, folisift_parse::LOW_TEXT_THRESHOLD)
             .await
             .map_err(|error| error.to_string())?;
-        let body = skeleton_markdown(&title, &inventory);
+        let body = skeleton_markdown(&title, &style.language, &inventory);
         let content_path = guide.dir.join("guide.md");
         std::fs::write(&content_path, body).map_err(|error| error.to_string())?;
         Ok(Json(json!({
@@ -510,6 +671,7 @@ impl FolisiftServer {
             None => guide.output.clone(),
         };
         let markdown = std::fs::read_to_string(&content_path).map_err(|error| error.to_string())?;
+        let style = guide.style();
         let source_names = guide
             .config
             .sources
@@ -530,6 +692,8 @@ impl FolisiftServer {
                 course: "",
                 language: &guide.config.language,
                 sources: &source_names,
+                style: Some(&style),
+                styles_root: Some(self.workspace.root()),
             },
         )
         .map_err(|error| error.to_string())?;
@@ -564,6 +728,8 @@ impl FolisiftServer {
         Ok(Json(json!({
             "output": output_path.display().to_string(),
             "pages": rendered.pages,
+            "content_hash": rendered.content_hash,
+            "style": style,
             "warnings": rendered.warnings.len(),
             "coverage": coverage,
         })))
@@ -656,6 +822,28 @@ impl ServerHandler for FolisiftServer {
                 );
             }
         }
+        if let Ok(packs) = styles::list(self.workspace.root()) {
+            for pack in packs {
+                resources.push(
+                    Resource::new(
+                        format!("folisift://styles/{}", pack.id),
+                        format!("style:{}", pack.id),
+                    )
+                    .with_description(pack.name)
+                    .with_mime_type("application/json"),
+                );
+                for language in &pack.supported_languages {
+                    resources.push(
+                        Resource::new(
+                            format!("folisift://styles/{}/strings/{language}", pack.id),
+                            format!("style:{}/{}", pack.id, language),
+                        )
+                        .with_description(format!("{} labels ({language})", pack.id))
+                        .with_mime_type("application/json"),
+                    );
+                }
+            }
+        }
         std::future::ready(Ok(ListResourcesResult::with_all_items(resources)))
     }
 
@@ -669,6 +857,34 @@ impl ServerHandler for FolisiftServer {
         let result = match uri.as_str() {
             "folisift://authoring-spec" => self.read_workspace_markdown("docs/authoring-spec.md"),
             "folisift://design-system" => self.read_workspace_markdown("docs/design-system.md"),
+            _ if uri.starts_with("folisift://styles/") => {
+                let rest = uri.trim_start_matches("folisift://styles/");
+                let mut parts = rest.split('/');
+                let id = parts.next().unwrap_or_default();
+                match parts.next() {
+                    Some("strings") => {
+                        let language = parts.next().unwrap_or("tr");
+                        styles::strings(self.workspace.root(), id, language)
+                            .map(|strings| {
+                                serde_json::to_string_pretty(&strings).unwrap_or_default()
+                            })
+                            .map_err(|error| ErrorData::resource_not_found(error.to_string(), None))
+                    }
+                    None => styles::load(self.workspace.root(), id)
+                        .map(|loaded| {
+                            serde_json::to_string_pretty(&json!({
+                                "pack": loaded.pack,
+                                "tokens": loaded.tokens,
+                            }))
+                            .unwrap_or_default()
+                        })
+                        .map_err(|error| ErrorData::resource_not_found(error.to_string(), None)),
+                    Some(_) => Err(ErrorData::resource_not_found(
+                        format!("unknown style resource: {uri}"),
+                        None,
+                    )),
+                }
+            }
             _ => uri
                 .strip_prefix("folisift://guide/")
                 .ok_or_else(|| {
@@ -732,20 +948,57 @@ impl ServerHandler for FolisiftServer {
     }
 }
 
-fn skeleton_markdown(title: &str, inventory: &Inventory) -> String {
-    let mut body =
-        format!("---\ntitle: {title:?}\nrunning: {title:?}\nlanguage: tr\nsources: []\n---\n\n");
-    body.push_str(
-        "::: front kicker=\"Ön kısım · Okuma notu\" title=\"Bu kitapçık hakkında\" lead=\"Bu kılavuz, kaynak slaytlardan sınav odaklı bir çalışma metni üretir.\"\nBu bölüm host LLM tarafından yazılacaktır.\n:::\n\n",
+fn build_style(
+    aesthetic: Option<String>,
+    structure: Option<String>,
+    language: Option<String>,
+    domain: Option<String>,
+    voice: Option<String>,
+    study_mode: Option<String>,
+    citation: Option<String>,
+) -> Result<folisift_core::StyleProfile, String> {
+    let language = language.unwrap_or_else(|| "tr".to_string());
+    let style = folisift_core::StyleProfile {
+        aesthetic: aesthetic.unwrap_or_else(|| "paper".to_string()),
+        structure: structure.unwrap_or_else(|| "a-g".to_string()),
+        language: language.clone(),
+        source_language: language,
+        domain: domain.unwrap_or_else(|| "general".to_string()),
+        voice: voice.unwrap_or_else(|| "academic".to_string()),
+        study_mode: study_mode.unwrap_or_else(|| "exam".to_string()),
+        citation: citation.unwrap_or_else(|| "page-ref".to_string()),
+    };
+    style.validate()?;
+    Ok(style)
+}
+
+fn skeleton_markdown(title: &str, language: &str, inventory: &Inventory) -> String {
+    let mut body = format!(
+        "---\ntitle: {title:?}\nrunning: {title:?}\nlanguage: {language:?}\nsources: []\n---\n\n"
     );
-    body.push_str(
-        "::: toc title=\"Kılavuzun haritası\" note=\"Sayfa numaraları bu PDF’e aittir.\"\n:::\n\n",
-    );
+    if language == "en" {
+        body.push_str(
+            "::: front kicker=\"Front matter · Reading note\" title=\"About this guide\" lead=\"This guide turns source slides into an exam-oriented study text.\"\nThis opening will be written by the host LLM.\n:::\n\n",
+        );
+        body.push_str(
+            "::: toc title=\"Guide map\" note=\"Page numbers refer to this PDF.\"\n:::\n\n",
+        );
+    } else {
+        body.push_str(
+            "::: front kicker=\"Ön kısım · Okuma notu\" title=\"Bu kitapçık hakkında\" lead=\"Bu kılavuz, kaynak slaytlardan sınav odaklı bir çalışma metni üretir.\"\nBu bölüm host LLM tarafından yazılacaktır.\n:::\n\n",
+        );
+        body.push_str(
+            "::: toc title=\"Kılavuzun haritası\" note=\"Sayfa numaraları bu PDF’e aittir.\"\n:::\n\n",
+        );
+    }
     for (index, source) in inventory.sources.iter().enumerate() {
         let id = source.filename.trim_end_matches(".pdf");
         let name = source.title_or_filename().replace('"', "'");
         body.push_str(&format!(
-            "::: chapter part=\"B · AYRINTILI İNCELEME\" side=\"KAYNAK: {id}\" kicker=\"BÖLÜM {index}\" title=\"{name}\" toc=\"{name}\" running=\"{name}\" subs=true\n:::\n\n"
+            "::: chapter part=\"{part}\" side=\"{side}: {id}\" kicker=\"{kicker} {index}\" title=\"{name}\" toc=\"{name}\" running=\"{name}\" subs=true\n:::\n\n",
+            part = if language == "en" { "B · DETAILED REVIEW" } else { "B · AYRINTILI İNCELEME" },
+            side = if language == "en" { "SOURCE" } else { "KAYNAK" },
+            kicker = if language == "en" { "CHAPTER" } else { "BÖLÜM" },
         ));
         for heading in &source.headings {
             let number = heading

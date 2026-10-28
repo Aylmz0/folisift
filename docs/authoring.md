@@ -11,12 +11,12 @@ content contract; `docs/architecture.md` explains the layers.
 
 No Python, Poppler, WeasyPrint or system Typst installation is needed.
 
-## Guide bundle anatomy (schema 2)
+## Guide bundle anatomy (schema 3)
 
 ```text
 guides/<slug>/
 ├── guide.md         # Markdown + directives; source order preserved
-├── config.json      # paths relative to this directory
+├── config.json      # schema 3 style profile and paths
 ├── assets/          # guide-specific SVG diagrams
 └── data/
     ├── source.json  # generated inventory (do not hand-edit)
@@ -35,6 +35,55 @@ cargo run -p folisift-cli -- analyze \
 
 The MCP flow reads source text in bounded chunks with `read_source` and can
 search it with `search_source`; the host LLM writes the prose.
+
+## Choose a style
+
+Styles are engine-owned packs under `styles/`. `paper` is the stable parity
+style; `clean` is the experimental technical style.
+
+```bash
+cargo run -p folisift-cli -- styles list
+cargo run -p folisift-cli -- styles info clean --language en
+cargo run -p folisift-cli -- styles preview clean --language en
+```
+
+A schema-3 guide config carries the independent axes:
+
+```json
+{
+  "schema_version": 3,
+  "slug": "pd0-pd1",
+  "title": "Programlama Dilleri — Çalışma Kılavuzu",
+  "language": "tr",
+  "content": "guide.md",
+  "output": "../../output/PD0-PD1_Calisma_Ozeti.pdf",
+  "sources": ["../../sources/PD0.pdf", "../../sources/PD1.pdf"],
+  "style": {
+    "aesthetic": "paper",
+    "structure": "a-g",
+    "language": "tr",
+    "source_language": "tr",
+    "voice": "academic",
+    "study_mode": "exam",
+    "domain": "cs",
+    "citation": "page-ref"
+  }
+}
+```
+
+A style changes presentation and labels, never facts or coverage. Guides
+never contain raw Typst or CSS.
+
+For a non-A–G structure, claim source sections with a content comment before
+the heading:
+
+```markdown
+<!-- covers: PD0:0.1, PD0:0.2 -->
+## Introduction
+```
+
+The coverage gate reads `covers` first and falls back to `## <number> <title>`
+headings. Every source subsection must be claimed exactly once.
 
 Low-text pages need a visual pass:
 
@@ -146,6 +195,7 @@ examples and low-text pages.
 ```bash
 cargo run -p folisift-cli -- scaffold \
   --slug pd2 --title "Bölüm 2" --course "BMÜ325" \
+  --style paper --structure a-g --language tr --domain cs \
   --source sources/PD2.pdf
 ```
 

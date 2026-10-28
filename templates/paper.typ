@@ -25,6 +25,16 @@
   #upper(body)
 ]
 
+#let doc_lang = state("doc-lang", "tr")
+
+#let ui_upper_str(text) = context {
+  if doc_lang.get() == "tr" { tr_upper_str(text) } else { upper(text) }
+}
+
+#let ui_upper(body) = context {
+  if doc_lang.get() == "tr" { tr_upper(body) } else { upper(body) }
+}
+
 #let source_ref(body) = box(text(
   font: "Inter",
   size: 6.9pt,
@@ -33,12 +43,12 @@
   tracking: 0.02em,
 )[[#body]])
 
-#let fig_label(number) = text(
+#let fig_label(number, word: "Şekil") = text(
   font: "Inter",
   size: 6.8pt,
   tracking: 0.12em,
   fill: brick,
-)[#upper("Şekil " + number)]
+)[#upper(word + " " + number)]
 
 #let toc_entry(level: 1, body: none, part: none, subs: true) = [
   #metadata((
@@ -59,7 +69,7 @@
   set text(font: "Inter", size: 7pt, fill: rgb("#7A6F5E"), tracking: 0.14em)
   grid(
     columns: (1fr, auto),
-    align(start)[#tr_upper_str(left_text)],
+    align(start)[#ui_upper_str(left_text)],
     align(end)[#text(tracking: 0.06em, fill: faint)[#right_text]],
   )
 }
@@ -74,7 +84,7 @@
       size: 6.9pt,
       weight: "semibold",
       tracking: 0.09em,
-    )[#tr_upper(cell)])), ..body)
+    )[#ui_upper(cell)])), ..body)
   } else {
     body
   }
@@ -116,7 +126,7 @@
           size: 7.4pt,
           tracking: 0.1em,
           fill: brick,
-        )[#tr_upper(row.at(0))],
+        )[#ui_upper(row.at(0))],
         row.at(1),
       ))
       .flatten(),
@@ -209,7 +219,7 @@
     size: 7.2pt,
     tracking: 0.2em,
     fill: brick,
-  )[#tr_upper_str(kicker)]
+  )[#ui_upper_str(kicker)]
   #v(2mm)
   #text(font: "Inter", size: 19pt, weight: "semibold", tracking: -0.01em)[#title]
   #v(3mm)
@@ -232,13 +242,13 @@
   columns: (1fr, 15mm),
   stroke: none,
   inset: (top: 4mm, bottom: 1.9mm),
-  text(font: "Inter", size: 7.2pt, tracking: 0.16em, fill: brick)[#tr_upper(body)],
+  text(font: "Inter", size: 7.2pt, tracking: 0.16em, fill: brick)[#ui_upper(body)],
   [],
 )
 
-#let toc_page(title: "", note: "") = page(header: none)[
+#let toc_page(title: "", note: "", label: "İÇİNDEKİLER") = page(header: none)[
   #set text(font: "Noto Serif", size: 9.5pt, fill: ink)
-  #text(font: "Inter", size: 7.2pt, tracking: 0.2em, fill: brick)[İÇİNDEKİLER]
+  #text(font: "Inter", size: 7.2pt, tracking: 0.2em, fill: brick)[#label]
   #v(2mm)
   #text(font: "Inter", size: 19pt, weight: "semibold")[#title]
   #v(1.8mm)
@@ -297,11 +307,11 @@
     #v(4mm)
     #grid(
       columns: (1fr, auto),
-      text(font: "Inter", size: 7pt, tracking: 0.08em, fill: rgb("#7A6F5E"))[#tr_upper_str(part)],
-      align(right)[#text(font: "Inter", size: 7pt, tracking: 0.08em, fill: rgb("#7A6F5E"))[#tr_upper_str(side)]],
+      text(font: "Inter", size: 7pt, tracking: 0.08em, fill: rgb("#7A6F5E"))[#ui_upper_str(part)],
+      align(right)[#text(font: "Inter", size: 7pt, tracking: 0.08em, fill: rgb("#7A6F5E"))[#ui_upper_str(side)]],
     )
     #v(3mm)
-    #text(font: "Inter", size: 8pt, tracking: 0.22em, fill: brick)[#tr_upper_str(kicker)]
+    #text(font: "Inter", size: 8pt, tracking: 0.22em, fill: brick)[#ui_upper_str(kicker)]
     #v(2mm)
     #show heading.where(level: 1): it => text(
       font: "Inter",
@@ -333,7 +343,7 @@
       weight: "semibold",
       tracking: 0.12em,
       fill: sage,
-    )[#tr_upper(it.body)]
+    )[#ui_upper(it.body)]
   ]
   #place(line(
     start: (50%, 0pt),
@@ -361,6 +371,7 @@
 ) = {
   set document(title: title, author: "Folisift")
   sheet_title.update(running)
+  doc_lang.update(language)
 
   set page(
     paper: "a4",
@@ -456,7 +467,7 @@
       weight: "semibold",
       tracking: 0.12em,
       fill: sage,
-    )[#tr_upper(it.body)]
+    )[#ui_upper(it.body)]
   ]
 
   // Cover ---------------------------------------------------------------
@@ -477,7 +488,7 @@
                 size: 8pt,
                 tracking: 0.22em,
                 fill: brick,
-              )[#tr_upper_str(if cover_kicker == none { course } else { cover_kicker })]
+              )[#ui_upper_str(if cover_kicker == none { course } else { cover_kicker })]
               #v(5mm)
               #line(length: 28mm, stroke: 0.8pt + brick)
               #v(28mm)
@@ -504,7 +515,7 @@
                     size: 7pt,
                     tracking: 0.18em,
                     fill: brick,
-                  )[#tr_upper_str(pilot)],
+                  )[#ui_upper_str(pilot)],
                 )
               ]
             ]

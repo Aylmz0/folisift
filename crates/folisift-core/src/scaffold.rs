@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::PathBuf;
 
-use crate::config::{Guide, GuideConfig};
+use crate::config::{Guide, GuideConfig, StyleProfile};
 use crate::error::{Error, Result, io};
 use crate::paths::{Workspace, validate_slug};
 
@@ -11,6 +11,7 @@ pub struct ScaffoldOptions {
     pub title: String,
     pub course: String,
     pub sources: Vec<PathBuf>,
+    pub style: StyleProfile,
 }
 
 /// Create a new schema-2 guide bundle and return its validated config.
@@ -59,12 +60,16 @@ pub fn scaffold(workspace: &Workspace, options: &ScaffoldOptions) -> Result<Guid
         fs::create_dir_all(&directory).map_err(|error| io(&directory, error))?;
     }
 
+    options.style.validate().map_err(|message| Error::Config {
+        path: guide_dir.join("config.json"),
+        message,
+    })?;
     let output = format!("../../output/{}.pdf", options.slug);
     let config = GuideConfig {
-        schema_version: 2,
+        schema_version: 3,
         slug: options.slug.clone(),
         title: options.title.clone(),
-        language: "tr".to_string(),
+        language: options.style.language.clone(),
         content: "guide.md".to_string(),
         stylesheet: None,
         output,
@@ -72,7 +77,8 @@ pub fn scaffold(workspace: &Workspace, options: &ScaffoldOptions) -> Result<Guid
         inventory: Some("data/inventory.json".to_string()),
         coverage: Some("data/coverage.md".to_string()),
         target_pages: None,
-        theme: "paper".to_string(),
+        theme: options.style.aesthetic.clone(),
+        style: Some(options.style.clone()),
         extra: Default::default(),
     };
     let config_path = guide_dir.join("config.json");
@@ -88,7 +94,7 @@ pub fn scaffold(workspace: &Workspace, options: &ScaffoldOptions) -> Result<Guid
     let course = options.course.replace('"', "'");
     let title = options.title.replace('"', "'");
     let guide_content = format!(
-        "---\ntitle: {title:?}\ncourse: {course:?}\nrunning: {running:?}\nlanguage: tr\nsources: []\n---\n\n\
+        "---\ntitle: {title:?}\ncourse: {course:?}\nrunning: {running:?}\nlanguage: {language:?}\nsources: []\n---\n\n\
          ::: front kicker=\"Ön kısım · Okuma notu\" title=\"Bu kitapçık hakkında\" lead=\"Bu kılavuz, kaynak slaytlardan sınav odaklı bir çalışma metni üretir.\"\n\
          Bu bölüm host LLM tarafından yazılacaktır.\n\
          :::\n\n\
@@ -104,6 +110,7 @@ pub fn scaffold(workspace: &Workspace, options: &ScaffoldOptions) -> Result<Guid
         } else {
             &options.course
         },
+        language = options.style.language,
     );
     let content_path = guide_dir.join("guide.md");
     fs::write(&content_path, guide_content).map_err(|error| io(&content_path, error))?;

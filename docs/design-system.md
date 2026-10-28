@@ -45,6 +45,14 @@ Turkish characters and hyphenation must be checked in the final PDF.
 - Section opener: top rule, small meta line, large title, short lead. The
   opener must not sit alone at the bottom of a page.
 
+## Clean style
+
+`clean` is the second engine-owned layout. It keeps the same content model and
+directives but uses an Inter body, white paper, a blue accent, a single cover
+rule, denser tables and square technical boxes. It is selected by the style
+pack `clean`; it is experimental until its snapshots and cross-style gates
+pass. `paper` remains the default and the old-PDF parity standard.
+
 ## Components
 
 | Component | Use | Style |

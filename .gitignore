@@ -16,3 +16,6 @@ data/cache/
 
 # Rust build output.
 /target/
+
+# Generated style previews are not release outputs.
+output/style-preview-*.pdf

@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "id": "clean",
+  "name": "Clean technical reader",
+  "status": "experimental",
+  "layout": "clean",
+  "aesthetic": "clean",
+  "supported_structures": ["imrad", "lecture-notes", "formula-sheet", "literature-matrix", "a-g"],
+  "supported_languages": ["tr", "en"],
+  "supported_domains": ["general", "cs", "math", "business"],
+  "supported_voices": ["technical", "academic", "plain"],
+  "tokens": "tokens.json",
+  "strings": ["tr", "en"],
+  "engine_min": "0.4.0",
+  "page_target": "18-26",
+  "preview": "preview.md"
+}
