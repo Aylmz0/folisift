@@ -4,7 +4,7 @@
 into Turkish, paper-like, exam-oriented study guides.
 
 First guide: **BMÜ325 Programlama Dilleri, PD0–PD1** — 22 pages, 260/260
-slides.
+slides. Current `main` is the prepared `0.3.0` paper-parity release.
 
 ## Layout
 
