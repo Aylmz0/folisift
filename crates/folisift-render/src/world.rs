@@ -9,14 +9,46 @@ use typst::text::{Font, FontBook};
 use typst::utils::LazyHash;
 use typst::{Library, World};
 
-static FONT_DATA: [&[u8]; 3] = [
+static FONT_DATA: [&[u8]; 11] = [
     include_bytes!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/../../templates/fonts/NotoSerif-Regular.ttf"
     )),
     include_bytes!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/../../templates/fonts/Inter.ttf"
+        "/../../templates/fonts/NotoSerif-Bold.ttf"
+    )),
+    include_bytes!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../templates/fonts/NotoSerif-Italic.ttf"
+    )),
+    include_bytes!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../templates/fonts/NotoSerif-BoldItalic.ttf"
+    )),
+    include_bytes!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../templates/fonts/Inter-Regular.ttf"
+    )),
+    include_bytes!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../templates/fonts/Inter-Medium.ttf"
+    )),
+    include_bytes!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../templates/fonts/Inter-SemiBold.ttf"
+    )),
+    include_bytes!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../templates/fonts/Inter-Bold.ttf"
+    )),
+    include_bytes!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../templates/fonts/Inter-Italic.ttf"
+    )),
+    include_bytes!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../templates/fonts/Inter-BoldItalic.ttf"
     )),
     include_bytes!(concat!(
         env!("CARGO_MANIFEST_DIR"),

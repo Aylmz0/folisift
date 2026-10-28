@@ -1,6 +1,6 @@
 # Folisift v0.3 — Visual Parity and Production Readiness Plan
 
-- **Status:** Implementation in progress — Phase 0 fixture and `prepare_guide` landed
+- **Status:** Phase 0–3 landed — `paper` parity at 22 pages; layout audit and doctor remain
 - **Date:** 2026-10-28
 - **Reference:** `output/old-python.pdf` (22 pages, WeasyPrint, 209 KB)
 - **Current:** `output/PD0-PD1_Calisma_Ozeti.pdf` (23 pages, Typst, 420 KB)
@@ -568,26 +568,26 @@ text extraction. The LLM receives a short diagnostic list only.
 - Selected page capture writes to `target/parity/reference/` (gitignored).
 - Exit: golden images and text are reproducible.
 
-### Phase 1 — Template parity (2–3 days)
+### Phase 1 — Template parity (2–3 days) — landed
 
 - Cover, front, TOC, header/footer, chapter opener.
 - Body margins/type, boxes, figures, code, source refs.
 - Exit: first 4 pages and chapter opener side-by-side look right.
 
-### Phase 2 — Content model directives (2 days)
+### Phase 2 — Content model directives (2 days) — landed
 
 - `front`, `toc`, `chapter`, `columns`, `columnbreak`, `table` metadata.
 - Parser errors and tests.
 - Exit: current guide can express the old structure without Typst hacks.
 
-### Phase 3 — C/D/E/F/G corrections (1–2 days)
+### Phase 3 — C/D/E/F/G corrections (1–2 days) — landed
 
 - Two-column C + table.
 - Table widths for D/E/F/G.
 - Chapter metadata, labels, captions.
 - Exit: 22 pages; C on one page; G on one page.
 
-### Phase 4 — Visual/content gates and `prepare_guide` (1–2 days) — `prepare_guide` landed
+### Phase 4 — Visual/content gates and `prepare_guide` (1–2 days) — `prepare_guide` landed; layout audit pending
 
 - Golden comparison harness.
 - Page/table/figure/bookmark and layout-audit tests.
@@ -607,18 +607,18 @@ text extraction. The LLM receives a short diagnostic list only.
 
 ## 13. Acceptance criteria
 
-- [ ] 22 pages, same section order as old PDF.
-- [ ] Cover visually matches: frame, title/subtitle, pilot badge, motif, notes.
-- [ ] Front matter before TOC; old about-grid and kicker.
-- [ ] TOC has part rows and correct page numbers; no C–G subsections.
-- [ ] Chapter openers have meta/kicker/lead/source.
-- [ ] Running header shows current chapter; footer centered brick.
-- [ ] C is two columns on one page, including the comparison table.
-- [ ] D/E/F/G tables have old rules, header style, zebra and widths.
-- [ ] Four SVG figures render at old size; captions/numbers match.
-- [ ] Boxes have uppercase letter-spaced labels and correct colors.
-- [ ] Source refs match `[PD0, s. 3]` style.
-- [ ] 24/24 tables, 4/4 figures, 13/13 coverage, 0 empty sections.
+- [x] 22 pages, same section order as old PDF.
+- [x] Cover visually matches: frame, title/subtitle, pilot badge, motif, notes.
+- [x] Front matter before TOC; old about-grid and kicker.
+- [x] TOC has part rows and correct page numbers; no C–G subsections.
+- [x] Chapter openers have meta/kicker/lead/source.
+- [x] Running header shows current chapter; footer centered brick.
+- [x] C is two columns on one page, including the comparison table.
+- [x] D/E/F/G tables have old rules, header style, zebra and widths.
+- [x] Four SVG figures render at old size; captions/numbers match.
+- [x] Boxes have uppercase letter-spaced labels and correct colors.
+- [x] Source refs match `[PD0, s. 3]` style.
+- [x] 24/24 tables, 4/4 figures, 13/13 coverage, 0 empty sections.
 - [ ] Visual diff under threshold for selected pages.
 - [ ] `folisift doctor` and clean-install test pass.
 - [ ] MCP stdio and OpenCode config smoke pass (v0.3 adds `prepare_guide`;
