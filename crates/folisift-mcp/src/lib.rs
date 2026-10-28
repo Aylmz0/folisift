@@ -143,7 +143,10 @@ impl FolisiftServer {
         let body_chars = folisift_parse::guide_body_chars(&markdown);
         let empty_sections = body_chars
             .iter()
-            .filter(|(_, chars)| **chars < folisift_parse::MIN_SECTION_CHARS)
+            .filter(|(number, chars)| {
+                number.chars().next().is_some_and(|c| c.is_ascii_digit())
+                    && **chars < folisift_parse::MIN_SECTION_CHARS
+            })
             .map(|(number, _)| number.clone())
             .collect::<Vec<_>>();
         Ok(Json(json!({

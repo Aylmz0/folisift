@@ -60,14 +60,21 @@ pub fn read_from_source(
     pages: Option<&str>,
     max_chars: Option<usize>,
 ) -> Result<ReadSourceResult> {
+    let explicit = pages.is_some();
     let selection = pages.unwrap_or(DEFAULT_READ_PAGES);
-    let requested = parse_page_list(selection)?;
+    let mut requested = parse_page_list(selection)?;
     let max_chars = max_chars
         .unwrap_or(DEFAULT_MAX_CHARS)
         .clamp(1_000, HARD_MAX_CHARS);
     let page_count = source.pages.len();
 
-    if requested.iter().any(|page| *page as usize > page_count) {
+    if explicit && requested.iter().any(|page| *page as usize > page_count) {
+        return Err(Error::PageSelection {
+            value: selection.to_string(),
+        });
+    }
+    requested.retain(|page| *page as usize <= page_count);
+    if requested.is_empty() {
         return Err(Error::PageSelection {
             value: selection.to_string(),
         });
@@ -305,5 +312,12 @@ mod tests {
     #[test]
     fn rejects_out_of_range_pages() {
         assert!(read_from_source(&source(), Some("9"), None).is_err());
+    }
+
+    #[test]
+    fn default_range_clamps_to_a_short_document() {
+        let result = read_from_source(&source(), None, None).expect("read");
+        assert_eq!(result.returned_pages, 2);
+        assert!(!result.truncated);
     }
 }

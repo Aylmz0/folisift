@@ -7,6 +7,7 @@ use crate::pdfium;
 use crate::text::clean_text;
 
 const CACHE_VERSION: &str = env!("CARGO_PKG_VERSION");
+const LITEPARSE_VERSION: &str = "2.17";
 const PAGE_MARKER: &str = "\n===== PAGE ";
 
 #[derive(Debug, Clone, Serialize)]
@@ -43,7 +44,7 @@ impl SourceCache {
     pub async fn load(&self, source: &Path, force: bool) -> Result<SourceText> {
         let bytes = std::fs::read(source).map_err(|error| io(source, error))?;
         let hash = blake3::hash(&bytes).to_hex().to_string();
-        let key = format!("{hash}-{CACHE_VERSION}");
+        let key = format!("{hash}-{CACHE_VERSION}-liteparse{LITEPARSE_VERSION}");
         let dir = self.root.join(&key);
         let path = dir.join("source.txt");
 
