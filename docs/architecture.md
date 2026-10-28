@@ -26,7 +26,7 @@ folisift-cli / mcp            CLI and stdio MCP tools
 |---|---|---|
 | Core | `crates/folisift-core/` | Config/schema, workspace sandbox, scaffold, version. |
 | Parse | `crates/folisift-parse/` | liteparse adapter, inventory, coverage, screenshots. |
-| Render | `crates/folisift-render/` | Markdown/directives, Typst world, PDF. |
+| Render | `crates/folisift-render/` | Markdown/directives, style registry, Typst world, PDF. |
 | MCP | `crates/folisift-mcp/` | stdio tools, resources and prompt. |
 | CLI | `crates/folisift-cli/` | `folisift` binary. |
 | Template | `templates/paper.typ` | Shared paper design and embedded fonts. |
@@ -39,7 +39,8 @@ folisift-cli / mcp            CLI and stdio MCP tools
 1. `folisift build --guide <slug>` loads `guides/<slug>/config.json`.
 2. Paths resolve relative to the guide directory and are checked against the
    workspace root.
-3. `folisift-render` parses Markdown + YAML frontmatter and the layout/content
+3. `folisift-render` resolves the style pack (`styles/<id>/`) and parses
+   Markdown + YAML frontmatter and the layout/content
    directives (`front`, `toc`, `chapter`, boxes, `table`, `columns`,
    `columnbreak`, `pagebreak`).
 4. The Typst template renders the PDF with embedded fonts.
@@ -51,7 +52,7 @@ The MCP server wraps the same operations. It performs no LLM call, no shell
 execution and no network access. The host agent writes content; the server
 analyzes, renders and audits.
 
-## Guide config (schema 2)
+## Guide config (schema 3)
 
 ```json
 {

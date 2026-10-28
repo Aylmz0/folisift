@@ -7,7 +7,7 @@ use folisift_parse::{
     Inventory, SourceCache, analyze_sources, check_coverage, parse_page_list, read_source,
     render_pages, search_source,
 };
-use folisift_render::{RenderOptions, render};
+use folisift_render::{RenderOptions, render, styles};
 use serde::Serialize;
 use serde_json::json;
 
@@ -72,6 +72,23 @@ enum Command {
         course: String,
         #[arg(long = "source", required = true, num_args = 1..)]
         sources: Vec<PathBuf>,
+        /// Aesthetic/layout id: paper or clean.
+        #[arg(long = "style", default_value = "paper")]
+        style: String,
+        /// Structure profile: a-g, imrad, irac, soap, ...
+        #[arg(long, default_value = "a-g")]
+        structure: String,
+        /// Output language: tr or en.
+        #[arg(long, default_value = "tr")]
+        language: String,
+        /// Domain profile: general, cs, math, medicine, law, ...
+        #[arg(long, default_value = "general")]
+        domain: String,
+    },
+    /// List, inspect or preview engine-owned style packs.
+    Styles {
+        #[command(subcommand)]
+        command: StylesCommand,
     },
     /// Render a guide and optionally run the coverage gate.
     Build {
@@ -128,6 +145,26 @@ enum Command {
     },
 }
 
+#[derive(Debug, Subcommand)]
+enum StylesCommand {
+    /// List style packs.
+    List,
+    /// Show one pack, its tokens and labels.
+    Info {
+        id: String,
+        #[arg(long, default_value = "tr")]
+        language: String,
+    },
+    /// Render a small style preview PDF.
+    Preview {
+        id: String,
+        #[arg(long, default_value = "tr")]
+        language: String,
+        #[arg(long)]
+        out: Option<PathBuf>,
+    },
+}
+
 #[derive(Debug, Serialize)]
 struct GuideStatus {
     slug: String,
@@ -141,6 +178,7 @@ struct GuideStatus {
     inventory: Option<String>,
     coverage: Option<String>,
     target_pages: Option<String>,
+    style: folisift_core::StyleProfile,
     content_words: usize,
     section_count: usize,
     empty_sections: Vec<String>,
@@ -230,6 +268,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
         }
         Command::GuideStatus { slug } => {
             let guide = Guide::load(&workspace, &slug)?;
+            let style = guide.style();
             let markdown = std::fs::read_to_string(&guide.content)?;
             let body_chars = folisift_parse::guide_body_chars(&markdown);
             let empty_sections = body_chars
@@ -256,6 +295,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 inventory: guide.inventory.map(|path| path.display().to_string()),
                 coverage: guide.coverage.map(|path| path.display().to_string()),
                 target_pages: guide.config.target_pages,
+                style,
                 content_words: markdown.split_whitespace().count(),
                 section_count: body_chars.len(),
                 empty_sections,
@@ -302,12 +342,26 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
             title,
             course,
             sources,
+            style,
+            structure,
+            language,
+            domain,
         } => {
             let sources = sources
                 .iter()
                 .map(|path| workspace.resolve_read(path))
                 .collect::<Result<Vec<_>, _>>()?;
             let title_for_content = title.clone();
+            let style = folisift_core::StyleProfile {
+                aesthetic: style,
+                structure,
+                language: language.clone(),
+                source_language: language.clone(),
+                domain,
+                ..folisift_core::StyleProfile::default()
+            };
+            let loaded_style = styles::load(workspace.root(), &style.aesthetic)?;
+            styles::validate_profile(&loaded_style.pack, &style)?;
             let guide = scaffold(
                 &workspace,
                 &ScaffoldOptions {
@@ -315,20 +369,31 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                     title,
                     course,
                     sources: sources.clone(),
+                    style: style.clone(),
                 },
             )?;
             let inventory = analyze_sources(&sources, folisift_parse::LOW_TEXT_THRESHOLD).await?;
             let mut body = format!(
-                "---\ntitle: {title_for_content:?}\nrunning: {title_for_content:?}\nlanguage: tr\nsources: []\n---\n\n"
+                "---\ntitle: {title_for_content:?}\nrunning: {title_for_content:?}\nlanguage: {:?}\nsources: []\n---\n\n",
+                style.language
             );
-            body.push_str(
-                "::: front kicker=\"Ön kısım · Okuma notu\" title=\"Bu kitapçık hakkında\" lead=\"Bu kılavuz, kaynak slaytlardan sınav odaklı bir çalışma metni üretir.\"\nBu bölüm host LLM tarafından yazılacaktır.\n:::\n\n::: toc title=\"Kılavuzun haritası\" note=\"Sayfa numaraları bu PDF’e aittir.\"\n:::\n\n",
-            );
+            if style.language == "en" {
+                body.push_str(
+                    "::: front kicker=\"Front matter · Reading note\" title=\"About this guide\" lead=\"This guide turns source slides into an exam-oriented study text.\"\nThis opening will be written by the host LLM.\n:::\n\n::: toc title=\"Guide map\" note=\"Page numbers refer to this PDF.\"\n:::\n\n",
+                );
+            } else {
+                body.push_str(
+                    "::: front kicker=\"Ön kısım · Okuma notu\" title=\"Bu kitapçık hakkında\" lead=\"Bu kılavuz, kaynak slaytlardan sınav odaklı bir çalışma metni üretir.\"\nBu bölüm host LLM tarafından yazılacaktır.\n:::\n\n::: toc title=\"Kılavuzun haritası\" note=\"Sayfa numaraları bu PDF’e aittir.\"\n:::\n\n",
+                );
+            }
             for (index, source) in inventory.sources.iter().enumerate() {
                 let id = source.filename.trim_end_matches(".pdf");
                 let name = source.title_or_filename().replace('"', "'");
                 body.push_str(&format!(
-                    "::: chapter part=\"B · AYRINTILI İNCELEME\" side=\"KAYNAK: {id}\" kicker=\"BÖLÜM {index}\" title=\"{name}\" toc=\"{name}\" running=\"{name}\" subs=true\n:::\n\n"
+                    "::: chapter part=\"{part}\" side=\"{side}: {id}\" kicker=\"{kicker} {index}\" title=\"{name}\" toc=\"{name}\" running=\"{name}\" subs=true\n:::\n\n",
+                    part = if style.language == "en" { "B · DETAILED REVIEW" } else { "B · AYRINTILI İNCELEME" },
+                    side = if style.language == "en" { "SOURCE" } else { "KAYNAK" },
+                    kicker = if style.language == "en" { "CHAPTER" } else { "BÖLÜM" },
                 ));
                 for heading in &source.headings {
                     let number = heading
@@ -356,6 +421,83 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 }))?
             );
         }
+        Command::Styles { command } => match command {
+            StylesCommand::List => {
+                let packs = styles::list(workspace.root())?;
+                println!("{}", serde_json::to_string_pretty(&packs)?);
+            }
+            StylesCommand::Info { id, language } => {
+                let loaded = styles::load(workspace.root(), &id)?;
+                let strings = styles::strings(workspace.root(), &id, &language)?;
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&json!({
+                        "pack": loaded.pack,
+                        "tokens": loaded.tokens,
+                        "strings": strings,
+                    }))?
+                );
+            }
+            StylesCommand::Preview { id, language, out } => {
+                let loaded = styles::load(workspace.root(), &id)?;
+                let strings = styles::strings(workspace.root(), &id, &language)?;
+                let content = styles::preview(workspace.root(), &id, &language)?;
+                let style = folisift_core::StyleProfile {
+                    aesthetic: loaded.pack.aesthetic.clone(),
+                    structure: loaded
+                        .pack
+                        .supported_structures
+                        .first()
+                        .cloned()
+                        .unwrap_or_else(|| "a-g".to_string()),
+                    language: language.clone(),
+                    source_language: language.clone(),
+                    voice: loaded
+                        .pack
+                        .supported_voices
+                        .first()
+                        .cloned()
+                        .unwrap_or_else(|| "academic".to_string()),
+                    study_mode: "exam".to_string(),
+                    domain: loaded
+                        .pack
+                        .supported_domains
+                        .first()
+                        .cloned()
+                        .unwrap_or_else(|| "general".to_string()),
+                    citation: "page-ref".to_string(),
+                };
+                let output = out.unwrap_or_else(|| {
+                    PathBuf::from(format!("output/style-preview-{id}-{language}.pdf"))
+                });
+                let output = workspace.resolve_write(&output)?;
+                let rendered = render(
+                    &content,
+                    &RenderOptions {
+                        guide_root: workspace.root(),
+                        title: &loaded.pack.name,
+                        subtitle: "",
+                        course: "Folisift",
+                        language: &language,
+                        sources: &[],
+                        style: Some(&style),
+                        styles_root: Some(workspace.root()),
+                    },
+                )?;
+                std::fs::write(&output, &rendered.pdf)?;
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&json!({
+                        "style": id,
+                        "language": language,
+                        "toc": strings.toc,
+                        "figure": strings.figure,
+                        "output": output.display().to_string(),
+                        "pages": rendered.pages,
+                    }))?
+                );
+            }
+        },
         Command::Build {
             guide,
             content,
@@ -379,6 +521,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 None => guide.output.clone(),
             };
             let markdown = std::fs::read_to_string(&content_path)?;
+            let style = guide.style();
             let sources = guide
                 .config
                 .sources
@@ -399,6 +542,8 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                     course: "",
                     language: &guide.config.language,
                     sources: &sources,
+                    style: Some(&style),
+                    styles_root: Some(workspace.root()),
                 },
             )?;
             std::fs::write(&output_path, &rendered.pdf)?;
@@ -435,6 +580,8 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 serde_json::to_string_pretty(&json!({
                     "output": output_path.display().to_string(),
                     "pages": rendered.pages,
+                    "content_hash": rendered.content_hash,
+                    "style": style,
                     "warnings": rendered.warnings.len(),
                     "coverage": coverage.as_ref().map(|report| json!({
                         "passed": report.passed,

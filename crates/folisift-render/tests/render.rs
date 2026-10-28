@@ -36,6 +36,8 @@ Türkçe karakter: ğüşıöç.
             course: "",
             language: "tr",
             sources: &["PD0".to_string()],
+            style: None,
+            styles_root: None,
         },
     )
     .expect("render");

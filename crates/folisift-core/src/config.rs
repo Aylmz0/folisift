@@ -8,7 +8,125 @@ use serde_json::Value;
 use crate::error::{Error, Result, io};
 use crate::paths::{Workspace, validate_slug};
 
-pub const SUPPORTED_SCHEMA_VERSIONS: [u32; 2] = [1, 2];
+pub const SUPPORTED_SCHEMA_VERSIONS: [u32; 3] = [1, 2, 3];
+
+pub const AESTHETICS: &[&str] = &[
+    "paper",
+    "clean",
+    "journal",
+    "brief",
+    "clinical",
+    "casebook",
+    "accessible",
+];
+pub const STRUCTURES: &[&str] = &[
+    "a-g",
+    "imrad",
+    "irac",
+    "soap",
+    "formula-sheet",
+    "literature-matrix",
+    "lecture-notes",
+    "executive-brief",
+];
+pub const LANGUAGES: &[&str] = &["tr", "en"];
+pub const VOICES: &[&str] = &[
+    "academic",
+    "technical",
+    "plain",
+    "legal",
+    "clinical",
+    "business",
+];
+pub const STUDY_MODES: &[&str] = &["exam", "deep", "reference", "teach"];
+pub const DOMAINS: &[&str] = &[
+    "general",
+    "cs",
+    "math",
+    "medicine",
+    "law",
+    "business",
+    "humanities",
+    "language",
+];
+pub const CITATIONS: &[&str] = &["page-ref", "apa", "ieee", "chicago", "oscola"];
+
+/// The independent style axes for a guide.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct StyleProfile {
+    #[serde(default = "default_aesthetic")]
+    pub aesthetic: String,
+    #[serde(default = "default_structure")]
+    pub structure: String,
+    #[serde(default = "default_language")]
+    pub language: String,
+    #[serde(default = "default_source_language")]
+    pub source_language: String,
+    #[serde(default = "default_voice")]
+    pub voice: String,
+    #[serde(default = "default_study_mode")]
+    pub study_mode: String,
+    #[serde(default = "default_domain")]
+    pub domain: String,
+    #[serde(default = "default_citation")]
+    pub citation: String,
+}
+
+impl Default for StyleProfile {
+    fn default() -> Self {
+        Self {
+            aesthetic: default_aesthetic(),
+            structure: default_structure(),
+            language: default_language(),
+            source_language: default_source_language(),
+            voice: default_voice(),
+            study_mode: default_study_mode(),
+            domain: default_domain(),
+            citation: default_citation(),
+        }
+    }
+}
+
+impl StyleProfile {
+    pub fn validate(&self) -> std::result::Result<(), String> {
+        for (name, value, allowed) in [
+            ("aesthetic", self.aesthetic.as_str(), AESTHETICS),
+            ("structure", self.structure.as_str(), STRUCTURES),
+            ("language", self.language.as_str(), LANGUAGES),
+            ("source_language", self.source_language.as_str(), LANGUAGES),
+            ("voice", self.voice.as_str(), VOICES),
+            ("study_mode", self.study_mode.as_str(), STUDY_MODES),
+            ("domain", self.domain.as_str(), DOMAINS),
+            ("citation", self.citation.as_str(), CITATIONS),
+        ] {
+            if !allowed.contains(&value) {
+                return Err(format!(
+                    "style.{name} = {value:?} is not supported; expected one of {allowed:?}"
+                ));
+            }
+        }
+        let structure = self.structure.as_str();
+        let domain = self.domain.as_str();
+        if structure == "soap" && !matches!(domain, "medicine" | "general") {
+            return Err(format!("soap is not compatible with domain {domain:?}"));
+        }
+        if structure == "irac" && !matches!(domain, "law" | "business" | "general") {
+            return Err(format!("irac is not compatible with domain {domain:?}"));
+        }
+        if structure == "executive-brief" && !matches!(domain, "business" | "general") {
+            return Err(format!(
+                "executive-brief is not compatible with domain {domain:?}"
+            ));
+        }
+        if self.aesthetic == "clinical" && structure != "soap" {
+            return Err("clinical aesthetic requires soap structure".to_string());
+        }
+        if self.aesthetic == "casebook" && structure != "irac" {
+            return Err("casebook aesthetic requires irac structure".to_string());
+        }
+        Ok(())
+    }
+}
 
 /// One guide's `config.json`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -33,6 +151,8 @@ pub struct GuideConfig {
     pub target_pages: Option<String>,
     #[serde(default = "default_theme")]
     pub theme: String,
+    #[serde(default)]
+    pub style: Option<StyleProfile>,
     #[serde(flatten)]
     pub extra: BTreeMap<String, Value>,
 }
@@ -56,6 +176,8 @@ pub struct GuideSummary {
     pub slug: String,
     pub title: String,
     pub schema_version: u32,
+    pub style: String,
+    pub language: String,
     pub output: String,
     pub sources: usize,
     pub content_words: usize,
@@ -66,6 +188,15 @@ pub struct GuideSummary {
 }
 
 impl Guide {
+    /// Effective style: schema-3 `style`, or the legacy language/theme fields.
+    pub fn style(&self) -> StyleProfile {
+        self.config.style.clone().unwrap_or_else(|| StyleProfile {
+            aesthetic: self.config.theme.clone(),
+            language: self.config.language.clone(),
+            ..StyleProfile::default()
+        })
+    }
+
     /// Load and validate `guides/<slug>/config.json`.
     pub fn load(workspace: &Workspace, slug: &str) -> Result<Self> {
         validate_slug(slug)?;
@@ -104,6 +235,21 @@ impl Guide {
         }
         if config.language.trim().is_empty() {
             return Err(config_error(&config_path, "language must not be empty"));
+        }
+        let style = config.style.clone().unwrap_or_else(|| StyleProfile {
+            aesthetic: config.theme.clone(),
+            language: config.language.clone(),
+            ..StyleProfile::default()
+        });
+        style
+            .validate()
+            .map_err(|message| config_error(&config_path, message))?;
+        if config.schema_version >= 3 && config.style.is_some() && style.language != config.language
+        {
+            return Err(config_error(
+                &config_path,
+                "style.language must match the flat language field",
+            ));
         }
         if config.sources.is_empty() {
             return Err(config_error(
@@ -190,10 +336,13 @@ pub fn list_guides(workspace: &Workspace) -> Result<Vec<GuideSummary>> {
         match Guide::load(workspace, slug) {
             Ok(guide) => {
                 let content = fs::read_to_string(&guide.content).unwrap_or_default();
+                let style = guide.style();
                 summaries.push(GuideSummary {
                     slug: guide.slug,
                     title: guide.config.title,
                     schema_version: guide.config.schema_version,
+                    style: style.aesthetic,
+                    language: style.language,
                     output: guide.config.output,
                     sources: guide.sources.len(),
                     content_words: content.split_whitespace().count(),
@@ -211,6 +360,8 @@ pub fn list_guides(workspace: &Workspace) -> Result<Vec<GuideSummary>> {
                     slug: slug.to_string(),
                     title,
                     schema_version: 0,
+                    style: "unknown".to_string(),
+                    language: String::new(),
                     output: String::new(),
                     sources: 0,
                     content_words: 0,
@@ -277,7 +428,7 @@ fn require_extension(config: &Path, path: &Path, expected: &str) -> Result<()> {
 
 fn expected_content_extension(schema_version: u32) -> &'static str {
     match schema_version {
-        2 => "md",
+        2 | 3 => "md",
         _ => "html",
     }
 }
@@ -324,6 +475,34 @@ fn default_schema_version() -> u32 {
 
 fn default_language() -> String {
     "tr".to_string()
+}
+
+fn default_aesthetic() -> String {
+    "paper".to_string()
+}
+
+fn default_structure() -> String {
+    "a-g".to_string()
+}
+
+fn default_source_language() -> String {
+    "tr".to_string()
+}
+
+fn default_voice() -> String {
+    "academic".to_string()
+}
+
+fn default_study_mode() -> String {
+    "exam".to_string()
+}
+
+fn default_domain() -> String {
+    "general".to_string()
+}
+
+fn default_citation() -> String {
+    "page-ref".to_string()
 }
 
 fn default_theme() -> String {

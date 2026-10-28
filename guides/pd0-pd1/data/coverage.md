@@ -34,6 +34,7 @@ Alt bölüm: **8** · Düşük metinli slayt: **15**
 - Denetlenen alt bölüm: **13**
 - Eksik/weak match: **0**
 - Boş bölüm: **0**
+- Bilinmeyen covers: **0**
 - Zayıf bölüm: **0**
 - Sonuç: **GEÇTİ**
 

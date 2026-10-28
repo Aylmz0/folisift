@@ -11,6 +11,12 @@ pub enum Error {
     #[error("Typst error: {0}")]
     Typst(String),
 
+    #[error("style {id:?}: {message}")]
+    Style { id: String, message: String },
+
+    #[error("style config: {0}")]
+    StyleConfig(String),
+
     #[error("I/O error at {path}: {source}")]
     Io {
         path: PathBuf,

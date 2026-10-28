@@ -144,10 +144,10 @@ fn rejects_an_unsupported_schema_version() {
     fs::write(
         root.path().join("guides/demo/config.json"),
         r#"{
-          "schema_version": 3,
+          "schema_version": 4,
           "slug": "demo",
           "title": "Demo",
-          "content": "guide.html",
+          "content": "guide.md",
           "output": "../../output/demo.pdf",
           "sources": ["../../sources/PD0.pdf"]
         }"#,
@@ -155,7 +155,7 @@ fn rejects_an_unsupported_schema_version() {
     .expect("config");
 
     let error = Guide::load(&workspace(root.path()), "demo").expect_err("must reject");
-    assert!(matches!(error, Error::UnsupportedSchema { version: 3 }));
+    assert!(matches!(error, Error::UnsupportedSchema { version: 4 }));
 }
 
 #[cfg(unix)]
@@ -183,11 +183,12 @@ fn scaffolds_a_schema_two_guide() {
             title: "Bölüm 2".to_string(),
             course: "BMÜ325".to_string(),
             sources: vec![root.path().join("sources/PD0.pdf")],
+            style: folisift_core::StyleProfile::default(),
         },
     )
     .expect("scaffold");
 
-    assert_eq!(guide.config.schema_version, 2);
+    assert_eq!(guide.config.schema_version, 3);
     assert!(guide.content.ends_with("guide.md"));
     assert!(root.path().join("guides/pd2/guide.md").is_file());
     assert!(root.path().join("guides/pd2/data").is_dir());
@@ -195,6 +196,74 @@ fn scaffolds_a_schema_two_guide() {
     assert!(content.contains("::: front"));
     assert!(content.contains("::: toc"));
     assert!(content.contains("::: chapter"));
+}
+
+#[test]
+fn loads_a_schema_three_style_profile() {
+    let root = fixture();
+    fs::create_dir_all(root.path().join("guides/styled")).expect("guide");
+    fs::write(
+        root.path().join("guides/styled/config.json"),
+        r#"{
+          "schema_version": 3,
+          "slug": "styled",
+          "title": "Styled",
+          "language": "en",
+          "content": "guide.md",
+          "output": "../../output/styled.pdf",
+          "sources": ["../../sources/PD0.pdf"],
+          "style": {
+            "aesthetic": "clean",
+            "structure": "imrad",
+            "language": "en",
+            "source_language": "tr",
+            "voice": "technical",
+            "study_mode": "exam",
+            "domain": "cs",
+            "citation": "ieee"
+          }
+        }"#,
+    )
+    .expect("config");
+    fs::write(root.path().join("guides/styled/guide.md"), "# Demo").expect("content");
+
+    let guide = Guide::load(&workspace(root.path()), "styled").expect("guide");
+    assert_eq!(guide.config.schema_version, 3);
+    assert_eq!(guide.style().aesthetic, "clean");
+    assert_eq!(guide.style().structure, "imrad");
+}
+
+#[test]
+fn rejects_an_incompatible_style_profile() {
+    let root = fixture();
+    fs::create_dir_all(root.path().join("guides/bad")).expect("guide");
+    fs::write(
+        root.path().join("guides/bad/config.json"),
+        r#"{
+          "schema_version": 3,
+          "slug": "bad",
+          "title": "Bad",
+          "language": "en",
+          "content": "guide.md",
+          "output": "../../output/bad.pdf",
+          "sources": ["../../sources/PD0.pdf"],
+          "style": {
+            "aesthetic": "paper",
+            "structure": "soap",
+            "language": "en",
+            "source_language": "en",
+            "voice": "clinical",
+            "study_mode": "exam",
+            "domain": "humanities",
+            "citation": "page-ref"
+          }
+        }"#,
+    )
+    .expect("config");
+    fs::write(root.path().join("guides/bad/guide.md"), "# Demo").expect("content");
+
+    let error = Guide::load(&workspace(root.path()), "bad").expect_err("must reject");
+    assert!(error.to_string().contains("soap"));
 }
 
 #[test]

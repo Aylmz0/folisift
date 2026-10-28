@@ -5,6 +5,7 @@
 
 pub mod error;
 pub mod markdown;
+pub mod styles;
 pub mod world;
 
 use std::path::Path;
@@ -13,7 +14,13 @@ use typst::{World, WorldExt, compile};
 use typst_layout::PagedDocument;
 
 pub use error::{Error, Result};
-pub use markdown::{Frontmatter, markdown_to_typst, parse_document};
+pub use markdown::{Frontmatter, markdown_to_typst, markdown_to_typst_styled, parse_document};
+pub use styles::{LoadedStyle, StylePack, StyleStrings};
+
+/// Stable content hash used for cross-style parity checks.
+pub fn content_hash(content: &str) -> String {
+    blake3::hash(content.as_bytes()).to_hex().to_string()
+}
 
 /// Number of font faces compiled into the renderer.
 pub fn embedded_font_count() -> usize {
@@ -21,9 +28,13 @@ pub fn embedded_font_count() -> usize {
 }
 use world::TypstWorld;
 
-const TEMPLATE: &str = include_str!(concat!(
+const PAPER_TEMPLATE: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/../../templates/paper.typ"
+));
+const CLEAN_TEMPLATE: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../templates/clean.typ"
 ));
 
 pub struct RenderOptions<'a> {
@@ -34,19 +45,40 @@ pub struct RenderOptions<'a> {
     pub course: &'a str,
     pub language: &'a str,
     pub sources: &'a [String],
+    /// Style axes from the guide config; `None` means paper defaults.
+    pub style: Option<&'a folisift_core::StyleProfile>,
+    /// Workspace root for `styles/` overrides; built-ins work without it.
+    pub styles_root: Option<&'a Path>,
 }
 
 #[derive(Debug, Clone)]
 pub struct Rendered {
     pub pdf: Vec<u8>,
     pub pages: usize,
+    pub content_hash: String,
     pub warnings: Vec<String>,
 }
 
 /// Render one guide Markdown document to PDF bytes.
 pub fn render(content: &str, options: &RenderOptions<'_>) -> Result<Rendered> {
     let (frontmatter, body) = parse_document(content)?;
-    let body = markdown_to_typst(&body)?;
+    let profile = options.style.cloned().unwrap_or_default();
+    profile.validate().map_err(Error::StyleConfig)?;
+    let styles_root = options.styles_root.unwrap_or(Path::new(""));
+    let loaded = styles::load(styles_root, &profile.aesthetic)?;
+    styles::validate_profile(&loaded.pack, &profile)?;
+    let strings = styles::strings(styles_root, &loaded.pack.id, &profile.language)?;
+    let body = markdown_to_typst_styled(&body, &strings.figure, &strings.toc)?;
+    let template = match loaded.pack.layout.as_str() {
+        "paper" => PAPER_TEMPLATE,
+        "clean" => CLEAN_TEMPLATE,
+        other => {
+            return Err(Error::Style {
+                id: loaded.pack.id.clone(),
+                message: format!("unsupported layout family {other:?}"),
+            });
+        }
+    };
 
     let title = frontmatter.title.as_deref().unwrap_or(options.title);
     let subtitle = frontmatter.subtitle.as_deref().unwrap_or(options.subtitle);
@@ -80,7 +112,7 @@ pub fn render(content: &str, options: &RenderOptions<'_>) -> Result<Rendered> {
         format!("({cover_notes},)")
     };
     let source = format!(
-        "{TEMPLATE}\n\n#show: paper.with(\n  title: {},\n  subtitle: {},\n  course: {},\n  language: {},\n  sources: ({}),\n  running: {},\n  pilot: {},\n  deck: {},\n  cover_kicker: {},\n  cover_title: {},\n  cover_motif: {},\n  cover_notes: {},\n)\n\n{}",
+        "{template}\n\n#show: paper.with(\n  title: {},\n  subtitle: {},\n  course: {},\n  language: {},\n  sources: ({}),\n  running: {},\n  pilot: {},\n  deck: {},\n  cover_kicker: {},\n  cover_title: {},\n  cover_motif: {},\n  cover_notes: {},\n)\n\n{}",
         typst_string(title),
         typst_string(subtitle),
         typst_string(course),
@@ -113,6 +145,7 @@ pub fn render(content: &str, options: &RenderOptions<'_>) -> Result<Rendered> {
     Ok(Rendered {
         pdf,
         pages,
+        content_hash: content_hash(content),
         warnings,
     })
 }
