@@ -28,6 +28,7 @@
 #let source_ref(body) = box(text(
   font: "Inter",
   size: 6.9pt,
+  style: "normal",
   fill: faint,
   tracking: 0.02em,
 )[[#body]])

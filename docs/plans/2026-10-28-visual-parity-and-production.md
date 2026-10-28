@@ -3,7 +3,7 @@
 - **Status:** Phase 0–3 landed — `paper` parity at 22 pages; layout audit and doctor remain
 - **Date:** 2026-10-28
 - **Reference:** `output/old-python.pdf` (22 pages, WeasyPrint, 209 KB)
-- **Current:** `output/PD0-PD1_Calisma_Ozeti.pdf` (23 pages, Typst, 420 KB)
+- **At audit time:** `output/PD0-PD1_Calisma_Ozeti.pdf` (23 pages); now 22 pages
 - **Related:** `docs/plans/2026-10-28-roadmap.md`,
   `docs/plans/2026-10-28-style-language-profiles.md`,
   `docs/plans/2026-10-26-mcp-v0.2-plan.md`,
