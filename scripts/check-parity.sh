@@ -6,6 +6,7 @@ unset LD_PRELOAD || true
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 pdf="${1:-$root/output/PD0-PD1_Calisma_Ozeti.pdf}"
+cd "$root"
 expected_pages=22
 
 command -v pdfinfo >/dev/null

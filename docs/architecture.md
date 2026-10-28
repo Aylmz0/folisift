@@ -39,7 +39,9 @@ folisift-cli / mcp            CLI and stdio MCP tools
 1. `folisift build --guide <slug>` loads `guides/<slug>/config.json`.
 2. Paths resolve relative to the guide directory and are checked against the
    workspace root.
-3. `folisift-render` parses Markdown + YAML frontmatter + four directives.
+3. `folisift-render` parses Markdown + YAML frontmatter and the layout/content
+   directives (`front`, `toc`, `chapter`, boxes, `table`, `columns`,
+   `columnbreak`, `pagebreak`).
 4. The Typst template renders the PDF with embedded fonts.
 5. `--check` compares the inventory with the Markdown headings and section
    bodies, then writes `data/coverage.md`.
@@ -76,10 +78,12 @@ Rules:
 
 ## Content format
 
-Markdown + YAML frontmatter + `::: definition`, `::: critical`, `::: example`
-and `::: note` directives. Source references use `[PD0, s. 3]`. Figures use
+Markdown + YAML frontmatter plus `front`, `toc`, `chapter`, `definition`,
+`critical`, `example`, `note`, `table`, `columns`, `columnbreak` and
+`pagebreak` directives. Source references use `[PD0, s. 3]`. Figures use
 Markdown images; the Typst template owns numbering and captions are kept from
-the source. Raw Typst/CSS in a guide is forbidden.
+the source. Raw Typst/CSS in a guide is forbidden. The complete authoring
+surface is in `docs/authoring.md`.
 
 ## Generated artifacts
 

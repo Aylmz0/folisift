@@ -419,17 +419,21 @@
   show heading.where(level: 2): it => {
     toc_entry(level: 2, body: it.body)
     let raw = it.body.text
-    let parts = raw.split(" ")
-    let number = parts.at(0)
-    let rest = parts.slice(1).join(" ")
-    let head = if number.contains(".") and rest.len() > 0 {
-      [
-        #text(fill: brick, weight: "medium")[#number]
-        #h(2.2mm)
-        #text[#rest]
-      ]
-    } else {
+    let head = if raw == none {
       it.body
+    } else {
+      let parts = raw.split(" ")
+      let number = parts.at(0)
+      let rest = parts.slice(1).join(" ")
+      if number.contains(".") and rest.len() > 0 {
+        [
+          #text(fill: brick, weight: "medium")[#number]
+          #h(2.2mm)
+          #text[#rest]
+        ]
+      } else {
+        it.body
+      }
     }
     block(above: 7.7mm, below: 2.2mm, sticky: true)[
       #text(
