@@ -1,0 +1,16 @@
+{
+  "reference_pdf": "output/old-python.pdf",
+  "sha256": "115b97568cf4bf133f79d1f5cde30b563d640b18881e48f100947686583662ed",
+  "pages": 22,
+  "target_pages": 22,
+  "selected_pages": [1, 2, 3, 4, 5, 10, 11, 18, 19, 20, 21, 22],
+  "expectations": {
+    "sections": 13,
+    "tables": 24,
+    "figures": 4,
+    "definition_boxes": 4,
+    "critical_boxes": 4,
+    "example_boxes": 3,
+    "note_boxes": 2
+  }
+}

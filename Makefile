@@ -8,7 +8,7 @@ PAGES ?= 1
 DATA ?= guides/$(GUIDE)/data
 OUTPUT ?= output/PD0-PD1_Calisma_Ozeti.pdf
 
-.PHONY: help build check verify test fmt clippy analyze pages scaffold
+.PHONY: help build check verify test fmt clippy analyze pages scaffold parity-capture
 
 help:
 	@echo "make build      # guide PDF"
@@ -42,6 +42,9 @@ clippy:
 analyze:
 	cargo run -p folisift-cli -- analyze $(addprefix --source ,$(SOURCES)) \
 		--out $(DATA)/source.json --md $(DATA)/source.md
+
+parity-capture:
+	./scripts/capture-reference.sh
 
 pages:
 	cargo run -p folisift-cli -- render-pages --source $(SOURCE) \
