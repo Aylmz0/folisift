@@ -569,11 +569,11 @@ impl Renderer {
                     let (number, caption) = figure_parts(&image.alt);
                     let caption = match number {
                         Some(number) => format!(
-                            "#fig_label({}) #text({})",
+                            "#fig_label({}) {}",
                             typst_string(&number),
-                            typst_string(&caption)
+                            caption_typst(&caption)
                         ),
-                        None => format!("#text({})", typst_string(&caption)),
+                        None => caption_typst(&caption),
                     };
                     self.push(&format!(
                         "#figure(image({}, width: 100%), caption: [{caption}], numbering: none)\n\n",
@@ -679,6 +679,25 @@ impl Renderer {
         }
         self.out.push_str("\n\n");
     }
+}
+
+fn caption_typst(caption: &str) -> String {
+    let mut out = String::new();
+    let mut last = 0;
+    for capture in SOURCE_REF_RE.captures_iter(caption) {
+        let Some(full) = capture.get(0) else {
+            continue;
+        };
+        out.push_str(&format!(
+            "#text({}) ",
+            typst_string(&caption[last..full.start()])
+        ));
+        let body = capture.get(1).map_or("", |value| value.as_str());
+        out.push_str(&format!("#source_ref({}) ", typst_string(body)));
+        last = full.end();
+    }
+    out.push_str(&format!("#text({})", typst_string(&caption[last..])));
+    out
 }
 
 fn figure_parts(alt: &str) -> (Option<String>, String) {
