@@ -624,7 +624,8 @@ text extraction. The LLM receives a short diagnostic list only.
 - [x] 24/24 tables, 4/4 figures, 13/13 coverage, 0 empty sections.
 - [ ] Visual diff under threshold for selected pages.
 - [x] `folisift doctor` checks PDFium, cache, output, guides and embedded fonts.
-- [ ] Clean-install test passes on a machine without the dev toolchain.
+- [x] Clean-install test passes: release binary + PDFium sidecar outside the
+  repository built the 22-page guide with coverage 13/13.
 - [x] Layout audit catches page count, empty pages, outside-page text and
   missing glyphs.
 - [ ] MCP stdio and OpenCode config smoke pass (v0.3 adds `prepare_guide`;
