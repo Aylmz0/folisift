@@ -4,109 +4,133 @@
 into Turkish, paper-like, exam-oriented study guides.
 
 First guide: **BMÜ325 Programlama Dilleri, PD0–PD1** — 22 pages, 260/260
-slides. Latest release: **v0.7.3** — D2-only diagrams, diagram MCP tools and the OpenCode production loop.
+slides. Latest release: **v0.7.3** — D2-only diagrams, diagram MCP tools and
+the OpenCode production loop.
+
+## Install
+
+Linux release (recommended):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Aylmz0/folisift/main/scripts/install.sh | bash
+# ~/.local/bin/folisift and ~/.local/lib/folisift/{libpdfium.so,d2,...}
+
+folisift doctor
+```
+
+If `~/.local/bin` is not on `PATH`, add it first. The archive contains the
+binary, PDFium, D2 v0.9.0, fonts and built-in style packs. You do not need Rust,
+Python, Node or a separate D2/Graphviz installation for a normal user install.
+
+Manual archive install:
+
+```bash
+tar -xzf folisift-v0.7.3-linux-x86_64.tar.gz
+sha256sum -c folisift-v0.7.3-linux-x86_64.tar.gz.sha256
+./folisift doctor
+```
+
+The release is currently Linux-only; macOS and Windows are source builds.
+See [install](docs/install.md).
+
+## Use with OpenCode
+
+Run from the workspace that contains `sources/`, `guides/` and `output/`:
+
+```bash
+cd /path/to/your/workspace
+opencode mcp add folisift -- folisift mcp
+opencode mcp list
+```
+
+Or add the equivalent declarative config:
+
+```jsonc
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "servers": {
+      "folisift": {
+        "type": "local",
+        "command": ["folisift", "mcp"],
+        "cwd": "/absolute/path/to/your/workspace"
+      }
+    },
+  },
+}
+```
+
+`cwd` is the workspace root. The MCP server has no access to paths outside
+that workspace; keep `sources/` there. Ask OpenCode:
+
+> Use Folisift. Run `doctor`, then `prepare_guide`. Read the sources, write the
+> guide, build with the coverage gate, and audit the PDF.
+
+The MCP exposes 13 tools. The normal path is `prepare_guide` → `read_source` /
+`search_source` → host writes `guide.md` → `build_guide` → `audit`. Diagram
+authoring is optional; see [the OpenCode runbook](docs/agents/opencode-guide.md).
+
+## What a workspace looks like
+
+```text
+workspace/
+├── sources/          # local PDFs; never committed
+├── guides/
+│   └── my-course/
+│       ├── guide.md
+│       ├── config.json
+│       ├── diagrams/ # optional D2 specs
+│       ├── assets/
+│       └── data/
+├── output/           # generated PDFs
+└── styles/           # optional style overrides
+```
+
+## Common commands
+
+```bash
+folisift doctor
+folisift workspace-info
+folisift guide-status my-course
+folisift build --guide my-course --check
+folisift audit --pdf output/my-course.pdf
+folisift mcp --root /path/to/workspace
+```
+
+For diagrams, the D2 binary is bundled with the release; generate assets with:
+
+```bash
+folisift diagram build --guide my-course --id pipeline
+folisift diagram status --guide my-course
+```
+
+`folisift build` never runs D2; it embeds the generated SVG. A normal user
+does not need to touch D2.
+
+## Develop from source
+
+```bash
+cargo build --release
+cargo test
+cargo clippy --workspace --all-targets --all-features -- -D warnings
+```
+
+Put `libpdfium.so` next to the binary or set `FOLISIFT_PDFIUM_DIR`. Source
+builds need D2 v0.9.0 only for `diagram build`; `scripts/fetch-d2.sh` stages the
+pinned binary. The full command list and authoring rules are in
+[docs/authoring.md](docs/authoring.md).
 
 ## Layout
 
 ```text
-folisift/
-├── crates/          # Rust workspace
-│   ├── folisift-core/   # config, schema, paths, scaffold, version
-│   ├── folisift-parse/  # liteparse, inventory, coverage, screenshots
-│   ├── folisift-render/ # Markdown/directives → Typst → PDF
-│   ├── folisift-mcp/    # stdio MCP tools/resources/prompts
-│   └── folisift-cli/    # folisift binary
-├── templates/       # paper.typ, clean.typ and embedded OFL fonts
-├── styles/          # versioned paper/clean style packs
-├── guides/          # one bundle per course/material
-│   └── pd0-pd1/
-│       ├── guide.md
-│       ├── config.json
-│       ├── assets/
-│       └── data/
-├── docs/            # architecture, authoring, design, ADRs, plans
-├── sources/         # PDFs; local only, gitignored
-└── output/          # generated PDFs
+crates/          # Rust workspace: core, parse, render, mcp, cli
+templates/       # paper.typ, clean.typ and embedded OFL fonts
+styles/          # paper/clean style packs
+guides/          # guide bundles
+docs/            # architecture, authoring, design, ADRs, plans
+sources/         # local PDFs; gitignored
+output/          # generated PDFs
 ```
-
-## Quick start
-
-```bash
-cargo build --release
-# put libpdfium.so next to target/release/folisift, or set FOLISIFT_PDFIUM_DIR
-cargo run -p folisift-cli -- build --guide pd0-pd1 --check
-
-# Read/search bounded source text
-cargo run -p folisift-cli -- read-source --source sources/PD0.pdf --pages 1-20
-cargo run -p folisift-cli -- search-source --source sources/PD0.pdf --query TIOBE
-
-# Diagnose the environment and audit the rendered layout
-cargo run -p folisift-cli -- doctor
-cargo run -p folisift-cli -- audit --pdf output/PD0-PD1_Calisma_Ozeti.pdf --expected-pages 22
-
-# Style packs
-cargo run -p folisift-cli -- styles list
-cargo run -p folisift-cli -- styles preview clean --language en
-
-# Generate a D2 diagram asset (D2 v0.9.0; not used by MCP/build)
-cargo run -p folisift-cli -- diagram build --guide pd0-pd1 --id pipeline
-cargo run -p folisift-cli -- diagram status --guide pd0-pd1
-
-# Crop a source figure for a guide asset
-cargo run -p folisift-cli -- render-pages --source sources/PD0.pdf --pages 7 \
-  --out guides/pd0-pd1/assets/source --crop 0.12,0.08,0.76,0.40
-
-# Draft table extraction from a native-text PDF page
-cargo run -p folisift-cli -- table extract --source output/PD0-PD1_Calisma_Ozeti.pdf --page 4
-
-# Pixel-level visual regression against a committed baseline
-cargo run -p folisift-cli -- visual compare \
-  --reference tests/baselines/pd0-pd1.pdf \
-  --current output/PD0-PD1_Calisma_Ozeti.pdf \
-  --pages 1,4,8 --out data/visual --fail-on-diff
-```
-
-What v0.7 adds:
-
-- **Structure packs** — IMRAD, IRAC, SOAP, formula sheet, literature matrix,
-  lecture notes and executive brief; missing required headings fail the build.
-- **Visual contract** — one pinned D2 engine, typed diagram specs, generated
-  SVG with accessibility post-processing, table captions and ids, figure
-  provenance/alt text, no decorative stock images.
-- **Verification** — pixel baselines, bookmark destination checks, content-box,
-  orphan-heading and image-overflow audits, and a 22-page `paper` parity gate.
-- **D2 pipeline** — typed diagram specs, D2 v0.9.0 rendering in the CLI,
-  SVG accessibility post-processing and embed-only builds.
-- **OpenCode loop** — `diagram` MCP actions, schema/rules resources and the
-  production runbook in `docs/agents/opencode-guide.md`.
-
-MCP server (stdio or streamable HTTP):
-
-```bash
-folisift mcp --root /path/to/workspace
-folisift mcp --root /path/to/workspace --http 127.0.0.1:8000
-# HTTP endpoint: http://127.0.0.1:8000/mcp
-
-# Non-loopback binds require a bearer token.
-folisift mcp --root /path/to/workspace --http 0.0.0.0:8000 \
-  --http-token "$FOLISIFT_HTTP_TOKEN"
-# Requests must send: Authorization: Bearer <token>
-```
-
-Install and platform notes: `docs/install.md`.
-
-## New guide
-
-```bash
-cargo run -p folisift-cli -- scaffold \
-  --slug pd2 --title "Bölüm 2" --course "BMÜ325" \
-  --style paper --structure a-g --language tr --domain cs \
-  --source sources/PD2.pdf
-```
-
-The MCP `prepare_guide` tool is the default entry point: it analyzes the
-sources, creates the same bundle and returns the read/write plan in one call.
-`scaffold_guide` remains for granular recovery.
 
 ## Source PDF policy
 
@@ -115,24 +139,12 @@ Place them under `sources/` manually on a new machine. The repository can be
 made public; evaluate the rights of the derivative PDFs under `output/`
 separately.
 
-## Requirements
-
-- Rust 1.92+
-- PDFium shared library: `libpdfium.so` (Linux), `libpdfium.dylib` (macOS) or
-  `pdfium.dll` (Windows), installed next to the binary.
-- No Python, Poppler, WeasyPrint or system Typst installation.
-
 ## Documentation
 
+- [Install and platforms](docs/install.md)
 - [Architecture](docs/architecture.md)
 - [Authoring](docs/authoring.md)
 - [Authoring specification](docs/authoring-spec.md)
 - [Structure packs](docs/structures.md)
-- [Diagram engine evaluation](docs/diagram-engine-evaluation.md)
-- [Design system](docs/design-system.md)
-- [ADRs](docs/adr/)
-- [Plans](docs/plans/)
-- [Versions](docs/VERSIONS.md)
-- [Agent configuration](docs/agents/)
-- [Agent operating rules](AGENTS.md)
-- [Domain context](CONTEXT.md)
+- [Diagram engine decision](docs/diagram-engine-evaluation.md)
+- [OpenCode production loop](docs/agents/opencode-guide.md)
