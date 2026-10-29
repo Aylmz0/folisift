@@ -4,7 +4,7 @@
 into Turkish, paper-like, exam-oriented study guides.
 
 First guide: **BMÜ325 Programlama Dilleri, PD0–PD1** — 22 pages, 260/260
-slides. Latest release: **v0.7.3** — D2-only diagrams, diagram MCP tools and
+slides. Latest release: **v0.8.0** — MCP response-shape fix, D2-only diagrams and
 the OpenCode production loop.
 
 ## Install
@@ -25,8 +25,8 @@ Python, Node or a separate D2/Graphviz installation for a normal user install.
 Manual archive install:
 
 ```bash
-tar -xzf folisift-v0.7.3-linux-x86_64.tar.gz
-sha256sum -c folisift-v0.7.3-linux-x86_64.tar.gz.sha256
+tar -xzf folisift-v0.8.0-linux-x86_64.tar.gz
+sha256sum -c folisift-v0.8.0-linux-x86_64.tar.gz.sha256
 ./folisift doctor
 ```
 

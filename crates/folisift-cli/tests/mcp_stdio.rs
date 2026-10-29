@@ -95,6 +95,46 @@ fn mcp_stdio_lists_tools() {
         assert!(tools.contains(&expected), "missing {expected}");
     }
 
+    writeln!(
+        stdin,
+        "{}",
+        serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": 20,
+            "method": "tools/call",
+            "params": {"name": "list_guides", "arguments": {}}
+        })
+    )
+    .expect("write list guides");
+    stdin.flush().expect("flush list guides");
+    line.clear();
+    reader.read_line(&mut line).expect("read list guides");
+    let response: serde_json::Value = serde_json::from_str(&line).expect("list guides JSON");
+    assert!(
+        response["result"]["structuredContent"]["guides"].is_array(),
+        "{response}"
+    );
+
+    writeln!(
+        stdin,
+        "{}",
+        serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": 21,
+            "method": "tools/call",
+            "params": {"name": "style", "arguments": {"action": "list"}}
+        })
+    )
+    .expect("write style list");
+    stdin.flush().expect("flush style list");
+    line.clear();
+    reader.read_line(&mut line).expect("read style list");
+    let response: serde_json::Value = serde_json::from_str(&line).expect("style list JSON");
+    assert!(
+        response["result"]["structuredContent"]["styles"].is_array(),
+        "{response}"
+    );
+
     let spec = serde_json::json!({
         "schema_version": 2,
         "id": "pipeline",

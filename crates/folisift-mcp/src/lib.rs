@@ -185,8 +185,9 @@ impl FolisiftServer {
     )]
     fn list_guides(&self) -> Result<Json<Value>, String> {
         let guides = list_guides(&self.workspace).map_err(|error| error.to_string())?;
-        let value = serde_json::to_value(guides).map_err(|error| error.to_string())?;
-        Ok(Json(value))
+        // MCP `structuredContent` must be a JSON object; a bare array is
+        // rejected by strict clients such as OpenCode V2.
+        Ok(Json(json!({ "guides": guides })))
     }
 
     #[tool(
@@ -409,7 +410,9 @@ impl FolisiftServer {
             "list" => {
                 let packs =
                     styles::list(self.workspace.root()).map_err(|error| error.to_string())?;
-                Ok(Json(json!(packs)))
+                // MCP `structuredContent` must be a JSON object; a bare array is
+                // rejected by strict clients such as OpenCode V2.
+                Ok(Json(json!({ "styles": packs })))
             }
             "info" => {
                 let id = params.id.ok_or("info requires id")?;
