@@ -83,7 +83,9 @@ runtime we can actually ship**.
 
 ### Graphviz
 
-Same DOT input, five runs, Graphviz 14.1.4:
+Same DOT input, five runs, locally installed Graphviz 14.1.4. The current
+stable release at the time of research is 16.1.0; CI/release must pin 16.1.0
+and repeat this test, because layout can change between major versions.
 
 ```text
 327c7738bf50debd0d88828394cab1d0d0205da3a2c5576fdd8655fc808f2bf8
