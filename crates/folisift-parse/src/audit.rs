@@ -27,6 +27,7 @@ pub struct LayoutAudit {
     pub page_count_ok: bool,
     pub empty_pages: Vec<usize>,
     pub overflow_pages: Vec<usize>,
+    pub content_box_pages: Vec<usize>,
     pub missing_glyphs: usize,
     pub tagged: bool,
     pub bookmarks: usize,
@@ -58,6 +59,7 @@ pub fn audit_pdf(path: &Path, expected_pages: Option<usize>) -> Result<LayoutAud
     let mut page_reports = Vec::with_capacity(pages);
     let mut empty_pages = Vec::new();
     let mut overflow_pages = Vec::new();
+    let mut content_box_pages = Vec::new();
     let mut missing_glyphs = 0usize;
     let mut min_font_size = f64::MAX;
 
@@ -74,6 +76,7 @@ pub fn audit_pdf(path: &Path, expected_pages: Option<usize>) -> Result<LayoutAud
         })?;
 
         let mut chars = 0usize;
+        let mut content_overflow = false;
         let (mut left, mut top, mut right, mut bottom) = (f64::MAX, f64::MAX, f64::MIN, f64::MIN);
         for index in 0..text.char_count() {
             let Some(character) = text.char_at(index) else {
@@ -92,11 +95,32 @@ pub fn audit_pdf(path: &Path, expected_pages: Option<usize>) -> Result<LayoutAud
             if size > 0.0 {
                 min_font_size = min_font_size.min(size);
             }
-            if let Some(rect) = text.rect(index) {
-                left = left.min(rect.left);
-                top = top.min(rect.top);
-                right = right.max(rect.right);
-                bottom = bottom.max(rect.bottom);
+            let rect = text
+                .rect(index)
+                .map(|rect| (rect.left, rect.top, rect.right, rect.bottom))
+                .or_else(|| {
+                    character
+                        .char_box()
+                        .map(|bbox| (bbox.left, bbox.top, bbox.right, bbox.bottom))
+                })
+                .or_else(|| {
+                    character.origin().map(|(x, y)| {
+                        let size = character.font_size();
+                        (x, y, x + size * 0.6, y + size)
+                    })
+                });
+            if let Some((x1, y1, x2, y2)) = rect {
+                left = left.min(x1);
+                top = top.min(y1);
+                right = right.max(x2);
+                bottom = bottom.max(y2);
+                // Ignore header/footer bands; check the body against the
+                // paper margins (16.5 mm sides, 16 mm top, 14 mm bottom).
+                let in_body = y1 > 52.0 && y2 < height - 45.0;
+                let margin_x = 46.0;
+                if in_body && (x1 < margin_x - 1.0 || x2 > width - margin_x + 1.0) {
+                    content_overflow = true;
+                }
             }
         }
 
@@ -108,6 +132,9 @@ pub fn audit_pdf(path: &Path, expected_pages: Option<usize>) -> Result<LayoutAud
         }
         if overflow {
             overflow_pages.push(index + 1);
+        }
+        if content_overflow {
+            content_box_pages.push(index + 1);
         }
         page_reports.push(PageAudit {
             page: index + 1,
@@ -135,6 +162,11 @@ pub fn audit_pdf(path: &Path, expected_pages: Option<usize>) -> Result<LayoutAud
     if !overflow_pages.is_empty() {
         issues.push(format!("text outside page: {overflow_pages:?}"));
     }
+    if !content_box_pages.is_empty() {
+        issues.push(format!(
+            "text outside the content box: {content_box_pages:?}"
+        ));
+    }
     if missing_glyphs > 0 {
         issues.push(format!("missing glyphs: {missing_glyphs}"));
     }
@@ -156,6 +188,7 @@ pub fn audit_pdf(path: &Path, expected_pages: Option<usize>) -> Result<LayoutAud
         page_count_ok,
         empty_pages,
         overflow_pages,
+        content_box_pages,
         missing_glyphs,
         tagged,
         bookmarks,

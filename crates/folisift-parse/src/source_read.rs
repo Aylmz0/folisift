@@ -40,6 +40,8 @@ pub struct SearchSourceResult {
     pub hits: Vec<SearchHit>,
     pub searched_pages: usize,
     pub low_text_pages: Vec<usize>,
+    pub low_text_total: usize,
+    pub low_text_truncated: bool,
     pub truncated: bool,
     pub cache_hit: bool,
     pub hint: Option<String>,
@@ -100,10 +102,10 @@ pub fn read_from_source(
             next_pages = Some(format!("{page_number}"));
             break;
         }
-        let text = if page.text.len() > remaining {
+        let text = if page.text.chars().count() > remaining {
             truncated = true;
             next_pages = Some(format!("{page_number}"));
-            truncate_chars(&page.text, remaining.max(1))
+            truncate_chars(&page.text, remaining.saturating_sub(1).max(1))
         } else {
             page.text.clone()
         };
@@ -111,7 +113,7 @@ pub fn read_from_source(
             .chars()
             .filter(|character| !character.is_whitespace())
             .count();
-        used += overhead + text.len();
+        used += overhead + text.chars().count();
         selected.push(PageText {
             page: page.page,
             chars,
@@ -193,12 +195,19 @@ pub fn search_from_source(
         });
     }
 
-    let low_text_pages = source
+    let all_low_text_pages = source
         .pages
         .iter()
         .filter(|page| page.chars < LOW_TEXT_THRESHOLD)
         .map(|page| page.page)
         .collect::<Vec<_>>();
+    let low_text_total = all_low_text_pages.len();
+    let low_text_pages = all_low_text_pages
+        .iter()
+        .copied()
+        .take(40)
+        .collect::<Vec<_>>();
+    let low_text_truncated = low_text_total > low_text_pages.len();
     let truncated = total > hits.len();
     let hint = if truncated {
         Some(format!(
@@ -221,6 +230,8 @@ pub fn search_from_source(
         hits,
         searched_pages: source.pages.len(),
         low_text_pages,
+        low_text_total,
+        low_text_truncated,
         truncated,
         cache_hit: source.cache_hit,
         hint,
@@ -312,6 +323,15 @@ mod tests {
     #[test]
     fn rejects_out_of_range_pages() {
         assert!(read_from_source(&source(), Some("9"), None).is_err());
+    }
+
+    #[test]
+    fn counts_characters_not_bytes() {
+        let mut source = source();
+        source.pages[0].text = "ğ".repeat(1_200);
+        let result = read_from_source(&source, Some("1"), Some(1_000)).expect("read");
+        assert!(result.truncated);
+        assert!(result.chars <= 1_000);
     }
 
     #[test]

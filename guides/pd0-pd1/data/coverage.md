@@ -25,7 +25,7 @@ Alt bölüm: **5** · Düşük metinli slayt: **40**
 | 1.5 Dil Kategorileri | 72 | OK | 2326 | ## 1.5 Dil kategorileri ve programlama paradigmaları |
 | 1.6 Dil Tasarımında Verilen Ödünler | 105 | OK | 785 | ## 1.6 Dil tasarımında verilen ödünler |
 | 1.7 İmplementasyon Metotları | 108 | OK | 2695 | ## 1.7 İmplementasyon yöntemleri |
-| 1.8 Programlama Platformları | 132 | OK | 11004 | ## 1.8 Programlama platformları |
+| 1.8 Programlama Platformları | 132 | OK | 11015 | ## 1.8 Programlama platformları |
 
 Alt bölüm: **8** · Düşük metinli slayt: **15**
 

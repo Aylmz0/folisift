@@ -345,7 +345,7 @@ pub fn list_guides(workspace: &Workspace) -> Result<Vec<GuideSummary>> {
                     language: style.language,
                     output: guide.config.output,
                     sources: guide.sources.len(),
-                    content_words: content.split_whitespace().count(),
+                    content_words: prose_words(&content),
                     section_count: content
                         .lines()
                         .filter(|line| line.trim_start().starts_with("## "))
@@ -454,6 +454,22 @@ fn validate_target_pages(range: &str) -> Result<()> {
         }
     }
     Ok(())
+}
+
+fn prose_words(markdown: &str) -> usize {
+    markdown
+        .lines()
+        .map(str::trim)
+        .filter(|line| {
+            !line.is_empty()
+                && !line.starts_with('#')
+                && !line.starts_with('|')
+                && !line.starts_with(":::")
+                && !line.starts_with("```")
+                && !line.starts_with("---")
+        })
+        .map(|line| line.split_whitespace().count())
+        .sum()
 }
 
 fn read_title(path: &Path) -> Option<String> {

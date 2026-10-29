@@ -39,8 +39,9 @@ folisift-cli / mcp            CLI and stdio MCP tools
 1. `folisift build --guide <slug>` loads `guides/<slug>/config.json`.
 2. Paths resolve relative to the guide directory and are checked against the
    workspace root.
-3. `folisift-render` resolves the style pack (`styles/<id>/`) and parses
-   Markdown + YAML frontmatter and the layout/content
+3. `folisift-render` resolves the style pack (`styles/<id>/`), compiles
+   `diagram` specs to SVG, and parses Markdown + YAML frontmatter and the
+   layout/content
    directives (`front`, `toc`, `chapter`, boxes, `table`, `columns`,
    `columnbreak`, `pagebreak`).
 4. The Typst template renders the PDF with embedded fonts.

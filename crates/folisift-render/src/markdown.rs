@@ -68,8 +68,11 @@ pub fn parse_document(input: &str) -> Result<(Frontmatter, String)> {
 struct RenderConfig {
     table_widths: Option<Vec<String>>,
     table_kind: Option<String>,
+    table_caption: Option<String>,
+    table_source: Option<String>,
     figure_label: String,
     toc_label: String,
+    table_label: String,
 }
 
 impl Default for RenderConfig {
@@ -77,14 +80,18 @@ impl Default for RenderConfig {
         Self {
             table_widths: None,
             table_kind: None,
+            table_caption: None,
+            table_source: None,
             figure_label: "Şekil".to_string(),
             toc_label: "İÇİNDEKİLER".to_string(),
+            table_label: "Tablo".to_string(),
         }
     }
 }
 
 /// Convert guide Markdown to Typst content.
 pub fn markdown_to_typst(markdown: &str) -> Result<String> {
+    lint_markdown(markdown)?;
     markdown_to_typst_with(markdown, &RenderConfig::default())
 }
 
@@ -94,11 +101,22 @@ pub fn markdown_to_typst_styled(
     figure_label: &str,
     toc_label: &str,
 ) -> Result<String> {
+    markdown_to_typst_styled_with_table(markdown, figure_label, toc_label, "Tablo")
+}
+
+pub fn markdown_to_typst_styled_with_table(
+    markdown: &str,
+    figure_label: &str,
+    toc_label: &str,
+    table_label: &str,
+) -> Result<String> {
+    lint_markdown(markdown)?;
     markdown_to_typst_with(
         markdown,
         &RenderConfig {
             figure_label: figure_label.to_string(),
             toc_label: toc_label.to_string(),
+            table_label: table_label.to_string(),
             ..RenderConfig::default()
         },
     )
@@ -231,10 +249,25 @@ fn markdown_to_typst_with(markdown: &str, config: &RenderConfig) -> Result<Strin
                 "table" => {
                     let mut table_config = config.clone();
                     table_config.table_widths = match attr(&attrs, "widths") {
-                        Some(widths) => Some(parse_widths(widths, start_line)?),
+                        Some(widths) => {
+                            let widths = parse_widths(widths, start_line)?;
+                            let columns = markdown_table_columns(&inner_markdown);
+                            if columns > 0 && widths.len() != columns {
+                                return Err(Error::Markdown {
+                                    line: start_line,
+                                    message: format!(
+                                        "table widths has {} values but the table has {columns} columns",
+                                        widths.len()
+                                    ),
+                                });
+                            }
+                            Some(widths)
+                        }
                         None => None,
                     };
                     table_config.table_kind = attr(&attrs, "kind").map(ToString::to_string);
+                    table_config.table_caption = attr(&attrs, "caption").map(ToString::to_string);
+                    table_config.table_source = attr(&attrs, "source").map(ToString::to_string);
                     out.push_str(&markdown_to_typst_with(&inner_markdown, &table_config)?);
                 }
                 other => {
@@ -297,6 +330,16 @@ fn chapter_call(attrs: &BTreeMap<String, String>) -> String {
     format!("#chapter({})", args.join(", "))
 }
 
+fn markdown_table_columns(markdown: &str) -> usize {
+    for line in markdown.lines() {
+        let trimmed = line.trim();
+        if trimmed.starts_with('|') {
+            return trimmed.trim_matches('|').split('|').count();
+        }
+    }
+    0
+}
+
 fn parse_widths(value: &str, line: usize) -> Result<Vec<String>> {
     let widths = value
         .split([',', ' '])
@@ -323,6 +366,41 @@ fn parse_widths(value: &str, line: usize) -> Result<Vec<String>> {
         });
     }
     Ok(widths)
+}
+
+fn lint_markdown(markdown: &str) -> Result<()> {
+    let mut fenced_typst = false;
+    for (index, line) in markdown.lines().enumerate() {
+        let trimmed = line.trim();
+        if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
+            let language = trimmed.trim_start_matches(['`', '~']).trim().to_lowercase();
+            fenced_typst = language == "typst";
+            if fenced_typst {
+                return Err(Error::Markdown {
+                    line: index + 1,
+                    message: "raw Typst is not allowed in guide content; use directives"
+                        .to_string(),
+                });
+            }
+            continue;
+        }
+        if fenced_typst {
+            continue;
+        }
+        if ["#let ", "#set ", "#show ", "#import ", "#include "]
+            .iter()
+            .any(|prefix| trimmed.starts_with(prefix))
+            || trimmed.contains("<style")
+            || trimmed.contains("<script")
+            || trimmed.starts_with("@page")
+        {
+            return Err(Error::Markdown {
+                line: index + 1,
+                message: "raw Typst/HTML/CSS is not allowed in guide content".to_string(),
+            });
+        }
+    }
+    Ok(())
 }
 
 fn directive_start(line: &str) -> Option<(&str, &str)> {
@@ -442,7 +520,10 @@ struct Renderer {
     code_lang: String,
     table_widths: Option<Vec<String>>,
     table_kind: Option<String>,
+    table_caption: Option<String>,
+    table_source: Option<String>,
     figure_label: String,
+    table_label: String,
 }
 
 impl Renderer {
@@ -457,7 +538,10 @@ impl Renderer {
             code_lang: String::new(),
             table_widths: config.table_widths.clone(),
             table_kind: config.table_kind.clone(),
+            table_caption: config.table_caption.clone(),
+            table_source: config.table_source.clone(),
             figure_label: config.figure_label.clone(),
+            table_label: config.table_label.clone(),
         }
     }
 
@@ -707,8 +791,14 @@ impl Renderer {
         if facts {
             self.out.push_str(&facts_typst(&rows));
         } else {
-            self.out
-                .push_str(&table_typst(&header, &rows, self.table_widths.as_deref()));
+            self.out.push_str(&table_typst(
+                &header,
+                &rows,
+                self.table_widths.as_deref(),
+                self.table_caption.as_deref(),
+                self.table_source.as_deref(),
+                &self.table_label,
+            ));
         }
         self.out.push_str("\n\n");
     }
@@ -747,7 +837,14 @@ fn figure_parts(alt: &str) -> (Option<String>, String) {
     }
 }
 
-fn table_typst(header: &[String], rows: &[Vec<String>], widths: Option<&[String]>) -> String {
+fn table_typst(
+    header: &[String],
+    rows: &[Vec<String>],
+    widths: Option<&[String]>,
+    caption: Option<&str>,
+    source: Option<&str>,
+    table_label: &str,
+) -> String {
     let columns = header
         .len()
         .max(rows.iter().map(Vec::len).max().unwrap_or(0))
@@ -774,7 +871,17 @@ fn table_typst(header: &[String], rows: &[Vec<String>], widths: Option<&[String]
         .collect();
     out.push_str(&format!("  rows: {},\n", array_literal(row_literals)));
     out.push(')');
-    out
+    if caption.is_some() || source.is_some() {
+        let caption = caption.map_or_else(|| "none".to_string(), typst_string);
+        let source = source.map_or_else(|| "none".to_string(), typst_string);
+        format!(
+            "#table_block(caption: {caption}, source: {source}, label: {})[{}]",
+            typst_string(table_label),
+            out
+        )
+    } else {
+        out
+    }
 }
 
 fn facts_typst(rows: &[Vec<String>]) -> String {
@@ -848,6 +955,15 @@ mod tests {
     }
 
     #[test]
+    fn rejects_mismatched_table_widths() {
+        let error = markdown_to_typst(
+            "::: table widths=\"20,80\"\n| A | B | C |\n|---|---|---|\n| 1 | 2 | 3 |\n:::\n",
+        )
+        .expect_err("must reject");
+        assert!(error.to_string().contains("3 columns"));
+    }
+
+    #[test]
     fn renders_table_widths() {
         let typst =
             markdown_to_typst("::: table widths=\"5,95\"\n| A | B |\n|---|---|\n| 1 | 2 |\n:::\n")
@@ -889,6 +1005,17 @@ mod tests {
     }
 
     #[test]
+    fn renders_table_metadata() {
+        let typst = markdown_to_typst(
+            "::: table caption=\"Derleme\" source=\"PD0, s. 106\" widths=\"20,80\"\n| A | B |\n|---|---|\n| 1 | 2 |\n:::\n",
+        )
+        .expect("typst");
+        assert!(typst.contains("#table_block(caption: \"Derleme\""));
+        assert!(typst.contains("source: \"PD0, s. 106\""));
+        assert!(typst.contains("label: \"Tablo\""));
+    }
+
+    #[test]
     fn renders_facts_table() {
         let typst = markdown_to_typst(
             "::: table kind=\"facts\"\n|  |  |\n|---|---|\n| Kaynaklar | PD0 |\n:::\n",
@@ -902,6 +1029,16 @@ mod tests {
     fn rejects_stray_closing_directive() {
         let error = markdown_to_typst(":::\n").expect_err("must reject");
         assert!(matches!(error, Error::Markdown { .. }));
+    }
+
+    #[test]
+    fn rejects_raw_typst_and_html() {
+        let typst = markdown_to_typst("#let x = 1\n").expect_err("must reject");
+        assert!(typst.to_string().contains("raw Typst"));
+        let html = markdown_to_typst("<style>body{}</style>\n").expect_err("must reject");
+        assert!(html.to_string().contains("raw Typst/HTML/CSS"));
+        let fenced = markdown_to_typst("```typst\n#let x = 1\n```\n").expect_err("must reject");
+        assert!(fenced.to_string().contains("raw Typst"));
     }
 
     #[test]

@@ -74,6 +74,27 @@
   )
 }
 
+#let table_block(caption: none, source: none, label: "Tablo", body) = block(
+  breakable: false,
+  above: 3mm,
+  below: 4mm,
+)[
+  #if caption != none [
+    #context {
+      counter("table").step()
+      block(above: 0pt, below: 1.5mm)[
+        #text(font: "Inter", size: 7.8pt, weight: "semibold", fill: ink)[#label #counter("table").display()]
+        #text(font: "Inter", size: 7.8pt, fill: ink)[ #caption]
+      ]
+    }
+  ]
+  #body
+  #if source != none [
+    #v(1mm)
+    #text(font: "Inter", size: 6.9pt, fill: faint)[#source]
+  ]
+]
+
 // ---- tables -------------------------------------------------------------
 #let data_table(columns: 1, header: (), rows: (), widths: none) = {
   let cols = if widths == none or widths.len() == 0 { columns } else { widths }
