@@ -123,6 +123,12 @@ fn embeds_a_prebuilt_diagram_and_rejects_inline_blocks() {
         groups: Vec::new(),
     };
     folisift_render::diagram::write_spec(root.path(), &spec).expect("spec");
+    folisift_render::diagram::write_d2_source(
+        root.path(),
+        &spec,
+        &folisift_render::diagram::DiagramTheme::default(),
+    )
+    .expect("d2 source");
     let svg = r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 20"><title>Compiler pipeline</title><desc>Source program flows through stages.</desc><text>Lexical analysis</text></svg>"#;
     let svg_hash = blake3::hash(svg.as_bytes()).to_hex().to_string();
     folisift_render::diagram::write_asset(root.path(), &svg_hash, svg).expect("asset");
@@ -142,6 +148,7 @@ fn embeds_a_prebuilt_diagram_and_rejects_inline_blocks() {
         layout: "tala".to_string(),
         salt: folisift_render::diagram::salt(&spec_sha),
         fonts: vec!["Inter-Regular.ttf".to_string()],
+        font_digest: "test".to_string(),
         postprocess_version: POSTPROCESS_VERSION,
     };
     folisift_render::diagram::write_manifest(root.path(), &manifest).expect("manifest");

@@ -25,8 +25,16 @@ if [ -z "${D2}" ] && [ -x "target/package/d2-v0.9.0/bin/d2" ]; then
 fi
 if [ -n "${D2}" ] && [ -x "${D2}" ]; then
   cp "${D2}" "$STAGE/d2"
+  if [ -f target/package/D2-LICENSE.txt ]; then
+    cp target/package/D2-LICENSE.txt "$STAGE/D2-LICENSE.txt"
+  elif [ -f target/package/d2-v0.9.0/LICENSE.txt ]; then
+    cp target/package/d2-v0.9.0/LICENSE.txt "$STAGE/D2-LICENSE.txt"
+  fi
+elif [ "${ALLOW_NO_D2:-0}" = "1" ]; then
+  echo "warning: D2 not found; archive has no diagram engine (ALLOW_NO_D2=1)" >&2
 else
-  echo "warning: D2 not found; archive has no diagram engine (set FOLISIFT_D2 or run scripts/fetch-d2.sh)" >&2
+  echo "error: D2 is required for a complete archive; set FOLISIFT_D2 or run scripts/fetch-d2.sh" >&2
+  exit 1
 fi
 
 PDFIUM="${FOLISIFT_PDFIUM_DIR:-target/release/deps}"

@@ -161,12 +161,16 @@ fn build_one(
     force: bool,
 ) -> CliResult<Value> {
     let fonts = font_dir(workspace)?;
+    let font_digest = font_digest(&fonts)?;
     let spec_sha = diagram::spec_hash(spec)?;
     let manifest_path = diagram::manifest_path(&guide.dir, &spec.id);
     if !force && let Some(manifest) = diagram::read_manifest(&guide.dir, &spec.id)? {
         let svg_path = diagram::safe_asset_path(&guide.dir, &manifest.svg)?;
-        let valid = manifest.spec_sha256 == spec_sha
+        let d2_source_exists = diagram::d2_path(&guide.dir, &spec.id).is_file();
+        let valid = d2_source_exists
+            && manifest.spec_sha256 == spec_sha
             && manifest.d2_version == D2_VERSION
+            && manifest.font_digest == font_digest
             && manifest.postprocess_version == POSTPROCESS_VERSION
             && std::fs::read(&svg_path)
                 .map(|bytes| blake3::hash(&bytes).to_hex().to_string() == manifest.svg_sha256)
@@ -268,6 +272,7 @@ fn build_one(
             "Inter-SemiBold.ttf".to_string(),
             "NotoSansMono-Regular.ttf".to_string(),
         ],
+        font_digest: font_digest.clone(),
         postprocess_version: POSTPROCESS_VERSION,
     };
     let manifest_path = diagram::write_manifest(&guide.dir, &manifest)?;
@@ -278,6 +283,22 @@ fn build_one(
         "svg_sha256": svg_hash,
         "manifest": manifest_path.display().to_string(),
     }))
+}
+
+fn font_digest(fonts: &Path) -> CliResult<String> {
+    let mut bytes = Vec::new();
+    for name in [
+        "Inter-Regular.ttf",
+        "Inter-Bold.ttf",
+        "Inter-Italic.ttf",
+        "Inter-SemiBold.ttf",
+        "NotoSansMono-Regular.ttf",
+    ] {
+        let data = std::fs::read(fonts.join(name))?;
+        bytes.extend_from_slice(name.as_bytes());
+        bytes.extend_from_slice(&data);
+    }
+    Ok(blake3::hash(&bytes).to_hex().to_string())
 }
 
 fn font_dir(workspace: &Workspace) -> CliResult<PathBuf> {
