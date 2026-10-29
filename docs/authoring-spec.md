@@ -1,5 +1,10 @@
 # MASTER STUDY-GUIDE SPECIFICATION — v2
 
+> **Evidence note (2026-10-29).** The learning, note-taking, summarization,
+> visual and accessibility basis for these rules is documented in
+> [`docs/authoring-evidence.md`](authoring-evidence.md). It is
+> evidence-informed, not a claim of proven product-level learning gains.
+
 > **v3 implementation note (2026-10-26).** The A–G structure, coverage,
 > accuracy and terminology rules below remain normative. The implementation
 > writes `guide.md` (Markdown + YAML frontmatter + `front`, `toc`, `chapter`,
@@ -7,6 +12,13 @@
 > `pagebreak` directives) and renders it with Typst. Commands and HTML
 > details in this file are historical; use `docs/authoring.md`,
 > `docs/architecture.md` and ADR-0007 for the current workflow.
+
+> **v0.9 quality note (2026-10-29).** Fixed page targets are being replaced by
+> a computed `page_range`; length is an output of canonical sections, source
+> density, examples, tables and meaningful visuals, not a target to pad. The
+> visual-audit manifest, canonical coverage and evidence-based components are
+> specified in
+> [`docs/plans/2026-10-29-guide-quality-visual-coverage-and-style-selection.md`](plans/2026-10-29-guide-quality-visual-coverage-and-style-selection.md).
 # Reusable prompt + production contract for university exam study guides.
 # Fill the CONFIG block for each course, then give this file to the agent.
 # The guide itself must be written in Turkish.

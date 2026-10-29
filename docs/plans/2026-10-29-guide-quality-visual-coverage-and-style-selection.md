@@ -14,8 +14,9 @@
   `docs/plans/2026-10-28-visual-parity-and-production.md`,
   `docs/plans/2026-10-29-production-hardening-and-visuals.md`,
   `docs/plans/2026-10-29-d2-pipeline-and-opencode-automation.md`,
-  `docs/authoring-spec.md`, `docs/design-system.md`,
-  `docs/agents/opencode-guide.md`, ADR-0004, ADR-0007, ADR-0010
+  `docs/authoring-spec.md`, `docs/authoring-evidence.md`,
+  `docs/design-system.md`, `docs/agents/opencode-guide.md`,
+  ADR-0004, ADR-0007, ADR-0010
 
 ## 1. Executive summary
 
@@ -463,6 +464,63 @@ The plan is to make the choice explicit:
 6. Apply `domain_profile.structure_default` only when the user did not choose a
    structure; warn when the domain default conflicts with an explicit choice.
 
+### 6.5 Evidence basis and dynamic adaptation
+
+The normative evidence base is `docs/authoring-evidence.md`. It is deliberately
+not a claim that Folisift is “scientifically proven”. It maps principles to
+guide components and states the limits.
+
+Key conclusions that must change the product:
+
+- **Retrieval practice and distributed practice are the strongest general
+  techniques** in the Dunlosky et al. review. A guide that only condenses text
+  is not an optimal study system. Add optional recall prompts and a short review
+  schedule.
+- **Summarization is rated low utility as a standalone study technique** in that
+  review. It can support comprehension when taught with macrorules, but it must
+  not be the only learning mechanism. The guide needs examples, comparisons,
+  diagrams, self-explanation prompts and retrieval.
+- **Self-explanation and interleaving are moderate-utility** techniques. Add
+  content-specific “why/how/what-if” prompts and mixed comparison examples,
+  not generic study advice.
+- **Note-taking has a small encoding effect; review matters more.** The guide
+  is an external-storage artifact, so it must be reviewable: clear structure,
+  cue boxes, concise summaries, retrieval prompts.
+- **Multimedia principles are not “more pictures”.** Coherence, signaling,
+  segmenting, spatial contiguity and dual coding support meaningful diagrams;
+  decorative visuals add load.
+- **Accessibility is a floor.** WCAG 2.2/PDF-UA checks, 12 pt+ for accessible
+  styles, contrast, alt text and tagged PDF are required.
+
+The system must adapt to the source, learner and requested output:
+
+```text
+source profile  →  learner profile  →  output profile  →  decision rules
+     │                    │                   │                  │
+  type, units,       study mode,        structure, style,     page_range,
+  density, visual    prior knowledge,   visual budget,        component mix,
+  load, text layer   time, access       citation              retrieval mode
+```
+
+Rules:
+
+- Replace fixed `target_pages` with a computed `page_range`; length is an output
+  of canonical sections, concept density, examples, tables and high-value
+  visuals, not a target to pad.
+- Short outputs use `executive-brief`/`formula-sheet`/`lecture-notes`; long
+  outputs use A–G or volume sets. Do not force a 22-page template onto every
+  PDF.
+- If the source is small, the guide is shorter. If it is large, split volumes
+  or switch to reference mode. Never shrink type below the accessibility floor.
+- The host LLM may override a default, but must record `style_rationale`,
+  `structure_rationale` and the source/learner profile used.
+- Add short/medium/long regression fixtures so the engine proves it can adapt,
+  not just produce one 22-page shape.
+
+These heuristics are project hypotheses. Calibrate them with expert review and
+the user evaluation in `docs/authoring-evidence.md`; do not present them as
+universal scientific constants.
+
 ## 7. New plan
 
 ### Workstream A — Visual coverage contract (P0)
@@ -842,9 +900,127 @@ completion of this plan unless the visual manifest, canonical coverage,
 underfilled-page gate and style decision are also addressed. A guide with four
 new diagrams and an unverified 13/20 coverage is not production-ready.
 
-### Workstream F — Tests, docs and release
+### Workstream F — Evidence-based learning design and dynamic adaptation (P0/P1)
 
-**F1. Fixtures.**
+**F1. Make the evidence base normative.**
+
+`docs/authoring-evidence.md` is the reference. Update
+`docs/authoring-spec.md` to map every guide component to its evidence basis and
+to state the limits (summarization is not a standalone high-utility technique;
+visuals must be meaningful; note review matters).
+
+**F2. Add source, learner and output profiles.**
+
+`prepare_guide` returns:
+
+```json
+{
+  "source_profile": {
+    "source_type": "slides",
+    "units": {"pages": 103, "words": 6448, "sections": 20},
+    "low_text_pages": 9,
+    "visual_load": "medium",
+    "text_layer": "native",
+    "structure_clarity": "explicit"
+  },
+  "learner_profile": {
+    "study_mode": "exam",
+    "prior_knowledge": "intermediate",
+    "time_budget": "standard",
+    "accessibility": "standard"
+  },
+  "output_profile": {
+    "structure": "a-g",
+    "style": "paper",
+    "page_range": [20, 26],
+    "visual_budget": "high-priority targets mandatory",
+    "component_mix": {
+      "worked_examples": "high",
+      "diagrams": "high",
+      "recall_prompts": "optional"
+    }
+  }
+}
+```
+
+The host must confirm or override the output profile and record the rationale.
+
+Source-adaptation rules:
+
+- `text_layer=none`: every page is a visual target. Coverage cannot pass from
+  absent text; the host must render/vision-read pages, record the disposition
+  and list unreadable pages in G.
+- `structure_clarity=none`: build a canonical outline from page ranges or an
+  explicit manual map; require `origin: "manual"` and human review. Never invent
+  section numbers that the source does not support.
+- `source_type=scanned`: use OCR/vision as a recorded method; do not claim text
+  extraction.
+- `domain_hint` is a hint, not a confident auto-classifier. Default to
+  `general` when uncertain and ask the user/host; do not silently force a
+  medical, legal or business structure.
+- `units` may be slides, pages, sections or code files; do not assume every PDF
+  is a slide deck.
+- Very large sources split into volumes; very small sources use a short genre
+  instead of padding.
+- Respect expertise reversal: novices get definitions, worked examples and
+  scaffolding; advanced learners get synthesis, edge cases and less redundancy.
+
+**F3. Compute length; do not hard-code it.**
+
+- Replace `target_pages` with `page_range` in new configs; keep reading old
+  `target_pages` as an alias.
+- Compute the range from canonical sections, source density, examples, tables
+  and high-value visuals.
+- Allocate section ranges; sum plus front/back matter.
+- Fail on padding (underfilled pages) and on omission (coverage), not on a
+  fixed page count.
+- Add short/medium/long fixtures:
+  - `brief`: 4–8 pages, executive structure;
+  - `lecture-notes`: 8–16 pages;
+  - `course-guide`: 18–30 pages for two sources;
+  - `multi-source`: 60–100+ pages or volumes for a full course.
+- Keep heuristics in `docs/authoring-evidence.md`; calibrate with evaluation.
+
+**F4. Add evidence-based components.**
+
+Optional, controlled by `study_mode`/`audience`:
+
+- `::: recall` — one specific retrieval question with answer separated
+  (retrieval practice).
+- `::: review-plan` — short spaced-review schedule (distributed practice).
+- `::: compare` / mixed examples — interleaving prompts.
+- `::: explain` — “why/how/what-if” self-explanation prompt.
+- Worked examples with faded steps for procedural domains.
+
+Do not add generic “study tips”, motivational prose or mandatory quizzes. The
+default remains an exam-oriented guide; recall/review components are opt-in or
+style/study-mode driven.
+
+**F5. Academic/professional genre mapping.**
+
+- `journal`: IMRAD/literature matrix; APA/IEEE/Chicago style only if
+  implemented and metadata exists.
+- `brief`: BLUF/executive brief; no academic citation theatre.
+- `clinical`: SOAP; evidence/uncertainty/guideline years.
+- `casebook`: IRAC; jurisdiction and citations.
+- `paper`/`clean`: course reader/technical reader; page-ref citations.
+- Do not force IMRAD onto a formula sheet or IRAC onto a clinical note.
+- Remove unimplemented citation values (`apa`, `ieee`, `chicago`, `oscola`)
+  from accepted config unless a real formatter exists.
+
+**F6. Evaluation and claims.**
+
+- Add an expert rubric and a small user-study protocol to
+  `docs/authoring-evidence.md`.
+- Do not claim “proven” without a product evaluation.
+- Track at least: coverage, visual disposition, underfilled pages, readability,
+  time-to-answer and delayed recall in a pilot.
+- Use the results to calibrate page ranges, visual density and retrieval
+  components.
+
+### Workstream G — Tests, docs and release
+
+**G1. Fixtures.**
 
 - `visual-audit-missing.json` — missing low-text page.
 - `visual-audit-unresolved.json` — high-priority page marked `text` with no
@@ -856,36 +1032,41 @@ new diagrams and an unverified 13/20 coverage is not production-ready.
   pack.
 - `style-recommend.md` — candidates returned for cs/humanities/business.
 
-**F2. Regression.**
+**G2. Regression.**
 
 - Rebuild PD2/PD3 with the new gates.
 - Require canonical coverage 20/20 and 5/5.
 - Require no unresolved visual targets.
 - Require no underfilled pages (or an explicit reason).
 - Require at least the planned PD2/PD3 diagrams.
-- Keep 22/19 page targets; if visuals change page count, update the target only
-  after review.
+- Treat the old 22/19 page counts as observations, not targets. Recompute the
+  page range from the new content budget; review any change.
+- Add short/medium/long fixtures so the engine is not tuned to one page count.
 
-**F3. Docs.**
+**G3. Docs.**
 
-- Update `docs/authoring-spec.md` with the visual manifest and canonical
-  coverage.
-- Update `docs/authoring.md` with the style recommendation flow.
+- Update `docs/authoring-spec.md` with the visual manifest, canonical coverage
+  and evidence-based component rules.
+- Update `docs/authoring.md` with the style recommendation, source/learner
+  profile and page-range flow.
 - Update `docs/design-system.md` with the style comparison table and
   accessibility targets.
 - Update `docs/agents/opencode-guide.md` with mandatory visual steps and the
   production report.
+- Link `docs/authoring-evidence.md` as the normative evidence reference.
 - Reconcile stale checkboxes in the old plans.
 - Add this plan to the roadmap as the quality follow-on.
 
-**F4. Release.**
+**G4. Release.**
 
 - `v0.9.0`: style recommendation, visual manifest, canonical coverage,
-  density gate, figure stats, prompt/report changes.
+  density gate, figure stats, source/learner/output profiles and
+  prompt/report changes.
 - `v0.10.0`: professional packs that do not fit v0.9.0 (clinical/casebook or
   additional languages).
 - `v1.0.0`: only after the PD2/PD3 regression, cross-style parity, clean
-  install, and audit gates pass.
+  install, audit gates, the expert rubric and at least a small user evaluation
+  are complete.
 
 ## 8. Acceptance criteria
 
@@ -932,13 +1113,37 @@ new diagrams and an unverified 13/20 coverage is not production-ready.
 - [ ] `voice`/`study_mode`/`citation` are either implemented or rejected with
       a clear “not implemented” error.
 
+### Evidence and adaptation
+
+- [ ] `docs/authoring-evidence.md` is linked from the authoring spec and the
+      plan; every guide component has an evidence basis or is labelled as a
+      design convention.
+- [ ] The plan does not claim “scientifically proven”; product claims are tied
+      to the evaluation protocol.
+- [ ] `prepare_guide` returns source, learner and output profiles.
+- [ ] `page_range` is computed; new configs no longer require a fixed
+      `target_pages`. Old configs remain readable.
+- [ ] Short, medium and long fixtures pass: brief, lecture-notes, two-source
+      course guide and multi-source volume plan.
+- [ ] Retrieval, spacing, interleaving and self-explanation components exist as
+      optional/study-mode components; they are not generic filler.
+- [ ] Summarization is not presented as a standalone high-utility technique;
+      it is paired with retrieval, examples and self-explanation.
+- [ ] The style/genre matrix does not force IMRAD/IRAC/SOAP onto the wrong
+      source type.
+- [ ] An expert rubric and a small user-evaluation protocol are documented.
+- [ ] No page count is treated as a quality target; underfilled pages and
+      coverage are the gates.
+
 ### Production
 
-- [ ] The OpenCode run reports canonical coverage, visual decisions, style
-      rationale, diagram status, density and audit.
+- [ ] The OpenCode run reports source/learner/output profiles, canonical
+      coverage, visual decisions, style rationale, diagram status, density and
+      audit.
 - [ ] No “20/20” or “136/136” claim without machine evidence.
-- [ ] 107+ tests, clippy, fmt, 22-page parity, visual baselines and package
-      checksum pass.
+- [ ] 107+ tests, clippy, fmt, 22-page reference parity, visual baselines and
+      package checksum pass. Dynamic guides may legitimately have different
+      page ranges; parity applies to the reference guide.
 - [ ] A clean install builds PD2/PD3 from the archive.
 
 ## 9. Questions for the summarizing LLM
@@ -998,3 +1203,7 @@ incentive.
    exception with a human review gate?
 6. Which citation styles are actually required? If only page-ref is
    implemented, remove the others from the accepted values.
+7. Which evaluation is feasible in the next release: expert rubric only, or a
+   small pre/post recall study with target students?
+8. Which accessibility target is the floor for `paper`/`clean`: 9.5 pt body
+   with optional large-print, or 10–11 pt body by default?
