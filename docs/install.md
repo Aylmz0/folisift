@@ -14,8 +14,8 @@
 ## Linux release archive
 
 ```bash
-tar -xzf folisift-v0.7.1-linux-x86_64.tar.gz
-sha256sum -c folisift-v0.7.1-linux-x86_64.tar.gz.sha256
+tar -xzf folisift-v0.7.2-linux-x86_64.tar.gz
+sha256sum -c folisift-v0.7.2-linux-x86_64.tar.gz.sha256
 ./folisift doctor
 ```
 
