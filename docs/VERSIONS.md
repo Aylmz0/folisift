@@ -6,6 +6,7 @@ table.
 
 | Tag | Date | Build | Commit | PDFium | What changed |
 |---|---|---:|---|---|---|
+| `v0.6.2` | 2026-10-29 | 68 | `1fa1a7b2a6dc40c18e6b46ce4460289df6628569` | `chromium/8058` | Tall-figure fitting, synthetic PDF defect fixtures, 24-table parity test |
 | `v0.6.1` | 2026-10-29 | 64 | `48503766022525e25cb0a0df8141c6ebe8de9009` | `chromium/8058` | Image-overflow audit, seeded gate fixtures |
 | `v0.6.0` | 2026-10-29 | 60 | `06417467029510a016d598c997bda5e767192683` | `chromium/8058` | Structure packs, visual regression, table/diagram contracts, asset hardening, HTTP auth |
 | `v0.5.0` | 2026-10-29 | 48 | `b2f56c1b7bd56621a7a758b85efe2b0e2a9c1739` | `chromium/8058` | Streamable HTTP MCP, cross-platform CI, install/platform docs |
@@ -17,6 +18,8 @@ table.
 
 ## Notes
 
+- `v0.6.2` fits tall diagrams inside the page and adds the remaining synthetic
+  PDF defect fixtures plus the 24-table parity test.
 - `v0.6.1` adds the image-overflow layout gate and checked-in seeded fixtures.
 - `v0.6.0` adds structure packs, the table/diagram content contracts, pixel
   visual regression, bookmark and asset gates, source-page cropping and HTTP
