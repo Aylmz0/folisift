@@ -81,8 +81,70 @@ sources: [PD0]
 }
 
 #[test]
-fn compiles_a_diagram_block_to_svg() {
+fn embeds_a_prebuilt_diagram_and_rejects_inline_blocks() {
+    use folisift_render::diagram::{
+        D2_VERSION, DiagramManifest, DiagramSpec, Edge, Node, POSTPROCESS_VERSION,
+        SPEC_SCHEMA_VERSION,
+    };
+
     let root = tempfile::tempdir().expect("tempdir");
+    let spec = DiagramSpec {
+        schema_version: SPEC_SCHEMA_VERSION,
+        id: "pipeline".to_string(),
+        kind: "flow".to_string(),
+        title: "Compiler pipeline".to_string(),
+        caption: "Source program flows through analysis to generated code.".to_string(),
+        alt: "Source program flows through lexical, syntax and code generation stages.".to_string(),
+        source: "PD0, s. 35".to_string(),
+        direction: Some("right".to_string()),
+        layout: "tala".to_string(),
+        nodes: vec![
+            Node {
+                id: "src".to_string(),
+                label: "Source program".to_string(),
+                group: None,
+            },
+            Node {
+                id: "lex".to_string(),
+                label: "Lexical analysis".to_string(),
+                group: None,
+            },
+            Node {
+                id: "code".to_string(),
+                label: "Code generation".to_string(),
+                group: None,
+            },
+        ],
+        edges: vec![Edge {
+            from: "src".to_string(),
+            to: "lex".to_string(),
+            label: Some("characters".to_string()),
+        }],
+        groups: Vec::new(),
+    };
+    folisift_render::diagram::write_spec(root.path(), &spec).expect("spec");
+    let svg = r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 20"><title>Compiler pipeline</title><desc>Source program flows through stages.</desc><text>Lexical analysis</text></svg>"#;
+    let svg_hash = blake3::hash(svg.as_bytes()).to_hex().to_string();
+    folisift_render::diagram::write_asset(root.path(), &svg_hash, svg).expect("asset");
+    let spec_sha = folisift_render::diagram::spec_hash(&spec).expect("spec hash");
+    let manifest = DiagramManifest {
+        schema_version: SPEC_SCHEMA_VERSION,
+        id: spec.id.clone(),
+        kind: spec.kind.clone(),
+        title: spec.title.clone(),
+        caption: spec.caption.clone(),
+        alt: spec.alt.clone(),
+        source: spec.source.clone(),
+        spec_sha256: spec_sha.clone(),
+        svg_sha256: svg_hash.clone(),
+        svg: format!("assets/generated/{svg_hash}.svg"),
+        d2_version: D2_VERSION.to_string(),
+        layout: "tala".to_string(),
+        salt: folisift_render::diagram::salt(&spec_sha),
+        fonts: vec!["Inter-Regular.ttf".to_string()],
+        postprocess_version: POSTPROCESS_VERSION,
+    };
+    folisift_render::diagram::write_manifest(root.path(), &manifest).expect("manifest");
     let content = r#"---
 title: "Diagram test"
 language: en
@@ -92,26 +154,23 @@ sources: [PD0]
 ::: chapter part="B" title="Flow" toc="Flow"
 :::
 
-```diagram
-{
-  "kind": "flow",
-  "title": "Compiler pipeline",
-  "alt": "Source program flows through analysis to generated code.",
-  "source": "PD0, s. 35",
-  "nodes": [
-    {"id": "src", "label": "Source program"},
-    {"id": "lex", "label": "Lexical analysis"},
-    {"id": "parse", "label": "Syntax analysis"},
-    {"id": "code", "label": "Code generation"}
-  ],
-  "edges": [
-    {"from": "src", "to": "lex", "label": "characters"},
-    {"from": "lex", "to": "parse", "label": "tokens"},
-    {"from": "parse", "to": "code", "label": "AST"}
-  ]
-}
-```
+::: diagram id="pipeline"
+:::
 "#;
+    for aesthetic in ["paper", "clean"] {
+        let profile = StyleProfile {
+            aesthetic: aesthetic.to_string(),
+            language: "en".to_string(),
+            source_language: "en".to_string(),
+            ..StyleProfile::default()
+        };
+        let mut options = options(&profile);
+        options.guide_root = root.path();
+        options.cache_dir = None;
+        let rendered = render(content, &options).expect("diagram render");
+        assert!(rendered.pdf.starts_with(b"%PDF-"), "{aesthetic}");
+        assert!(rendered.pages >= 1, "{aesthetic}");
+    }
     let profile = StyleProfile {
         aesthetic: "paper".to_string(),
         language: "en".to_string(),
@@ -121,19 +180,9 @@ sources: [PD0]
     let mut options = options(&profile);
     options.guide_root = root.path();
     options.cache_dir = None;
-    let rendered = render(content, &options).expect("diagram render");
-    assert!(rendered.pdf.starts_with(b"%PDF-"));
-    let svg = std::fs::read_dir(root.path().join("assets/generated"))
-        .expect("generated dir")
-        .filter_map(Result::ok)
-        .find(|entry| entry.path().extension().and_then(|value| value.to_str()) == Some("svg"))
-        .expect("svg");
-    let text = std::fs::read_to_string(svg.path()).expect("svg text");
-    assert!(text.contains("role=\"img\""));
-    assert!(text.contains("<title"));
-    assert!(text.contains("Lexical analysis"));
+    let inline = "```diagram\n{}\n```\n";
+    assert!(render(inline, &options).is_err());
 }
-
 #[test]
 fn every_structure_pack_renders_in_both_languages() {
     for pack in folisift_core::structures::packs() {

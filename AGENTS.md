@@ -35,6 +35,8 @@ cargo run -p folisift-cli -- render-pages --source sources/PD0.pdf \
 cargo run -p folisift-cli -- read-source --source sources/PD0.pdf --pages 1-20
 cargo run -p folisift-cli -- search-source --source sources/PD0.pdf --query TIOBE
 cargo run -p folisift-cli -- build --guide pd0-pd1 --check
+cargo run -p folisift-cli -- diagram build --guide pd0-pd1 --id <id>
+cargo run -p folisift-cli -- diagram status --guide pd0-pd1
 cargo run -p folisift-cli -- doctor
 cargo run -p folisift-cli -- audit --pdf output/PD0-PD1_Calisma_Ozeti.pdf \
   --expected-pages 22
@@ -74,6 +76,9 @@ course name, a page count or a source path in the engine.
 - The design system stays stable across guides; deviations need an ADR.
 - One guide bundle must be usable without changing another bundle.
 - No LLM call, shell execution or network access inside the MCP server.
+- D2 is the single external diagram engine; it runs only in `diagram build`.
+- Guide builds embed pre-generated SVG; they never execute D2.
+- Hosts write diagram JSON, never D2, SVG or Typst.
 - Writes stay under `guides/`, `output/` and `data/`; `sources/` is read-only.
 
 ## Working agreement
@@ -104,6 +109,11 @@ The five canonical labels are used unchanged. See `docs/agents/triage-labels.md`
 Single-context repository: read `CONTEXT.md`, `docs/adr/`, `docs/architecture.md`
 and the active plan before changing architecture. See `docs/agents/domain.md`.
 
+### OpenCode production loop
+
+The host runbook, shell allowlist and failure policy live in
+`docs/agents/opencode-guide.md`. The MCP server never executes its shell steps.
+
 ### Versioning
 
 `docs/agents/versioning.md` is the authority; `AGENTS.md` only points to it.
@@ -117,3 +127,6 @@ and the active plan before changing architecture. See `docs/agents/domain.md`.
 - Paper design: `docs/design-system.md` and `templates/paper.typ`.
 - Migration decisions: `docs/plans/` and `docs/adr/`.
 - Active work: GitHub Issues and `docs/plans/`.
+- Diagram decision and pipeline: `docs/diagram-engine-evaluation.md`,
+  `docs/plans/2026-10-29-d2-pipeline-and-opencode-automation.md`.
+- OpenCode loop: `docs/agents/opencode-guide.md`.

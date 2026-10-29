@@ -1,10 +1,11 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::sync::LazyLock;
 
 use pulldown_cmark::{CodeBlockKind, Event, HeadingLevel, Options, Parser, Tag, TagEnd};
 use regex::Regex;
 use serde::Deserialize;
 
+use crate::diagram::DiagramAsset;
 use crate::error::{Error, Result};
 
 static SOURCE_REF_RE: LazyLock<Regex> = LazyLock::new(|| {
@@ -74,6 +75,7 @@ struct RenderConfig {
     figure_label: String,
     toc_label: String,
     table_label: String,
+    diagram_assets: HashMap<String, DiagramAsset>,
 }
 
 impl Default for RenderConfig {
@@ -87,6 +89,7 @@ impl Default for RenderConfig {
             figure_label: "Şekil".to_string(),
             toc_label: "İÇİNDEKİLER".to_string(),
             table_label: "Tablo".to_string(),
+            diagram_assets: HashMap::new(),
         }
     }
 }
@@ -112,6 +115,22 @@ pub fn markdown_to_typst_styled_with_table(
     toc_label: &str,
     table_label: &str,
 ) -> Result<String> {
+    markdown_to_typst_styled_with_diagrams(
+        markdown,
+        figure_label,
+        toc_label,
+        table_label,
+        HashMap::new(),
+    )
+}
+
+pub fn markdown_to_typst_styled_with_diagrams(
+    markdown: &str,
+    figure_label: &str,
+    toc_label: &str,
+    table_label: &str,
+    diagram_assets: HashMap<String, DiagramAsset>,
+) -> Result<String> {
     lint_markdown(markdown)?;
     markdown_to_typst_with(
         markdown,
@@ -119,6 +138,7 @@ pub fn markdown_to_typst_styled_with_table(
             figure_label: figure_label.to_string(),
             toc_label: toc_label.to_string(),
             table_label: table_label.to_string(),
+            diagram_assets,
             ..RenderConfig::default()
         },
     )
@@ -247,6 +267,32 @@ fn markdown_to_typst_with(markdown: &str, config: &RenderConfig) -> Result<Strin
                 "columns" => {
                     let inner_typst = markdown_to_typst_with(&inner_markdown, config)?;
                     out.push_str(&format!("#two_col[{inner_typst}]\n\n"));
+                }
+                "diagram" => {
+                    if !inner_markdown.trim().is_empty() {
+                        return Err(Error::Markdown {
+                            line: start_line,
+                            message: "diagram takes no body; the spec lives in diagrams/<id>.json"
+                                .to_string(),
+                        });
+                    }
+                    let id = attr(&attrs, "id").ok_or_else(|| Error::Markdown {
+                        line: start_line,
+                        message: "diagram needs id=\"<id>\"".to_string(),
+                    })?;
+                    let asset = config.diagram_assets.get(id).ok_or_else(|| Error::Markdown {
+                        line: start_line,
+                        message: format!(
+                            "diagram {id:?} has no built asset; run `folisift diagram build --guide <slug> --id {id}`"
+                        ),
+                    })?;
+                    out.push_str(&format!(
+                        "#figure(fitted_image({}, alt: {}), caption: [{}], supplement: [{}], numbering: \"1\")\n\n",
+                        typst_string(&asset.path),
+                        typst_string(&asset.alt),
+                        caption_typst(&asset.caption),
+                        typst_string(&config.figure_label),
+                    ));
                 }
                 "table" => {
                     let mut table_config = config.clone();

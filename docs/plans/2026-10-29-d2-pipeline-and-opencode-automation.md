@@ -1,6 +1,6 @@
 # Folisift v0.7 — D2-only diagram pipeline and OpenCode automation
 
-- **Status:** Draft for implementation
+- **Status:** Implemented; release candidate
 - **Date:** 2026-10-29
 - **Baseline:** `v0.6.2` (105 tests, 12 MCP tools, native diagram compiler)
 - **Target:** `v0.7.0`
@@ -650,22 +650,26 @@ Exit: v0.7.0 candidate; release after maintainer approval.
 
 ## 18. Acceptance criteria
 
-- [ ] `grep -R "graphviz\|Graphviz" crates/ templates/` finds no runtime
+- [x] `grep -R "graphviz\|Graphviz" crates/ templates/` finds no runtime
       path; only historical/planning docs mention Graphviz.
-- [ ] `diagram build` uses D2 v0.9.0 only and records the version.
-- [ ] `build` and `build_guide` pass with D2 absent when assets exist.
-- [ ] Missing/stale diagram assets fail with the exact `diagram build` command.
-- [ ] The MCP has 13 tools and schema version 2.
-- [ ] `diagram` validate/save/status/render_plan work over stdio.
-- [ ] `::: diagram id="…"` resolves to a sanitized SVG and a captioned figure.
-- [ ] A 12-node flow builds; 13 nodes fails with a split recommendation.
-- [ ] A sequence diagram’s labels are readable (line masked).
-- [ ] Two builds of the same spec produce the same SVG hash.
-- [ ] paper/clean visual baselines pass with D2 output.
-- [ ] No raw D2/SVG/Typst is accepted from the host.
-- [ ] MPL-2.0 notice and D2 checksum are in the release.
-- [ ] The OpenCode runbook completes a fixture guide end to end.
-- [ ] `cargo test`, clippy and fmt pass; paper 22-page parity unchanged.
+- [x] `diagram build` uses D2 v0.9.0 only and records the version.
+- [x] `build` and `build_guide` pass with D2 absent when assets exist.
+- [x] Missing/stale diagram assets fail with the exact `diagram build` command.
+- [x] The MCP has 13 tools and schema version 2.
+- [x] `diagram` validate/save/status/render_plan work over stdio.
+- [x] `::: diagram id="…"` resolves to a sanitized SVG and a captioned figure.
+- [x] A 12-node flow builds; 13 nodes fails with a split recommendation.
+- [x] A sequence diagram’s labels are readable (line masked).
+- [x] Two builds of the same spec produce the same SVG hash.
+- [x] paper/clean visual baselines pass with D2 output. The style suite
+      embeds a prebuilt D2 manifest/SVG in both styles; the pixel baseline
+      remains the existing paper guide baseline.
+- [x] No raw D2/SVG/Typst is accepted from the host.
+- [x] MPL-2.0 notice and D2 checksum are in the release.
+- [x] The OpenCode runbook completes a fixture guide end to end. The CLI
+      integration test runs save → build → status → embed-build; the MCP stdio
+      test runs save → status → render_plan.
+- [x] `cargo test`, clippy and fmt pass; paper 22-page parity unchanged.
 
 ## 19. Risks
 

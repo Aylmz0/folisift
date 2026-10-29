@@ -8,13 +8,14 @@
   - macOS: `libpdfium.dylib`
   - Windows: `pdfium.dll`
 - The release archive contains the binary, the matching Linux PDFium library,
-  `styles/` and `domains/`.
+  D2 v0.9.0 (for authoring diagrams), `styles/`, `domains/` and
+  `templates/fonts/`.
 
 ## Linux release archive
 
 ```bash
-tar -xzf folisift-v0.5.0-linux-x86_64.tar.gz
-sha256sum -c folisift-v0.5.0-linux-x86_64.tar.gz.sha256
+tar -xzf folisift-v0.7.0-linux-x86_64.tar.gz
+sha256sum -c folisift-v0.7.0-linux-x86_64.tar.gz.sha256
 ./folisift doctor
 ```
 
@@ -23,6 +24,10 @@ sha256sum -c folisift-v0.5.0-linux-x86_64.tar.gz.sha256
 
 Archives are **not code-signed**. Verify the published SHA-256 before use;
 signing certificates are not part of the current release process.
+
+D2 is only needed for `folisift diagram build`; a guide build with committed
+SVG assets does not execute it. Set `FOLISIFT_D2` to use a local binary during
+development, or run `scripts/fetch-d2.sh` to stage the pinned release.
 
 Build the same archive locally with:
 

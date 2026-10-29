@@ -4,7 +4,7 @@
 into Turkish, paper-like, exam-oriented study guides.
 
 First guide: **BMÜ325 Programlama Dilleri, PD0–PD1** — 22 pages, 260/260
-slides. Latest release: **v0.6.2** — visual regression, structure packs, table/diagram contracts, hardened assets and HTTP auth.
+slides. Latest release: **v0.7.0** — D2-only diagrams, diagram MCP tools and the OpenCode production loop.
 
 ## Layout
 
@@ -48,6 +48,10 @@ cargo run -p folisift-cli -- audit --pdf output/PD0-PD1_Calisma_Ozeti.pdf --expe
 cargo run -p folisift-cli -- styles list
 cargo run -p folisift-cli -- styles preview clean --language en
 
+# Generate a D2 diagram asset (D2 v0.9.0; not used by MCP/build)
+cargo run -p folisift-cli -- diagram build --guide pd0-pd1 --id pipeline
+cargo run -p folisift-cli -- diagram status --guide pd0-pd1
+
 # Crop a source figure for a guide asset
 cargo run -p folisift-cli -- render-pages --source sources/PD0.pdf --pages 7 \
   --out guides/pd0-pd1/assets/source --crop 0.12,0.08,0.76,0.40
@@ -62,16 +66,19 @@ cargo run -p folisift-cli -- visual compare \
   --pages 1,4,8 --out data/visual --fail-on-diff
 ```
 
-What v0.6 adds:
+What v0.7 adds:
 
 - **Structure packs** — IMRAD, IRAC, SOAP, formula sheet, literature matrix,
   lecture notes and executive brief; missing required headings fail the build.
-- **Visual contract** — deterministic accessible SVG diagrams, table captions
-  and ids, figure provenance/alt text, no decorative stock images.
+- **Visual contract** — one pinned D2 engine, typed diagram specs, generated
+  SVG with accessibility post-processing, table captions and ids, figure
+  provenance/alt text, no decorative stock images.
 - **Verification** — pixel baselines, bookmark destination checks, content-box,
   orphan-heading and image-overflow audits, and a 22-page `paper` parity gate.
-- **Safer surfaces** — SVG sanitizer, asset path confinement and bearer auth for
-  non-loopback MCP HTTP.
+- **D2 pipeline** — typed diagram specs, D2 v0.9.0 rendering in the CLI,
+  SVG accessibility post-processing and embed-only builds.
+- **OpenCode loop** — `diagram` MCP actions, schema/rules resources and the
+  production runbook in `docs/agents/opencode-guide.md`.
 
 MCP server (stdio or streamable HTTP):
 

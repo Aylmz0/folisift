@@ -11,7 +11,7 @@ VISUAL_BASELINE ?= tests/baselines/pd0-pd1.pdf
 CLEAN_BASELINE ?= tests/baselines/clean-preview.pdf
 VISUAL_PAGES ?= 1,4,8,12,18,22
 
-.PHONY: help build check verify audit doctor parity parity-capture visual visual-capture package test fmt clippy analyze pages scaffold
+.PHONY: help build check verify audit doctor parity parity-capture visual visual-capture diagram diagram-status package test fmt clippy analyze pages scaffold
 
 help:
 	@echo "make build      # guide PDF"
@@ -20,6 +20,8 @@ help:
 	@echo "make audit      # layout audit of the built PDF"
 	@echo "make doctor     # PDFium/cache/guides/fonts checks"
 	@echo "make parity     # page map + layout audit against the paper reference"
+	@echo "make diagram    # render all D2 diagram assets (DIAGRAM_ID=... for one)"
+	@echo "make diagram-status # check diagram specs/manifests without D2"
 	@echo "make visual     # pixel diff against the committed visual baseline"
 	@echo "make visual-capture # replace the visual baseline with the current PDF"
 	@echo "make package    # Linux release archive + SHA-256"
@@ -44,6 +46,12 @@ audit:
 
 doctor:
 	cargo run -p folisift-cli -- doctor
+
+diagram:
+	cargo run -p folisift-cli -- diagram build --guide $(GUIDE) $(if $(DIAGRAM_ID),--id $(DIAGRAM_ID),--all)
+
+diagram-status:
+	cargo run -p folisift-cli -- diagram status --guide $(GUIDE)
 
 parity: check
 	./scripts/check-parity.sh $(OUTPUT)

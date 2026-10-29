@@ -4,6 +4,33 @@ use std::process::{Command, Stdio};
 #[test]
 fn mcp_stdio_lists_tools() {
     let root = tempfile::tempdir().expect("tempdir");
+    std::fs::create_dir_all(root.path().join("guides/demo")).expect("guide dir");
+    std::fs::create_dir_all(root.path().join("sources")).expect("sources dir");
+    std::fs::write(root.path().join("sources/PD0.pdf"), b"%PDF-1.4\n").expect("source");
+    std::fs::write(
+        root.path().join("guides/demo/config.json"),
+        r#"{
+          "schema_version": 3,
+          "slug": "demo",
+          "title": "Demo",
+          "language": "en",
+          "content": "guide.md",
+          "output": "../../output/demo.pdf",
+          "sources": ["../../sources/PD0.pdf"],
+          "style": {
+            "aesthetic": "paper",
+            "structure": "a-g",
+            "language": "en",
+            "source_language": "en",
+            "voice": "academic",
+            "study_mode": "exam",
+            "domain": "cs",
+            "citation": "page-ref"
+          }
+        }"#,
+    )
+    .expect("config");
+    std::fs::write(root.path().join("guides/demo/guide.md"), "# Demo\n").expect("guide");
     let mut child = Command::new(env!("CARGO_BIN_EXE_folisift"))
         .arg("mcp")
         .arg("--root")
@@ -57,15 +84,83 @@ fn mcp_stdio_lists_tools() {
         .iter()
         .filter_map(|tool| tool["name"].as_str())
         .collect::<Vec<_>>();
-    assert_eq!(tools.len(), 12);
+    assert_eq!(tools.len(), 13);
     for expected in [
         "read_source",
         "search_source",
         "build_guide",
         "check_coverage",
+        "diagram",
     ] {
         assert!(tools.contains(&expected), "missing {expected}");
     }
+
+    let spec = serde_json::json!({
+        "schema_version": 2,
+        "id": "pipeline",
+        "kind": "flow",
+        "title": "Pipeline",
+        "caption": "A source program becomes target code.",
+        "alt": "A source program is analysed and converted into target code.",
+        "source": "PD0, s. 4",
+        "direction": "right",
+        "layout": "tala",
+        "nodes": [{"id": "src", "label": "Source"}, {"id": "out", "label": "Target"}],
+        "edges": [{"from": "src", "to": "out", "label": "compile"}]
+    });
+    writeln!(
+        stdin,
+        "{}",
+        serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": 3,
+            "method": "tools/call",
+            "params": {"name": "diagram", "arguments": {"action": "save", "guide": "demo", "spec": spec}}
+        })
+    )
+    .expect("write diagram save");
+    stdin.flush().expect("flush diagram save");
+    line.clear();
+    reader.read_line(&mut line).expect("read diagram save");
+    let response: serde_json::Value = serde_json::from_str(&line).expect("diagram save JSON");
+    assert!(response.to_string().contains("pipeline"), "{response}");
+
+    writeln!(
+        stdin,
+        "{}",
+        serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": 4,
+            "method": "tools/call",
+            "params": {"name": "diagram", "arguments": {"action": "status", "guide": "demo"}}
+        })
+    )
+    .expect("write diagram status");
+    stdin.flush().expect("flush diagram status");
+    line.clear();
+    reader.read_line(&mut line).expect("read diagram status");
+    let response: serde_json::Value = serde_json::from_str(&line).expect("diagram status JSON");
+    assert!(response.to_string().contains("missing"), "{response}");
+
+    writeln!(
+        stdin,
+        "{}",
+        serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": 5,
+            "method": "tools/call",
+            "params": {"name": "diagram", "arguments": {"action": "render_plan", "guide": "demo", "id": "pipeline"}}
+        })
+    )
+    .expect("write diagram plan");
+    stdin.flush().expect("flush diagram plan");
+    line.clear();
+    reader.read_line(&mut line).expect("read diagram plan");
+    let response: serde_json::Value = serde_json::from_str(&line).expect("diagram plan JSON");
+    assert!(
+        response.to_string().contains("folisift diagram build"),
+        "{response}"
+    );
 
     drop(stdin);
     let status = child.wait().expect("wait");
