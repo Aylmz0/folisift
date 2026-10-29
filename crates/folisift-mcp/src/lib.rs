@@ -974,6 +974,7 @@ impl FolisiftServer {
             "cache_hit": rendered.cache_hit,
             "style": style,
             "warnings": rendered.warnings.len(),
+            "stats": content_stats(&markdown),
             "coverage": coverage,
             "visual": visual,
         })))
@@ -1264,6 +1265,22 @@ fn diagram_schema() -> String {
 
 fn diagram_rules() -> &'static str {
     "Diagram rules\n\n- 0-3 diagrams per chapter; one idea per diagram.\n- 1-12 nodes, max 20 edges, tree depth max 4.\n- Use flow for processes, concept for relationships, tree for hierarchy, sequence for messages.\n- No decorative images, stock photos or AI illustrations.\n- Every diagram needs a takeaway caption, an alt text and provenance.\n- The host writes JSON only; D2, SVG and Typst are engine-owned.\n- Builds read pre-generated SVG; the CLI `folisift diagram build` is the only D2 caller."
+}
+
+fn content_stats(markdown: &str) -> Value {
+    let diagrams = markdown
+        .lines()
+        .filter(|line| line.trim_start().starts_with("::: diagram"))
+        .count();
+    let tables = markdown
+        .lines()
+        .filter(|line| line.trim_start().starts_with("::: table"))
+        .count();
+    let figures = markdown
+        .lines()
+        .filter(|line| line.trim_start().starts_with("!["))
+        .count();
+    json!({"figures": figures, "diagrams": diagrams, "tables": tables})
 }
 
 fn build_style(
