@@ -14,10 +14,10 @@ table.
 
 ## Notes
 
+- `v0.4.1` adds accessibility gates and domain profiles; `paper` remains the
+  stable default, `clean` is experimental.
 - `v0.3.0` is the paper-parity release: the default template matches the
   22-page reference, and `make parity` checks the page map plus layout audit.
-## Notes
-
 - `v0.2.0` is the LLM-hands release: the server provides bounded source text,
   search and content-aware coverage; the host agent still writes all prose.
 - The canonical guide output is `output/PD0-PD1_Calisma_Ozeti.pdf`.
