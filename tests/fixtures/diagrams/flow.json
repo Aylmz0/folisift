@@ -1,0 +1,19 @@
+{
+  "kind": "flow",
+  "title": "Derleme hattı",
+  "alt": "Kaynak program sözcüksel, sözdizimsel ve anlamsal analizden geçerek amaç koda dönüşür.",
+  "source": "PD0, s. 35",
+  "nodes": [
+    { "id": "src", "label": "Kaynak program" },
+    { "id": "lex", "label": "Sözcüksel analiz" },
+    { "id": "parse", "label": "Sözdizim analizi" },
+    { "id": "semantic", "label": "Anlamsal analiz" },
+    { "id": "code", "label": "Kod üretimi" }
+  ],
+  "edges": [
+    { "from": "src", "to": "lex", "label": "karakterler" },
+    { "from": "lex", "to": "parse", "label": "tokenlar" },
+    { "from": "parse", "to": "semantic", "label": "ağaç" },
+    { "from": "semantic", "to": "code", "label": "ara kod" }
+  ]
+}

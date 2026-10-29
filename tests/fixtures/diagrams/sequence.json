@@ -1,0 +1,15 @@
+{
+  "kind": "sequence",
+  "title": "Getir–çöz–yürüt",
+  "alt": "CPU bellekteki komutu getirir, çözer ve yürütür; döngü yeniden başlar.",
+  "source": "PD1, s. 61",
+  "nodes": [
+    { "id": "fetch", "label": "Getir" },
+    { "id": "decode", "label": "Çöz" },
+    { "id": "execute", "label": "Yürüt" }
+  ],
+  "edges": [
+    { "from": "fetch", "to": "decode", "label": "komut" },
+    { "from": "decode", "to": "execute", "label": "işlem" }
+  ]
+}

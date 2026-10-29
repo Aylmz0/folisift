@@ -1,0 +1,19 @@
+{
+  "kind": "tree",
+  "title": "Ayrıştırma ağacı",
+  "alt": "Toplama kökü, çarpma alt ağacını ve sayı yapraklarını taşır.",
+  "source": "PD0, s. 57",
+  "nodes": [
+    { "id": "add", "label": "+" },
+    { "id": "mul", "label": "*" },
+    { "id": "a", "label": "a" },
+    { "id": "b", "label": "b" },
+    { "id": "ten", "label": "10" }
+  ],
+  "edges": [
+    { "from": "add", "to": "a" },
+    { "from": "add", "to": "mul" },
+    { "from": "mul", "to": "b" },
+    { "from": "mul", "to": "ten" }
+  ]
+}
