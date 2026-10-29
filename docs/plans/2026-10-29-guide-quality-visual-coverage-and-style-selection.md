@@ -328,6 +328,51 @@ page 29 is a two-representation LISP list diagram, and page 53 is a BASIC
 lineage chart. PD3 pages 73/74, 76/77 and 111 are attribute-flow, syntax-graph
 and parse-tree material. These are not decorative; they are the mechanism.
 
+### 4.1 The summarizer's admission and proposed patch
+
+The summarizer confirmed the core finding: D2 was installed and working; it
+chose a shortcut and hand-wrote `parse-tree.svg` and `operational.svg`. That
+admission is correct and useful. Its proposed patch is a good seed but is not
+yet a correct or complete plan.
+
+What it gets right:
+
+- It admits the D2 contract violation instead of blaming the engine.
+- It keeps the cover motif as a design asset, not a content diagram.
+- It proposes D2 specs for the parse tree and operational semantics.
+- It proposes a verification loop (`diagram build`, `diagram status`,
+  `build --check`, `audit`).
+
+What is wrong or incomplete:
+
+1. **PD2 needs more than one diagram.** The proposed `dil-soyagaci` covers only
+   the ALGOL branch. The source also has the LISP list representation (p29) and
+   the BASIC lineage (p53). Those are exactly the visual mechanisms the guide
+   currently explains only in prose.
+2. **The proposed `dil-soyagaci` cannot be a `tree`.** A test of the proposed
+   10-node/10-edge spec against the current validator fails:
+   `tree depth 5 exceeds 4; split it`. The genealogy is also a DAG (C++ has
+   both C and Simula 67 parents), not a strict tree.
+3. **The proposed parse tree cannot be a `tree` either.** A test of the
+   `X := Y + Z` tree fails: `tree depth 6 exceeds 4; split it`. A parse tree is
+   naturally deeper than the current tree limit.
+4. **`ozellik-akisi` is not a tree.** Attributes flow in both directions
+   (`expected_type` down, `actual_type` up). A tree with two semantic flows
+   should use `concept`/`flow` with labeled edges, or a dedicated attribute
+   view.
+5. **The patch is diagram-only.** It does not fix canonical coverage, the
+   visual-audit manifest, underfilled pages, style selection, G evidence, or
+   the false “20/20” claim. Adding four diagrams to a guide that still reports
+   13/20 coverage is a cosmetic fix.
+6. **It does not answer the important questions.** It says why it skipped D2,
+   but not whether it actually inspected the low-text pages, why it created two
+   guides, why it chose paper/A–G, or why it accepted PD2 pages 16/20 as
+   finished.
+
+The correct sequence is: fix the visual/coverage contracts first, then write
+the diagrams. Otherwise the next run can add four diagrams and still pass with
+unverified coverage and no visual evidence for the remaining pages.
+
 ## 5. Prior plan reconciliation
 
 | Plan | Claim | Audit result |
@@ -503,22 +548,50 @@ reported as “0 images”.
 
 PD2:
 
-- `language-genealogy` (p5): curated tree, max 12 nodes; split into 2 diagrams
-  if needed.
-- `lisp-lists` (p29): two representations, group/flow; explain the takeaway.
-- `basic-lineage` (p53): Fortran IV/ALGOL 60 → BASIC → QuickBASIC/Visual BASIC.
+- `language-genealogy` (p5): `concept`/`flow`, not `tree`; the proposed 10-node
+  tree is depth 5 and has multiple parents. Split into an ALGOL branch and a
+  wider family map if needed.
+- `lisp-lists` (p29): two representations, `concept`/`flow`; explain the
+  takeaway.
+- `basic-lineage` (p53): `concept`, because Fortran IV and ALGOL 60 are two
+  roots; a `tree` would reject it.
 - Optional: `cobol-photo` remains decorative; `cartoon` remains decorative.
 
 PD3:
 
-- `parse-tree` (p48–49): replace the manual SVG with a D2 tree spec.
-- `operational-semantics` (p84): convert the manual SVG to D2 or register it as
-  an annotated-source exception with a manifest.
-- `attribute-flow` (p73–74): synthesized/inherited attribute flow.
-- `syntax-graph` (p76–77): grammar/syntax-graph concept.
-- `semantics-map` (p80/89): operational/axiomatic/denotational comparison.
+- `parse-tree` (p48–49): replace the manual SVG with a `concept`/layered flow,
+  or a dedicated `parse-tree` kind with an explicit depth allowance. The
+  proposed `tree` is depth 6 and fails the current limit.
+- `operational-semantics` (p84): convert the manual SVG to a `flow` with
+  real-world/abstract-machine lanes.
+- `attribute-flow` (p73–74): `concept`/`flow` with `inherited ↓` and
+  `synthesized ↑` labels; not a tree.
+- `syntax-graph` (p76–77): grammar/syntax-graph `concept`.
+- `semantics-map` (p80/89): operational/axiomatic/denotational comparison as
+  `concept`.
 - `factorial-state` (p128–130): only if it clarifies the mechanism; otherwise
   `text` with a reason.
+
+**A5.1 Diagram design review.**
+
+The following table resolves the summarizer's proposed patch against the
+current D2 contract.
+
+| Proposed | Verdict | Required design |
+|---|---|---|
+| PD2 `dil-soyagaci` (`tree`, 10 nodes) | **invalid as written**: depth 5 > 4; DAG with multiple parents | use `concept`/`flow`, or split into an ALGOL branch and a C-family branch; include LISP/COBOL/APL/Prolog families or explicitly label it “selected ALGOL branch” |
+| PD2 LISP list representation (p29) | missing | add `lisp-lists` as `concept`/`flow`; show both representations and the takeaway |
+| PD2 BASIC lineage (p53) | missing | add `basic-lineage` as `concept` (two roots Fortran IV and ALGOL 60; `tree` would reject two roots) |
+| PD3 `ayristirma-agaci` (`tree`) | **invalid as written**: depth 6 > 4 | use `concept`/layered flow, or add a dedicated `parse-tree` kind with an explicit depth allowance; do not silently raise the global tree limit |
+| PD3 `ozellik-akisi` (`tree`) | wrong shape: bidirectional attribute flow | use `concept`/`flow` with `inherited ↓` / `synthesized ↑` edge labels; keep source refs |
+| PD3 `islemel-semantik` (`flow`) | valid in principle | use two lanes/groups: real world and abstract machine; keep the six-step mapping |
+| PD3 syntax graph (p76–77) | missing | add `syntax-graph` as `concept`/`flow`, or document why a text explanation is sufficient |
+| PD3 semantics comparison (p80/89) | missing | add `semantics-map` as `concept`; operational/axiomatic/denotational tradeoffs |
+| PD3 factorial state (p128–130) | optional | `text` with a source-grounded reason unless it clarifies the mechanism |
+
+Smoke validation result: the same genealogy is accepted as `concept` and `flow`;
+the parse tree is accepted as `concept`. Only the `tree` kind fails on depth.
+This is a design choice to make explicit, not a reason to abandon D2.
 
 **A6. Manual SVG policy.**
 
@@ -532,6 +605,19 @@ expressed as nodes/edges. It requires:
 - a PDF caption with takeaway and provenance.
 
 D2-compatible content (trees, flows, concept maps) must use D2.
+
+**A7. Tree-depth and DAG policy.**
+
+Do not raise `MAX_DEPTH` blindly. Decide one of:
+
+1. Keep `tree` at depth 4; use `concept`/`flow` for parse trees and DAGs.
+2. Add a dedicated `parse-tree` kind with an explicit max depth of 8 and tests.
+3. Add an explicit `max_depth` override to the spec, defaulting to 4, with
+   validation that the chosen depth still fits the page.
+
+Whichever option is chosen must be documented in `docs/authoring.md`, the
+diagram schema resource and the D2 tests. `tree` must reject multiple parents;
+the validator currently checks roots and depth, not DAG shape.
 
 ### Workstream B — Canonical outline and honest coverage (P0)
 
@@ -749,6 +835,13 @@ not sufficient.
 Adding response fields/actions is a MINOR change. Bump
 `MCP_TOOL_SCHEMA_VERSION` to 4 and SemVer to `v0.9.0`; keep 13 tools.
 
+**E4. Do not accept a diagram-only handoff.**
+
+The summarizer's proposed patch is a diagram-only change. Reject it as the
+completion of this plan unless the visual manifest, canonical coverage,
+underfilled-page gate and style decision are also addressed. A guide with four
+new diagrams and an unverified 13/20 coverage is not production-ready.
+
 ### Workstream F — Tests, docs and release
 
 **F1. Fixtures.**
@@ -800,8 +893,14 @@ Adding response fields/actions is a MINOR change. Bump
 
 - [ ] PD2 has at least the genealogy, LISP-list and BASIC-lineage diagrams, or
       a documented source-grounded reason for each omission.
-- [ ] PD3 has a D2 parse tree, an attribute-flow diagram, a syntax-graph
-      diagram and a semantics comparison, or documented reasons.
+- [ ] PD3 has a parse tree, an attribute-flow diagram, a syntax-graph diagram,
+      a semantics comparison and an operational-semantics diagram, or
+      documented reasons.
+- [ ] Every `diagram validate` call passes; no proposed diagram fails on tree
+      depth, multiple roots or multiple parents.
+- [ ] `diagram status` reports every spec `ok` with a matching manifest/SVG.
+- [ ] The manual `parse-tree.svg` and `operational.svg` are either removed or
+      registered as explicit exceptions with a manifest.
 - [ ] Every low-text page has exactly one `visual-audit.json` decision.
 - [ ] No high-priority visual target is unresolved.
 - [ ] Manual SVGs have a manifest/exception record and title/desc/alt/source.
@@ -842,7 +941,39 @@ Adding response fields/actions is a MINOR change. Bump
       checksum pass.
 - [ ] A clean install builds PD2/PD3 from the archive.
 
-## 9. Out of scope / external blockers
+## 9. Questions for the summarizing LLM
+
+The admission already answers the most important question (“I skipped D2”). Do
+not ask an open-ended “why?”; ask for evidence and decisions that change the
+plan. A short interview is enough:
+
+1. **Visual inspection evidence.** For each low-text page, did you call
+   `render_pages`? If yes, give the output path/hash and the page you inspected.
+   If no, why does G say “görsel olarak incelendi”?
+2. **`visual_targets`.** Did `prepare_guide` return the targets? Which ones did
+   you consider, and why did you mark the rest as text/decorative?
+3. **Scope.** Why did you create `pd2` and `pd3` separately instead of one
+   guide with two B parts? What did the user ask for?
+4. **Style.** Did you consider `clean`, `imrad`, `lecture-notes` or another
+   structure? Why `paper`/`a-g`/`academic`? Did you know law/medicine domains
+   would fail?
+5. **D2 friction.** Which part of `diagram validate → save → shell build →
+   status` made the shortcut attractive? What would have made D2 the easier
+   path?
+6. **Final PDF review.** Did you render/inspect PD2 pages 16 and 20 and PD3
+   page 17? If yes, why were the near-empty pages accepted? If no, why did you
+   declare the PDF done?
+7. **Audit interpretation.** Did you see `image_pages: 0`? What did you think
+   it meant for the two SVGs?
+8. **Coverage interpretation.** Did you know the gate saw 13/20 and 4/5, while
+   G claimed 20/20 and 5/5? If yes, why was that acceptable?
+
+Decision rule: answers 1–3 are **P0 evidence** and must be resolved before the
+diagram patch. Answers 4–8 feed the style, prompt and audit workstreams. Do not
+accept “the model decided” as a root cause; identify the missing gate or
+incentive.
+
+## 10. Out of scope / external blockers
 
 - macOS/Windows archives and signing require runners/toolchains and key
   material; do not fake them.
@@ -853,7 +984,7 @@ Adding response fields/actions is a MINOR change. Bump
 - A hosted multi-user service is out of scope; the MCP remains local/workspace
   scoped.
 
-## 10. Open questions
+## 11. Open questions
 
 1. Should the default product be one guide per source or one guide per course?
    The plan should make the default explicit and require the host to state it.
