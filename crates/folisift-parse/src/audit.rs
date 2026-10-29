@@ -28,6 +28,9 @@ pub struct LayoutAudit {
     pub empty_pages: Vec<usize>,
     pub overflow_pages: Vec<usize>,
     pub missing_glyphs: usize,
+    pub tagged: bool,
+    pub bookmarks: usize,
+    pub min_font_size: f64,
     pub passed: bool,
     pub issues: Vec<String>,
 }
@@ -50,10 +53,13 @@ pub fn audit_pdf(path: &Path, expected_pages: Option<usize>) -> Result<LayoutAud
         })?;
 
     let pages = document.page_count().max(0) as usize;
+    let tagged = document.is_tagged();
+    let bookmarks = document.outline().len();
     let mut page_reports = Vec::with_capacity(pages);
     let mut empty_pages = Vec::new();
     let mut overflow_pages = Vec::new();
     let mut missing_glyphs = 0usize;
+    let mut min_font_size = f64::MAX;
 
     for index in 0..pages {
         let page = document.page(index as i32).map_err(|error| Error::Parse {
@@ -82,6 +88,10 @@ pub fn audit_pdf(path: &Path, expected_pages: Option<usize>) -> Result<LayoutAud
                 continue;
             }
             chars += 1;
+            let size = character.font_size();
+            if size > 0.0 {
+                min_font_size = min_font_size.min(size);
+            }
             if let Some(rect) = text.rect(index) {
                 left = left.min(rect.left);
                 top = top.min(rect.top);
@@ -128,6 +138,15 @@ pub fn audit_pdf(path: &Path, expected_pages: Option<usize>) -> Result<LayoutAud
     if missing_glyphs > 0 {
         issues.push(format!("missing glyphs: {missing_glyphs}"));
     }
+    if !tagged {
+        issues.push("PDF is not tagged".to_string());
+    }
+    if bookmarks == 0 {
+        issues.push("PDF has no bookmarks".to_string());
+    }
+    if min_font_size != f64::MAX && min_font_size < 6.0 {
+        issues.push(format!("text below 6 pt: {min_font_size:.1} pt"));
+    }
     let passed = issues.is_empty();
 
     Ok(LayoutAudit {
@@ -138,6 +157,13 @@ pub fn audit_pdf(path: &Path, expected_pages: Option<usize>) -> Result<LayoutAud
         empty_pages,
         overflow_pages,
         missing_glyphs,
+        tagged,
+        bookmarks,
+        min_font_size: if min_font_size == f64::MAX {
+            0.0
+        } else {
+            min_font_size
+        },
         passed,
         issues,
     })

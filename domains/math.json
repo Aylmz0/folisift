@@ -1,0 +1,11 @@
+{
+  "id": "math",
+  "name": "Mathematics",
+  "emphasis": "Definitions, assumptions, derivations and units must be explicit.",
+  "structure_default": "formula-sheet",
+  "checks": [
+    "notation consistent",
+    "assumptions",
+    "no missing steps"
+  ]
+}

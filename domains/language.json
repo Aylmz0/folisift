@@ -1,0 +1,11 @@
+{
+  "id": "language",
+  "name": "Language learning",
+  "emphasis": "Vocabulary, grammar, usage, examples and exceptions.",
+  "structure_default": "lecture-notes",
+  "checks": [
+    "examples",
+    "exceptions",
+    "register/frequency"
+  ]
+}

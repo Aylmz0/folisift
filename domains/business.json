@@ -1,0 +1,11 @@
+{
+  "id": "business",
+  "name": "Business",
+  "emphasis": "Decision context, findings, implications, recommendation and assumptions.",
+  "structure_default": "executive-brief",
+  "checks": [
+    "assumptions",
+    "recommendation",
+    "sensitivity"
+  ]
+}
