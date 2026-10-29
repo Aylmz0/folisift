@@ -4,8 +4,8 @@ use std::process::ExitCode;
 use clap::{Parser, Subcommand};
 use folisift_core::{Guide, ScaffoldOptions, Workspace, list_guides, scaffold, version};
 use folisift_parse::{
-    Inventory, SourceCache, analyze_sources, check_coverage, parse_page_list, read_source,
-    render_pages, search_source,
+    Inventory, SourceCache, VisualAudit, analyze_sources, check_coverage, parse_page_list,
+    read_source, render_pages, search_source,
 };
 use folisift_render::{RenderOptions, render, styles};
 use serde::Serialize;
@@ -734,6 +734,25 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                     }
                     _ => analyze_sources(&guide.sources, 120).await?,
                 };
+                if inventory.totals.low_text_pages > 0 {
+                    let path = guide.visual_audit();
+                    if !path.is_file() {
+                        return Err(format!(
+                            "visual audit missing: {}. Create it with one decision per low-text page (redraw/table/text/decorative/unreadable).",
+                            path.display()
+                        )
+                        .into());
+                    }
+                    let audit = VisualAudit::load(&path)?;
+                    let visual = audit.validate(&inventory, &guide.dir);
+                    if !visual.passed {
+                        return Err(format!(
+                            "visual audit failed: missing {:?}, unresolved {:?}",
+                            visual.missing, visual.unresolved
+                        )
+                        .into());
+                    }
+                }
                 let report = check_coverage(&inventory, &markdown, 0.55);
                 if let Some(path) = &guide.coverage {
                     report.write_markdown(path)?;

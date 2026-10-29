@@ -1,0 +1,24 @@
+{
+  "schema_version": 2,
+  "id": "basic-seceresi",
+  "kind": "concept",
+  "title": "BASIC'in şeceresi",
+  "caption": "BASIC'in Fortran IV ve ALGOL 60 etkisinden QuickBASIC ve Visual BASIC'e uzanan çizgisi.",
+  "alt": "Fortran IV ve ALGOL 60'dan BASIC'e, oradan QuickBASIC ve Visual BASIC'e giden şecere.",
+  "source": "PD2, s. 53",
+  "spec_sha256": "c3bb2f8981affe89b353901eb581c9e452997448a84298b3ffc70ff2f32a1d33",
+  "svg_sha256": "ce74a9278a2e81d31d8e1110e21b22cc24e05acac0641266880ec24994c6d35f",
+  "svg": "assets/generated/ce74a9278a2e81d31d8e1110e21b22cc24e05acac0641266880ec24994c6d35f.svg",
+  "d2_version": "v0.9.0",
+  "layout": "tala",
+  "salt": "fsl-c3bb2f8981af",
+  "fonts": [
+    "Inter-Regular.ttf",
+    "Inter-Bold.ttf",
+    "Inter-Italic.ttf",
+    "Inter-SemiBold.ttf",
+    "NotoSansMono-Regular.ttf"
+  ],
+  "font_digest": "ab541b4d979d13ee9864050de613792ebeeae5fdcd705b6b2045ab17d359dab6",
+  "postprocess_version": 1
+}

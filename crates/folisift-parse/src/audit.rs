@@ -20,6 +20,14 @@ pub struct PageAudit {
 }
 
 #[derive(Debug, Clone, Serialize)]
+pub struct UnderfilledPage {
+    pub page: usize,
+    pub chars: usize,
+    pub median_chars: usize,
+    pub ratio: f64,
+}
+
+#[derive(Debug, Clone, Serialize)]
 pub struct LayoutAudit {
     pub pdf: String,
     pub pages: usize,
@@ -28,6 +36,7 @@ pub struct LayoutAudit {
     pub empty_pages: Vec<usize>,
     pub overflow_pages: Vec<usize>,
     pub content_box_pages: Vec<usize>,
+    pub underfilled_pages: Vec<UnderfilledPage>,
     pub orphan_heading_pages: Vec<usize>,
     pub bookmark_mismatches: Vec<String>,
     pub image_pages: usize,
@@ -219,6 +228,7 @@ pub fn audit_pdf(path: &Path, expected_pages: Option<usize>) -> Result<LayoutAud
         });
     }
 
+    let underfilled_pages = detect_underfilled(&page_reports);
     let page_count_ok = expected_pages.is_none_or(|expected| expected == pages);
     let mut issues = Vec::new();
     if !page_count_ok {
@@ -242,6 +252,13 @@ pub fn audit_pdf(path: &Path, expected_pages: Option<usize>) -> Result<LayoutAud
         issues.push(format!(
             "possible orphan headings at page bottom: {orphan_heading_pages:?}"
         ));
+    }
+    if !underfilled_pages.is_empty() {
+        let pages = underfilled_pages
+            .iter()
+            .map(|page| page.page)
+            .collect::<Vec<_>>();
+        issues.push(format!("underfilled body pages: {pages:?}"));
     }
     for entry in document.outline() {
         let Some(page_index) = entry.page_index else {
@@ -307,6 +324,7 @@ pub fn audit_pdf(path: &Path, expected_pages: Option<usize>) -> Result<LayoutAud
         empty_pages,
         overflow_pages,
         content_box_pages,
+        underfilled_pages,
         orphan_heading_pages,
         bookmark_mismatches,
         image_pages,
@@ -322,6 +340,40 @@ pub fn audit_pdf(path: &Path, expected_pages: Option<usize>) -> Result<LayoutAud
         passed,
         issues,
     })
+}
+
+/// Flag pages whose body text is far below the normal body density.
+///
+/// The first three pages (cover/front matter/TOC) are excluded because their
+/// low character count is intentional. The threshold is intentionally
+/// conservative: a page must be below 35% of the median body page to be
+/// reported. This is a review gate, not a claim that every short page is bad.
+fn detect_underfilled(pages: &[PageAudit]) -> Vec<UnderfilledPage> {
+    let mut counts = pages
+        .iter()
+        .filter(|page| page.chars >= 100)
+        .map(|page| page.chars)
+        .collect::<Vec<_>>();
+    counts.sort_unstable();
+    let Some(median) = counts.get(counts.len() / 2).copied() else {
+        return Vec::new();
+    };
+    let threshold = (median as f64 * 0.35).max(100.0);
+    pages
+        .iter()
+        .skip(3)
+        .filter(|page| page.chars >= 5 && (page.chars as f64) < threshold)
+        .map(|page| UnderfilledPage {
+            page: page.page,
+            chars: page.chars,
+            median_chars: median,
+            ratio: if median == 0 {
+                0.0
+            } else {
+                page.chars as f64 / median as f64
+            },
+        })
+        .collect()
 }
 
 /// Case- and spacing-insensitive form used for bookmark destination checks.
@@ -373,5 +425,32 @@ mod tests {
         assert_eq!(compact("D.1 D E R L E M E"), compact("d.1derleme"));
         assert_eq!(compact("KISALTMALAR"), compact("Kısaltmalar"));
         assert_eq!(compact("İÇİNDEKİLER"), compact("içindekiler"));
+    }
+
+    #[test]
+    fn detects_underfilled_body_pages_but_not_front_matter() {
+        let page = |page: usize, chars: usize| PageAudit {
+            page,
+            chars,
+            empty: chars < 5,
+            overflow: false,
+            text_left: 0.0,
+            text_top: 0.0,
+            text_right: 0.0,
+            text_bottom: 0.0,
+        };
+        let pages = vec![
+            page(1, 300),
+            page(2, 1800),
+            page(3, 1000),
+            page(4, 3000),
+            page(5, 2900),
+            page(6, 300),
+            page(7, 2800),
+        ];
+        let underfilled = detect_underfilled(&pages);
+        assert_eq!(underfilled.len(), 1, "{underfilled:?}");
+        assert_eq!(underfilled[0].page, 6);
+        assert!(underfilled[0].ratio < 0.35);
     }
 }

@@ -25,7 +25,22 @@ pub struct SourceInventory {
     pub low_text_threshold: usize,
     pub low_text_pages: Vec<usize>,
     pub headings: Vec<Heading>,
+    /// Sections recovered from the source's own topic list/TOC.
+    ///
+    /// Heading extraction misses styled or wrapped headings. This list is the
+    /// canonical coverage set when present; `headings` remains the page map.
+    #[serde(default)]
+    pub sections: Vec<CanonicalSection>,
     pub page_map: Vec<PageRow>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct CanonicalSection {
+    pub number: String,
+    pub title: String,
+    /// 0 when the topic list does not give the actual section page.
+    #[serde(default)]
+    pub page: usize,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -153,6 +168,18 @@ impl Inventory {
             if source.headings.is_empty() {
                 let _ = writeln!(out, "| — | Başlık çıkarılamadı; sayfa haritasına bakın. |");
             }
+            if !source.sections.is_empty() {
+                let _ = writeln!(out, "\n### Kanonik Bölümler\n");
+                let _ = writeln!(out, "| No | Başlık |\n|---|---|");
+                for section in &source.sections {
+                    let _ = writeln!(
+                        out,
+                        "| {} | {} |",
+                        escape_pipes(&section.number),
+                        escape_pipes(&section.title)
+                    );
+                }
+            }
             let _ = writeln!(out, "\n### Sayfa Haritası\n");
             let _ = writeln!(
                 out,
@@ -197,6 +224,7 @@ mod tests {
                 heading: "0.1 Giriş".to_string(),
                 page: 2,
             }],
+            sections: vec![],
             page_map: vec![
                 PageRow {
                     page: 1,

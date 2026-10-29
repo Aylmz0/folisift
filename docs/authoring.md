@@ -19,13 +19,15 @@ No Python, Poppler, WeasyPrint or system Typst installation is needed.
 
 ```text
 guides/<slug>/
-├── guide.md         # Markdown + directives; source order preserved
-├── config.json      # schema 3 style profile and paths
-├── assets/          # guide-specific SVG diagrams
+├── guide.md           # Markdown + directives; source order preserved
+├── config.json        # schema 3 style profile and paths
+├── visual-audit.json  # one decision per low-text source page (host-authored)
+├── diagrams/          # optional D2 JSON specs (host-authored)
+├── assets/            # guide-specific SVG diagrams and generated assets
 └── data/
-    ├── source.json  # generated inventory (do not hand-edit)
-    ├── source.md    # human-readable inventory
-    └── coverage.md  # generated coverage report
+    ├── source.json    # generated inventory (do not hand-edit)
+    ├── source.md      # human-readable inventory
+    └── coverage.md    # generated coverage report
 ```
 
 ## First pass: inventory and visual review
@@ -112,6 +114,46 @@ cargo run -p folisift-cli -- render-pages \
 
 Read the images. Do not invent content for a page you cannot see. Record
 inaccessible or ambiguous content in the guide’s G section.
+
+### Visual audit manifest
+
+Every low-text page needs exactly one decision in
+`guides/<slug>/visual-audit.json`:
+
+```json
+{
+  "schema_version": 1,
+  "source_pages": [
+    {
+      "source": "PD2",
+      "page": 5,
+      "decision": "redraw",
+      "asset": "diagrams/dil-soyagaci.json",
+      "reason": "language genealogy; high pedagogical value",
+      "priority": "high"
+    },
+    {
+      "source": "PD2",
+      "page": 45,
+      "decision": "decorative",
+      "reason": "historical COBOL photo; no mechanism",
+      "priority": "low"
+    }
+  ]
+}
+```
+
+Decisions: `redraw`, `table`, `text`, `decorative`, `unreadable`.
+
+- `redraw` requires an existing asset under the guide bundle.
+- `table`, `text`, `decorative` and `unreadable` require a reason.
+- Cover pages and decorative photos are `decorative`; they are not content.
+- `build --check` fails when a low-text page is missing from the manifest or
+  an entry is unresolved. This is the evidence trail for the G section.
+
+`build --check` also reports `underfilled_pages` through `folisift audit`.
+A page below the body-density threshold must be fixed, justified or removed
+from the layout; do not add filler prose to hide it.
 
 ## Write the guide
 

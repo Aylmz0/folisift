@@ -1,0 +1,39 @@
+{
+  "schema_version": 2,
+  "id": "lisp-listeleri",
+  "kind": "concept",
+  "title": "LISP listelerinin iki gösterimi",
+  "caption": "Düz liste ile iç içe listenin hücre/bağlantı gösterimi; kaynak slayttaki iki temsilin karşılaştırması.",
+  "alt": "A B C D düz listesi ve A B C D E F G iç içe listesinin bağlantılı hücrelerle gösterimi.",
+  "source": "PD2, s. 29",
+  "direction": "right",
+  "layout": "tala",
+  "groups": [
+    {"id": "duz", "label": "Düz liste", "nodes": ["duz_a", "duz_b", "duz_c", "duz_d"]},
+    {"id": "ic_ice", "label": "İç içe liste", "nodes": ["ice_a", "ice_b", "ice_c", "ice_d", "ice_e", "ice_f", "ice_g"]}
+  ],
+  "nodes": [
+    {"id": "duz_a", "label": "A", "group": "duz"},
+    {"id": "duz_b", "label": "B", "group": "duz"},
+    {"id": "duz_c", "label": "C", "group": "duz"},
+    {"id": "duz_d", "label": "D", "group": "duz"},
+    {"id": "ice_a", "label": "A", "group": "ic_ice"},
+    {"id": "ice_b", "label": "B", "group": "ic_ice"},
+    {"id": "ice_c", "label": "C", "group": "ic_ice"},
+    {"id": "ice_d", "label": "D", "group": "ic_ice"},
+    {"id": "ice_e", "label": "E", "group": "ic_ice"},
+    {"id": "ice_f", "label": "F", "group": "ic_ice"},
+    {"id": "ice_g", "label": "G", "group": "ic_ice"}
+  ],
+  "edges": [
+    {"from": "duz_a", "to": "duz_b"},
+    {"from": "duz_b", "to": "duz_c"},
+    {"from": "duz_c", "to": "duz_d"},
+    {"from": "ice_a", "to": "ice_b"},
+    {"from": "ice_b", "to": "ice_c"},
+    {"from": "ice_c", "to": "ice_d"},
+    {"from": "ice_d", "to": "ice_e"},
+    {"from": "ice_e", "to": "ice_f"},
+    {"from": "ice_f", "to": "ice_g"}
+  ]
+}

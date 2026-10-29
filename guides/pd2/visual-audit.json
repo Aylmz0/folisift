@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "source_pages": [
+    {"source": "PD2", "page": 1, "decision": "decorative", "reason": "Bölüm kapağı; içerik değil.", "priority": "low"},
+    {"source": "PD2", "page": 5, "decision": "redraw", "asset": "diagrams/dil-soyagaci.json", "reason": "Dil soyağacı; seçilmiş ALGOL dalı D2 ile çizildi.", "priority": "high"},
+    {"source": "PD2", "page": 19, "decision": "text", "reason": "Fortran II slaytı; sürüm bilgisi metin ve tabloda aktarıldı.", "priority": "medium"},
+    {"source": "PD2", "page": 21, "decision": "text", "reason": "Fortran 77 slaytı; sürüm bilgisi metin ve tabloda aktarıldı.", "priority": "medium"},
+    {"source": "PD2", "page": 29, "decision": "redraw", "asset": "diagrams/lisp-listeleri.json", "reason": "İki LISP liste gösterimi D2 concept diagramına dönüştürüldü.", "priority": "high"},
+    {"source": "PD2", "page": 33, "decision": "text", "reason": "COMMON LISP slaytı; lehçe açıklaması metne alındı.", "priority": "medium"},
+    {"source": "PD2", "page": 45, "decision": "decorative", "reason": "COBOL tarihsel fotoğrafı; mekanizma taşımıyor.", "priority": "low"},
+    {"source": "PD2", "page": 53, "decision": "redraw", "asset": "diagrams/basic-seceresi.json", "reason": "BASIC şecere grafiği D2 concept diagramına dönüştürüldü.", "priority": "high"},
+    {"source": "PD2", "page": 101, "decision": "decorative", "reason": "Dekoratif karikatür; içerik değil.", "priority": "low"}
+  ]
+}

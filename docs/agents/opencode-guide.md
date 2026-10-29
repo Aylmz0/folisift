@@ -18,16 +18,17 @@ itself never runs a shell, D2 or a network request.
 2. doctor
 3. prepare_guide (analyze once, scaffold, outline)
 4. read_source / search_source in 10–20 page chunks
-5. write guide.md with covers, audit and source refs
-6. for each meaningful mechanism:
+5. for every low-text page, record one decision in visual-audit.json
+6. write guide.md with covers, audit and source refs
+7. for each meaningful mechanism or high-priority target:
      diagram validate → diagram save
-7. shell: folisift diagram build --guide <slug> --all
-8. diagram status
-9. build_guide check=true
-10. folisift audit --pdf <output> --expected-pages <n>
-11. make visual (when a baseline exists)
-12. human review: accuracy, G audit, table drafts, visual quality
-13. release only after approval
+8. shell: folisift diagram build --guide <slug> --all
+9. diagram status
+10. build_guide check=true
+11. folisift audit --pdf <output> --expected-pages <n>
+12. make visual (when a baseline exists)
+13. human review: accuracy, G audit, table drafts, visual quality
+14. release only after approval
 ```
 
 Do not skip the build/audit gates. Do not lower a threshold to make a run pass.
@@ -74,6 +75,9 @@ directly. The Folisift CLI owns D2 and its version check.
 | `diagram status` missing/stale | run the exact `diagram build` command |
 | diagram too wide/tall | split the spec; do not shrink below 6.5 pt |
 | coverage failure | fix the section; do not lower the threshold |
+| visual audit missing | add one decision per low-text page; do not invent evidence |
+| visual audit unresolved | fix the missing asset/reason; do not remove the page |
+| underfilled page | reflow, move a compact chapter with `flow=true`, or justify it; no filler |
 | visual diff | inspect the diff; update baseline only after review |
 | source text ambiguous | inspect the page with `render_pages`; do not invent |
 | table extraction draft | review against the source page before use |
@@ -95,6 +99,9 @@ The following are never auto-approved:
 
 | Tool/resource | Use |
 |---|---|
+| `prepare_guide` | analyze sources, return visual targets and the visual-audit path |
+| `build_guide` | render and enforce coverage + visual-audit gates |
+| `check_coverage` | canonical coverage + visual-audit gate |
 | `diagram` `validate` | validate a spec before saving |
 | `diagram` `save` | write spec + generated D2 source |
 | `diagram` `status` | check manifest/SVG freshness |

@@ -16,7 +16,8 @@ folisift-parse                liteparse inventory, coverage, screenshots
 folisift-render               Markdown + directives → Typst → PDF
     │
     ▼
-guides/<slug>/                guide.md + config.json + assets/ + data/
+guides/<slug>/                guide.md + config.json + visual-audit.json +
+                              diagrams/ + assets/ + data/
     │
     ▼
 folisift-cli / mcp            CLI and stdio MCP tools
@@ -97,6 +98,7 @@ surface is in `docs/authoring.md`.
 | `guides/<slug>/data/source.json` | `folisift analyze` | yes; reviewable |
 | `guides/<slug>/data/source.md` | same | yes; checklist |
 | `guides/<slug>/data/coverage.md` | `folisift build --check` | yes; audit trail |
+| `guides/<slug>/visual-audit.json` | host author | yes; low-text page decisions |
 | `data/cache/` | `folisift analyze` / `read_source` | no; source text cache |
 | `guides/<slug>/data/pages/` | `folisift render-pages` | no; visual cache |
 | `output/*.pdf` | `folisift build` | yes, for review |

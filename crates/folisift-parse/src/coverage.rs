@@ -6,7 +6,7 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Result, io};
-use crate::inventory::Inventory;
+use crate::inventory::{Inventory, SourceInventory};
 
 pub const DEFAULT_THRESHOLD: f64 = 0.55;
 
@@ -50,6 +50,41 @@ pub struct SectionResult {
     pub ok: bool,
 }
 
+/// Candidate sections: the source's own topic list when available, otherwise
+/// the extracted headings. Canonical sections survive styled/wrapped headings.
+fn source_candidates(source: &SourceInventory) -> Vec<(String, String, usize)> {
+    if !source.sections.is_empty() {
+        return source
+            .sections
+            .iter()
+            .map(|section| {
+                let page = source
+                    .headings
+                    .iter()
+                    .find(|heading| {
+                        SECTION_RE
+                            .captures(heading.heading.trim())
+                            .is_some_and(|captures| captures[1] == section.number)
+                    })
+                    .map_or(section.page, |heading| heading.page);
+                (section.number.clone(), section.title.clone(), page)
+            })
+            .collect();
+    }
+    source
+        .headings
+        .iter()
+        .filter_map(|heading| {
+            let captures = SECTION_RE.captures(heading.heading.trim())?;
+            Some((
+                captures[1].to_string(),
+                captures[2].trim().to_string(),
+                heading.page,
+            ))
+        })
+        .collect()
+}
+
 /// Compare every numbered source subsection with the guide's Markdown lines.
 pub fn check_coverage(
     inventory: &Inventory,
@@ -64,10 +99,8 @@ pub fn check_coverage(
     let mut known_claims = std::collections::HashSet::new();
     for source in &inventory.sources {
         let id = source.filename.trim_end_matches(".pdf");
-        for heading in &source.headings {
-            if let Some(captures) = SECTION_RE.captures(heading.heading.trim()) {
-                known_claims.insert(format!("{id}:{}", &captures[1]));
-            }
+        for (number, _, _) in source_candidates(source) {
+            known_claims.insert(format!("{id}:{number}"));
         }
     }
     let unknown_claims = claim_chars
@@ -84,22 +117,10 @@ pub fn check_coverage(
     for source in &inventory.sources {
         let mut sections = Vec::new();
         let mut seen = std::collections::HashSet::new();
-        for heading in &source.headings {
-            let Some(captures) = SECTION_RE.captures(heading.heading.trim()) else {
-                continue;
-            };
-            let number = captures
-                .get(1)
-                .map_or("", |value| value.as_str())
-                .to_string();
+        for (number, title, page) in source_candidates(source) {
             if !seen.insert(number.clone()) {
                 continue;
             }
-            let title = captures
-                .get(2)
-                .map_or("", |value| value.as_str())
-                .trim()
-                .to_string();
             total += 1;
             let source_id = source.filename.trim_end_matches(".pdf");
             let claim_key = format!("{source_id}:{number}");
@@ -125,7 +146,7 @@ pub fn check_coverage(
             sections.push(SectionResult {
                 number,
                 title,
-                page: heading.page,
+                page,
                 score,
                 matched,
                 body_chars,
@@ -430,7 +451,13 @@ fn best_line(number: &str, title: &str, lines: &[String]) -> (f64, String) {
         if !contains_number(line, &number_re) {
             continue;
         }
-        let score = sequence_ratio(&target, &normalize(line));
+        let mut score = sequence_ratio(&target, &normalize(line));
+        // A numbered guide heading is the canonical key. The title may be a
+        // paraphrase (and source titles often wrap badly), so do not fail only
+        // because the wording differs.
+        if line.trim_start().starts_with("## ") {
+            score = score.max(0.8);
+        }
         if score > best_score {
             best_score = score;
             best_text = line.clone();
@@ -530,6 +557,7 @@ mod tests {
                         page: 10,
                     },
                 ],
+                sections: vec![],
                 page_map: vec![PageRow {
                     page: 1,
                     first_line: String::new(),
@@ -636,5 +664,53 @@ mod tests {
         let markdown = "```\n## 0.1 Giriş ve amaçlar\n## 0.2 Programlama dili nedir?\n```\n";
         let report = check_coverage(&inventory(), markdown, DEFAULT_THRESHOLD);
         assert!(!report.passed);
+    }
+
+    #[test]
+    fn canonical_toc_sections_are_the_coverage_set() {
+        let body = "Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. ";
+        let mut inv = inventory();
+        inv.sources[0].sections = vec![
+            crate::inventory::CanonicalSection {
+                number: "0.1".to_string(),
+                title: "Giriş ve amaçlar".to_string(),
+                page: 2,
+            },
+            crate::inventory::CanonicalSection {
+                number: "0.2".to_string(),
+                title: "Programlama dili nedir?".to_string(),
+                page: 3,
+            },
+            crate::inventory::CanonicalSection {
+                number: "0.3".to_string(),
+                title: "Biçimsel diller".to_string(),
+                page: 4,
+            },
+        ];
+        let markdown = format!(
+            "<!-- audit -->\n## 0.1 Giriş ve amaçlar\n\n{body}\n## 0.2 Programlama dili nedir?\n\n{body}\n## 0.3 Biçimsel diller\n\n{body}\n"
+        );
+        let report = check_coverage(&inv, &markdown, DEFAULT_THRESHOLD);
+        assert!(report.passed, "{report:?}");
+        assert_eq!(report.total, 3);
+        assert_eq!(report.missing, 0);
+    }
+
+    #[test]
+    fn canonical_toc_section_missing_from_guide_fails() {
+        let mut inv = inventory();
+        inv.sources[0].sections = vec![crate::inventory::CanonicalSection {
+            number: "0.3".to_string(),
+            title: "Biçimsel diller".to_string(),
+            page: 4,
+        }];
+        let report = check_coverage(
+            &inv,
+            "<!-- audit -->\n## 0.1 Giriş ve amaçlar\n\nshort\n",
+            DEFAULT_THRESHOLD,
+        );
+        assert!(!report.passed);
+        assert_eq!(report.total, 1);
+        assert_eq!(report.missing, 1);
     }
 }

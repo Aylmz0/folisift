@@ -1,0 +1,35 @@
+# spec_sha256: e720b21e95db3796837e9e18d0b0e15d3b0229579d110773c2bf52882940e40a
+# engine: d2 v0.9.0
+direction: down
+style: { fill: "#FAF6EC" }
+*.style: {
+  fill: "#FAF6EC"
+  stroke: "#8A3E2F"
+  font-color: "#211E19"
+  font-size: 28
+  border-radius: 3
+}
+(* -> *)[*].style: {
+  stroke: "#8A3E2F"
+  font-color: "#5E574B"
+  font-size: 22
+}
+n0: "<program>"
+n1: "<stmts>"
+n2: "<stmt>"
+n3: "<var>"
+n4: "<expr>"
+n5: "X"
+n6: "<term>"
+n7: "<term>"
+n8: "Y"
+n9: "Z"
+n0 -> n1
+n1 -> n2
+n2 -> n3: ":="
+n2 -> n4
+n3 -> n5
+n4 -> n6: "+"
+n4 -> n7
+n6 -> n8
+n7 -> n9

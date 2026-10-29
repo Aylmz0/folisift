@@ -1,0 +1,23 @@
+# spec_sha256: 88b4f3ca776537901b60b0ac43533c447411397fa00e75d9823a4cdfcf15c4b4
+# engine: d2 v0.9.0
+direction: right
+style: { fill: "#FAF6EC" }
+*.style: {
+  fill: "#FAF6EC"
+  stroke: "#8A3E2F"
+  font-color: "#211E19"
+  font-size: 28
+  border-radius: 3
+}
+(* -> *)[*].style: {
+  stroke: "#8A3E2F"
+  font-color: "#5E574B"
+  font-size: 22
+}
+n0: "Programın anlamı nedir?"
+n1: "İşlemsel: makine durumu"
+n2: "Kurala dayalı: ön/son koşul"
+n3: "Fonksiyonel: matematiksel nesne"
+n0 -> n1
+n0 -> n2
+n0 -> n3

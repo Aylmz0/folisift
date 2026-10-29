@@ -210,7 +210,8 @@ Türetmede yer alan bütün sembol stringleri **cümlesel biçim (sentential for
 
 Gramerler, tanımladıkları dilin cümlelerinin **hiyerarşik sözdizimsel yapısını** tarif eder; bu yapılara **ayrıştırma ağacı (parse tree)** denir. Ağacın en alt düğümlerinde terminal semboller, diğer düğümlerde terminal olmayanlar bulunur. Ayrıştırma ağaçları ile türetmeler birbirinden türetilebilir [PD3, s. 48–49].
 
-![Şekil 3.1 `X := Y + Z` deyiminin ayrıştırma ağacı. Kök `<program>`, dallar `<stmts>`, `<stmt>`, `<var>` ve `<expr>`; yapraklar terminal sembollerdir. [PD3, s. 48–49]](assets/parse-tree.svg)
+::: diagram id="ayristirma-agaci"
+:::
 
 ### Belirsizlik
 
@@ -284,6 +285,9 @@ Factor = ident | number | "(" Expr ")".
 
 BNF ve EBNF kuralları, ayrıştırma ağacı dışında **sözdizim grafikleri (syntax graphs)** ile de gösterilebilir. İlk olarak Pascal’ın gramerini açıklamakta kullanılmıştır ve BNF’ye eşdeğerdir. Kurallar, düğümleri semboller olan iki yönlü yönlendirilmiş grafiklerle gösterilir; grafikteki olası yollar, kuraldaki terminal olmayanı tanımlayan olası sembol sıralarını verir. Terminal semboller **oval**, terminal olmayanlar **dikdörtgen** düğümlerle gösterilir [PD3, s. 75–77].
 
+::: diagram id="sozdizim-grafigi"
+:::
+
 ## 3.4 Özellik (Attribute) Gramerleri
 
 Bağlam-bağımsız gramerler bir programlama dilinin **bütün sözdizimini** tanımlayamaz. Ayrıştırma ağaçlarına bazı anlambilim bilgileri eklenmelidir; ancak her şeyi gramere koymak ağacı aşırı büyütür. Tipik örnekler **tip uyumluluğu** ve bazı dillerde **değişkenlerin kullanılmadan önce tanımlanması** zorunluluğudur [PD3, s. 63].
@@ -348,6 +352,9 @@ Ada’da bir prosedürün `end` üzerindeki adının prosedür adıyla aynı olm
 **Sentezlenmiş / miras alınmış:** Sentezlenmiş özellik çocuklardan ebeveyne **yukarı** akar; miras alınmış özellik ebeveynden çocuklara **aşağı** akar. `actual_type` sentezlenmiş, `expected_type` miras alınmıştır; bu yüzden tip denetimi iki yönlü bir hesaplama gerektirir.
 :::
 
+::: diagram id="ozellik-akisi"
+:::
+
 ## 3.5 Semantik (Anlambilim)
 
 Sözdizimsel olarak doğru olan bütün programların bir anlamı olmayabilir. Bir programın çalıştırılabilmesi için hem sözdizimi hem anlam açısından doğru olması gerekir. Bir dilin **anlam (semantik) kuralları**, sözdizimsel olarak geçerli herhangi bir programın anlamını belirler. Sözdizimi BNF gibi ağaçlarla kolayca tanımlanabilirken anlam tanımlaması farklıdır; **semantiği tanımlamak için yaygın kabul edilmiş tek bir gösterim veya formalizm yoktur** [PD3, s. 78].
@@ -356,13 +363,17 @@ Sözdizimsel olarak doğru olan bütün programların bir anlamı olmayabilir. B
 
 Anlamsal tanımlama için var olan yöntemler oldukça karmaşıktır ve hiçbiri BNF kadar yaygın kullanıma ulaşmamıştır. Dil yapılarının Türkçe gibi bir doğal dilde açıklanması mümkündür; ancak doğal dil açıklamaları **açık ve kesin olmaz**. Resmî anlam tanımlama için kullanılacak metadil, iyi anlaşılmış **sayısal kavramlara** dayanmalıdır [PD3, s. 79–81]. Üç yaklaşım vardır: **işlemsel (operational)**, **kurala dayalı (axiomatic)** ve **fonksiyonel (denotational)** semantik.
 
+::: diagram id="anlam-yontemleri"
+:::
+
 ### İşlemsel (operational) semantik
 
 İşlemsel semantik, bir programı benzetim veya gerçek olarak makine üzerinde çalıştırarak anlamını açıklar. Makinenin durumundaki değişme (bellek, saklayıcılar/registers) ifadenin anlamını tanımlar. Yüksek düzeyli bir dil için **sanal makine** gerekir; donanımda saf yorumlayıcı çok pahalı olur. Yazılım saf yorumlayıcının sorunları, bilgisayara özgü ayrıntıların anlaşılmayı zorlaştırması ve tanımın **makine bağımlı** olmasıdır [PD3, s. 82].
 
 Daha iyi alternatif, tam bir bilgisayar benzetimidir: kaynak kodunu idealleştirilmiş bir bilgisayarın makine koduna çeviren bir **çevirmen** ve o bilgisayar için bir **simülatör** oluşturulur. İşlemsel semantik, dil el kitaplarında **informal** olarak iyi işler; **formal** kullanımda aşırı karmaşıktır (örneğin VDL, PL/I’ın semantiği için kullanılmıştır) [PD3, s. 83].
 
-![Şekil 3.2 İşlemsel semantiğin gerçek dünya–soyut makine eşlemesi. Program giriş fonksiyonuyla başlangıç konfigürasyonuna, geçiş kurallarıyla ara konfigürasyonlara, çıkış fonksiyonuyla cevaba dönüşür. [PD3, s. 84]](assets/operational.svg)
+::: diagram id="islemel-semantik"
+:::
 
 **Yapısal işlemsel semantik (SOS)** bir dil için beş-tuple’dır [PD3, s. 85]:
 
@@ -779,7 +790,7 @@ Döngü:        (I and B) S {I}  /  {I} while B do S {I and (not B)}
 - **Faktöriyel özeti:** Kaynak slaytlarda durum gösterimi birkaç sayfaya yayılmıştır; kılavuzda tek akışta birleştirilmiştir [PD3, s. 125–132].
 - **Ödev slaytı (s. 135):** Dört araştırma ödevi vardır; bunlar sınav kapsamı değildir ve kılavuza alınmamıştır.
 
-::: chapter part="C–G · ORTAK BÖLÜMLER" side="BÖLÜMLER ARASI AĞ" kicker="F" title="Bağlantılar ve karşılaştırmalar" toc="F. Bağlantılar ve karşılaştırmalar" running="F · Bağlantılar ve karşılaştırmalar" subs=false compact=true lead="PD3’ün PD2 ve sonraki bölümlerle bağlantısı; sözdizimi ve anlambilim konularının dersin bütününe nasıl oturduğu."
+::: chapter flow=true part="C–G · ORTAK BÖLÜMLER" side="BÖLÜMLER ARASI AĞ" kicker="F" title="Bağlantılar ve karşılaştırmalar" toc="F. Bağlantılar ve karşılaştırmalar" running="F · Bağlantılar ve karşılaştırmalar" subs=false compact=true lead="PD3’ün PD2 ve sonraki bölümlerle bağlantısı; sözdizimi ve anlambilim konularının dersin bütününe nasıl oturduğu."
 :::
 
 ### F.1 PD2 → PD3: tarihten biçimsel tanıma
@@ -826,17 +837,12 @@ PD3’te **18** düşük metinli slayt vardır: **1, 5, 19, 26, 39, 42, 46, 60, 
 | Sayfa | İçerik / görsel | Kullanım |
 |---|---|---|
 | 1 | Bölüm kapağı | İçindekilere ve bölüm açılışına yansıtıldı |
-| 5 | Sözdizimi–anlam ilişkisi şeması | 3.1 metniyle açıklandı |
-| 19 | `Array<Array<int>>` örneği | `>>` belirsizliği olarak metne alındı |
-| 26 | Hata türleri tablosu | Hata türleri tablosuyla aktarıldı |
-| 39, 42, 46 | Gramer/türetme şemaları | Türetme örnekleri metin ve kod bloklarıyla verildi |
-| 60 | EBNF özeti | EBNF tablosu ve metasembol açıklaması |
-| 73, 74 | Nitelik akışı / tam bağlanmış ağaç | 3.4 değerlendirme sırası metniyle |
-| 76, 77 | Sözdizim grafikleri | 3.3 sonunda kavramsal açıklama |
-| 80 | Anlam tanımlama şeması | 3.5 girişinde üç yaklaşım |
-| 89 | Geçiş kuralı formu | SOS beş-tuple ve RVM ile |
-| 111 | `110` için ayrıştırma ağacı | İkili sayı örneğiyle |
-| 128, 129, 130 | Faktöriyel durum özetleri | Faktöriyel örneğinde birleştirildi |
+| 5, 26, 60 | Sözdizimi–anlam, hata türleri, EBNF özeti | Tablo ve metinle aktarıldı |
+| 19, 39, 42, 46, 89 | Array belirsizliği, gramer/türetme, geçiş kuralı | Metin ve kod bloklarıyla verildi |
+| 73, 74 | Nitelik akışı / tam bağlanmış ağaç | `ozellik-akisi` D2 diagramı ve 3.4 değerlendirme sırası |
+| 76, 77 | Sözdizim grafikleri | `sozdizim-grafigi` D2 diagramı ve 3.3 açıklaması |
+| 80 | Anlam tanımlama şeması | `anlam-yontemleri` D2 diagramı ve 3.5 girişi |
+| 111, 128–130 | Ayrıştırma ağacı / faktöriyel durum özetleri | Metin ve faktöriyel örneğiyle birleştirildi |
 :::
 
 ## G.3 Bilinçli dışarıda bırakılanlar ve sonuç
@@ -844,7 +850,7 @@ PD3’te **18** düşük metinli slayt vardır: **1, 5, 19, 26, 39, 42, 46, 60, 
 - **Bölüm kapağı ve konu listesi** (s. 1–2) içindekilere yansıtıldı.
 - **Ödev slaytı** (s. 135): BNF/EBNF araştırması, Java BNF’i, `a=a*(b+(c*a))` türetmesi ve semantik yöntemler ödevi. Bunlar sınav sorusu değil, kaynakta verilen araştırma görevleridir; kılavuzda yalnızca kapsam notu olarak anılmıştır.
 - **Tekrarlanan “Lexical / Syntax / Semantic” hattı** (s. 27–29) bir kez, 3.2 sonunda özetlendi.
-- **Uzun kod parçaları ve tam ayrıştırma ağacı çizimleri** (s. 111, 128–130) birebir çoğaltılmadı; ayırt edici yapı ve sonuçlar verildi.
+- **Uzun kod parçaları ve tam ayrıştırma ağacı çizimleri** (s. 111, 128–130) birebir çoğaltılmadı; ayırt edici yapı ve sonuçlar verildi. `X := Y + Z` ağacı, nitelik akışı, sözdizim grafiği ve anlam yöntemleri D2 diagramlarıyla temsil edildi.
 - **Dekoratif görseller** yeniden üretilmedi; tekrar eden kaynakça listesi (s. 136) kapsam dışı bırakıldı.
 
 **Sonuç:** PD3’ün **5/5 alt bölümü** ve **136/136 slaytı** kapsandı. Düşük metinli 18 slaytın tamamı incelendi; erişilemeyen sayfa tespit edilmedi. Otomatik başlık denetimi `build --check` ile, tablo/şekil/örnek denetimi bu bölümde elle yapılmıştır.

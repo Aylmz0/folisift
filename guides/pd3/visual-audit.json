@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "source_pages": [
+    {"source": "PD3", "page": 1, "decision": "decorative", "reason": "Bölüm kapağı; içerik değil.", "priority": "low"},
+    {"source": "PD3", "page": 5, "decision": "table", "reason": "Sözdizimi–anlam karşıtlığı 3.1 metninde tanım ve kritik ayrım olarak aktarıldı.", "priority": "medium"},
+    {"source": "PD3", "page": 19, "decision": "text", "reason": "Array<Array<int>> belirsizliği metin ve kod örneğiyle açıklandı.", "priority": "medium"},
+    {"source": "PD3", "page": 26, "decision": "table", "reason": "Hata türleri tablosu 3.2 metnindeki tabloya aktarıldı.", "priority": "high"},
+    {"source": "PD3", "page": 39, "decision": "text", "reason": "Gramer/türetme şeması metin ve kod bloklarıyla verildi.", "priority": "medium"},
+    {"source": "PD3", "page": 42, "decision": "text", "reason": "Türetme örneği kod bloğuyla verildi.", "priority": "medium"},
+    {"source": "PD3", "page": 46, "decision": "text", "reason": "Gramer/türetme örneği metin ve kod bloğuyla verildi.", "priority": "medium"},
+    {"source": "PD3", "page": 60, "decision": "table", "reason": "EBNF özeti tablo ve metasembol açıklamasıyla aktarıldı.", "priority": "medium"},
+    {"source": "PD3", "page": 73, "decision": "redraw", "asset": "diagrams/ozellik-akisi.json", "reason": "Nitelik değerlerinin akışı D2 concept diagramına dönüştürüldü.", "priority": "high"},
+    {"source": "PD3", "page": 74, "decision": "redraw", "asset": "diagrams/ozellik-akisi.json", "reason": "Tam bağlanmış ağaçtaki nitelik akışı aynı diagramla temsil edildi.", "priority": "high"},
+    {"source": "PD3", "page": 76, "decision": "redraw", "asset": "diagrams/sozdizim-grafigi.json", "reason": "Sözdizim grafiği D2 concept diagramına dönüştürüldü.", "priority": "high"},
+    {"source": "PD3", "page": 77, "decision": "redraw", "asset": "diagrams/sozdizim-grafigi.json", "reason": "Sözdizim grafiğinin devamı aynı diagramla temsil edildi.", "priority": "high"},
+    {"source": "PD3", "page": 80, "decision": "redraw", "asset": "diagrams/anlam-yontemleri.json", "reason": "Üç anlam tanımlama yöntemi D2 concept diagramına dönüştürüldü.", "priority": "high"},
+    {"source": "PD3", "page": 89, "decision": "text", "reason": "Geçiş kuralı formu SOS beş-tuple ve RVM metniyle açıklandı.", "priority": "medium"},
+    {"source": "PD3", "page": 111, "decision": "text", "reason": "İkili sayı için ayrıştırma ağacı metinle açıklandı; ayrı diagram yapılmadı.", "priority": "medium"},
+    {"source": "PD3", "page": 128, "decision": "text", "reason": "Faktöriyel durum özeti metinle birleştirildi.", "priority": "medium"},
+    {"source": "PD3", "page": 129, "decision": "text", "reason": "Faktöriyel durum özeti metinle birleştirildi.", "priority": "medium"},
+    {"source": "PD3", "page": 130, "decision": "text", "reason": "Faktöriyel durum özeti metinle birleştirildi.", "priority": "medium"}
+  ]
+}

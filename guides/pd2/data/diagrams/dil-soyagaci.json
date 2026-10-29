@@ -1,0 +1,24 @@
+{
+  "schema_version": 2,
+  "id": "dil-soyagaci",
+  "kind": "concept",
+  "title": "ALGOL sonrası dil ailesi",
+  "caption": "ALGOL 60'ın etkilediği seçilmiş dil ailesi; oklar tam türetme değil, etki/soy ilişkisini gösterir.",
+  "alt": "ALGOL 60'tan Pascal, C, Simula 67 ve ardından gelen dillerin seçilmiş soy ağacı.",
+  "source": "PD2, s. 5, 68, 82, 86, 97",
+  "spec_sha256": "f47d67b23389c5c348780aaa95fa9c8bab836d6733b583e4a19e039823c2d77d",
+  "svg_sha256": "45daf40cf233bf4669cee83885377f3148af1feb9672eaddbef0efd3c65db433",
+  "svg": "assets/generated/45daf40cf233bf4669cee83885377f3148af1feb9672eaddbef0efd3c65db433.svg",
+  "d2_version": "v0.9.0",
+  "layout": "tala",
+  "salt": "fsl-f47d67b23389",
+  "fonts": [
+    "Inter-Regular.ttf",
+    "Inter-Bold.ttf",
+    "Inter-Italic.ttf",
+    "Inter-SemiBold.ttf",
+    "NotoSansMono-Regular.ttf"
+  ],
+  "font_digest": "ab541b4d979d13ee9864050de613792ebeeae5fdcd705b6b2045ab17d359dab6",
+  "postprocess_version": 1
+}

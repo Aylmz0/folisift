@@ -1,0 +1,24 @@
+{
+  "schema_version": 2,
+  "id": "lisp-listeleri",
+  "kind": "concept",
+  "title": "LISP listelerinin iki gösterimi",
+  "caption": "Düz liste ile iç içe listenin hücre/bağlantı gösterimi; kaynak slayttaki iki temsilin karşılaştırması.",
+  "alt": "A B C D düz listesi ve A B C D E F G iç içe listesinin bağlantılı hücrelerle gösterimi.",
+  "source": "PD2, s. 29",
+  "spec_sha256": "c71624de3656e3c9d36df4b9af7993e502929910af7deb1d08169165ad062353",
+  "svg_sha256": "4064a4b8cba5d59d5cbf2352d156a2041cb20b40392e9b5c6596e36101b9dcf7",
+  "svg": "assets/generated/4064a4b8cba5d59d5cbf2352d156a2041cb20b40392e9b5c6596e36101b9dcf7.svg",
+  "d2_version": "v0.9.0",
+  "layout": "tala",
+  "salt": "fsl-c71624de3656",
+  "fonts": [
+    "Inter-Regular.ttf",
+    "Inter-Bold.ttf",
+    "Inter-Italic.ttf",
+    "Inter-SemiBold.ttf",
+    "NotoSansMono-Regular.ttf"
+  ],
+  "font_digest": "ab541b4d979d13ee9864050de613792ebeeae5fdcd705b6b2045ab17d359dab6",
+  "postprocess_version": 1
+}

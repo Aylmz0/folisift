@@ -1,0 +1,390 @@
+{
+  "schema_version": 1,
+  "source_pages": [
+    {
+      "source": "PD0",
+      "page": 1,
+      "decision": "decorative",
+      "reason": "Bölüm kapağı; içerik değil.",
+      "priority": "low"
+    },
+    {
+      "source": "PD0",
+      "page": 7,
+      "decision": "text",
+      "reason": "G.2'de toplu görsel inceleme kapsamında ele alındı; metin/tablo olarak aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD0",
+      "page": 9,
+      "decision": "text",
+      "reason": "G.2'de toplu görsel inceleme kapsamında ele alındı; metin/tablo olarak aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD0",
+      "page": 16,
+      "decision": "text",
+      "reason": "G.2'de toplu görsel inceleme kapsamında ele alındı; metin/tablo olarak aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD0",
+      "page": 17,
+      "decision": "text",
+      "reason": "G.2'de toplu görsel inceleme kapsamında ele alındı; metin/tablo olarak aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD0",
+      "page": 21,
+      "decision": "text",
+      "reason": "G.2'de toplu görsel inceleme kapsamında ele alındı; metin/tablo olarak aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD0",
+      "page": 23,
+      "decision": "text",
+      "reason": "G.2'de toplu görsel inceleme kapsamında ele alındı; metin/tablo olarak aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD0",
+      "page": 26,
+      "decision": "text",
+      "reason": "G.2'de toplu görsel inceleme kapsamında ele alındı; metin/tablo olarak aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD0",
+      "page": 27,
+      "decision": "text",
+      "reason": "G.2'de toplu görsel inceleme kapsamında ele alındı; metin/tablo olarak aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD0",
+      "page": 32,
+      "decision": "text",
+      "reason": "G.2'de toplu görsel inceleme kapsamında ele alındı; metin/tablo olarak aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD0",
+      "page": 35,
+      "decision": "text",
+      "reason": "G.2'de toplu görsel inceleme kapsamında ele alındı; metin/tablo olarak aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD0",
+      "page": 49,
+      "decision": "text",
+      "reason": "G.2'de toplu görsel inceleme kapsamında ele alındı; metin/tablo olarak aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD0",
+      "page": 60,
+      "decision": "text",
+      "reason": "G.2'de toplu görsel inceleme kapsamında ele alındı; metin/tablo olarak aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD0",
+      "page": 61,
+      "decision": "text",
+      "reason": "G.2'de toplu görsel inceleme kapsamında ele alındı; metin/tablo olarak aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD0",
+      "page": 62,
+      "decision": "text",
+      "reason": "G.2'de toplu görsel inceleme kapsamında ele alındı; metin/tablo olarak aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD0",
+      "page": 63,
+      "decision": "text",
+      "reason": "G.2'de toplu görsel inceleme kapsamında ele alındı; metin/tablo olarak aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD0",
+      "page": 64,
+      "decision": "text",
+      "reason": "G.2'de toplu görsel inceleme kapsamında ele alındı; metin/tablo olarak aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD0",
+      "page": 65,
+      "decision": "text",
+      "reason": "G.2'de toplu görsel inceleme kapsamında ele alındı; metin/tablo olarak aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD0",
+      "page": 68,
+      "decision": "text",
+      "reason": "G.2'de toplu görsel inceleme kapsamında ele alındı; metin/tablo olarak aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD0",
+      "page": 69,
+      "decision": "text",
+      "reason": "G.2'de toplu görsel inceleme kapsamında ele alındı; metin/tablo olarak aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD0",
+      "page": 74,
+      "decision": "text",
+      "reason": "G.2'de toplu görsel inceleme kapsamında ele alındı; metin/tablo olarak aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD0",
+      "page": 77,
+      "decision": "text",
+      "reason": "G.2'de toplu görsel inceleme kapsamında ele alındı; metin/tablo olarak aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD0",
+      "page": 78,
+      "decision": "text",
+      "reason": "G.2'de toplu görsel inceleme kapsamında ele alındı; metin/tablo olarak aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD0",
+      "page": 80,
+      "decision": "text",
+      "reason": "G.2'de toplu görsel inceleme kapsamında ele alındı; metin/tablo olarak aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD0",
+      "page": 81,
+      "decision": "text",
+      "reason": "G.2'de toplu görsel inceleme kapsamında ele alındı; metin/tablo olarak aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD0",
+      "page": 82,
+      "decision": "text",
+      "reason": "G.2'de toplu görsel inceleme kapsamında ele alındı; metin/tablo olarak aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD0",
+      "page": 83,
+      "decision": "text",
+      "reason": "G.2'de toplu görsel inceleme kapsamında ele alındı; metin/tablo olarak aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD0",
+      "page": 84,
+      "decision": "text",
+      "reason": "G.2'de toplu görsel inceleme kapsamında ele alındı; metin/tablo olarak aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD0",
+      "page": 85,
+      "decision": "text",
+      "reason": "G.2'de toplu görsel inceleme kapsamında ele alındı; metin/tablo olarak aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD0",
+      "page": 86,
+      "decision": "text",
+      "reason": "G.2'de toplu görsel inceleme kapsamında ele alındı; metin/tablo olarak aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD0",
+      "page": 87,
+      "decision": "text",
+      "reason": "G.2'de toplu görsel inceleme kapsamında ele alındı; metin/tablo olarak aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD0",
+      "page": 89,
+      "decision": "text",
+      "reason": "G.2'de toplu görsel inceleme kapsamında ele alındı; metin/tablo olarak aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD0",
+      "page": 109,
+      "decision": "text",
+      "reason": "G.2'de toplu görsel inceleme kapsamında ele alındı; metin/tablo olarak aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD0",
+      "page": 111,
+      "decision": "text",
+      "reason": "G.2'de toplu görsel inceleme kapsamında ele alındı; metin/tablo olarak aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD0",
+      "page": 116,
+      "decision": "text",
+      "reason": "G.2'de toplu görsel inceleme kapsamında ele alındı; metin/tablo olarak aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD0",
+      "page": 117,
+      "decision": "text",
+      "reason": "G.2'de toplu görsel inceleme kapsamında ele alındı; metin/tablo olarak aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD0",
+      "page": 118,
+      "decision": "text",
+      "reason": "G.2'de toplu görsel inceleme kapsamında ele alındı; metin/tablo olarak aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD0",
+      "page": 119,
+      "decision": "text",
+      "reason": "G.2'de toplu görsel inceleme kapsamında ele alındı; metin/tablo olarak aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD0",
+      "page": 120,
+      "decision": "text",
+      "reason": "G.2'de toplu görsel inceleme kapsamında ele alındı; metin/tablo olarak aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD0",
+      "page": 121,
+      "decision": "text",
+      "reason": "G.2'de toplu görsel inceleme kapsamında ele alındı; metin/tablo olarak aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD1",
+      "page": 1,
+      "decision": "decorative",
+      "reason": "Bölüm kapağı; içerik değil.",
+      "priority": "low"
+    },
+    {
+      "source": "PD1",
+      "page": 29,
+      "decision": "text",
+      "reason": "G.2'de toplu görsel inceleme kapsamında ele alındı; metin/tablo olarak aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD1",
+      "page": 31,
+      "decision": "text",
+      "reason": "G.2'de toplu görsel inceleme kapsamında ele alındı; metin/tablo olarak aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD1",
+      "page": 40,
+      "decision": "text",
+      "reason": "G.2'de toplu görsel inceleme kapsamında ele alındı; metin/tablo olarak aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD1",
+      "page": 72,
+      "decision": "text",
+      "reason": "G.2'de toplu görsel inceleme kapsamında ele alındı; metin/tablo olarak aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD1",
+      "page": 79,
+      "decision": "text",
+      "reason": "G.2'de toplu görsel inceleme kapsamında ele alındı; metin/tablo olarak aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD1",
+      "page": 89,
+      "decision": "text",
+      "reason": "G.2'de toplu görsel inceleme kapsamında ele alındı; metin/tablo olarak aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD1",
+      "page": 91,
+      "decision": "text",
+      "reason": "G.2'de toplu görsel inceleme kapsamında ele alındı; metin/tablo olarak aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD1",
+      "page": 93,
+      "decision": "text",
+      "reason": "G.2'de toplu görsel inceleme kapsamında ele alındı; metin/tablo olarak aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD1",
+      "page": 95,
+      "decision": "text",
+      "reason": "G.2'de toplu görsel inceleme kapsamında ele alındı; metin/tablo olarak aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD1",
+      "page": 97,
+      "decision": "text",
+      "reason": "G.2'de toplu görsel inceleme kapsamında ele alındı; metin/tablo olarak aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD1",
+      "page": 98,
+      "decision": "text",
+      "reason": "G.2'de toplu görsel inceleme kapsamında ele alındı; metin/tablo olarak aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD1",
+      "page": 99,
+      "decision": "text",
+      "reason": "G.2'de toplu görsel inceleme kapsamında ele alındı; metin/tablo olarak aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD1",
+      "page": 113,
+      "decision": "text",
+      "reason": "G.2'de toplu görsel inceleme kapsamında ele alındı; metin/tablo olarak aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD1",
+      "page": 121,
+      "decision": "text",
+      "reason": "G.2'de toplu görsel inceleme kapsamında ele alındı; metin/tablo olarak aktarıldı.",
+      "priority": "medium"
+    }
+  ]
+}

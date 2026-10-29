@@ -1,0 +1,26 @@
+{
+  "schema_version": 2,
+  "id": "islemel-semantik",
+  "kind": "flow",
+  "title": "İşlemsel semantiğin akışı",
+  "caption": "Programdan başlangıç konfigürasyonuna, geçiş kurallarından final konfigürasyona ve çıkış cevabına giden işlemsel semantik hattı.",
+  "alt": "Program, giriş fonksiyonu, başlangıç konfigürasyonu, geçiş kuralları, final konfigürasyonu ve çıkış cevabından oluşan altı adımlı akış.",
+  "source": "PD3, s. 84–88",
+  "direction": "right",
+  "layout": "tala",
+  "nodes": [
+    {"id": "program", "label": "Program"},
+    {"id": "input", "label": "Giriş fonksiyonu I"},
+    {"id": "config", "label": "Başlangıç konfigürasyonu"},
+    {"id": "transition", "label": "Geçiş kuralları ⇒"},
+    {"id": "final", "label": "Final konfigürasyonu"},
+    {"id": "output", "label": "Çıkış O"}
+  ],
+  "edges": [
+    {"from": "program", "to": "input"},
+    {"from": "input", "to": "config"},
+    {"from": "config", "to": "transition"},
+    {"from": "transition", "to": "final"},
+    {"from": "final", "to": "output"}
+  ]
+}

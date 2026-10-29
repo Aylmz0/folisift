@@ -1,0 +1,24 @@
+{
+  "schema_version": 2,
+  "id": "ozellik-akisi",
+  "kind": "concept",
+  "title": "Özellik değerlerinin akışı",
+  "caption": "Sentezlenmiş özellikler ağaçta yukarı, miras alınan özellikler aşağı akar; tip denetimi iki yönlü bir hesaplama gerektirir.",
+  "alt": "Assign, var ve expr düğümleri arasında expected_type aşağı, actual_type yukarı akan özellik değerleri.",
+  "source": "PD3, s. 69–74",
+  "spec_sha256": "ecf78d8ec4c838cda4db5091046f0e0dd6bea61b95f244cede53dbd0d4b214c3",
+  "svg_sha256": "078519d4b38b29a8f47a02ef11ea537c569915abd156f1c23a62dd8899d34abc",
+  "svg": "assets/generated/078519d4b38b29a8f47a02ef11ea537c569915abd156f1c23a62dd8899d34abc.svg",
+  "d2_version": "v0.9.0",
+  "layout": "tala",
+  "salt": "fsl-ecf78d8ec4c8",
+  "fonts": [
+    "Inter-Regular.ttf",
+    "Inter-Bold.ttf",
+    "Inter-Italic.ttf",
+    "Inter-SemiBold.ttf",
+    "NotoSansMono-Regular.ttf"
+  ],
+  "font_digest": "ab541b4d979d13ee9864050de613792ebeeae5fdcd705b6b2045ab17d359dab6",
+  "postprocess_version": 1
+}

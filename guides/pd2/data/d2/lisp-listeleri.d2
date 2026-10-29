@@ -1,0 +1,40 @@
+# spec_sha256: c71624de3656e3c9d36df4b9af7993e502929910af7deb1d08169165ad062353
+# engine: d2 v0.9.0
+direction: right
+style: { fill: "#FAF6EC" }
+*.style: {
+  fill: "#FAF6EC"
+  stroke: "#8A3E2F"
+  font-color: "#211E19"
+  font-size: 28
+  border-radius: 3
+}
+(* -> *)[*].style: {
+  stroke: "#8A3E2F"
+  font-color: "#5E574B"
+  font-size: 22
+}
+g0: "Düz liste" {
+  n0: "A"
+  n1: "B"
+  n2: "C"
+  n3: "D"
+}
+g1: "İç içe liste" {
+  n4: "A"
+  n5: "B"
+  n6: "C"
+  n7: "D"
+  n8: "E"
+  n9: "F"
+  n10: "G"
+}
+g0.n0 -> g0.n1
+g0.n1 -> g0.n2
+g0.n2 -> g0.n3
+g1.n4 -> g1.n5
+g1.n5 -> g1.n6
+g1.n6 -> g1.n7
+g1.n7 -> g1.n8
+g1.n8 -> g1.n9
+g1.n9 -> g1.n10

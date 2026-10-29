@@ -1,0 +1,71 @@
+{
+  "schema_version": 2,
+  "id": "ozellik-akisi",
+  "kind": "concept",
+  "title": "Özellik değerlerinin akışı",
+  "caption": "Sentezlenmiş özellikler ağaçta yukarı, miras alınan özellikler aşağı akar; tip denetimi iki yönlü bir hesaplama gerektirir.",
+  "alt": "Assign, var ve expr düğümleri arasında expected_type aşağı, actual_type yukarı akan özellik değerleri.",
+  "source": "PD3, s. 69–74",
+  "direction": "down",
+  "layout": "tala",
+  "nodes": [
+    {
+      "id": "assign",
+      "label": "<assign>"
+    },
+    {
+      "id": "var",
+      "label": "<var>"
+    },
+    {
+      "id": "expr",
+      "label": "<expr>"
+    },
+    {
+      "id": "expected",
+      "label": "expected_type"
+    },
+    {
+      "id": "actual",
+      "label": "actual_type"
+    },
+    {
+      "id": "inherited",
+      "label": "miras alınan ↓"
+    },
+    {
+      "id": "synthesized",
+      "label": "sentezlenmiş ↑"
+    }
+  ],
+  "edges": [
+    {
+      "from": "expected",
+      "to": "assign"
+    },
+    {
+      "from": "assign",
+      "to": "var"
+    },
+    {
+      "from": "assign",
+      "to": "expr"
+    },
+    {
+      "from": "var",
+      "to": "actual"
+    },
+    {
+      "from": "expr",
+      "to": "actual"
+    },
+    {
+      "from": "inherited",
+      "to": "assign"
+    },
+    {
+      "from": "assign",
+      "to": "synthesized"
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "schema_version": 2,
+  "id": "anlam-yontemleri",
+  "kind": "concept",
+  "title": "Anlam tanımlama yöntemleri",
+  "caption": "İşlemsel, kurala dayalı ve fonksiyonel semantiğin ortak soruya verdiği farklı cevaplar.",
+  "alt": "Anlam sorusundan işlemsel, kurala dayalı ve fonksiyonel semantik yöntemlerine ayrılan üç yol.",
+  "source": "PD3, s. 79–123",
+  "spec_sha256": "88b4f3ca776537901b60b0ac43533c447411397fa00e75d9823a4cdfcf15c4b4",
+  "svg_sha256": "975629ba506724bbb008e3fa1c8dc89f80a9ad13202910ad01c242061fea2f3f",
+  "svg": "assets/generated/975629ba506724bbb008e3fa1c8dc89f80a9ad13202910ad01c242061fea2f3f.svg",
+  "d2_version": "v0.9.0",
+  "layout": "tala",
+  "salt": "fsl-88b4f3ca7765",
+  "fonts": [
+    "Inter-Regular.ttf",
+    "Inter-Bold.ttf",
+    "Inter-Italic.ttf",
+    "Inter-SemiBold.ttf",
+    "NotoSansMono-Regular.ttf"
+  ],
+  "font_digest": "ab541b4d979d13ee9864050de613792ebeeae5fdcd705b6b2045ab17d359dab6",
+  "postprocess_version": 1
+}

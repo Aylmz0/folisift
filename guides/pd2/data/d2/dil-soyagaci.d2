@@ -1,0 +1,36 @@
+# spec_sha256: f47d67b23389c5c348780aaa95fa9c8bab836d6733b583e4a19e039823c2d77d
+# engine: d2 v0.9.0
+direction: right
+style: { fill: "#FAF6EC" }
+*.style: {
+  fill: "#FAF6EC"
+  stroke: "#8A3E2F"
+  font-color: "#211E19"
+  font-size: 28
+  border-radius: 3
+}
+(* -> *)[*].style: {
+  stroke: "#8A3E2F"
+  font-color: "#5E574B"
+  font-size: 22
+}
+n0: "ALGOL 60"
+n1: "Pascal"
+n2: "Modula"
+n3: "Oberon"
+n4: "C"
+n5: "C++"
+n6: "Simula 67"
+n7: "Smalltalk"
+n8: "Java"
+n9: "C#"
+n0 -> n1
+n1 -> n2
+n2 -> n3
+n0 -> n4
+n4 -> n5
+n0 -> n6
+n6 -> n7
+n6 -> n5
+n5 -> n8
+n8 -> n9
