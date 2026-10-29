@@ -14,7 +14,7 @@
 > `docs/architecture.md` and ADR-0007 for the current workflow.
 
 > **v0.9 quality note (2026-10-29).** Fixed page targets are being replaced by
-> a computed `page_range`; length is an output of canonical sections, source
+> a configured `page_range`; length is an output of canonical sections, source
 > density, examples, tables and meaningful visuals, not a target to pad. The
 > visual-audit manifest, canonical coverage and evidence-based components are
 > specified in
@@ -51,7 +51,9 @@ include_generic_study_advice: false
 ```
 
 Defaults for this project: **PD0–PD8, 1.184 slides, 85–95 pages**.
-Pilot delivery: PD0–PD1, 18–22 pages. Final delivery: all sources, one PDF.
+Pilot delivery: PD0–PD1, 22 pages as the parity reference. New guides use a
+configured page range; do not pad to a fixed count. Final delivery: all sources,
+one PDF or a volume set.
 
 If the source set is different, scale the page budget but preserve the same
 density: roughly **12–16 slides per page** for sparse slide decks, **8–12**
@@ -160,7 +162,9 @@ visible in the working notes. A typical 85–95 page guide:
 | G. Coverage audit | 2 |
 | Sources / index | 1–2 |
 
-For a 2-source pilot, use 18–22 pages and the same proportions.
+For a 2-source pilot, use a readable page range and the same proportions.
+Do not force 22 pages when the content, diagrams or accessibility need more
+space; do not pad a short source either.
 
 ### Step 4 — Write in chunks
 
@@ -477,7 +481,8 @@ Before declaring completion:
 - [ ] No orphan headings, clipped tables/code, or missing glyphs.
 - [ ] Turkish is consistent; English terms are parenthetical on first use.
 - [ ] No quizzes, flashcards, mock exams or generic study advice.
-- [ ] Page count is within the configured budget.
+- [ ] Page count is within the configured `page_range`; no padding and no
+      underfilled body pages.
 - [ ] Final PDF, HTML/CSS, source map and coverage report are delivered.
 
 ## 11. OUTPUT CONTRACT

@@ -12,6 +12,7 @@ pub const SUPPORTED_SCHEMA_VERSIONS: [u32; 3] = [1, 2, 3];
 
 pub const AESTHETICS: &[&str] = &[
     "paper",
+    "reader",
     "clean",
     "journal",
     "brief",

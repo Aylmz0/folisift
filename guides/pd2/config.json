@@ -11,10 +11,10 @@
   ],
   "inventory": "data/inventory.json",
   "coverage": "data/coverage.md",
-  "target_pages": "20-22",
-  "theme": "paper",
+  "target_pages": "20-24",
+  "theme": "reader",
   "style": {
-    "aesthetic": "paper",
+    "aesthetic": "reader",
     "structure": "a-g",
     "language": "tr",
     "source_language": "tr",

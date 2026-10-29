@@ -614,7 +614,7 @@ PD3’ün ana çizgisi şudur [PD3, s. 133]:
 - **Özellik grameri**, bir dilin hem sözdizimini hem de statik anlamını tanımlayabilen biçimsel bir çerçevedir.
 - **Anlam tanımlamanın birincil yöntemleri** işlemsel, aksiyomatik ve denotasyonel semantiktir; hiçbiri sözdizimindeki BNF kadar standart değildir.
 
-::: chapter part="C–G · ORTAK BÖLÜMLER" side="SÖZLÜK · PD3" kicker="C" title="Kavramlar ve tanımlar" toc="C. Kavramlar ve tanımlar" running="C · Kavramlar ve tanımlar" subs=false compact=true lead="PD3’ün sınav açısından kritik terimleri; sözdizimi, gramer, türetme ve anlam tanımlama yöntemleri."
+::: chapter flow=true part="C–G · ORTAK BÖLÜMLER" side="SÖZLÜK · PD3" kicker="C" title="Kavramlar ve tanımlar" toc="C. Kavramlar ve tanımlar" running="C · Kavramlar ve tanımlar" subs=false compact=true lead="PD3’ün sınav açısından kritik terimleri; sözdizimi, gramer, türetme ve anlam tanımlama yöntemleri."
 :::
 
 ::: columns

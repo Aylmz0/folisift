@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "id": "reader",
+  "name": "Reader — spacious paper",
+  "status": "experimental",
+  "layout": "paper",
+  "aesthetic": "reader",
+  "supported_structures": [
+    "a-g",
+    "imrad",
+    "irac",
+    "soap",
+    "formula-sheet",
+    "literature-matrix",
+    "lecture-notes",
+    "executive-brief"
+  ],
+  "supported_languages": [
+    "tr",
+    "en"
+  ],
+  "supported_domains": [
+    "general",
+    "cs",
+    "math",
+    "medicine",
+    "law",
+    "business",
+    "humanities",
+    "language"
+  ],
+  "supported_voices": [
+    "academic",
+    "technical",
+    "plain"
+  ],
+  "tokens": "tokens.json",
+  "strings": [
+    "tr",
+    "en"
+  ],
+  "engine_min": "0.8.0",
+  "page_target": "dynamic",
+  "preview": "preview.md"
+}

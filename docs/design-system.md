@@ -45,6 +45,18 @@ Turkish characters and hyphenation must be checked in the final PDF.
 - Section opener: top rule, small meta line, large title, short lead. The
   opener must not sit alone at the bottom of a page.
 
+## Reader style
+
+`reader` is the spacious paper variant for new long-form guides. It keeps the
+paper layout and palette but uses a 10.0 pt Noto Serif body, 0.70 em leading,
+17 mm margins, 2.6 mm paragraph spacing and a 4.0 mm list rhythm. TOC rows are
+slightly tighter so a 20-section guide still fits on one contents page.
+
+It is selected with `aesthetic: "reader"`; `paper` remains the stable
+old-PDF parity style. Reader is experimental until its cross-style and
+accessibility snapshots pass, but it is the preferred readable default for new
+guides.
+
 ## Clean style
 
 `clean` is the second engine-owned layout. It keeps the same content model and
@@ -95,5 +107,5 @@ exception is needed, document it and keep the change local.
 - Fonts embedded; Turkish glyphs present.
 - No content overflows the page or the code block.
 - No section opener alone at page bottom.
-- TOC page numbers and PDF bookmarks correct.
+- TOC page numbers are internal links and PDF bookmarks are correct.
 - G counts match the inventory.

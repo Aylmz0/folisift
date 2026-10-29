@@ -45,13 +45,19 @@ search it with `search_source`; the host LLM writes the prose.
 ## Choose a style
 
 Styles are engine-owned packs under `styles/`. `paper` is the stable parity
-style; `clean` is the experimental technical style.
+style; `reader` is the spacious paper variant for new long-form guides;
+`clean` is the experimental technical style.
 
 ```bash
 cargo run -p folisift-cli -- styles list
-cargo run -p folisift-cli -- styles info clean --language en
-cargo run -p folisift-cli -- styles preview clean --language en
+cargo run -p folisift-cli -- styles info reader --language tr
+cargo run -p folisift-cli -- styles preview reader --language tr
 ```
+
+The MCP `style` tool also has a `recommend` action. It returns only packs
+compatible with the requested domain/structure/language, with `reader` first
+for spacious long-form reading. This is a heuristic; the host must choose a
+candidate and record `style_rationale`.
 
 A schema-3 guide config carries the independent axes:
 
