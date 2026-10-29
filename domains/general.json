@@ -1,0 +1,11 @@
+{
+  "id": "general",
+  "name": "General study",
+  "emphasis": "Balance definitions, mechanisms, examples and source traceability.",
+  "structure_default": "a-g",
+  "checks": [
+    "source refs",
+    "no invented facts",
+    "audit section"
+  ]
+}

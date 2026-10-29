@@ -104,6 +104,7 @@ pub fn load(styles_root: &Path, id: &str) -> Result<LoadedStyle> {
         id: id.to_string(),
         message: format!("tokens: {error}"),
     })?;
+    validate_accessibility(id, &tokens)?;
     let language = pack
         .supported_languages
         .first()
@@ -135,6 +136,80 @@ pub fn preview(styles_root: &Path, id: &str, language: &str) -> Result<String> {
         return read_pack_file(styles_root, id, &localized);
     }
     read_pack_file(styles_root, id, &loaded.pack.preview)
+}
+
+fn validate_accessibility(id: &str, tokens: &Value) -> Result<()> {
+    let palette = tokens
+        .get("palette")
+        .and_then(Value::as_object)
+        .ok_or_else(|| Error::Style {
+            id: id.to_string(),
+            message: "tokens.palette is required".to_string(),
+        })?;
+    let color = |key: &str| -> Result<(u8, u8, u8)> {
+        let value = palette
+            .get(key)
+            .and_then(Value::as_str)
+            .ok_or_else(|| Error::Style {
+                id: id.to_string(),
+                message: format!("tokens.palette.{key} is required"),
+            })?;
+        parse_hex(value).ok_or_else(|| Error::Style {
+            id: id.to_string(),
+            message: format!("tokens.palette.{key} is not #RRGGBB"),
+        })
+    };
+    let ink = color("ink")?;
+    let paper = color("paper")?;
+    if contrast_ratio(ink, paper) < 4.5 {
+        return Err(Error::Style {
+            id: id.to_string(),
+            message: "ink/paper contrast is below 4.5:1".to_string(),
+        });
+    }
+    let size = tokens
+        .get("typography")
+        .and_then(|value| value.get("body_size"))
+        .and_then(Value::as_f64)
+        .unwrap_or(0.0);
+    if size < 9.0 {
+        return Err(Error::Style {
+            id: id.to_string(),
+            message: "body_size must be at least 9 pt".to_string(),
+        });
+    }
+    Ok(())
+}
+
+fn parse_hex(value: &str) -> Option<(u8, u8, u8)> {
+    let value = value.strip_prefix('#')?;
+    if value.len() != 6 {
+        return None;
+    }
+    let channel = |range: std::ops::Range<usize>| u8::from_str_radix(&value[range], 16).ok();
+    Some((channel(0..2)?, channel(2..4)?, channel(4..6)?))
+}
+
+fn contrast_ratio(first: (u8, u8, u8), second: (u8, u8, u8)) -> f64 {
+    let luminance = |color: (u8, u8, u8)| {
+        let channel = |value: u8| {
+            let value = f64::from(value) / 255.0;
+            if value <= 0.039_28 {
+                value / 12.92
+            } else {
+                ((value + 0.055) / 1.055).powf(2.4)
+            }
+        };
+        0.2126 * channel(color.0) + 0.7152 * channel(color.1) + 0.0722 * channel(color.2)
+    };
+    let first = luminance(first);
+    let second = luminance(second);
+    let (lighter, darker) = if first > second {
+        (first, second)
+    } else {
+        (second, first)
+    };
+    (lighter + 0.05) / (darker + 0.05)
 }
 
 fn io(path: &Path, source: std::io::Error) -> Error {
@@ -196,4 +271,25 @@ pub fn validate_profile(pack: &StylePack, profile: &folisift_core::StyleProfile)
         return fail("voice", &profile.voice, &pack.supported_voices);
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn computes_contrast_and_parses_hex() {
+        let black = parse_hex("#000000").expect("black");
+        let white = parse_hex("#FFFFFF").expect("white");
+        assert!((contrast_ratio(black, white) - 21.0).abs() < 0.01);
+        assert!(parse_hex("not-a-colour").is_none());
+    }
+
+    #[test]
+    fn builtins_pass_accessibility() {
+        let paper = load(Path::new(""), "paper").expect("paper");
+        assert_eq!(paper.pack.status, "stable");
+        let clean = load(Path::new(""), "clean").expect("clean");
+        assert_eq!(clean.pack.status, "experimental");
+    }
 }

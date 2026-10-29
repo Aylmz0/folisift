@@ -1,0 +1,11 @@
+{
+  "id": "cs",
+  "name": "Computer science",
+  "emphasis": "Algorithms, complexity, code traces, architecture and edge cases.",
+  "structure_default": "a-g",
+  "checks": [
+    "complexity stated",
+    "edge cases",
+    "code/table checks"
+  ]
+}

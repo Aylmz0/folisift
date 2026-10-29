@@ -3,6 +3,7 @@
 //! The content format is deliberately small: CommonMark, YAML frontmatter and
 //! four block directives. Guides never contain raw Typst.
 
+pub mod domains;
 pub mod error;
 pub mod markdown;
 pub mod styles;

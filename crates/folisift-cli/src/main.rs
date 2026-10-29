@@ -154,6 +154,9 @@ enum StylesCommand {
         id: String,
         #[arg(long, default_value = "tr")]
         language: String,
+        /// Optional domain profile to include.
+        #[arg(long)]
+        domain: Option<String>,
     },
     /// Render a small style preview PDF.
     Preview {
@@ -426,15 +429,23 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 let packs = styles::list(workspace.root())?;
                 println!("{}", serde_json::to_string_pretty(&packs)?);
             }
-            StylesCommand::Info { id, language } => {
+            StylesCommand::Info {
+                id,
+                language,
+                domain,
+            } => {
                 let loaded = styles::load(workspace.root(), &id)?;
                 let strings = styles::strings(workspace.root(), &id, &language)?;
+                let domain = domain
+                    .map(|domain| folisift_render::domains::load(workspace.root(), &domain))
+                    .transpose()?;
                 println!(
                     "{}",
                     serde_json::to_string_pretty(&json!({
                         "pack": loaded.pack,
                         "tokens": loaded.tokens,
                         "strings": strings,
+                        "domain": domain,
                     }))?
                 );
             }

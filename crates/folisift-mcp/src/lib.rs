@@ -93,6 +93,8 @@ pub struct StyleParams {
     pub language: Option<String>,
     /// Optional preview output path.
     pub output: Option<String>,
+    /// Optional domain profile for info.
+    pub domain: Option<String>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -578,6 +580,8 @@ impl FolisiftServer {
             "pages": inventory.totals.pages,
             "words": inventory.totals.words,
             "style": style,
+            "domain_profile": folisift_render::domains::load(self.workspace.root(), &style.domain)
+                .ok(),
             "sources": source_rows,
             "outline": outline,
             "next": [

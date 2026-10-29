@@ -1,0 +1,11 @@
+{
+  "id": "humanities",
+  "name": "Humanities",
+  "emphasis": "Thesis, textual evidence, counterargument and synthesis.",
+  "structure_default": "imrad",
+  "checks": [
+    "claims tied to text",
+    "argument not chronology",
+    "counterargument"
+  ]
+}

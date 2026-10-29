@@ -1091,7 +1091,7 @@ checksum = "77ce24cb58228fbb8aa041425bb1050850ac19177686ea6e0f41a70416f56fdb"
 
 [[package]]
 name = "folisift-cli"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "clap",
  "folisift-core",
@@ -1106,7 +1106,7 @@ dependencies = [
 
 [[package]]
 name = "folisift-core"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "pathdiff",
  "serde",
@@ -1117,7 +1117,7 @@ dependencies = [
 
 [[package]]
 name = "folisift-mcp"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "folisift-core",
  "folisift-parse",
@@ -1131,7 +1131,7 @@ dependencies = [
 
 [[package]]
 name = "folisift-parse"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "async-trait",
  "blake3",
@@ -1149,7 +1149,7 @@ dependencies = [
 
 [[package]]
 name = "folisift-render"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "blake3",
  "folisift-core",

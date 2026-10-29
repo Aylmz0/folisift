@@ -1,0 +1,11 @@
+{
+  "id": "law",
+  "name": "Law",
+  "emphasis": "Jurisdiction, rule, application and conclusion; no invented outcomes.",
+  "structure_default": "irac",
+  "checks": [
+    "jurisdiction",
+    "IRAC complete",
+    "citation discipline"
+  ]
+}

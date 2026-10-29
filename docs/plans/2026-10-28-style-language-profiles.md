@@ -1,6 +1,6 @@
 # Folisift v0.4 — Style, Language and Study-Profile Plan
 
-- **Status:** v0.4.0 released — S0–S5 and S7 landed; accessibility snapshots/CI remain
+- **Status:** v0.4.1 — S0–S7 landed; screenshots and signing remain for v0.5
 - **Date:** 2026-10-28
 - **Related:** `docs/plans/2026-10-28-roadmap.md`,
   `docs/plans/2026-10-28-visual-parity-and-production.md`,
@@ -480,7 +480,7 @@ be marked stable without snapshots and cross-style content parity.
 - `en` style preview and localization lint.
 - Exit: no Turkish UI labels in English builds.
 
-### Phase S6 — Accessibility/CI (1–2 days) — partial
+### Phase S6 — Accessibility/CI (1–2 days) — landed
 
 - Contrast, tagged PDF, bookmarks, font size.
 - Cross-style fixture and snapshots in CI.
@@ -501,7 +501,8 @@ be marked stable without snapshots and cross-style content parity.
 - [x] `prepare_guide` accepts the style profile and returns a style-aware plan.
 - [x] Same content hash across styles except localized labels.
 - [x] Coverage/table/figure/reference parity across paper and clean.
-- [ ] Accessibility gate passes for every stable style (full audit pending).
+- [x] Accessibility gate passes for paper/clean: tagged PDF, bookmarks, min 6 pt,
+  contrast >= 4.5:1 and body size >= 9 pt.
 - [ ] No raw Typst/CSS in guide content.
 - [ ] No style can remove the audit section.
 - [x] Clean install + `doctor` works.

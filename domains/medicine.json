@@ -1,0 +1,11 @@
+{
+  "id": "medicine",
+  "name": "Medicine",
+  "emphasis": "Clinical reasoning, red flags, uncertainty and guideline years.",
+  "structure_default": "soap",
+  "checks": [
+    "caveats",
+    "no diagnosis without evidence",
+    "source years"
+  ]
+}
