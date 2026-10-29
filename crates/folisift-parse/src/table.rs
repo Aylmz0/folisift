@@ -106,6 +106,20 @@ pub fn extract_tables(path: &Path, page_number: usize) -> Result<Vec<ExtractedTa
         },
     );
 
+    let bbox = BBox {
+        left,
+        top,
+        right,
+        bottom,
+    };
+    Ok(extract_from_positions(page_number, chars, bbox))
+}
+
+fn extract_from_positions(
+    page_number: usize,
+    mut chars: Vec<PositionedChar>,
+    bbox: BBox,
+) -> Vec<ExtractedTable> {
     // Group characters into visual lines by their top coordinate.
     chars.sort_by(|a, b| a.1.total_cmp(&b.1).then(a.0.total_cmp(&b.0)));
     let mut lines: Vec<Line> = Vec::new();
@@ -151,7 +165,7 @@ pub fn extract_tables(path: &Path, page_number: usize) -> Result<Vec<ExtractedTa
     }
 
     if parsed.len() < 3 {
-        return Ok(Vec::new());
+        return Vec::new();
     }
     let mut groups: std::collections::HashMap<usize, Vec<Vec<Cell>>> =
         std::collections::HashMap::new();
@@ -173,7 +187,7 @@ pub fn extract_tables(path: &Path, page_number: usize) -> Result<Vec<ExtractedTa
         })
         .max_by_key(|(_, rows)| rows.len());
     let Some((columns, mut rows)) = candidate else {
-        return Ok(Vec::new());
+        return Vec::new();
     };
     // The same column must start at roughly the same x on every row.
     let aligned = (0..columns).all(|column| {
@@ -190,7 +204,7 @@ pub fn extract_tables(path: &Path, page_number: usize) -> Result<Vec<ExtractedTa
         max - min <= 18.0
     });
     if !aligned || rows.len() < 3 {
-        return Ok(Vec::new());
+        return Vec::new();
     }
     rows.truncate(20);
     let table_rows = rows
@@ -206,17 +220,77 @@ pub fn extract_tables(path: &Path, page_number: usize) -> Result<Vec<ExtractedTa
         })
         .collect::<Vec<_>>();
     let confidence = (0.55 + (table_rows.len() as f64 / 6.0).min(1.0) * 0.4).min(0.95);
-    Ok(vec![ExtractedTable {
+    vec![ExtractedTable {
         page: page_number,
         header: table_rows[0].clone(),
         rows: table_rows[1..].to_vec(),
         confidence: (confidence * 100.0).round() / 100.0,
         draft: true,
-        bbox: BBox {
-            left,
-            top,
-            right,
-            bottom,
-        },
-    }])
+        bbox,
+    }]
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn grid(rows: &[&[&str]]) -> Vec<PositionedChar> {
+        let mut chars = Vec::new();
+        for (row_index, row) in rows.iter().enumerate() {
+            let y = 100.0 + row_index as f64 * 20.0;
+            for (column, cell) in row.iter().enumerate() {
+                let x = 10.0 + column as f64 * 200.0;
+                for (offset, value) in cell.chars().enumerate() {
+                    let left = x + offset as f64 * 5.0;
+                    chars.push((left, y, left + 5.0, y + 10.0, value));
+                }
+            }
+        }
+        chars
+    }
+
+    fn bbox() -> BBox {
+        BBox {
+            left: 0.0,
+            top: 90.0,
+            right: 500.0,
+            bottom: 180.0,
+        }
+    }
+
+    #[test]
+    fn recovers_a_simple_grid() {
+        let chars = grid(&[
+            &["Evre", "Girdi", "Çıktı"],
+            &["Sözcük", "Karakter", "Token"],
+            &["Sözdizim", "Token", "Ağaç"],
+            &["Kod", "Ağaç", "Bayt"],
+        ]);
+        let tables = extract_from_positions(3, chars, bbox());
+        assert_eq!(tables.len(), 1);
+        let table = &tables[0];
+        assert_eq!(table.header, vec!["Evre", "Girdi", "Çıktı"]);
+        assert_eq!(table.rows.len(), 3);
+        assert_eq!(table.rows[0], vec!["Sözcük", "Karakter", "Token"]);
+        assert!(table.draft);
+        assert!(table.confidence > 0.5);
+    }
+
+    #[test]
+    fn rejects_misaligned_columns() {
+        let mut chars = grid(&[&["A", "B", "C"], &["D", "E", "F"], &["G", "H", "I"]]);
+        for ch in &mut chars {
+            if ch.4 == 'E' {
+                ch.0 += 60.0;
+                ch.2 += 60.0;
+            }
+        }
+        assert!(extract_from_positions(1, chars, bbox()).is_empty());
+    }
+
+    #[test]
+    fn rejects_a_single_row() {
+        let chars = grid(&[&["A", "B", "C"]]);
+        assert!(extract_from_positions(1, chars, bbox()).is_empty());
+    }
 }

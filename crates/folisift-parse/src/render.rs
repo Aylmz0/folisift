@@ -26,6 +26,51 @@ pub struct RenderPagesResult {
     pub contact_sheet: Option<PathBuf>,
 }
 
+/// Crop box in normalized page fractions: left, top, width, height.
+#[derive(Debug, Clone, Copy, Serialize)]
+pub struct CropBox {
+    pub left: f32,
+    pub top: f32,
+    pub width: f32,
+    pub height: f32,
+}
+
+impl CropBox {
+    pub fn parse(value: &str) -> Result<Self> {
+        let parts = value
+            .split(',')
+            .map(str::trim)
+            .map(str::parse::<f32>)
+            .collect::<std::result::Result<Vec<_>, _>>()
+            .map_err(|_| Error::PageSelection {
+                value: format!("crop must be left,top,width,height: {value:?}"),
+            })?;
+        if parts.len() != 4 {
+            return Err(Error::PageSelection {
+                value: format!("crop must have four values: {value:?}"),
+            });
+        }
+        let crop = Self {
+            left: parts[0],
+            top: parts[1],
+            width: parts[2],
+            height: parts[3],
+        };
+        if crop.width <= 0.0
+            || crop.height <= 0.0
+            || crop.left < 0.0
+            || crop.top < 0.0
+            || crop.left + crop.width > 1.001
+            || crop.top + crop.height > 1.001
+        {
+            return Err(Error::PageSelection {
+                value: format!("crop is outside the page: {value:?}"),
+            });
+        }
+        Ok(crop)
+    }
+}
+
 pub const MAX_PAGES_PER_CALL: usize = 8;
 
 /// Render selected pages to PNG files.
@@ -38,6 +83,7 @@ pub async fn render_pages(
     out_dir: &Path,
     contact_sheet: bool,
     dpi: Option<f32>,
+    crop: Option<CropBox>,
 ) -> Result<RenderPagesResult> {
     pdfium::init(None)?;
     let requested = pages.unwrap_or_else(|| (1..=MAX_PAGES_PER_CALL as u32).collect());
@@ -86,11 +132,12 @@ pub async fn render_pages(
     let mut images = Vec::with_capacity(shots.len());
     for shot in shots {
         let path = out_dir.join(format!("page-{:03}.png", shot.page_num));
-        std::fs::write(&path, &shot.image_bytes).map_err(|error| io(&path, error))?;
+        let (bytes, width, height) = crop_png(&shot.image_bytes, crop)?;
+        std::fs::write(&path, &bytes).map_err(|error| io(&path, error))?;
         images.push(PageImage {
             page: shot.page_num,
-            width: shot.width,
-            height: shot.height,
+            width,
+            height,
             path,
         });
     }
@@ -109,6 +156,40 @@ pub async fn render_pages(
         next_pages,
         contact_sheet,
     })
+}
+
+fn crop_png(bytes: &[u8], crop: Option<CropBox>) -> Result<(Vec<u8>, u32, u32)> {
+    let Some(crop) = crop else {
+        let image = image::load_from_memory(bytes).map_err(|error| Error::Parse {
+            path: PathBuf::from("<rendered page>"),
+            message: format!("decode rendered page: {error}"),
+        })?;
+        return Ok((bytes.to_vec(), image.width(), image.height()));
+    };
+    let image = image::load_from_memory(bytes).map_err(|error| Error::Parse {
+        path: PathBuf::from("<rendered page>"),
+        message: format!("decode rendered page: {error}"),
+    })?;
+    let x = (image.width() as f32 * crop.left).round() as u32;
+    let y = (image.height() as f32 * crop.top).round() as u32;
+    let width = (image.width() as f32 * crop.width).round() as u32;
+    let height = (image.height() as f32 * crop.height).round() as u32;
+    let cropped = image::imageops::crop_imm(
+        &image,
+        x.min(image.width().saturating_sub(1)),
+        y.min(image.height().saturating_sub(1)),
+        width.max(1).min(image.width().saturating_sub(x)),
+        height.max(1).min(image.height().saturating_sub(y)),
+    )
+    .to_image();
+    let mut out = std::io::Cursor::new(Vec::new());
+    cropped
+        .write_to(&mut out, image::ImageFormat::Png)
+        .map_err(|error| Error::Parse {
+            path: PathBuf::from("<cropped page>"),
+            message: format!("encode cropped page: {error}"),
+        })?;
+    Ok((out.into_inner(), cropped.width(), cropped.height()))
 }
 
 fn write_contact_sheet(out_dir: &Path, images: &[PageImage]) -> Result<PathBuf> {

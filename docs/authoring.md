@@ -85,6 +85,19 @@ the heading:
 The coverage gate reads `covers` first and falls back to `## <number> <title>`
 headings. Every source subsection must be claimed exactly once.
 
+Low-text pages need a visual pass. Cropping a source figure (normalized
+fractions `left,top,width,height`) keeps the extract small and focused:
+
+```bash
+cargo run -p folisift-cli -- render-pages \
+  --source sources/PD0.pdf --pages 7 \
+  --out guides/pd0-pd1/assets/source --crop 0.12,0.08,0.76,0.40
+```
+
+Then reference the PNG from `guide.md`; the caption must state the takeaway and
+provenance (for example `[PD0, s. 7]`). A cropped screenshot is `extracted`,
+not `original`.
+
 Low-text pages need a visual pass:
 
 ```bash
@@ -166,7 +179,7 @@ The template owns pagination and typography; content uses semantic blocks.
 | `::: critical label=...` | sage critical-distinction box |
 | `::: example label=...` | rule-top/bottom example box |
 | `::: note label=...` | gold note box (use for **Açıklayıcı not**) |
-| `::: table widths="5,20,35,40" kind="facts" caption="..." source="..."` | table metadata; wrap the Markdown table |
+| `::: table widths="5,20,35,40" kind="facts" caption="..." source="..." id="..."` | table metadata; wrap the Markdown table |
 | `::: columns` … `::: columnbreak` … `:::` | two-column region and explicit break |
 | `::: pagebreak` | start the next block on a new page (rare) |
 
@@ -178,7 +191,9 @@ The first `::: definition` in the front matter may carry
 
 `::: table` attributes: `widths` is a comma-separated percentage list;
 `kind="facts"` renders a label/value grid instead of a data table; `caption`
-and `source` add a numbered caption and source note.
+and `source` add a numbered caption and source note. `id` creates a stable
+Typst label such as `tab-derleme`, usable in prose as `@tab-derleme`. Widths
+must be percentages that sum to 100.
 
 ### Diagram blocks
 

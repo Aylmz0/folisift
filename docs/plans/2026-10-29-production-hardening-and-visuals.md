@@ -875,55 +875,56 @@ Durations assume one focused engineer; multiply for review/iteration.
 
 ### Correctness
 
-- [ ] Duplicate/unknown `covers` fail with the exact source/section.
-- [ ] Missing audit section fails.
-- [ ] Raw Typst/CSS is rejected with line numbers.
-- [ ] Build cache returns the same PDF/hash and `cache_hit=true`.
-- [ ] Every PDF audit issue is page/rule specific.
+- [x] Duplicate/unknown `covers` fail with the exact source/section.
+- [x] Missing audit section fails.
+- [x] Raw Typst/CSS is rejected with line numbers.
+- [x] Build cache returns the same PDF/hash and `cache_hit=true`.
+- [x] Every PDF audit issue is page/rule specific.
 
 ### Tables
 
-- [ ] Table caption/id/source survive all styles.
-- [ ] Simple table extraction fixture is recovered with cells and confidence.
-- [ ] Table split, caption split, column mismatch and overflow fail.
+- [x] Table caption/id/source survive all styles.
+- [x] Simple table extraction fixture is recovered with cells and confidence.
+- [x] Table split, caption split, column mismatch and overflow fail. Non-breakable table blocks prevent caption/table splits; width sum, column count and unsafe ids are rejected.
 - [ ] `paper` 24 tables and `clean` 24 tables still pass.
 
 ### Diagrams/SVG
 
-- [ ] `concept`, `flow`, `tree`, `sequence` fixtures render deterministically.
-- [ ] A diagram with >12 nodes is rejected with a split recommendation.
-- [ ] A decorative/stock image is rejected by the visual lint.
-- [ ] Every figure has a takeaway caption, provenance and alt text.
-- [ ] Table captions are above tables; figure captions are below figures.
-- [ ] Every generated SVG has `role`, `title`, `desc`, `viewBox`, no scripts
+- [x] `concept`, `flow`, `tree`, `sequence` fixtures render deterministically.
+- [x] A diagram with >12 nodes is rejected with a split recommendation.
+- [x] A decorative/stock image is rejected by the visual lint.
+- [x] Every figure has a takeaway caption, provenance and alt text.
+- [x] Table captions are above tables; figure captions are below figures.
+- [x] Every generated SVG has `role`, `title`, `desc`, `viewBox`, no scripts
       and no external refs.
-- [ ] Diagram text is >= 6.5 pt and does not overlap.
-- [ ] Same spec + theme + engine → same SVG hash.
-- [ ] Host-authored SVG with script/external ref is rejected.
-- [ ] A low-text source page can be inspected/extracted/redrawn and embedded.
+- [x] Diagram text is >= 6.5 pt and does not overlap. Width is capped at 900
+      units so the 12 pt SVG font stays above 6.5 pt at page width.
+- [x] Same spec + theme + engine → same SVG hash.
+- [x] Host-authored SVG with script/external ref is rejected.
+- [x] A low-text source page can be inspected/extracted/redrawn and embedded. `render-pages --crop` produces a normalized crop for a figure asset.
 
 ### Visual/accessibility
 
-- [ ] Orphan heading fixture fails.
-- [ ] Table/figure/box split fixtures fail.
-- [ ] TOC/bookmark mismatch fails.
-- [ ] Empty/overflow/missing-glyph pages fail.
-- [ ] PDF/UA internal checks pass for paper/clean; veraPDF optional CI.
-- [ ] SSIM/pixel baselines exist for selected pages.
+- [ ] Orphan heading fixture fails. The detector has unit tests; a seeded PDF fixture is still pending.
+- [ ] Table/figure/box split fixtures fail. Non-breakable table blocks prevent table/caption splits; seeded PDF fixtures are still pending.
+- [x] TOC/bookmark mismatch fails. Bookmark destinations are matched against extracted page text.
+- [x] Empty/overflow/missing-glyph pages fail.
+- [x] PDF/UA internal checks pass for paper/clean; veraPDF optional CI. Tagged text, alt text, bookmarks, minimum font size and destination checks are enforced. veraPDF remains an external optional gate.
+- [x] SSIM/pixel baselines exist for selected pages. Pixel baselines cover the paper guide and the clean preview.
 
 ### Styles/structures
 
-- [ ] Token change changes preview without changing content.
-- [ ] IMRAD/IRAC/SOAP/formula/literature/brief fixtures build with coverage.
-- [ ] Domain profile appears in prepare/build output.
-- [ ] English guide has no Turkish UI labels.
-- [ ] `same content hash across styles` test still passes.
+- [x] Token change changes preview without changing content.
+- [x] IMRAD/IRAC/SOAP/formula/literature/brief fixtures build with coverage. Every pack renders in both languages; coverage remains source-dependent.
+- [x] Domain profile appears in prepare/build output.
+- [x] English guide has no Turkish UI labels.
+- [x] `same content hash across styles` test still passes.
 
 ### Platform
 
-- [ ] Linux/macOS/Windows archives documented and built.
-- [ ] Signature policy is explicit; unsigned archives are marked.
-- [ ] HTTP non-loopback requires a token and is documented as unsupported
+- [ ] Linux/macOS/Windows archives documented and built. Linux is built by `make package`; macOS/Windows remain source builds until their CI runners are provisioned.
+- [x] Signature policy is explicit; unsigned archives are marked.
+- [x] HTTP non-loopback requires a token and is documented as unsupported
       otherwise.
 
 ## 17. Test fixtures

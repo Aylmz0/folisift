@@ -199,6 +199,40 @@ fn scaffolds_a_schema_two_guide() {
 }
 
 #[test]
+fn scaffolds_structure_sections_in_the_requested_language() {
+    let root = fixture();
+    let style = folisift_core::StyleProfile {
+        aesthetic: "clean".to_string(),
+        structure: "imrad".to_string(),
+        language: "en".to_string(),
+        source_language: "en".to_string(),
+        ..folisift_core::StyleProfile::default()
+    };
+    let guide = scaffold(
+        &workspace(root.path()),
+        &ScaffoldOptions {
+            slug: "imrad".to_string(),
+            title: "Research report".to_string(),
+            course: String::new(),
+            sources: vec![root.path().join("sources/PD0.pdf")],
+            style,
+        },
+    )
+    .expect("scaffold");
+    let content = fs::read_to_string(guide.content).expect("content");
+    for heading in ["Introduction", "Methods", "Results", "Discussion"] {
+        assert!(
+            content
+                .lines()
+                .any(|line| line.starts_with("## ") && line.ends_with(heading)),
+            "missing {heading}:\n{content}"
+        );
+    }
+    assert!(content.contains("About this guide"));
+    assert!(!content.contains("Bu kitapçık"));
+}
+
+#[test]
 fn loads_a_schema_three_style_profile() {
     let root = fixture();
     fs::create_dir_all(root.path().join("guides/styled")).expect("guide");

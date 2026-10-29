@@ -7,6 +7,7 @@ pub mod config;
 pub mod error;
 pub mod paths;
 pub mod scaffold;
+pub mod structures;
 pub mod version;
 
 pub use config::{

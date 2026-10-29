@@ -1,0 +1,10 @@
+{
+  "id": "literature-matrix",
+  "title": "Literature matrix",
+  "sections": [
+    { "id": "question", "tr": "Araştırma sorusu", "en": "Research question", "hint": "Kapsam ve arama ölçütleri." },
+    { "id": "sources", "tr": "Kaynaklar", "en": "Sources", "hint": "Kaynak, yöntem, örneklem ve bulgu matrisi." },
+    { "id": "synthesis", "tr": "Sentez", "en": "Synthesis", "hint": "Ortak bulgular, çelişkiler ve eğilimler." },
+    { "id": "gaps", "tr": "Boşluklar", "en": "Gaps", "hint": "Kanıt boşlukları ve sonraki adımlar." }
+  ]
+}

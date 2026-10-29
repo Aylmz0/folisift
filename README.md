@@ -48,6 +48,10 @@ cargo run -p folisift-cli -- audit --pdf output/PD0-PD1_Calisma_Ozeti.pdf --expe
 cargo run -p folisift-cli -- styles list
 cargo run -p folisift-cli -- styles preview clean --language en
 
+# Crop a source figure for a guide asset
+cargo run -p folisift-cli -- render-pages --source sources/PD0.pdf --pages 7 \
+  --out guides/pd0-pd1/assets/source --crop 0.12,0.08,0.76,0.40
+
 # Draft table extraction from a native-text PDF page
 cargo run -p folisift-cli -- table extract --source output/PD0-PD1_Calisma_Ozeti.pdf --page 4
 
@@ -64,6 +68,11 @@ MCP server (stdio or streamable HTTP):
 folisift mcp --root /path/to/workspace
 folisift mcp --root /path/to/workspace --http 127.0.0.1:8000
 # HTTP endpoint: http://127.0.0.1:8000/mcp
+
+# Non-loopback binds require a bearer token.
+folisift mcp --root /path/to/workspace --http 0.0.0.0:8000 \
+  --http-token "$FOLISIFT_HTTP_TOKEN"
+# Requests must send: Authorization: Bearer <token>
 ```
 
 Install and platform notes: `docs/install.md`.
@@ -100,6 +109,7 @@ separately.
 - [Architecture](docs/architecture.md)
 - [Authoring](docs/authoring.md)
 - [Authoring specification](docs/authoring-spec.md)
+- [Structure packs](docs/structures.md)
 - [Design system](docs/design-system.md)
 - [ADRs](docs/adr/)
 - [Plans](docs/plans/)

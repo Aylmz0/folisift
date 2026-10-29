@@ -33,6 +33,9 @@ enum Command {
         /// Bind address for streamable HTTP, e.g. 127.0.0.1:8000.
         #[arg(long)]
         http: Option<String>,
+        /// Bearer token for HTTP; required for non-loopback binds.
+        #[arg(long, env = "FOLISIFT_HTTP_TOKEN", hide_env_values = true)]
+        http_token: Option<String>,
     },
     /// Show workspace root, version and guide count.
     WorkspaceInfo,
@@ -156,6 +159,9 @@ enum Command {
         /// Render DPI (72–200).
         #[arg(long)]
         dpi: Option<f32>,
+        /// Crop as normalized fractions: left,top,width,height.
+        #[arg(long)]
+        crop: Option<String>,
     },
 }
 
@@ -241,6 +247,13 @@ struct GuideStatus {
     empty_sections: Vec<String>,
 }
 
+fn write_pdf(path: &std::path::Path, bytes: &[u8]) -> std::io::Result<()> {
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    std::fs::write(path, bytes)
+}
+
 fn prose_words(markdown: &str) -> usize {
     markdown
         .lines()
@@ -273,9 +286,9 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
     let workspace = Workspace::open(&cli.root)?;
 
     match cli.command {
-        Command::Mcp { http } => {
+        Command::Mcp { http, http_token } => {
             if let Some(address) = http {
-                folisift_mcp::serve_http(workspace.root(), &address).await?;
+                folisift_mcp::serve_http(workspace.root(), &address, http_token.as_deref()).await?;
             } else {
                 folisift_mcp::serve(workspace.root()).await?;
             }
@@ -288,6 +301,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 "build": version::BUILD,
                 "mcp_tool_schema_version": version::MCP_TOOL_SCHEMA_VERSION,
                 "guides": guides.len(),
+                "structures": folisift_core::structures::summary(),
             });
             println!("{}", serde_json::to_string_pretty(&value)?);
         }
@@ -318,6 +332,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 json!({"name": "output", "ok": output_ok, "detail": output.display().to_string()}),
                 json!({"name": "guides", "ok": !guides.is_empty() && invalid_guides == 0, "detail": format!("{} guide(s), {invalid_guides} invalid", guides.len())}),
                 json!({"name": "fonts", "ok": font_count > 0, "detail": format!("{font_count} embedded face(s)")}),
+                json!({"name": "structures", "ok": !folisift_core::structures::packs().is_empty(), "detail": format!("{} pack(s)", folisift_core::structures::packs().len())}),
             ];
             let ok = checks.iter().all(|check| check["ok"] == true);
             let value = json!({
@@ -486,11 +501,33 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                     if number.matches('.').count() == 1
                         && number.chars().next().is_some_and(|c| c.is_ascii_digit())
                     {
+                        let source_label = if style.language == "en" {
+                            "Source"
+                        } else {
+                            "Kaynak"
+                        };
                         body.push_str(&format!(
-                            "## {}\n\nKaynak: [{}]\n\n",
+                            "## {}\n\n{source_label}: [{}]\n\n",
                             heading.heading, source.filename
                         ));
                     }
+                }
+            }
+            let required =
+                folisift_core::structures::scaffold_sections(&style.structure, &style.language);
+            if !required.is_empty() {
+                if style.language == "en" {
+                    body.push_str("::: chapter part=\"C · STRUCTURE\" side=\"FRAMEWORK\" kicker=\"C\" title=\"Structure checklist\" toc=\"Structure checklist\" running=\"Structure checklist\" subs=false\n:::\n\n");
+                } else {
+                    body.push_str("::: chapter part=\"C · YAPI\" side=\"ÇERÇEVE\" kicker=\"C\" title=\"Yapı denetim listesi\" toc=\"Yapı denetim listesi\" running=\"Yapı denetim listesi\" subs=false\n:::\n\n");
+                }
+                for (section, hint) in required {
+                    let hint = if style.language == "en" {
+                        "Source content goes here.".to_string()
+                    } else {
+                        hint
+                    };
+                    body.push_str(&format!("## {section}\n\n{hint}\n\n"));
                 }
             }
             if style.language == "en" {
@@ -539,12 +576,10 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 let content = styles::preview(workspace.root(), &id, &language)?;
                 let style = folisift_core::StyleProfile {
                     aesthetic: loaded.pack.aesthetic.clone(),
-                    structure: loaded
-                        .pack
-                        .supported_structures
-                        .first()
-                        .cloned()
-                        .unwrap_or_else(|| "a-g".to_string()),
+                    // The preview is a layout sample, not a structure sample;
+                    // keep it on the course-shaped default so every pack can
+                    // preview the same content.
+                    structure: "a-g".to_string(),
                     language: language.clone(),
                     source_language: language.clone(),
                     voice: loaded
@@ -580,7 +615,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                         cache_dir: Some(&workspace.root().join("data/cache/build")),
                     },
                 )?;
-                std::fs::write(&output, &rendered.pdf)?;
+                write_pdf(&output, &rendered.pdf)?;
                 println!(
                     "{}",
                     serde_json::to_string_pretty(&json!({
@@ -643,7 +678,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                     cache_dir: Some(&workspace.root().join("data/cache/build")),
                 },
             )?;
-            std::fs::write(&output_path, &rendered.pdf)?;
+            write_pdf(&output_path, &rendered.pdf)?;
 
             let mut coverage = None;
             if check {
@@ -766,11 +801,16 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
             out,
             contact_sheet,
             dpi,
+            crop,
         } => {
             let source = workspace.resolve_read(source)?;
             let out = workspace.resolve_write(out)?;
             let pages = pages.as_deref().map(parse_page_list).transpose()?;
-            let result = render_pages(&source, pages, &out, contact_sheet, dpi).await?;
+            let crop = crop
+                .as_deref()
+                .map(folisift_parse::CropBox::parse)
+                .transpose()?;
+            let result = render_pages(&source, pages, &out, contact_sheet, dpi, crop).await?;
             println!(
                 "{}",
                 serde_json::to_string_pretty(&json!({

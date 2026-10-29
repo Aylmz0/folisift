@@ -20,6 +20,9 @@ pub enum Error {
     #[error("diagram: {0}")]
     Diagram(String),
 
+    #[error("structure: {0}")]
+    Structure(String),
+
     #[error("I/O error at {path}: {source}")]
     Io {
         path: PathBuf,

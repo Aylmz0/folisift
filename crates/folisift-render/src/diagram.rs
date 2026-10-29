@@ -94,6 +94,18 @@ pub fn render_svg(spec: &DiagramSpec, theme: &DiagramTheme) -> Result<String> {
             )));
         }
     };
+    if layout.width > 900.0 {
+        return Err(Error::Diagram(format!(
+            "diagram is too wide ({:.0} units); split it or use fewer nodes per level",
+            layout.width
+        )));
+    }
+    if layout.height > 1_200.0 {
+        return Err(Error::Diagram(format!(
+            "diagram is too tall ({:.0} units); split it into overview and detail",
+            layout.height
+        )));
+    }
     let title = xml_escape(&spec.title);
     let desc = xml_escape(spec.alt.as_deref().unwrap_or("A labeled study diagram."));
     let id = stable_id(spec);
@@ -570,4 +582,106 @@ fn xml_escape(text: &str) -> String {
         .replace('>', "&gt;")
         .replace('"', "&quot;")
         .replace('\'', "&apos;")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn flow(node_count: usize) -> DiagramSpec {
+        DiagramSpec {
+            kind: "flow".to_string(),
+            title: "Pipeline".to_string(),
+            alt: Some("A pipeline from source to output.".to_string()),
+            caption: None,
+            source: Some("PD0, s. 4".to_string()),
+            direction: None,
+            groups: Vec::new(),
+            nodes: (0..node_count)
+                .map(|index| Node {
+                    id: format!("n{index}"),
+                    label: format!("Stage {index}"),
+                    group: None,
+                })
+                .collect(),
+            edges: (1..node_count)
+                .map(|index| Edge {
+                    from: format!("n{}", index - 1),
+                    to: format!("n{index}"),
+                    label: None,
+                })
+                .collect(),
+        }
+    }
+
+    #[test]
+    fn output_is_deterministic_and_accessible() {
+        let spec = flow(4);
+        let first = render_svg(&spec, &DiagramTheme::default()).expect("svg");
+        let second = render_svg(&spec, &DiagramTheme::default()).expect("svg");
+        assert_eq!(first, second);
+        assert_eq!(stable_id(&spec), stable_id(&spec));
+        assert!(first.contains("role=\"img\""));
+        assert!(first.contains("<title"));
+        assert!(first.contains("<desc"));
+        assert!(first.contains("viewBox"));
+        assert!(!first.contains("<script"));
+    }
+
+    #[test]
+    fn all_four_kinds_render() {
+        for kind in ["concept", "flow", "tree", "sequence"] {
+            let mut spec = flow(4);
+            spec.kind = kind.to_string();
+            let svg = render_svg(&spec, &DiagramTheme::default())
+                .unwrap_or_else(|error| panic!("{kind}: {error}"));
+            assert!(svg.starts_with("<svg"), "{kind}");
+        }
+    }
+
+    #[test]
+    fn rejects_a_diagram_over_the_node_limit() {
+        let error = render_svg(&flow(13), &DiagramTheme::default()).expect_err("too large");
+        assert!(error.to_string().contains("max 12"));
+    }
+
+    #[test]
+    fn rejects_unknown_edge_targets() {
+        let mut spec = flow(2);
+        spec.edges.push(Edge {
+            from: "n0".to_string(),
+            to: "missing".to_string(),
+            label: None,
+        });
+        let error = render_svg(&spec, &DiagramTheme::default()).expect_err("bad edge");
+        assert!(error.to_string().contains("unknown node"));
+    }
+
+    #[test]
+    fn rejects_a_tree_with_two_roots() {
+        let spec = DiagramSpec {
+            kind: "tree".to_string(),
+            title: "Two roots".to_string(),
+            alt: None,
+            caption: None,
+            source: None,
+            direction: None,
+            groups: Vec::new(),
+            nodes: vec![
+                Node {
+                    id: "a".to_string(),
+                    label: "A".to_string(),
+                    group: None,
+                },
+                Node {
+                    id: "b".to_string(),
+                    label: "B".to_string(),
+                    group: None,
+                },
+            ],
+            edges: Vec::new(),
+        };
+        let error = render_svg(&spec, &DiagramTheme::default()).expect_err("two roots");
+        assert!(error.to_string().contains("exactly one root"));
+    }
 }

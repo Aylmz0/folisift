@@ -29,7 +29,6 @@ fn paper_and_clean_share_the_content_hash() {
     };
     let clean = StyleProfile {
         aesthetic: "clean".to_string(),
-        structure: "imrad".to_string(),
         language: "en".to_string(),
         source_language: "en".to_string(),
         domain: "cs".to_string(),
@@ -58,25 +57,27 @@ sources: [PD0]
 ::: chapter part="B" title="Tables" toc="Tables"
 :::
 
-::: table caption="Compilation vs interpretation" source="PD0, s. 106" widths="35,65"
+::: table caption="Compilation vs interpretation" source="PD0, s. 106" widths="35,65" id="tab-compilation"
 | Criterion | Meaning |
 |---|---|
 | Compilation | Code is generated once. |
 | Interpretation | Each statement is translated at run time. |
 :::
 "#;
-    let profile = StyleProfile {
-        aesthetic: "paper".to_string(),
-        language: "en".to_string(),
-        source_language: "en".to_string(),
-        ..StyleProfile::default()
-    };
-    let mut options = options(&profile);
-    options.guide_root = root.path();
-    options.cache_dir = None;
-    let rendered = render(content, &options).expect("table render");
-    assert!(rendered.pdf.starts_with(b"%PDF-"));
-    assert!(rendered.pages >= 1);
+    for aesthetic in ["paper", "clean"] {
+        let profile = StyleProfile {
+            aesthetic: aesthetic.to_string(),
+            language: "en".to_string(),
+            source_language: "en".to_string(),
+            ..StyleProfile::default()
+        };
+        let mut options = options(&profile);
+        options.guide_root = root.path();
+        options.cache_dir = None;
+        let rendered = render(content, &options).expect("table render");
+        assert!(rendered.pdf.starts_with(b"%PDF-"), "{aesthetic}");
+        assert!(rendered.pages >= 1, "{aesthetic}");
+    }
 }
 
 #[test]
@@ -96,6 +97,7 @@ sources: [PD0]
   "kind": "flow",
   "title": "Compiler pipeline",
   "alt": "Source program flows through analysis to generated code.",
+  "source": "PD0, s. 35",
   "nodes": [
     {"id": "src", "label": "Source program"},
     {"id": "lex", "label": "Lexical analysis"},
@@ -130,6 +132,87 @@ sources: [PD0]
     assert!(text.contains("role=\"img\""));
     assert!(text.contains("<title"));
     assert!(text.contains("Lexical analysis"));
+}
+
+#[test]
+fn every_structure_pack_renders_in_both_languages() {
+    for pack in folisift_core::structures::packs() {
+        for language in ["en", "tr"] {
+            let headings = pack
+                .sections
+                .iter()
+                .map(|section| {
+                    if language == "en" {
+                        format!("## {}\n\nText.\n", section.en)
+                    } else {
+                        format!("## {}\n\nMetin.\n", section.tr)
+                    }
+                })
+                .collect::<String>();
+            let content = format!(
+                "---\ntitle: \"Structure\"\nlanguage: {language}\nsources: [PD0]\n---\n\n::: chapter part=\"B\" title=\"Body\" toc=\"Body\"\n:::\n\n{headings}\n<!-- audit -->\n"
+            );
+            let profile = StyleProfile {
+                aesthetic: "paper".to_string(),
+                structure: pack.id.clone(),
+                language: language.to_string(),
+                source_language: language.to_string(),
+                ..StyleProfile::default()
+            };
+            let rendered = render(&content, &options(&profile))
+                .unwrap_or_else(|error| panic!("{} {language}: {error}", pack.id));
+            assert!(rendered.pdf.starts_with(b"%PDF-"), "{}", pack.id);
+        }
+    }
+}
+
+#[test]
+fn rejects_a_missing_structure_section() {
+    let profile = StyleProfile {
+        aesthetic: "clean".to_string(),
+        structure: "imrad".to_string(),
+        language: "en".to_string(),
+        source_language: "en".to_string(),
+        ..StyleProfile::default()
+    };
+    let content = "---\ntitle: \"Structure\"\nlanguage: en\nsources: [PD0]\n---\n\n## Introduction\n\nText.\n";
+    let error = render(content, &options(&profile)).expect_err("missing sections");
+    assert!(error.to_string().contains("Methods"));
+}
+
+#[test]
+fn build_cache_invalidates_when_an_asset_changes() {
+    let root = tempfile::tempdir().expect("tempdir");
+    let assets = root.path().join("assets");
+    std::fs::create_dir_all(&assets).expect("assets");
+    let svg = assets.join("figure.svg");
+    std::fs::write(
+        &svg,
+        r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect width="10" height="10" fill="#fff"/></svg>"##,
+    )
+    .expect("svg");
+    let content = "---\ntitle: \"Asset\"\nlanguage: en\nsources: [PD0]\n---\n\n## Introduction\n\n![A labeled mechanism with three stages [PD0, s. 4]](assets/figure.svg)\n";
+    let cache = root.path().join("cache");
+    let profile = StyleProfile {
+        aesthetic: "paper".to_string(),
+        language: "en".to_string(),
+        source_language: "en".to_string(),
+        ..StyleProfile::default()
+    };
+    let mut render_options = options(&profile);
+    render_options.guide_root = root.path();
+    render_options.cache_dir = Some(&cache);
+    let first = render(content, &render_options).expect("first render");
+    let second = render(content, &render_options).expect("second render");
+    assert!(!first.cache_hit);
+    assert!(second.cache_hit);
+    std::fs::write(
+        &svg,
+        r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect width="10" height="10" fill="#000"/></svg>"##,
+    )
+    .expect("svg");
+    let third = render(content, &render_options).expect("third render");
+    assert!(!third.cache_hit);
 }
 
 #[test]

@@ -1,0 +1,10 @@
+{
+  "id": "executive-brief",
+  "title": "Executive brief",
+  "sections": [
+    { "id": "summary", "tr": "Özet", "en": "Summary", "hint": "Karar verici için üç cümlelik özet." },
+    { "id": "findings", "tr": "Ana bulgular", "en": "Key findings", "hint": "Kanıt ve sayılarla bulgular." },
+    { "id": "recommendations", "tr": "Öneriler", "en": "Recommendations", "hint": "Öncelikli eylemler ve sahipler." },
+    { "id": "risks", "tr": "Riskler", "en": "Risks", "hint": "Risk, olasılık ve azaltma." }
+  ]
+}

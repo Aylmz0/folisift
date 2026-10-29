@@ -93,16 +93,82 @@ pub fn scaffold(workspace: &Workspace, options: &ScaffoldOptions) -> Result<Guid
 
     let course = options.course.replace('"', "'");
     let title = options.title.replace('"', "'");
+    let structured_sections =
+        crate::structures::scaffold_sections(&options.style.structure, &options.style.language);
+    let sections_markdown = if structured_sections.is_empty() {
+        if options.style.language == "en" {
+            "## 1.1 Introduction\n\nSource content goes here. [PD0, p. 1]\n".to_string()
+        } else {
+            "## 1.1 Giriş\n\nKaynak içeriği buraya gelecek. [PD0, s. 1]\n".to_string()
+        }
+    } else {
+        let mut body = String::new();
+        for (index, (section, hint)) in structured_sections.iter().enumerate() {
+            let hint = if options.style.language == "en" {
+                "Source content goes here."
+            } else {
+                hint.as_str()
+            };
+            let source = if options.style.language == "en" {
+                "p. 1"
+            } else {
+                "s. 1"
+            };
+            body.push_str(&format!(
+                "## 1.{} {}\n\n{} [PD0, {source}]\n\n",
+                index + 1,
+                section,
+                hint
+            ));
+        }
+        body
+    };
+    let (front, toc) = if options.style.language == "en" {
+        (
+            "::: front kicker=\"Front matter · Reading note\" title=\"About this guide\" lead=\"This guide turns source slides into an exam-oriented study text.\"\nThis section will be written by the host LLM.\n:::",
+            "::: toc title=\"Guide map\" note=\"Page numbers refer to this PDF.\"\n:::",
+        )
+    } else {
+        (
+            "::: front kicker=\"Ön kısım · Okuma notu\" title=\"Bu kitapçık hakkında\" lead=\"Bu kılavuz, kaynak slaytlardan sınav odaklı bir çalışma metni üretir.\"\nBu bölüm host LLM tarafından yazılacaktır.\n:::",
+            "::: toc title=\"Kılavuzun haritası\" note=\"Sayfa numaraları bu PDF’e aittir.\"\n:::",
+        )
+    };
+    let chapter_labels = if options.style.language == "en" {
+        (
+            "B · DETAILED REVIEW",
+            "SOURCE",
+            "CHAPTER 1",
+            "Introduction",
+            "Chapter 1 — Introduction",
+            "Chapter 1 · Introduction",
+        )
+    } else {
+        (
+            "B · AYRINTILI İNCELEME",
+            "KAYNAK",
+            "BÖLÜM 1",
+            "Giriş",
+            "Bölüm 1 — Giriş",
+            "Bölüm 1 · Giriş",
+        )
+    };
     let guide_content = format!(
         "---\ntitle: {title:?}\ncourse: {course:?}\nrunning: {running:?}\nlanguage: {language:?}\nsources: []\n---\n\n\
-         ::: front kicker=\"Ön kısım · Okuma notu\" title=\"Bu kitapçık hakkında\" lead=\"Bu kılavuz, kaynak slaytlardan sınav odaklı bir çalışma metni üretir.\"\n\
-         Bu bölüm host LLM tarafından yazılacaktır.\n\
+         {front}\n\n\
+         {toc}\n\n\
+         ::: chapter part=\"{part}\" side=\"{side}\" kicker=\"{kicker}\" title=\"{chapter_title}\" toc=\"{toc_label}\" running=\"{running_label}\"\n\
          :::\n\n\
-         ::: toc title=\"Kılavuzun haritası\" note=\"Sayfa numaraları bu PDF’e aittir.\"\n\
-         :::\n\n\
-         ::: chapter part=\"B · AYRINTILI İNCELEME\" side=\"KAYNAK\" kicker=\"BÖLÜM 1\" title=\"Giriş\" toc=\"Bölüm 1 — Giriş\" running=\"Bölüm 1 · Giriş\"\n\
-         :::\n\n\
-         ## 1.1 Giriş\n\nKaynak içeriği buraya gelecek. [PD0, s. 1]\n",
+         {sections_markdown}\n",
+        front = front,
+        toc = toc,
+        part = chapter_labels.0,
+        side = chapter_labels.1,
+        kicker = chapter_labels.2,
+        chapter_title = chapter_labels.3,
+        toc_label = chapter_labels.4,
+        running_label = chapter_labels.5,
+        sections_markdown = sections_markdown,
         title = title,
         course = course,
         running = if options.course.trim().is_empty() {
