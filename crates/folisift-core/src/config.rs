@@ -188,6 +188,11 @@ pub struct GuideSummary {
 }
 
 impl Guide {
+    /// Host-authored visual disposition manifest for low-text source pages.
+    pub fn visual_audit(&self) -> PathBuf {
+        self.dir.join("visual-audit.json")
+    }
+
     /// Effective style: schema-3 `style`, or the legacy language/theme fields.
     pub fn style(&self) -> StyleProfile {
         self.config.style.clone().unwrap_or_else(|| StyleProfile {

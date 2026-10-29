@@ -462,9 +462,14 @@ Before declaring completion:
 
 - [ ] Every source PDF appears in B with its full page range.
 - [ ] Every top-level section/subsection has a heading and explanation.
-- [ ] `check_coverage.py` returns GEÇTİ.
+- [ ] `folisift build --check` returns PASS and the visual audit is complete.
 - [ ] G counts match the source map exactly.
+- [ ] Every low-text page has one `visual-audit.json` decision
+      (`redraw`/`table`/`text`/`decorative`/`unreadable`).
+- [ ] High-priority visual targets are redrawn or have a source-grounded reason.
 - [ ] Low-text pages are either explained or explicitly listed as unreadable.
+- [ ] `audit` reports no underfilled body pages; chapter tails are reflowed or
+      explicitly justified.
 - [ ] No invented facts/formulas/quotes/page refs.
 - [ ] Explanatory additions are labelled **Açıklayıcı not**.
 - [ ] Inconsistencies are flagged, not silently corrected.

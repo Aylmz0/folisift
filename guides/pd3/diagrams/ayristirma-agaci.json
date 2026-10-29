@@ -1,0 +1,34 @@
+{
+  "schema_version": 2,
+  "id": "ayristirma-agaci",
+  "kind": "concept",
+  "title": "X := Y + Z için ayrıştırma ağacı",
+  "caption": "Atama deyiminin hiyerarşik ayrıştırma ağacı; kök program, dallar deyimler ve ifade, yapraklar terminal sembollerdir.",
+  "alt": "Program, deyimler, deyim, değişken, ifade ve terminal sembollerden oluşan ayrıştırma ağacı.",
+  "source": "PD3, s. 48–49",
+  "direction": "down",
+  "layout": "tala",
+  "nodes": [
+    {"id": "program", "label": "<program>"},
+    {"id": "stmts", "label": "<stmts>"},
+    {"id": "stmt", "label": "<stmt>"},
+    {"id": "var", "label": "<var>"},
+    {"id": "expr", "label": "<expr>"},
+    {"id": "x", "label": "X"},
+    {"id": "term1", "label": "<term>"},
+    {"id": "term2", "label": "<term>"},
+    {"id": "y", "label": "Y"},
+    {"id": "z", "label": "Z"}
+  ],
+  "edges": [
+    {"from": "program", "to": "stmts"},
+    {"from": "stmts", "to": "stmt"},
+    {"from": "stmt", "to": "var", "label": ":="},
+    {"from": "stmt", "to": "expr"},
+    {"from": "var", "to": "x"},
+    {"from": "expr", "to": "term1", "label": "+"},
+    {"from": "expr", "to": "term2"},
+    {"from": "term1", "to": "y"},
+    {"from": "term2", "to": "z"}
+  ]
+}

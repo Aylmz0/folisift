@@ -1,0 +1,24 @@
+{
+  "schema_version": 2,
+  "id": "ayristirma-agaci",
+  "kind": "concept",
+  "title": "X := Y + Z için ayrıştırma ağacı",
+  "caption": "Atama deyiminin hiyerarşik ayrıştırma ağacı; kök program, dallar deyimler ve ifade, yapraklar terminal sembollerdir.",
+  "alt": "Program, deyimler, deyim, değişken, ifade ve terminal sembollerden oluşan ayrıştırma ağacı.",
+  "source": "PD3, s. 48–49",
+  "spec_sha256": "e720b21e95db3796837e9e18d0b0e15d3b0229579d110773c2bf52882940e40a",
+  "svg_sha256": "0a657975a013e59b2fb166c2ffe82c8d10cf5ad3111928494a4e7dfb81fec7b1",
+  "svg": "assets/generated/0a657975a013e59b2fb166c2ffe82c8d10cf5ad3111928494a4e7dfb81fec7b1.svg",
+  "d2_version": "v0.9.0",
+  "layout": "tala",
+  "salt": "fsl-e720b21e95db",
+  "fonts": [
+    "Inter-Regular.ttf",
+    "Inter-Bold.ttf",
+    "Inter-Italic.ttf",
+    "Inter-SemiBold.ttf",
+    "NotoSansMono-Regular.ttf"
+  ],
+  "font_digest": "ab541b4d979d13ee9864050de613792ebeeae5fdcd705b6b2045ab17d359dab6",
+  "postprocess_version": 1
+}

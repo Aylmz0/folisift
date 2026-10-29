@@ -1,0 +1,22 @@
+{
+  "schema_version": 2,
+  "id": "anlam-yontemleri",
+  "kind": "concept",
+  "title": "Anlam tanımlama yöntemleri",
+  "caption": "İşlemsel, kurala dayalı ve fonksiyonel semantiğin ortak soruya verdiği farklı cevaplar.",
+  "alt": "Anlam sorusundan işlemsel, kurala dayalı ve fonksiyonel semantik yöntemlerine ayrılan üç yol.",
+  "source": "PD3, s. 79–123",
+  "direction": "right",
+  "layout": "tala",
+  "nodes": [
+    {"id": "question", "label": "Programın anlamı nedir?"},
+    {"id": "operational", "label": "İşlemsel: makine durumu"},
+    {"id": "axiomatic", "label": "Kurala dayalı: ön/son koşul"},
+    {"id": "denotational", "label": "Fonksiyonel: matematiksel nesne"}
+  ],
+  "edges": [
+    {"from": "question", "to": "operational"},
+    {"from": "question", "to": "axiomatic"},
+    {"from": "question", "to": "denotational"}
+  ]
+}

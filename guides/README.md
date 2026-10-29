@@ -5,10 +5,12 @@ course, a source filename or a slide count.
 
 ```text
 guides/<slug>/
-├── guide.md         # content, source order preserved in B
-├── config.json      # paths relative to this directory
-├── assets/          # guide-specific SVG diagrams
-└── data/            # generated inventory + coverage report
+├── guide.md           # content, source order preserved in B
+├── config.json        # paths relative to this directory
+├── visual-audit.json  # one decision per low-text source page
+├── diagrams/          # host-authored D2 JSON specs
+├── assets/            # guide-specific SVG diagrams and generated assets
+└── data/              # generated inventory + coverage report
 ```
 
 ## Current bundles
@@ -16,6 +18,8 @@ guides/<slug>/
 | Slug | Sources | Output |
 |---|---|---|
 | `pd0-pd1` | PD0, PD1 | `output/PD0-PD1_Calisma_Ozeti.pdf` |
+| `pd2` | PD2 | `output/PD2_Calisma_Ozeti.pdf` |
+| `pd3` | PD3 | `output/PD3_Calisma_Ozeti.pdf` |
 
 ## Create a bundle
 
@@ -32,7 +36,9 @@ Then follow `docs/authoring.md`.
 ## Rules
 
 - `guide.md` is rendered by `templates/paper.typ`; do not add CSS.
-- Guide-specific diagrams live in `assets/`.
+- Guide-specific diagrams live in `diagrams/` as D2 JSON specs; generated SVG
+  lives in `assets/generated/`.
+- `visual-audit.json` is host-authored; every low-text page needs one decision.
 - `data/source.json` and `data/coverage.md` are generated; do not hand-edit.
 - `data/pages/` is a local visual cache and is gitignored.
 - Source PDFs never live in a guide bundle; they stay in `sources/`.

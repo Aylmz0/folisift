@@ -1,0 +1,27 @@
+# spec_sha256: e59329802048a3ee7e8de46eeed308ea68aad1c75b45b22e2150fd1abaecfabd
+# engine: d2 v0.9.0
+direction: right
+style: { fill: "#FAF6EC" }
+*.style: {
+  fill: "#FAF6EC"
+  stroke: "#8A3E2F"
+  font-color: "#211E19"
+  font-size: 28
+  border-radius: 3
+}
+(* -> *)[*].style: {
+  stroke: "#8A3E2F"
+  font-color: "#5E574B"
+  font-size: 22
+}
+n0: "Program"
+n1: "Giriş fonksiyonu I"
+n2: "Başlangıç konfigürasyonu"
+n3: "Geçiş kuralları ⇒"
+n4: "Final konfigürasyonu"
+n5: "Çıkış O"
+n0 -> n1
+n1 -> n2
+n2 -> n3
+n3 -> n4
+n4 -> n5

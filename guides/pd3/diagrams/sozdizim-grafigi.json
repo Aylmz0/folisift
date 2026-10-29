@@ -1,0 +1,28 @@
+{
+  "schema_version": 2,
+  "id": "sozdizim-grafigi",
+  "kind": "concept",
+  "title": "Aritmetik ifade gramerinin sözdizim grafiği",
+  "caption": "Expr, Term ve Factor kurallarının birbirine ve terminal sembollere bağlanması; EBNF seçimlilik ve yineleme yapıları.",
+  "alt": "Expr kuralından Term ve toplama/çıkarma, Term kuralından Factor ve çarpma/bölme, Factor kuralından ident ve number terminal sembollerine giden grafik.",
+  "source": "PD3, s. 62, 76–77",
+  "direction": "right",
+  "layout": "tala",
+  "nodes": [
+    {"id": "expr", "label": "Expr"},
+    {"id": "term", "label": "Term"},
+    {"id": "factor", "label": "Factor"},
+    {"id": "add", "label": "+ / -"},
+    {"id": "mul", "label": "* / /"},
+    {"id": "ident", "label": "ident"},
+    {"id": "number", "label": "number"}
+  ],
+  "edges": [
+    {"from": "expr", "to": "term", "label": "başlangıç"},
+    {"from": "expr", "to": "add", "label": "seçim"},
+    {"from": "term", "to": "factor", "label": "başlangıç"},
+    {"from": "term", "to": "mul", "label": "seçim"},
+    {"from": "factor", "to": "ident", "label": "seçim"},
+    {"from": "factor", "to": "number", "label": "seçim"}
+  ]
+}

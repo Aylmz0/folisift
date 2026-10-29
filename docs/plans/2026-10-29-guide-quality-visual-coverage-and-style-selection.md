@@ -1,7 +1,8 @@
 # Folisift v0.9 — Guide Quality, Visual Coverage and Style Selection
 
-- **Status:** Draft for implementation
-- **Date:** 2026-10-29
+- **Status:** P0 slice implemented (canonical coverage, visual audit,
+  underfilled-page audit, PD2/PD3 diagrams); P1 style/dynamic-length work open
+- **Date:** 2026-10-29 (implementation update: 2026-10-30)
 - **Baseline:** `v0.8.0` (107 tests, 13 MCP tools, MCP schema 3)
 - **Trigger:** the 16-minute PD2/PD3 production run
 - **Artifacts under review:**
@@ -17,6 +18,27 @@
   `docs/authoring-spec.md`, `docs/authoring-evidence.md`,
   `docs/design-system.md`, `docs/agents/opencode-guide.md`,
   ADR-0004, ADR-0007, ADR-0010
+
+## 0. Implementation status (2026-10-30)
+
+Landed in the working tree:
+
+- `SourceInventory.sections`: canonical sections from the source topic list;
+  PD2 20/20, PD3 5/5, PD0–PD1 13/13.
+- `visual-audit.json` + build gate for every low-text page; manifests exist for
+  `pd0-pd1`, `pd2`, `pd3`.
+- `LayoutAudit.underfilled_pages`: PD2 and PD3 were reflowed to zero
+  underfilled pages; PD0–PD1 is still clean.
+- PD2 D2 diagrams: `dil-soyagaci`, `lisp-listeleri`, `basic-seceresi`.
+- PD3 D2 diagrams: `ayristirma-agaci`, `ozellik-akisi`, `sozdizim-grafigi`,
+  `anlam-yontemleri`, `islemel-semantik`.
+- Manual `parse-tree.svg` and `operational.svg` removed; outputs rebuilt.
+- `build --check` and `audit` pass for PD2 (21 pages), PD3 (19 pages) and
+  PD0–PD1 (22 pages).
+
+Still open: style recommendation/packs, dynamic `page_range`, evidence-based
+recall/spacing components, figure/vector counts, and a new OpenCode production
+run. This is a P0 slice, not the whole v0.9 plan.
 
 ## 1. Executive summary
 
@@ -1072,34 +1094,34 @@ style/study-mode driven.
 
 ### Visual
 
-- [ ] PD2 has at least the genealogy, LISP-list and BASIC-lineage diagrams, or
+- [x] PD2 has at least the genealogy, LISP-list and BASIC-lineage diagrams, or
       a documented source-grounded reason for each omission.
-- [ ] PD3 has a parse tree, an attribute-flow diagram, a syntax-graph diagram,
+- [x] PD3 has a parse tree, an attribute-flow diagram, a syntax-graph diagram,
       a semantics comparison and an operational-semantics diagram, or
       documented reasons.
-- [ ] Every `diagram validate` call passes; no proposed diagram fails on tree
+- [x] Every `diagram validate` call passes; no proposed diagram fails on tree
       depth, multiple roots or multiple parents.
-- [ ] `diagram status` reports every spec `ok` with a matching manifest/SVG.
-- [ ] The manual `parse-tree.svg` and `operational.svg` are either removed or
+- [x] `diagram status` reports every spec `ok` with a matching manifest/SVG.
+- [x] The manual `parse-tree.svg` and `operational.svg` are either removed or
       registered as explicit exceptions with a manifest.
-- [ ] Every low-text page has exactly one `visual-audit.json` decision.
-- [ ] No high-priority visual target is unresolved.
-- [ ] Manual SVGs have a manifest/exception record and title/desc/alt/source.
+- [x] Every low-text page has exactly one `visual-audit.json` decision.
+- [x] No high-priority visual target is unresolved.
+- [x] Manual SVGs have a manifest/exception record and title/desc/alt/source.
 - [ ] `build_guide` reports figures/diagrams/tables and `audit` distinguishes
       raster images from vector figures.
 
 ### Coverage
 
-- [ ] PD2 canonical total = 20; claimed = 20; gate = 20.
-- [ ] PD3 canonical total = 5; claimed = 5; gate = 5.
-- [ ] A guide cannot pass with `gate_total < canonical_total`.
+- [x] PD2 canonical total = 20; claimed = 20; gate = 20.
+- [x] PD3 canonical total = 5; claimed = 5; gate = 5.
+- [x] A guide cannot pass with `gate_total < canonical_total`.
 - [ ] G counts are generated from manifests, not hand-written prose.
 
 ### Layout
 
-- [ ] PD2 p16/p20 and PD3 p17 are either fixed or explicitly justified.
-- [ ] `underfilled_pages` is reported by audit and fails in strict mode.
-- [ ] TOC page numbers and bookmarks still match after reflow.
+- [x] PD2 p16/p20 and PD3 p17 are either fixed or explicitly justified.
+- [x] `underfilled_pages` is reported by audit and fails in strict mode.
+- [x] TOC page numbers and bookmarks still match after reflow.
 
 ### Style
 

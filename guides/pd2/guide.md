@@ -190,6 +190,9 @@ LISP’in en ayırt edici özelliği, **program kodu ile verinin tam olarak ayn�
 
 Bu çift yorum, LISP’e olağanüstü esneklik ve ifade gücü kazandırır; kodun aynı zamanda veri olarak kullanılabilmesi, LISP’i yapay zekâ uygulamalarında rakipsiz kılmıştır [PD2, s. 27]. Kaynak, iki listenin —`(A B C D)` ve `(A (B C) D (E (F G)))`— gösterimini ayrı bir slaytta verir [PD2, s. 29].
 
+::: diagram id="lisp-listeleri"
+:::
+
 ### LISP’in özellikleri ve değerlendirmesi
 
 LISP esas olarak **yorumlayıcı** kullanan bir dildir; derleyici kullanan sürümleri de vardır. Veri tiplemesi bakımından esnektir, nesneye yönelik programlamayı destekler, veritabanı erişimi ve GUI olanağı sunar. İyi belgelenmiştir; **COMMON LISP**, ANSI tarafından standartlaştırılmıştır [PD2, s. 28, 33].
@@ -302,6 +305,9 @@ BASIC, **zaman paylaşımlı (time-sharing)** ilk yaygın kullanılan dildir; g�
 BASIC yalnızca **14 komuta** sahipti (`LET`, `PRINT`, `GOTO` gibi) ve tek veri tipi vardı: sayı (kayan noktalı ve tamsayı). FORTRAN ve ALGOL’den bileşenler aldı: FORTRAN’dan `DO` döngüsünü, ALGOL’den “until” yerine “to” sözcüğünü [PD2, s. 51]. Küçük programları hızlı çalıştırıyor, açık hata mesajları veriyor, kullanıcıyla etkileşimli çalışıyor ve kullanıcıyı işletim sistemi ayrıntılarından koruyordu. Derleyici kullanıyor, programın tamamı makine diline çevrildikten sonra icra ediliyordu [PD2, s. 52].
 
 BASIC’in birçok sürümü oldu; 1989’da nesne yönelimli uyarlama **Visual BASIC**, 1998’de **VB6.0** sunuldu [PD2, s. 52]. Örnek program (s. 54), Fortran örneğinin BASIC’e çevrilmiş hâlidir: `DIM`, `INPUT`, `FOR ... NEXT`, `IF ... THEN ... ELSE`, `PRINT` yapılarıyla aynı ortalama/ sayma algoritmasını kurar.
+
+::: diagram id="basic-seceresi"
+:::
 
 ::: note label="Açıklayıcı not"
 BASIC’in “14 komut” sınırı, dilin küçük bellekte ve terminal başında öğretilebilir olmasını sağladı. Ancak aynı sınır, büyük programlarda yapısal soyutlamayı zorlaştırdı; Visual BASIC’in evrimi, bu sınırı OOP ve görsel araçlarla aşma çabasıdır.
@@ -666,21 +672,13 @@ PD2’nin ana çizgisi, dil tasarımının **tek bir doğruya** değil, **ödün
 
 ### D.3 Dil aileleri
 
-```text
-Fortran ──► BASIC
-ALGOL 58/60 ──► Pascal ──► Modula ──► Oberon
-     │              └──► Delphi
-     ├──► C ──► C++ ──► Java ──► C#
-     ├──► ALGOL 68 ──► Ada
-     └──► Simula 67 ──► Smalltalk / C++
-LISP ──► Scheme / Common Lisp ──► ML, Haskell
-COBOL ──► PL/I
-APL / SNOBOL ──► awk, icon, Perl
-Prolog ──► mantık programlama
-```
+ALGOL 60’ın etkilediği seçilmiş dil ailesi aşağıda gösterilmiştir. Bu, kaynaktaki tam soyağacının tamamı değil, sınav açısından ayırt edici ALGOL koludur; oklar **tam türetme** değil, **etki/soy** ilişkisini gösterir [PD2, s. 5, 68, 82, 86, 97].
+
+::: diagram id="dil-soyagaci"
+:::
 
 ::: note label="Açıklayıcı not"
-Bu şema kaynak slaytlardaki “ALGOL dilleri bütün zorunlu dilleri etkiledi” ve “C++ C ve SIMULA 67’den geliştirildi” ifadelerine dayanır [PD2, s. 68, 82]. Oklar **tam türetme** değil, **etki/soy** ilişkisini gösterir.
+LISP, COBOL, APL/SNOBOL ve Prolog aileleri bu seçilmiş grafikte yer almaz; ilgili bölümlerde ayrı ayrı açıklanmıştır. Kaynak slayttaki tam soyağacı, bu kolu da içeren daha geniş bir grafiktir [PD2, s. 5].
 :::
 
 ::: chapter part="C–G · ORTAK BÖLÜMLER" side="SINAV BİLGİLERİ" kicker="E" title="Formüller, kurallar ve olgular" toc="E. Formüller, kurallar ve olgular" running="E · Formüller, kurallar ve olgular" subs=false compact=true lead="PD2’de geçen tarihler, sürümler, sayısal sınırlar ve dil özellikleri. Yalnızca kaynakta verilen bilgiler; ek açıklamalar etiketlidir."
@@ -730,7 +728,7 @@ Bu şema kaynak slaytlardaki “ALGOL dilleri bütün zorunlu dilleri etkiledi�
 - **“Java” örneği:** Kaynak slaytta `g.drawString` satırı bölünmüş görünür; kılavuzda anlamı korunmuş, kod birebir çoğaltılmamıştır [PD2, s. 91].
 - **2.9 başlığı:** Kaynakta “İlk İki Dinamik Dil: APL ve SNOBOL” denir; dinamik tip kavramı bu iki dille sınırlı değildir, ancak kılavuz kaynak kapsamını izler [PD2, s. 61].
 
-::: chapter part="C–G · ORTAK BÖLÜMLER" side="BÖLÜMLER ARASI AĞ" kicker="F" title="Bağlantılar ve karşılaştırmalar" toc="F. Bağlantılar ve karşılaştırmalar" running="F · Bağlantılar ve karşılaştırmalar" subs=false compact=true lead="PD2’nin PD0–PD1 ve sonraki bölümlerle bağlantısı; dil tarihinin kavram haritasına nasıl oturduğu."
+::: chapter flow=true part="C–G · ORTAK BÖLÜMLER" side="BÖLÜMLER ARASI AĞ" kicker="F" title="Bağlantılar ve karşılaştırmalar" toc="F. Bağlantılar ve karşılaştırmalar" running="F · Bağlantılar ve karşılaştırmalar" subs=false compact=true lead="PD2’nin PD0–PD1 ve sonraki bölümlerle bağlantısı; dil tarihinin kavram haritasına nasıl oturduğu."
 :::
 
 ### F.1 PD0–PD1 → PD2: kavramdan tarihe
@@ -779,9 +777,10 @@ PD2’de **9** düşük metinli slayt vardır: **1, 5, 19, 21, 29, 33, 45, 53, 1
 | Sayfa | İçerik / görsel | Kullanım |
 |---|---|---|
 | 1 | Bölüm kapağı | İçindekilere ve bölüm açılışına yansıtıldı |
-| 5 | Yaygın dillerin soyağacı | D.3 dil aileleri şeması ve Bölümün haritası ile temsil edildi |
+| 5 | Yaygın dillerin soyağacı | `dil-soyagaci` D2 diagramı ve Bölümün haritası ile temsil edildi |
 | 19, 21 | Fortran II / Fortran 77 | Metin katmanı yetersiz; sürüm tablosunda özetlendi |
-| 29, 33, 53 | LISP liste gösterimi, COMMON LISP, BASIC şeceresi | Metin olarak açıklandı; D.3 şemasında temsil edildi |
+| 29, 33 | LISP liste gösterimi, COMMON LISP | LISP listeleri `lisp-listeleri` D2 diagramıyla; COMMON LISP metinle aktarıldı |
+| 53 | BASIC şeceresi | `basic-seceresi` D2 diagramıyla temsil edildi |
 | 45 | COBOL görseli | Boş metin; COBOL örneği s. 49’dan özetlendi |
 | 101 | Boş slayt | Kapsam dışı; metin yok |
 :::
@@ -790,7 +789,7 @@ PD2’de **9** düşük metinli slayt vardır: **1, 5, 19, 21, 29, 33, 45, 53, 1
 
 - **Kapak ve konu listeleri** (s. 1–4) içindekilere yansıtıldı; her madde ayrıca açılmadı.
 - **COBOL örneği** (s. 49) iki sütunlu, çok uzun bir kod görselidir; kılavuzda dilin yapısı ve `IDENTIFICATION`, `ENVIRONMENT`, `DATA`, `PROCEDURE` bölümleri kavramsal olarak açıklandı, kod birebir çoğaltılmadı.
-- **Fortran, BASIC, LISP, Simula, Prolog, Ada ve Java örnekleri** (s. 25, 31, 54, 65, 74, 79, 91) yalnızca ayırt edici yapılarıyla özetlendi; tam kod listeleri sayfa sınırı nedeniyle alınmadı.
+- **Fortran, BASIC, LISP, Simula, Prolog, Ada ve Java örnekleri** (s. 25, 31, 54, 65, 74, 79, 91) yalnızca ayırt edici yapılarıyla özetlendi; tam kod listeleri sayfa sınırı nedeniyle alınmadı. LISP listeleri ve BASIC şeceresi D2 diagramıyla temsil edildi.
 - **Dekoratif görseller** ve tekrarlanan kaynak listeleri (s. 103) yeniden üretilmedi; kaynakça listesi birleştirildi.
 - **Ödev slaytı yoktur**; PD2’de ödev sayfası bulunmaz.
 

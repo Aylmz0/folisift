@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-29T19:09:47+00:00",
+  "generated_at": "2026-10-29T20:49:55+00:00",
   "low_text_threshold": 120,
   "sources": [
     {
@@ -78,6 +78,33 @@
         {
           "heading": "1 BNF ve EBNF hakkında detaylı bilgi toplayınız",
           "page": 135
+        }
+      ],
+      "sections": [
+        {
+          "number": "3.1",
+          "title": "Giriş",
+          "page": 2
+        },
+        {
+          "number": "3.2",
+          "title": "Genel Sentaks Tanımlama Problemi",
+          "page": 2
+        },
+        {
+          "number": "3.3",
+          "title": "Sentaks Tanımlamanın Biçimsel Metotları",
+          "page": 2
+        },
+        {
+          "number": "3.4",
+          "title": "Özellik (Attribute) Gramerleri",
+          "page": 2
+        },
+        {
+          "number": "3.5",
+          "title": "Programların Anlamlarını Açıklamak: Dinamik Semantik",
+          "page": 2
         }
       ],
       "page_map": [

@@ -1,12 +1,14 @@
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
+use std::sync::LazyLock;
 
 use async_trait::async_trait;
 use liteparse::config::OutputFormat;
 use liteparse::{LiteParse, LiteParseConfig};
+use regex::Regex;
 
 use crate::error::{Error, Result};
-use crate::inventory::{Heading, Inventory, PageRow, SourceInventory};
+use crate::inventory::{CanonicalSection, Heading, Inventory, PageRow, SourceInventory};
 use crate::pdfium;
 use crate::text::{
     LOW_TEXT_THRESHOLD, clean_text, count_chars, count_words, first_line, heading_of,
@@ -104,6 +106,20 @@ impl SourceParser for LiteparseParser {
             .display()
             .to_string();
         let filename = path.rsplit('/').next().unwrap_or(&path).to_string();
+        let prefix = headings.iter().find_map(|heading| {
+            let first = heading.heading.split('.').next()?;
+            first
+                .chars()
+                .all(|character| character.is_ascii_digit())
+                .then(|| first.to_string())
+        });
+        let toc_pages = result
+            .pages
+            .iter()
+            .take(6)
+            .map(|page| (page.page_number, page.text.as_str()))
+            .collect::<Vec<_>>();
+        let sections = canonical_sections(&toc_pages, prefix.as_deref());
 
         Ok(SourceInventory {
             path,
@@ -115,6 +131,7 @@ impl SourceParser for LiteparseParser {
             low_text_threshold,
             low_text_pages,
             headings,
+            sections,
             page_map,
         })
     }
@@ -133,6 +150,88 @@ pub async fn analyze_sources(paths: &[PathBuf], low_text_threshold: usize) -> Re
 /// Analyze one source with the default threshold.
 pub async fn analyze_source(path: &Path) -> Result<SourceInventory> {
     LiteparseParser.analyze(path, LOW_TEXT_THRESHOLD).await
+}
+
+static TOC_LINE_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"^\s*(\d{1,3})(?:\.(\d{1,3}))?\.?\s*(.+?)\s*$").expect("valid TOC regex")
+});
+
+/// Recover the source's own topic-list sections from the first pages.
+///
+/// The source TOC is the canonical coverage set. Heading extraction is a page
+/// map fallback; it can miss headings with unusual styling or line wraps.
+fn canonical_sections(pages: &[(usize, &str)], prefix: Option<&str>) -> Vec<CanonicalSection> {
+    let mut sections = Vec::new();
+    let mut seen = HashSet::new();
+    let mut last_major = 0usize;
+
+    for (page_number, text) in pages {
+        let lines = text.lines().collect::<Vec<_>>();
+        let mut index = 0;
+        while index < lines.len() {
+            let line = lines[index].trim();
+            let Some(captures) = TOC_LINE_RE.captures(line) else {
+                index += 1;
+                continue;
+            };
+            let major = captures[1].parse::<usize>().ok();
+            let minor = captures.get(2).map(|value| value.as_str());
+            let Some(mut major) = major else {
+                index += 1;
+                continue;
+            };
+            // Some decks repeat a number for later items (for example
+            // "8." on every line of a continuation slide). Use list order in
+            // that case; explicit "2.1" entries are left untouched.
+            if minor.is_none() && last_major > 0 && major <= last_major {
+                major = last_major + 1;
+            }
+            let number = match minor {
+                Some(minor) => format!("{major}.{minor}"),
+                None => match prefix {
+                    Some(prefix) if !prefix.is_empty() => format!("{prefix}.{major}"),
+                    _ => major.to_string(),
+                },
+            };
+            let mut title = captures[3].trim().to_string();
+            // Join continuation lines until the next numbered item or a
+            // page/section header. This keeps wrapped TOC titles useful for
+            // fuzzy matching without inventing content.
+            let mut lookahead = index + 1;
+            let mut joins = 0;
+            while lookahead < lines.len() && joins < 4 {
+                let next = lines[lookahead].trim();
+                if next.is_empty() {
+                    break;
+                }
+                if TOC_LINE_RE.is_match(next)
+                    || next.chars().all(|character| character.is_ascii_digit())
+                    || next.starts_with("Bölüm ")
+                    || next.starts_with("Chapter ")
+                {
+                    break;
+                }
+                title.push(' ');
+                title.push_str(next);
+                lookahead += 1;
+                joins += 1;
+            }
+            index = lookahead;
+            if title.is_empty() || !seen.insert(number.clone()) {
+                continue;
+            }
+            sections.push(CanonicalSection {
+                number,
+                title,
+                page: *page_number,
+            });
+            last_major = major;
+            if sections.len() >= 100 {
+                return sections;
+            }
+        }
+    }
+    sections
 }
 
 /// Parse `1,3-5,9` into sorted, unique 1-based page numbers.
@@ -193,5 +292,24 @@ mod tests {
         for value in ["", "0", "3-1", "a", "1-"] {
             assert!(parse_page_list(value).is_err(), "{value:?}");
         }
+    }
+
+    #[test]
+    fn recovers_wrapped_and_repeated_toc_sections() {
+        let first = "Bölüm 2 Konular\n1.  Zuse'nin Plankalkül'ü\n2.  Minimum Donanım Programlama: Sözde\nkod (Pseudocode)\n3.  IBM 704 ve Fortran\n";
+        let second = "Bölüm 2 Konular (devamı)\n8. Herkes için Herşey: PL/I\n8. İlk iki Dinamik Dil: APL ve SNOBOL\n8. Veri Soyutlama\n";
+        let sections = canonical_sections(&[(2, first), (3, second)], Some("2"));
+        assert_eq!(sections[0].number, "2.1");
+        assert_eq!(sections[0].title, "Zuse'nin Plankalkül'ü");
+        assert_eq!(sections[1].number, "2.2");
+        assert!(sections[1].title.contains("Pseudocode"));
+        assert_eq!(sections[2].number, "2.3");
+        assert_eq!(
+            sections
+                .iter()
+                .map(|section| section.number.as_str())
+                .collect::<Vec<_>>(),
+            vec!["2.1", "2.2", "2.3", "2.8", "2.9", "2.10"]
+        );
     }
 }
