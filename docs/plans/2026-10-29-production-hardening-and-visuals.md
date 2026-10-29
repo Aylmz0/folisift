@@ -39,8 +39,8 @@ Priority: **P0** blocks production; **P1** blocks a stable v1.0; **P2** polish.
 
 | # | Gap | Priority | Evidence / current state |
 |---|---|---|---|
-| G1 | Style tokens are not applied | P0 | `styles/*/tokens.json` is read/validated but `paper.typ`/`clean.typ` use hard-coded colours |
-| G2 | Structures are metadata only | P0 | `structure` validates, but scaffold still seeds A–G chapters |
+| G1 | Style tokens are not applied | P1 | `styles/*/tokens.json` is read/validated but `paper.typ`/`clean.typ` use hard-coded colours |
+| G2 | Structures are metadata only | P1 | `structure` validates, but scaffold still seeds A–G chapters |
 | G3 | Domain profiles are not injected | P1 | `domains/*.json` exist; prompts do not consume them |
 | G4 | `covers` is not exactly-once | P0 | duplicate claims overwrite silently; audit section not required |
 | G5 | Layout audit misses content-box, orphan, split, TOC | P0 | only page bounds/empty/glyph/tagged/bookmark/min-font |
@@ -59,6 +59,103 @@ Priority: **P0** blocks production; **P1** blocks a stable v1.0; **P2** polish.
 | G18 | Platform release gaps | P1 | Linux archive only; unsigned; CI blocked by billing |
 | G19 | HTTP MCP has no auth | P1 | loopback only by documentation, not enforced |
 | G20 | Known small correctness issues | P2 | chars/bytes, low-text list cap, dev sidecar, counts, cache test |
+| G21 | Visual selection quality is not enforced | P0 | no rubric for “useful vs decorative”, no visual budget |
+| G22 | Figure/table numbering and cross-refs are manual | P1 | captions parse numbers from text; no `Tablo 1` counters |
+| G23 | Professional caption/alt-text standards are not gated | P1 | no title/description/source/alt contract |
+
+### 2.1 Evidence: what actually helps learners
+
+The visual system must be evidence-led, not “more pictures = better”. The
+research is consistent on a few points:
+
+| Finding | Evidence | Consequence for Folisift |
+|---|---|---|
+| Concept/knowledge maps improve retention | Meta-analysis: overall `g = 0.58`; constructing maps `g = 0.72`; science achievement `g = 0.776` | Add a first-class `concept` diagram kind with labeled edges |
+| Graphic organizers help memory and comprehension | 2025 meta-analysis: instructor-provided `g = 0.70` memory, `g = 0.53` comprehension; learner-generated `g = 0.59`/`0.63` | Prioritize matrices, flowcharts and hierarchies over prose lists |
+| Text + relevant diagrams beats text alone | Multimedia principle `g ≈ 0.39` | Pair every major mechanism with one explanatory visual |
+| Signaling/cueing helps | `g ≈ 0.38` | Use direct labels, arrows and callouts; avoid legends when possible |
+| Segmenting helps | `g ≈ 0.32–0.36` | One visual = one idea; split dense diagrams |
+| Seductive details hurt | negative effects around `−0.37` to `−0.41`; removing them has a large positive effect | No decorative photos, no “fun” icons, no irrelevant backdrops |
+| Drawing/sketching improves recall | drawing group retained 50–80% more in one biology study; drawing effect literature | Support annotated/redrawn diagrams and student-style sketches |
+| Sketchnoting combines text + visuals | qualitative and experimental support; dual coding | Allow labeled callouts, arrows and simple icons, not art projects |
+
+User signals from study communities match the research:
+
+- Students ask for **flowcharts for processes** (photosynthesis, cellular
+  respiration) and say diagrams with minimal words help.
+- Students say the **same headings, tables and flowcharts as the textbook**
+  improve exam answers.
+- Mind-map users value **connections and big-picture structure**; they warn
+  against spending more time making it pretty than learning.
+- Note-taking threads ask for **tables, diagrams and hierarchy** and for tools
+  that reduce the time to produce them.
+- Reddit’s recurring complaints are: too much decoration, too much text,
+  diagrams that cannot be read at a glance, and notes that take longer to make
+  than to study.
+
+What users actually say (paraphrased, with links):
+
+| User signal | Product implication |
+|---|---|
+| “Drawing diagrams really helped me, especially flowcharts for photosynthesis and cellular respiration.” | Process diagrams are a top request for biology/science. |
+| “The same headings, diagrams, tables and flowcharts from the textbook give much higher marks.” | Exam answers reward matching structure, not just prose. |
+| “Tables are good for comparisons; replace big blocks of text with tables.” | Comparison tables are a core study artifact. |
+| “Mind maps help with connections and the big picture; include page numbers.” | Concept maps need labeled relationships and source refs. |
+| “Creating each mind map takes too much time.” | The engine should make the first draft cheap; the host edits. |
+| “Some flowcharts are impossible to understand at a glance.” | Enforce node/edge limits and direct labels. |
+
+Links:
+- <https://www.reddit.com/r/biology/comments/qwvuy7/study_tips_for_general_biology_college_level>
+- <https://www.reddit.com/r/GetStudying/comments/1o6hnvj/how_do_i_use_spaced_repetition_for_descriptive>
+- <https://www.reddit.com/r/IWantToLearn/comments/5fxjkw/iwtl_how_to_make_a_study_guide>
+- <https://www.reddit.com/r/GetStudying/comments/1ldlokz/are_mind_maps_actually_good_for_studying>
+- <https://www.reddit.com/r/studytips/comments/1maqd9l/mindmap_generator_mindgrasp_chat_gpt>
+- <https://www.reddit.com/r/StudentNurse/comments/grg6c3/tip_concept_mapping_as_a_visual_thinking_strategy>
+
+### 2.2 Professional and academic visual standards
+
+Professional readers judge a document by its figures and captions. The plan
+adopts these conventions:
+
+- **Figure captions below figures; table captions above tables.**
+- Caption anatomy:
+  1. number and short title (what the reader should learn);
+  2. explanation of elements, units, sample/conditions, abbreviations;
+  3. source and whether the figure is original, redrawn or extracted.
+- Caption text is selectable text, never baked into the image.
+- Tables: units in headers, consistent decimals, no vertical rules, header
+  repeated on continuation, source note below.
+- Figures: labeled axes with units, no background gridlines, no shadows, no
+  decorative icons, no 3D, colorblind-safe palette, no color-only meaning.
+- Minimum 5 pt in figure artwork; Folisift targets 7.5 pt and enforces 6.5 pt.
+- Alt text describes the takeaway, not “image of …”; the caption does not
+  replace alt text.
+- Every extracted or redrawn figure records provenance and source page.
+
+References:
+- Caltech figure-caption guide:
+  <https://writing.caltech.edu/documents/27629/HWC-FigureCaptionHandout.1-2024.pdf>
+- Bucknell figure/table guidelines:
+  <https://www.eg.bucknell.edu/~dkelley/eceg351/lab/eceg351FigTabCaptionGuidelines.pdf>
+- Nature figure specifications:
+  <https://research-figure-guide.nature.com/figures/preparing-figures-our-specifications/>
+- ACS Energy Letters caption tips:
+  <https://pubs.acs.org/doi/10.1021/acsenergylett.9b00253>
+- Alt text vs caption:
+  <https://openoregon.pressbooks.pub/dothework/chapter/3-2-strategies-and-examples>
+
+### 2.3 What “professional satisfaction” means here
+
+A professional/academic user should be able to say:
+
+- “I can find the answer in seconds; the TOC and index are trustworthy.”
+- “Every figure teaches something; none is decoration.”
+- “I can cite the source page and see whether the figure was redrawn.”
+- “Tables are readable, units are clear, and the header repeats.”
+- “The PDF is accessible, tagged, bookmarked and printable.”
+- “The same content produces the same output tomorrow.”
+
+That becomes the acceptance lens for the phases below.
 
 ## 3. Product invariants (unchanged)
 
@@ -72,6 +169,18 @@ Priority: **P0** blocks production; **P1** blocks a stable v1.0; **P2** polish.
 8. **No silent truncation or silent repair.**
 9. **Visuals are content: captioned, sourced, explained and accessible.**
 10. **External renderers are optional CLI tools, never MCP runtime deps.**
+
+### 3.1 Non-goals
+
+- No text-to-image or decorative image generation. Diagrams are structured
+  explanations, not illustrations.
+- No automatic fact generation or source invention.
+- No OCR by default; low-text pages are inspected visually.
+- No arbitrary Typst/CSS/plugin execution from a guide.
+- No browser, Node, Graphviz or network call inside MCP.
+- No claim of full PDF/UA certification from machine checks alone.
+- No RTL or multi-user authentication in the v1.0 scope; separate plans.
+- No replacement of the host LLM’s judgement about what matters.
 
 ## 4. Target pipeline
 
@@ -160,6 +269,11 @@ summary="Derleme makine kodu üretir; yorumlama deyimi çalışma sırasında ç
 - `caption`, `id`, `source`, `summary`, `header`, `align`, `widths`.
 - Auto-number tables (`Tablo 1`, localized); `id` gives stable cross-references.
 - Table captions and source refs styled by the style pack; no raw Typst.
+- Caption goes **above** the table; source note below.
+- Table conventions: units in headers, consistent decimals, no vertical rules,
+  header repeated on continuation, no colour-only status cells.
+- Table caption anatomy: number + short title, then conditions/abbreviations,
+  then source; no “Table showing …” filler.
 - Complex merged cells use a JSON table block:
 
 ```markdown
@@ -216,7 +330,8 @@ Mermaid is brittle, and Mermaid CLI needs Node/Chromium; both conflict with the
   <https://github.com/mermaid-js/mermaid-cli>
 - D2 has a native CLI and direct SVG export:
   <https://d2lang.com/tour/exports>
-- Graphviz emits SVG deterministically from DOT:
+- Graphviz emits SVG from DOT; pin the layout engine/version because layouts
+  are not guaranteed deterministic:
   <https://graphviz.org/docs/outputs/svg>
 
 The engine gets a **small, typed diagram DSL** for the common study visuals.
@@ -256,14 +371,16 @@ Mermaid/D2/DOT are optional importers for authors, never MCP runtime deps.
 
 Kinds for the first release:
 
-| Kind | Use | Layout |
-|---|---|---|
-| `flow` | pipelines, processes, SDLC | layered DAG, orthogonal edges |
-| `tree` | parse trees, taxonomies, hierarchies | tidy tree |
-| `sequence` | fetch–execute, protocols | lifelines, ordered arrows |
-| `timeline` | history, evolution | horizontal time axis |
-| `matrix` | comparisons, 2×2, pros/cons | fixed grid |
-| `cycle` | loops, PDCA, fetch–execute | circular layout |
+| Kind | Priority | Use | Layout |
+|---|---|---|---|
+| `concept` | high | definitions, relationships, big-picture maps | node–link graph with labeled edges |
+| `flow` | high | pipelines, processes, SDLC | layered DAG, orthogonal edges |
+| `tree` | high | parse trees, taxonomies, hierarchies | tidy tree |
+| `matrix` | high | comparisons, 2×2, pros/cons | fixed grid |
+| `annotated` | high | source figure with callouts | validated image/SVG + numbered labels |
+| `sequence` | medium | fetch–execute, protocols | lifelines, ordered arrows |
+| `timeline` | medium | history, evolution | horizontal time axis |
+| `cycle` | medium | loops, PDCA, fetch–execute | circular layout |
 
 Later: `plot` (bar/line), `venn`, `state`, `class`, `er`. Do not add a kind
 without a fixture and a visual gate.
@@ -356,6 +473,67 @@ folisift diagram import --from dot diagram.dot --out assets/x.svg
 
 This gives authors escape hatches without making the MCP server depend on
 Node, Chromium or Graphviz.
+
+### C7. Visual selection rules (hard product rules)
+
+The engine cannot decide whether a visual is pedagogically useful, but it can
+enforce the contract and make the host choose deliberately.
+
+**Use a visual when the content is:**
+
+- a process or pipeline (`flow`);
+- a hierarchy, grammar or taxonomy (`tree`/`concept`);
+- a comparison with 3+ criteria (`matrix`/table);
+- a cycle or feedback loop (`cycle`);
+- a sequence of events over time (`timeline`/`sequence`);
+- spatial structure or anatomy (`annotated`);
+- a big-picture relationship map (`concept`).
+
+**Do not use a visual when the content is:**
+
+- a single fact, date or definition;
+- a list of unrelated items;
+- decorative flavour, a stock photo, an AI-generated illustration, or a “fun”
+  icon;
+- a dense diagram that needs a second diagram to explain it.
+
+**Visual budget:**
+
+- 0–3 diagrams per chapter;
+- 1 diagram per major mechanism;
+- 0–4 tables per chapter;
+- no page filled with decorative visuals;
+- no visual without a one-sentence takeaway in the caption.
+
+**Cognitive-load limits:**
+
+- 12 nodes / 20 edges per `concept` or `flow` diagram;
+- 4 levels deep for `tree`;
+- 7 labels per row/column in `matrix`;
+- split anything larger into “overview” + “detail” figures.
+
+**Caption contract:**
+
+```text
+Şekil N. Short takeaway title
+What each element/arrow means; units; conditions; source.
+[PD0, s. 35] · redrawn / extracted / original
+```
+
+**Alt-text contract:**
+
+```text
+“Diagram showing X causing Y through Z; the key takeaway is …”
+```
+
+not “image of a diagram”.
+
+**Color contract:**
+
+- color is never the only carrier of meaning;
+- colorblind-safe palette (Okabe–Ito or theme equivalent);
+- direct labels preferred over legends;
+- selected nodes may be highlighted with shape + color, not color alone.
 
 ## 8. Workstream D — source figure extraction (P1)
 
@@ -579,7 +757,7 @@ Every check must fail on its fixture and pass on the real guide.
 
 JSON with `schema_version`, `kind`, `title`, `alt`, `source`, `direction`,
 `nodes`, `edges`, `groups`, `notes`. Validate IDs, duplicate edges, unknown
-node refs, cycles for `tree`, empty labels, max nodes (e.g. 60), max text
+node refs, cycles for `tree`, empty labels, max 12 nodes / 20 edges, max text
 length.
 
 ### 13.2 Table spec
@@ -653,11 +831,11 @@ Durations assume one focused engineer; multiply for review/iteration.
 
 ### Phase 3 — Diagram compiler (5–7 days)
 
-- New diagram crate/module; `flow`, `tree`, `sequence`.
+- New diagram crate/module; `concept`, `flow`, `tree`, `sequence`.
 - Style-aware SVG; accessibility title/desc; deterministic hash.
 - `diagram` fenced block preprocessing; cache.
 - SVG sanitizer for host-authored assets.
-- Exit: fixtures for three kinds; SVG validation; no overlap; PDF embedding.
+- Exit: fixtures for four kinds; SVG validation; no overlap; PDF embedding.
 
 ### Phase 4 — Visual workflow and source extraction (4–5 days)
 
@@ -712,7 +890,11 @@ Durations assume one focused engineer; multiply for review/iteration.
 
 ### Diagrams/SVG
 
-- [ ] `flow`, `tree`, `sequence` fixtures render deterministically.
+- [ ] `concept`, `flow`, `tree`, `sequence` fixtures render deterministically.
+- [ ] A diagram with >12 nodes is rejected with a split recommendation.
+- [ ] A decorative/stock image is rejected by the visual lint.
+- [ ] Every figure has a takeaway caption, provenance and alt text.
+- [ ] Table captions are above tables; figure captions are below figures.
 - [ ] Every generated SVG has `role`, `title`, `desc`, `viewBox`, no scripts
       and no external refs.
 - [ ] Diagram text is >= 6.5 pt and does not overlap.
@@ -756,6 +938,7 @@ tests/fixtures/
 ├── orphan-heading.md
 ├── box-split.md
 ├── toc-mismatch.md
+├── diagram-concept.json
 ├── diagram-flow.json
 ├── diagram-tree.json
 ├── diagram-sequence.json
@@ -777,7 +960,8 @@ compared; visual snapshots are committed only for selected pages.
   <https://github.com/mermaid-js/mermaid-cli>
 - D2 renders SVG natively and has deterministic hash prefixes:
   <https://d2lang.com/tour/exports>
-- Graphviz has direct SVG output and stable DOT input:
+- Graphviz has direct SVG output from DOT; layout determinism depends on the
+  engine/version:
   <https://graphviz.org/docs/outputs/svg>
 - Typst/CeTZ can draw scientific diagrams, but introduces Typst package
   dependencies; use only if the typed DSL is insufficient:
@@ -827,8 +1011,54 @@ compared; visual snapshots are committed only for selected pages.
   <https://multimedia.ucsd.edu/best-practices/multimedia-learning.html>
 - Six evidence-based study strategies:
   <https://pmc.ncbi.nlm.nih.gov/articles/PMC5780548/>
+- Concept maps meta-analysis (science achievement `g = 0.776`):
+  <https://link.springer.com/article/10.1007/s10648-024-09877-y>
+- Studying and constructing concept maps meta-analysis (`g = 0.58` overall,
+  construction `g = 0.72`):
+  <https://doi.org/10.1007/s10648-017-9403-9>
+- Graphic organizers meta-analysis (instructor-provided memory `g = 0.70`):
+  <https://eric.ed.gov/?id=EJ1496202>
+- Drawing-to-learn study (50–80% retention advantage in one biology sample):
+  <https://pmc.ncbi.nlm.nih.gov/articles/PMC5459246>
+- Sketchnoting/visual note-taking:
+  <https://files.eric.ed.gov/fulltext/EJ1341649.pdf>
+- Multimedia principles meta-analysis (multimedia, signaling, segmenting,
+  seductive details):
+  <https://www.sciencedirect.com/science/article/pii/S1747938X25000673>
+- Seductive details meta-analysis:
+  <https://link.springer.com/article/10.1007/s10648-020-09522-4>
 - Visual explanations reduce transient information load:
   <https://www.tes.com/magazine/archive/why-every-teacher-should-be-using-dual-coding>
+
+### User signals
+
+- Study guide thread (tables/diagrams, “making the guide is studying”):
+  <https://www.reddit.com/r/IWantToLearn/comments/5fxjkw/iwtl_how_to_make_a_study_guide>
+- Biology flowcharts and minimal-word diagrams:
+  <https://www.reddit.com/r/biology/comments/qwvuy7/study_tips_for_general_biology_college_level>
+- Descriptive exams: textbook headings/tables/flowcharts:
+  <https://www.reddit.com/r/GetStudying/comments/1o6hnvj/how_do_i_use_spaced_repetition_for_descriptive>
+- Mind maps: connections vs decoration:
+  <https://www.reddit.com/r/GetStudying/comments/1ldlokz/are_mind_maps_actually_good_for_studying>
+- Mind-map generation time complaint:
+  <https://www.reddit.com/r/studytips/comments/1maqd9l/mindmap_generator_mindgrasp_chat_gpt>
+- Nursing concept mapping:
+  <https://www.reddit.com/r/StudentNurse/comments/grg6c3/tip_concept_mapping_as_a_visual_thinking_strategy>
+- Diagram note-taking tools:
+  <https://www.reddit.com/r/productivity/comments/uotd8g/note_taking_and_diagrams>
+
+### Professional visual standards
+
+- Caltech figure captions:
+  <https://writing.caltech.edu/documents/27629/HWC-FigureCaptionHandout.1-2024.pdf>
+- Bucknell figure/table caption rules:
+  <https://www.eg.bucknell.edu/~dkelley/eceg351/lab/eceg351FigTabCaptionGuidelines.pdf>
+- Nature figure specifications (units, accessibility, no decoration):
+  <https://research-figure-guide.nature.com/figures/preparing-figures-our-specifications/>
+- ACS caption tips:
+  <https://pubs.acs.org/doi/10.1021/acsenergylett.9b00253>
+- Alt text vs caption:
+  <https://openoregon.pressbooks.pub/dothework/chapter/3-2-strategies-and-examples>
 
 ### MCP and tool design
 
