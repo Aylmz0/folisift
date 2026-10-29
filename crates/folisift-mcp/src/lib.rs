@@ -708,6 +708,19 @@ impl FolisiftServer {
             }
         }
 
+        let visual_template = json!({
+            "schema_version": 1,
+            "source_pages": visual_targets
+                .iter()
+                .map(|target| json!({
+                    "source": target["source"],
+                    "page": target["page"],
+                    "decision": "",
+                    "reason": "",
+                    "priority": target["priority"],
+                }))
+                .collect::<Vec<_>>(),
+        });
         Ok(Json(json!({
             "existing": was_existing,
             "slug": guide.slug,
@@ -720,6 +733,7 @@ impl FolisiftServer {
                 .ok(),
             "visual_targets": visual_targets,
             "visual_audit": guide.visual_audit().display().to_string(),
+            "visual_audit_template": visual_template,
             "visual_rules": "Every low-text page needs one visual-audit decision: redraw, table, text, decorative or unreadable. High-priority targets need a redraw or a source-grounded reason. Use 0-3 meaningful diagrams per chapter; no decorative images; every figure needs a takeaway caption, source and alt text.",
             "sources": source_rows,
             "outline": outline,
