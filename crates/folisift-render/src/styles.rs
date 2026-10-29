@@ -252,6 +252,66 @@ fn embedded(id: &str, file: &str) -> Option<&'static str> {
     }
 }
 
+/// Apply palette tokens to a layout template.
+///
+/// The layout owns geometry and component structure; tokens own the named
+/// palette roles. Unknown roles are left at the template defaults.
+pub fn apply_palette(template: &str, tokens: &Value, layout: &str) -> Result<String> {
+    let palette = tokens
+        .get("palette")
+        .and_then(Value::as_object)
+        .ok_or_else(|| Error::Style {
+            id: layout.to_string(),
+            message: "tokens.palette is required".to_string(),
+        })?;
+    let defaults: &[(&str, &str)] = match layout {
+        "paper" => &[
+            ("paper", "#FAF6EC"),
+            ("ink", "#211E19"),
+            ("muted", "#5E574B"),
+            ("accent", "#8A3E2F"),
+            ("secondary", "#42594F"),
+            ("gold", "#B08A4F"),
+            ("rule", "#D8CEBD"),
+            ("code_bg", "#F1EADB"),
+            ("cover_bg", "#F3EBDD"),
+        ],
+        "clean" => &[
+            ("paper", "#FFFFFF"),
+            ("ink", "#111827"),
+            ("muted", "#4B5563"),
+            ("accent", "#1D4ED8"),
+            ("secondary", "#0F766E"),
+            ("gold", "#B45309"),
+            ("rule", "#D1D5DB"),
+            ("code_bg", "#F3F4F6"),
+            ("cover_bg", "#FFFFFF"),
+        ],
+        _ => &[],
+    };
+    let mut out = template.to_string();
+    for (role, old) in defaults {
+        if let Some(value) = palette.get(*role).and_then(Value::as_str) {
+            let value = normalize_hex(value).ok_or_else(|| Error::Style {
+                id: layout.to_string(),
+                message: format!("tokens.palette.{role} is not #RRGGBB"),
+            })?;
+            if !value.eq_ignore_ascii_case(old) {
+                out = out.replace(old, &value);
+            }
+        }
+    }
+    Ok(out)
+}
+
+fn normalize_hex(value: &str) -> Option<String> {
+    let value = value.strip_prefix('#')?;
+    if value.len() != 6 || !value.chars().all(|character| character.is_ascii_hexdigit()) {
+        return None;
+    }
+    Some(format!("#{}", value.to_ascii_uppercase()))
+}
+
 /// Validate that a pack supports the requested profile.
 pub fn validate_profile(pack: &StylePack, profile: &folisift_core::StyleProfile) -> Result<()> {
     let fail = |axis: &str, value: &str, supported: &[String]| {
@@ -282,6 +342,16 @@ fn default_table() -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn applies_palette_tokens() {
+        let tokens = serde_json::json!({"palette": {"paper": "#123456", "accent": "#abcdef"}});
+        let template = "fill: #FAF6EC; stroke: #8A3E2F;";
+        let applied = apply_palette(template, &tokens, "paper").expect("palette");
+        assert!(applied.contains("#123456"));
+        assert!(applied.contains("#ABCDEF"));
+        assert!(!applied.contains("#FAF6EC"));
+    }
 
     #[test]
     fn computes_contrast_and_parses_hex() {

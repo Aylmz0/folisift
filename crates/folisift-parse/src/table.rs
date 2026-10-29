@@ -187,7 +187,7 @@ pub fn extract_tables(path: &Path, page_number: usize) -> Result<Vec<ExtractedTa
             .fold((f64::MAX, f64::MIN), |(min, max), x| {
                 (min.min(x), max.max(x))
             });
-        max - min <= 6.0
+        max - min <= 18.0
     });
     if !aligned || rows.len() < 3 {
         return Ok(Vec::new());
