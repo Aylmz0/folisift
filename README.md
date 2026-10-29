@@ -4,7 +4,7 @@
 into Turkish, paper-like, exam-oriented study guides.
 
 First guide: **BMÜ325 Programlama Dilleri, PD0–PD1** — 22 pages, 260/260
-slides. Latest release: **v0.6.0** — visual regression, structure packs, table/diagram contracts, hardened assets and HTTP auth.
+slides. Latest release: **v0.6.1** — visual regression, structure packs, table/diagram contracts, hardened assets and HTTP auth.
 
 ## Layout
 
@@ -62,14 +62,14 @@ cargo run -p folisift-cli -- visual compare \
   --pages 1,4,8 --out data/visual --fail-on-diff
 ```
 
-What v0.6.0 adds:
+What v0.6 adds:
 
 - **Structure packs** — IMRAD, IRAC, SOAP, formula sheet, literature matrix,
   lecture notes and executive brief; missing required headings fail the build.
 - **Visual contract** — deterministic accessible SVG diagrams, table captions
   and ids, figure provenance/alt text, no decorative stock images.
-- **Verification** — pixel baselines, bookmark destination checks, content-box
-  and orphan-heading audits, and a 22-page `paper` parity gate.
+- **Verification** — pixel baselines, bookmark destination checks, content-box,
+  orphan-heading and image-overflow audits, and a 22-page `paper` parity gate.
 - **Safer surfaces** — SVG sanitizer, asset path confinement and bearer auth for
   non-loopback MCP HTTP.
 
