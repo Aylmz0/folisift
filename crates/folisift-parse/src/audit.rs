@@ -30,6 +30,8 @@ pub struct LayoutAudit {
     pub content_box_pages: Vec<usize>,
     pub orphan_heading_pages: Vec<usize>,
     pub bookmark_mismatches: Vec<String>,
+    pub image_pages: usize,
+    pub image_overflow_pages: Vec<usize>,
     pub missing_glyphs: usize,
     pub tagged: bool,
     pub bookmarks: usize,
@@ -64,6 +66,8 @@ pub fn audit_pdf(path: &Path, expected_pages: Option<usize>) -> Result<LayoutAud
     let mut content_box_pages = Vec::new();
     let mut orphan_heading_pages = Vec::new();
     let mut bookmark_mismatches = Vec::new();
+    let mut image_pages = 0usize;
+    let mut image_overflow_pages = Vec::new();
     let mut missing_glyphs = 0usize;
     let mut min_font_size = f64::MAX;
     let mut page_texts: Vec<String> = Vec::with_capacity(pages);
@@ -81,6 +85,20 @@ pub fn audit_pdf(path: &Path, expected_pages: Option<usize>) -> Result<LayoutAud
         })?;
 
         let page_number = index + 1;
+        let images = page.image_bounds(5.0, 1.0);
+        if !images.is_empty() {
+            image_pages += 1;
+        }
+        for image in &images {
+            if image.x < -1.0
+                || image.y < -1.0
+                || image.x + image.width > width as f32 + 1.0
+                || image.y + image.height > height as f32 + 1.0
+            {
+                image_overflow_pages.push(page_number);
+                break;
+            }
+        }
         let mut chars = 0usize;
         let mut content_overflow = false;
         let mut page_text = String::new();
@@ -262,6 +280,11 @@ pub fn audit_pdf(path: &Path, expected_pages: Option<usize>) -> Result<LayoutAud
             bookmark_mismatches.len()
         ));
     }
+    if !image_overflow_pages.is_empty() {
+        issues.push(format!(
+            "image/figure outside the page: {image_overflow_pages:?}"
+        ));
+    }
     if missing_glyphs > 0 {
         issues.push(format!("missing glyphs: {missing_glyphs}"));
     }
@@ -286,6 +309,8 @@ pub fn audit_pdf(path: &Path, expected_pages: Option<usize>) -> Result<LayoutAud
         content_box_pages,
         orphan_heading_pages,
         bookmark_mismatches,
+        image_pages,
+        image_overflow_pages,
         missing_glyphs,
         tagged,
         bookmarks,

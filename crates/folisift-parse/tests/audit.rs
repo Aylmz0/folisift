@@ -13,5 +13,6 @@ fn committed_paper_baseline_passes_layout_and_bookmark_checks() {
     assert!(audit.orphan_heading_pages.is_empty());
     assert!(audit.bookmark_mismatches.is_empty());
     assert!(audit.content_box_pages.is_empty());
+    assert!(audit.image_overflow_pages.is_empty());
     assert!(audit.min_font_size >= 6.0);
 }

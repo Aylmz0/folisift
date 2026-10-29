@@ -906,7 +906,7 @@ Durations assume one focused engineer; multiply for review/iteration.
 ### Visual/accessibility
 
 - [ ] Orphan heading fixture fails. The detector has unit tests; a seeded PDF fixture is still pending.
-- [ ] Table/figure/box split fixtures fail. Non-breakable table blocks prevent table/caption splits; seeded PDF fixtures are still pending.
+- [ ] Table/figure/box split fixtures fail. Non-breakable table blocks prevent table/caption splits and the audit rejects images outside the page; seeded PDF fixtures are still pending.
 - [x] TOC/bookmark mismatch fails. Bookmark destinations are matched against extracted page text.
 - [x] Empty/overflow/missing-glyph pages fail.
 - [x] PDF/UA internal checks pass for paper/clean; veraPDF optional CI. Tagged text, alt text, bookmarks, minimum font size and destination checks are enforced. veraPDF remains an external optional gate.
