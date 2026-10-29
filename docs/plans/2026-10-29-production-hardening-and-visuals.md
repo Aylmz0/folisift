@@ -964,6 +964,14 @@ compared; visual snapshots are committed only for selected pages. The
 
 ## 18. Research notes
 
+### Layout backend decision
+
+The layout and SVG engine evaluation is in
+`docs/diagram-engine-evaluation.md`. Short version: keep the typed DSL and
+accessible SVG renderer; use pure-Rust ELK for layered/tree layout; keep
+Graphviz/D2 as optional CLI importers. Full in-house layout is the expensive,
+low-differentiation part.
+
 ### Diagrams and LLM reliability
 
 - LLM-generated Mermaid often has syntax errors and needs a repair loop:
