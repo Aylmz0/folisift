@@ -301,6 +301,7 @@ pub fn validate_spec(spec: &DiagramSpec) -> Result<()> {
     if group_ids.len() != spec.groups.len() {
         return Err(Error::Diagram("duplicate group id".to_string()));
     }
+    let mut grouped_nodes = HashSet::new();
     for group in &spec.groups {
         validate_id(&group.id)?;
         if group.label.trim().is_empty() {
@@ -309,11 +310,17 @@ pub fn validate_spec(spec: &DiagramSpec) -> Result<()> {
                 group.id
             )));
         }
+        let mut local_nodes = HashSet::new();
         for id in &group.nodes {
             if !ids.contains(id.as_str()) {
                 return Err(Error::Diagram(format!(
                     "group {:?} references unknown node {id:?}",
                     group.id
+                )));
+            }
+            if !local_nodes.insert(id.as_str()) || !grouped_nodes.insert(id.as_str()) {
+                return Err(Error::Diagram(format!(
+                    "node {id:?} belongs to more than one group"
                 )));
             }
         }

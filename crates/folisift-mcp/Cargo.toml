@@ -8,9 +8,9 @@ publish.workspace = true
 
 [dependencies]
 axum.workspace = true
-folisift-core = { path = "../folisift-core", version = "0.7.2" }
-folisift-parse = { path = "../folisift-parse", version = "0.7.2" }
-folisift-render = { path = "../folisift-render", version = "0.7.2" }
+folisift-core = { path = "../folisift-core", version = "0.7.3" }
+folisift-parse = { path = "../folisift-parse", version = "0.7.3" }
+folisift-render = { path = "../folisift-render", version = "0.7.3" }
 rmcp.workspace = true
 schemars.workspace = true
 serde.workspace = true

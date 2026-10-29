@@ -433,12 +433,10 @@ impl FolisiftServer {
                     .map_err(|error| error.to_string())?;
                 let profile = folisift_core::StyleProfile {
                     aesthetic: loaded.pack.aesthetic.clone(),
-                    structure: loaded
-                        .pack
-                        .supported_structures
-                        .first()
-                        .cloned()
-                        .unwrap_or_else(|| "a-g".to_string()),
+                    // The preview is a layout sample, not a structure sample;
+                    // keep it on the course-shaped default so every pack can
+                    // preview the same content.
+                    structure: "a-g".to_string(),
                     language: language.clone(),
                     source_language: language.clone(),
                     voice: loaded

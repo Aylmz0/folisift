@@ -172,7 +172,7 @@ That becomes the acceptance lens for the phases below.
 7. **Deterministic rendering: same content + style + engine → same PDF.**
 8. **No silent truncation or silent repair.**
 9. **Visuals are content: captioned, sourced, explained and accessible.**
-10. **External renderers are optional CLI tools, never MCP runtime deps.**
+10. **D2 is the single external renderer, a CLI authoring tool; never an MCP runtime dep.**
 
 ### 3.1 Non-goals
 
@@ -339,7 +339,7 @@ Mermaid is brittle, and Mermaid CLI needs Node/Chromium; both conflict with the
   <https://graphviz.org/docs/outputs/svg>
 
 The engine gets a **small, typed diagram DSL** for the common study visuals.
-Mermaid/D2/DOT are optional importers for authors, never MCP runtime deps.
+D2 is the single engine; Mermaid/Graphviz/DOT are historical research only.
 
 ### C2. Diagram spec (content format)
 
@@ -802,7 +802,7 @@ No new MCP tool in v0.6. The 12-tool cap stays.
 | Operation | Surface |
 |---|---|
 | diagram spec validation/render | CLI `diagram build`, `build_guide` |
-| diagram import (Mermaid/D2/DOT) | CLI only |
+| diagram build/validate/status (D2) | CLI only |
 | figure extraction | CLI `figure extract` |
 | crop inspection | `render_pages` optional `box` |
 | table extraction | CLI `table extract`; inventory counts |
@@ -847,7 +847,7 @@ Durations assume one focused engineer; multiply for review/iteration.
 - `render_pages` crop box.
 - `figure extract` vector/raster path.
 - Prompt fragments and docs.
-- Optional Mermaid/D2/DOT import CLI.
+- D2-only diagram build/validate/status CLI.
 - Exit: host can choose a low-text page, extract/redraw, and build without
   manual SVG editing.
 
@@ -1115,7 +1115,7 @@ is not a fit. Full in-house layout is the expensive, low-differentiation part.
 
 ## 20. Open decisions (recommended answers)
 
-1. **Diagram DSL vs Mermaid first?** DSL first; Mermaid/D2/DOT optional CLI.
+1. **Diagram DSL vs Mermaid first?** Typed JSON DSL first; D2 is the only external engine; no Mermaid/Graphviz runtime.
 2. **New MCP tool for visuals?** No; extend `build_guide`/`prepare_guide`.
 3. **Table extraction default?** Rect-based draft + confidence; no ML default.
 4. **PDF/UA gate?** Internal hard checks; veraPDF optional CI, not runtime.
