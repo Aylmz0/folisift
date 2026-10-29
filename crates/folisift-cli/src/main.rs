@@ -462,6 +462,11 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                     }
                 }
             }
+            if style.language == "en" {
+                body.push_str("<!-- audit -->\n::: chapter part=\"AUDIT\" side=\"QUALITY\" kicker=\"AUDIT\" title=\"Coverage audit\" toc=\"Coverage audit\" running=\"Coverage audit\" subs=false\n:::\n\n## Coverage\n\nSource coverage and limitations will be reported here.\n");
+            } else {
+                body.push_str("<!-- audit -->\n::: chapter part=\"DENETİM\" side=\"KALİTE\" kicker=\"DENETİM\" title=\"Kapsam denetimi\" toc=\"Kapsam denetimi\" running=\"Kapsam denetimi\" subs=false\n:::\n\n## Kapsam\n\nKaynak kapsamı ve sınırlamalar burada raporlanacaktır.\n");
+            }
             std::fs::write(&guide.content, body)?;
             println!(
                 "{}",

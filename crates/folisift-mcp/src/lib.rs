@@ -1035,6 +1035,12 @@ fn skeleton_markdown(title: &str, language: &str, inventory: &Inventory) -> Stri
             }
         }
     }
+    body.push_str("<!-- audit -->\n");
+    if language == "en" {
+        body.push_str("::: chapter part=\"AUDIT\" side=\"QUALITY\" kicker=\"AUDIT\" title=\"Coverage audit\" toc=\"Coverage audit\" running=\"Coverage audit\" subs=false\n:::\n\n## Coverage\n\nSource coverage and limitations will be reported here.\n");
+    } else {
+        body.push_str("::: chapter part=\"DENETİM\" side=\"KALİTE\" kicker=\"DENETİM\" title=\"Kapsam denetimi\" toc=\"Kapsam denetimi\" running=\"Kapsam denetimi\" subs=false\n:::\n\n## Kapsam\n\nKaynak kapsamı ve sınırlamalar burada raporlanacaktır.\n");
+    }
     body
 }
 impl FolisiftServer {
