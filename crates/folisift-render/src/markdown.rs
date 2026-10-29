@@ -1106,6 +1106,16 @@ mod tests {
     }
 
     #[test]
+    fn rejects_the_checked_in_raw_typst_fixture() {
+        let fixture = include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../tests/fixtures/raw-typst.md"
+        ));
+        let error = markdown_to_typst(fixture).expect_err("must reject");
+        assert!(error.to_string().contains("raw Typst"));
+    }
+
+    #[test]
     fn rejects_raw_typst_and_html() {
         let typst = markdown_to_typst("#let x = 1\n").expect_err("must reject");
         assert!(typst.to_string().contains("raw Typst"));

@@ -1,0 +1,17 @@
+{
+  "kind": "concept",
+  "title": "Derleme ve yorumlama",
+  "alt": "Derleme kaynak programı amaç koda çevirir; yorumlama her deyimi çalışma anında çevirir.",
+  "source": "PD0, s. 106",
+  "nodes": [
+    { "id": "source", "label": "Kaynak program" },
+    { "id": "compile", "label": "Derleyici" },
+    { "id": "target", "label": "Amaç kod" },
+    { "id": "interpret", "label": "Yorumlayıcı" }
+  ],
+  "edges": [
+    { "from": "source", "to": "compile", "label": "tüm program" },
+    { "from": "compile", "to": "target", "label": "bir kez" },
+    { "from": "source", "to": "interpret", "label": "deyim deyim" }
+  ]
+}

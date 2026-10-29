@@ -629,6 +629,24 @@ mod tests {
     }
 
     #[test]
+    fn checked_in_fixtures_render_to_accessible_svg() {
+        for name in ["concept", "flow", "tree", "sequence"] {
+            let json = std::fs::read_to_string(
+                std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                    .join(format!("../../tests/fixtures/diagrams/{name}.json")),
+            )
+            .unwrap_or_else(|error| panic!("{name}: {error}"));
+            let spec = spec_from_json(&json).unwrap_or_else(|error| panic!("{name}: {error}"));
+            let svg = render_svg(&spec, &DiagramTheme::default())
+                .unwrap_or_else(|error| panic!("{name}: {error}"));
+            assert!(svg.contains("role=\"img\""), "{name}");
+            assert!(svg.contains("<title"), "{name}");
+            assert!(svg.contains("<desc"), "{name}");
+            assert!(!svg.contains("<script"), "{name}");
+        }
+    }
+
+    #[test]
     fn all_four_kinds_render() {
         for kind in ["concept", "flow", "tree", "sequence"] {
             let mut spec = flow(4);

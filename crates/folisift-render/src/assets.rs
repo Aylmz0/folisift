@@ -231,6 +231,20 @@ mod tests {
     }
 
     #[test]
+    fn checked_in_svg_fixtures_are_classified() {
+        let valid = include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../tests/fixtures/svg/valid-accessible.svg"
+        ));
+        assert!(sanitize_svg(valid, Path::new("valid.svg")).is_ok());
+        let invalid = include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../tests/fixtures/svg/invalid-script.svg"
+        ));
+        assert!(sanitize_svg(invalid, Path::new("invalid.svg")).is_err());
+    }
+
+    #[test]
     fn accepts_an_inline_svg() {
         let svg = r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><title>X</title><rect width="10" height="10" fill="#fff"/></svg>"##;
         assert!(sanitize_svg(svg, Path::new("asset.svg")).is_ok());

@@ -594,6 +594,25 @@ mod tests {
     }
 
     #[test]
+    fn checked_in_fixtures_seed_duplicate_and_missing_audit_defects() {
+        let duplicate = include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../tests/fixtures/covers-duplicate.md"
+        ));
+        let report = check_coverage(&inventory(), duplicate, DEFAULT_THRESHOLD);
+        assert_eq!(report.duplicate_claims, vec!["PD0:0.1"]);
+        assert!(!report.passed);
+
+        let missing = include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../tests/fixtures/audit-missing.md"
+        ));
+        let report = check_coverage(&inventory(), missing, DEFAULT_THRESHOLD);
+        assert!(report.audit_missing);
+        assert!(!report.passed);
+    }
+
+    #[test]
     fn rejects_duplicate_covers_claims() {
         let body = "Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. ";
         let markdown = format!(
