@@ -43,6 +43,17 @@
   tracking: 0.02em,
 )[[#body]])
 
+#let fitted_image(path, alt: none) = layout(size => {
+  let wide = image(path, width: size.width, alt: alt)
+  block(width: size.width)[
+    #align(center, if measure(wide).height > 17cm {
+      image(path, height: 17cm, alt: alt)
+    } else {
+      wide
+    })
+  ]
+})
+
 #let fig_label(number, word: "Şekil") = text(
   font: "Inter",
   size: 6.8pt,
