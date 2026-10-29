@@ -256,6 +256,25 @@ fn embedded(id: &str, file: &str) -> Option<&'static str> {
 ///
 /// The layout owns geometry and component structure; tokens own the named
 /// palette roles. Unknown roles are left at the template defaults.
+pub fn apply_tokens(template: &str, tokens: &Value, layout: &str) -> Result<String> {
+    let mut out = apply_palette(template, tokens, layout)?;
+    let typography = tokens.get("typography");
+    if let Some(body) = typography
+        .and_then(|value| value.get("body"))
+        .and_then(Value::as_str)
+    {
+        out = out.replace("\"Noto Serif\"", &format!("\"{}\"", body.replace('\"', "")));
+    }
+    if let Some(size) = typography
+        .and_then(|value| value.get("body_size"))
+        .and_then(Value::as_f64)
+        && (6.0..=18.0).contains(&size)
+    {
+        out = out.replace("9.5pt", &format!("{size}pt"));
+    }
+    Ok(out)
+}
+
 pub fn apply_palette(template: &str, tokens: &Value, layout: &str) -> Result<String> {
     let palette = tokens
         .get("palette")
@@ -347,7 +366,7 @@ mod tests {
     fn applies_palette_tokens() {
         let tokens = serde_json::json!({"palette": {"paper": "#123456", "accent": "#abcdef"}});
         let template = "fill: #FAF6EC; stroke: #8A3E2F;";
-        let applied = apply_palette(template, &tokens, "paper").expect("palette");
+        let applied = apply_tokens(template, &tokens, "paper").expect("palette");
         assert!(applied.contains("#123456"));
         assert!(applied.contains("#ABCDEF"));
         assert!(!applied.contains("#FAF6EC"));
