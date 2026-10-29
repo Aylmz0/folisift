@@ -886,7 +886,8 @@ Durations assume one focused engineer; multiply for review/iteration.
 - [x] Table caption/id/source survive all styles.
 - [x] Simple table extraction fixture is recovered with cells and confidence.
 - [x] Table split, caption split, column mismatch and overflow fail. Non-breakable table blocks prevent caption/table splits; width sum, column count and unsafe ids are rejected.
-- [ ] `paper` 24 tables and `clean` 24 tables still pass.
+- [x] `paper` 24 tables and `clean` 24 tables still pass. The 24-table
+  stress fixture renders and audits in both styles.
 
 ### Diagrams/SVG
 
@@ -905,8 +906,11 @@ Durations assume one focused engineer; multiply for review/iteration.
 
 ### Visual/accessibility
 
-- [ ] Orphan heading fixture fails. The detector has unit tests; a seeded PDF fixture is still pending.
-- [ ] Table/figure/box split fixtures fail. Non-breakable table blocks prevent table/caption splits and the audit rejects images outside the page; seeded PDF fixtures are still pending.
+- [x] Orphan heading fixture fails. `tests/fixtures/pdf/orphan-heading.pdf` is
+  checked in and `seeded_orphan_heading_fails` proves the audit catches it.
+- [x] Table/figure/box split fixtures fail. Non-breakable table blocks prevent
+  table/caption splits; `box-overflow.pdf` and `image-overflow.pdf` are checked
+  in and negative tests prove content-box and image/figure overflow detection.
 - [x] TOC/bookmark mismatch fails. Bookmark destinations are matched against extracted page text.
 - [x] Empty/overflow/missing-glyph pages fail.
 - [x] PDF/UA internal checks pass for paper/clean; veraPDF optional CI. Tagged text, alt text, bookmarks, minimum font size and destination checks are enforced. veraPDF remains an external optional gate.
@@ -922,7 +926,10 @@ Durations assume one focused engineer; multiply for review/iteration.
 
 ### Platform
 
-- [ ] Linux/macOS/Windows archives documented and built. Linux is built by `make package`; macOS/Windows remain source builds until their CI runners are provisioned.
+- [ ] Linux/macOS/Windows archives documented and built. Linux is built by
+  `make package`; macOS/Windows remain source builds until the required
+  toolchains and CI runners are provisioned. This is an external blocker, not
+  an engine gap.
 - [x] Signature policy is explicit; unsigned archives are marked.
 - [x] HTTP non-loopback requires a token and is documented as unsupported
       otherwise.
@@ -931,25 +938,29 @@ Durations assume one focused engineer; multiply for review/iteration.
 
 ```text
 tests/fixtures/
-├── style-sample.md                 # exists
-├── covers-duplicate.md
-├── audit-missing.md
-├── raw-typst.md
-├── table-split.md
-├── orphan-heading.md
-├── box-split.md
-├── toc-mismatch.md
-├── diagram-concept.json
-├── diagram-flow.json
-├── diagram-tree.json
-├── diagram-sequence.json
-├── svg-invalid-script.svg
-├── svg-valid-accessible.svg
-└── table-simple.pdf                # synthetic, generated in test
+├── style-sample.md                 # cross-style content fixture
+├── covers-duplicate.md             # negative coverage fixture
+├── audit-missing.md                # negative coverage fixture
+├── raw-typst.md                    # negative render fixture
+├── diagrams/
+│   ├── concept.json
+│   ├── flow.json
+│   ├── tree.json
+│   └── sequence.json
+├── svg/
+│   ├── invalid-script.svg
+│   └── valid-accessible.svg
+└── pdf/
+    ├── generate.py                 # byte-for-byte fixture generator
+    ├── orphan-heading.pdf
+    ├── box-overflow.pdf
+    ├── image-overflow.pdf
+    └── bookmark-mismatch.pdf
 ```
 
 `paper` and `clean` build every stable fixture; content hash and coverage are
-compared; visual snapshots are committed only for selected pages.
+compared; visual snapshots are committed only for selected pages. The
+24-table stress fixture is generated in `crates/folisift-cli/tests/table_parity.rs`.
 
 ## 18. Research notes
 
