@@ -54,7 +54,9 @@ Metrics collected on 2026-10-29.
 Stars are not a quality metric on their own. Graphviz's 1,475 GitLab stars
 understate its adoption: it is packaged by every major Linux distribution,
 used by documentation systems and has been the reference DOT implementation
-for decades. D2's 25k stars reflect a modern, active authoring tool; its
+for decades. For comparison, D2 has 25k stars, but its tested edge/sequence
+labels overlap the connector line and its SVG has no accessibility metadata;
+both need our post-processing, and Graphviz wins on edge-label readability. D2's 25k stars reflect a modern, active authoring tool; its
 single Go binary is a much better runtime fit than Node/Java.
 
 ## Local evidence
@@ -111,6 +113,8 @@ D2 strengths:
 
 D2 costs:
 
+- in the tested output, edge and sequence labels sit on the connector line, so
+  the line crosses the text; Graphviz places labels beside the edge;
 - no accessibility metadata; we must add it;
 - wide diagrams have a large canvas and small relative text unless spacing is
   tuned or the graph is split;
