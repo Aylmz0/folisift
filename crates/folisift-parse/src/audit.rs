@@ -28,6 +28,7 @@ pub struct LayoutAudit {
     pub empty_pages: Vec<usize>,
     pub overflow_pages: Vec<usize>,
     pub content_box_pages: Vec<usize>,
+    pub orphan_heading_pages: Vec<usize>,
     pub missing_glyphs: usize,
     pub tagged: bool,
     pub bookmarks: usize,
@@ -60,6 +61,7 @@ pub fn audit_pdf(path: &Path, expected_pages: Option<usize>) -> Result<LayoutAud
     let mut empty_pages = Vec::new();
     let mut overflow_pages = Vec::new();
     let mut content_box_pages = Vec::new();
+    let mut orphan_heading_pages = Vec::new();
     let mut missing_glyphs = 0usize;
     let mut min_font_size = f64::MAX;
 
@@ -77,6 +79,8 @@ pub fn audit_pdf(path: &Path, expected_pages: Option<usize>) -> Result<LayoutAud
 
         let mut chars = 0usize;
         let mut content_overflow = false;
+        let mut heading_lines: Vec<(f64, f64, String)> = Vec::new();
+        let mut current_line: Option<(f64, f64, String, f64)> = None;
         let (mut left, mut top, mut right, mut bottom) = (f64::MAX, f64::MAX, f64::MIN, f64::MIN);
         for index in 0..text.char_count() {
             let Some(character) = text.char_at(index) else {
@@ -127,6 +131,15 @@ pub fn audit_pdf(path: &Path, expected_pages: Option<usize>) -> Result<LayoutAud
         let touched = left != f64::MAX;
         let overflow =
             touched && (left < -1.0 || top < -1.0 || right > width + 1.0 || bottom > height + 1.0);
+        if let Some((line_y, line_size, text, _)) = current_line.take()
+            && line_size >= 10.5
+            && text.trim().chars().count() > 2
+        {
+            heading_lines.push((line_y, line_size, text.trim().to_string()));
+        }
+        if heading_lines.iter().any(|(y, _, _)| *y > height - 95.0) {
+            orphan_heading_pages.push(index + 1);
+        }
         if chars < 20 {
             empty_pages.push(index + 1);
         }
@@ -167,6 +180,11 @@ pub fn audit_pdf(path: &Path, expected_pages: Option<usize>) -> Result<LayoutAud
             "text outside the content box: {content_box_pages:?}"
         ));
     }
+    if !orphan_heading_pages.is_empty() {
+        issues.push(format!(
+            "possible orphan headings at page bottom: {orphan_heading_pages:?}"
+        ));
+    }
     if missing_glyphs > 0 {
         issues.push(format!("missing glyphs: {missing_glyphs}"));
     }
@@ -189,6 +207,7 @@ pub fn audit_pdf(path: &Path, expected_pages: Option<usize>) -> Result<LayoutAud
         empty_pages,
         overflow_pages,
         content_box_pages,
+        orphan_heading_pages,
         missing_glyphs,
         tagged,
         bookmarks,

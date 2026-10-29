@@ -96,7 +96,7 @@ pub fn render(content: &str, options: &RenderOptions<'_>) -> Result<Rendered> {
             });
         }
     };
-    let template = styles::apply_palette(template, &loaded.tokens, &loaded.pack.layout)?;
+    let template = styles::apply_tokens(template, &loaded.tokens, &loaded.pack.layout)?;
 
     let title = frontmatter.title.as_deref().unwrap_or(options.title);
     let subtitle = frontmatter.subtitle.as_deref().unwrap_or(options.subtitle);
