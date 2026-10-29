@@ -6,6 +6,7 @@ table.
 
 | Tag | Date | Build | Commit | PDFium | What changed |
 |---|---|---:|---|---|---|
+| `v0.7.3` | 2026-10-29 | 85 | `75b2b4ce2ae752abbc5915cd758f00f102d8396a` | `chromium/8058` | MCP style-preview fix, D2 spec hardening |
 | `v0.7.2` | 2026-10-29 | 83 | `a1afffc8519f631df611ac2b755bb5feb9af3b1c` | `chromium/8058` | Actionable diagram status, pinned D2 archive check |
 | `v0.7.1` | 2026-10-29 | 81 | `81a090cf8f4db8ff1b599672f72ff7ebf4ec486c` | `chromium/8058` | D2 manifest/cache hardening, licence-complete archive |
 | `v0.7.0` | 2026-10-29 | 78 | `64b0e2620be05551716c9e1e743785a85b90268e` | `chromium/8058` | D2-only diagram pipeline, diagram MCP tool, OpenCode runbook |
@@ -21,6 +22,8 @@ table.
 
 ## Notes
 
+- `v0.7.3` fixes MCP style preview and rejects duplicate diagram group
+  membership.
 - `v0.7.2` reports invalid diagram specs in status and rejects a package whose
   D2 sidecar is not pinned.
 - `v0.7.1` rejects unknown diagram fields, locks the layout to TALA, hashes
