@@ -10,7 +10,7 @@ publish.workspace = true
 async-trait.workspace = true
 blake3.workspace = true
 chrono.workspace = true
-folisift-core = { path = "../folisift-core", version = "0.4.1" }
+folisift-core = { path = "../folisift-core", version = "0.5.0" }
 image.workspace = true
 liteparse.workspace = true
 liteparse-pdfium.workspace = true

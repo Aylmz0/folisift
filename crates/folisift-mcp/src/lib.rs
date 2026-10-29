@@ -1039,3 +1039,28 @@ pub async fn serve(root: impl AsRef<Path>) -> Result<(), Box<dyn std::error::Err
     service.waiting().await?;
     Ok(())
 }
+
+/// Serve the same MCP server over streamable HTTP at `/mcp`.
+pub async fn serve_http(
+    root: impl AsRef<Path>,
+    address: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    use rmcp::transport::streamable_http_server::session::local::LocalSessionManager;
+    use rmcp::transport::streamable_http_server::{
+        StreamableHttpServerConfig, StreamableHttpService,
+    };
+
+    let root = root.as_ref().to_path_buf();
+    let service = StreamableHttpService::new(
+        move || {
+            FolisiftServer::new(&root).map_err(|error| std::io::Error::other(error.to_string()))
+        },
+        Arc::new(LocalSessionManager::default()),
+        StreamableHttpServerConfig::default(),
+    );
+    let app = axum::Router::new().nest_service("/mcp", service);
+    let listener = tokio::net::TcpListener::bind(address).await?;
+    eprintln!("folisift MCP listening on http://{address}/mcp");
+    axum::serve(listener, app).await?;
+    Ok(())
+}
