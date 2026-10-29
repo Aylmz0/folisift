@@ -145,6 +145,7 @@ separately.
 - [Architecture](docs/architecture.md)
 - [Authoring](docs/authoring.md)
 - [Authoring specification](docs/authoring-spec.md)
+- [Evidence base](docs/authoring-evidence.md)
 - [Structure packs](docs/structures.md)
 - [Diagram engine decision](docs/diagram-engine-evaluation.md)
 - [OpenCode production loop](docs/agents/opencode-guide.md)

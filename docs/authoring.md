@@ -1,7 +1,9 @@
 # Authoring a guide
 
 This is the practical runbook. `docs/authoring-spec.md` is the normative
-content contract; `docs/architecture.md` explains the layers.
+content contract; `docs/authoring-evidence.md` records the learning,
+note-taking, summarization and accessibility basis; `docs/architecture.md`
+explains the layers.
 
 ## Prerequisites
 
