@@ -109,11 +109,17 @@ enum Command {
         #[arg(long)]
         check: bool,
     },
-    /// Read a bounded page range from cached source text.
+    /// Extract draft tables from a native-text PDF.
     Table {
         #[command(subcommand)]
         command: TableCommand,
     },
+    /// Compare rendered pages of two PDFs and write diff images.
+    Visual {
+        #[command(subcommand)]
+        command: VisualCommand,
+    },
+    /// Read a bounded page range from cached source text.
     ReadSource {
         #[arg(long)]
         source: PathBuf,
@@ -150,6 +156,31 @@ enum Command {
         /// Render DPI (72–200).
         #[arg(long)]
         dpi: Option<f32>,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+enum VisualCommand {
+    Compare {
+        #[arg(long)]
+        reference: PathBuf,
+        #[arg(long)]
+        current: PathBuf,
+        /// Page list such as `1,4,18-22`.
+        #[arg(long, default_value = "1")]
+        pages: String,
+        #[arg(long, default_value_t = 120.0)]
+        dpi: f32,
+        #[arg(long, default_value = "target/visual")]
+        out: PathBuf,
+        #[arg(long, default_value_t = 12.0)]
+        threshold: f64,
+        /// Maximum fraction of changed page pixels (0.02 = 2%).
+        #[arg(long, default_value_t = 0.02)]
+        ratio_threshold: f64,
+        /// Exit non-zero when the threshold is exceeded.
+        #[arg(long)]
+        fail_on_diff: bool,
     },
 }
 
@@ -660,6 +691,36 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 }))?
             );
         }
+        Command::Visual { command } => match command {
+            VisualCommand::Compare {
+                reference,
+                current,
+                pages,
+                dpi,
+                out,
+                threshold,
+                ratio_threshold,
+                fail_on_diff,
+            } => {
+                let reference = workspace.resolve_read(&reference)?;
+                let current = workspace.resolve_read(&current)?;
+                let pages = folisift_parse::parse_page_list(&pages)?;
+                let out = workspace.resolve_write(&out)?;
+                let report = folisift_parse::compare_pdfs(
+                    &reference,
+                    &current,
+                    &pages.iter().map(|page| *page as usize).collect::<Vec<_>>(),
+                    dpi.clamp(72.0, 200.0),
+                    &out,
+                    threshold,
+                    ratio_threshold.clamp(0.0, 1.0),
+                )?;
+                println!("{}", serde_json::to_string_pretty(&report)?);
+                if fail_on_diff && !report.passed {
+                    return Err("visual comparison exceeded the threshold".into());
+                }
+            }
+        },
         Command::Table { command } => match command {
             TableCommand::Extract { source, page, out } => {
                 let source = workspace.resolve_read(&source)?;

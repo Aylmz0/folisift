@@ -50,6 +50,12 @@ cargo run -p folisift-cli -- styles preview clean --language en
 
 # Draft table extraction from a native-text PDF page
 cargo run -p folisift-cli -- table extract --source output/PD0-PD1_Calisma_Ozeti.pdf --page 4
+
+# Pixel-level visual regression against a committed baseline
+cargo run -p folisift-cli -- visual compare \
+  --reference tests/baselines/pd0-pd1.pdf \
+  --current output/PD0-PD1_Calisma_Ozeti.pdf \
+  --pages 1,4,8 --out data/visual --fail-on-diff
 ```
 
 MCP server (stdio or streamable HTTP):

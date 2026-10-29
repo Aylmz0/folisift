@@ -14,6 +14,7 @@ pub mod source_cache;
 pub mod source_read;
 pub mod table;
 pub mod text;
+pub mod visual;
 
 pub use audit::{LayoutAudit, PageAudit, audit_pdf};
 pub use coverage::{
@@ -30,3 +31,4 @@ pub use source_read::{
 };
 pub use table::{BBox, ExtractedTable, extract_tables};
 pub use text::LOW_TEXT_THRESHOLD;
+pub use visual::{VisualPage, VisualReport, compare_pdfs};

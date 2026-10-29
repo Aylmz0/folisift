@@ -6,8 +6,10 @@ sources/**/*.pdf
 
 # Generated source text and page screenshots.
 guides/*/data/cache/
+data/visual/
 guides/*/data/pages/
 data/cache/
+data/visual/
 
 # Temporary LaTeX/Office files.
 *.aux
