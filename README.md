@@ -4,7 +4,7 @@
 into Turkish, paper-like, exam-oriented study guides.
 
 First guide: **BMÜ325 Programlama Dilleri, PD0–PD1** — 22 pages, 260/260
-slides. Latest release: **v0.4.1** — paper/clean styles, tr/en labels, accessibility gates and CI.
+slides. Latest release: **v0.5.0** — paper/clean styles, accessibility gates, HTTP MCP and CI.
 
 ## Layout
 
