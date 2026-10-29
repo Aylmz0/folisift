@@ -8,7 +8,7 @@ publish.workspace = true
 
 [dependencies]
 blake3.workspace = true
-folisift-core = { path = "../folisift-core", version = "0.7.1" }
+folisift-core = { path = "../folisift-core", version = "0.7.2" }
 pulldown-cmark.workspace = true
 regex.workspace = true
 serde.workspace = true

@@ -689,32 +689,33 @@ pub fn read_specs(guide_root: &Path) -> Result<Vec<DiagramSpec>> {
 }
 
 pub fn load_assets(guide_root: &Path) -> Result<HashMap<String, DiagramAsset>> {
+    let slug = guide_slug(guide_root);
     let mut assets = HashMap::new();
     for spec in read_specs(guide_root)? {
         let manifest = read_manifest(guide_root, &spec.id)?.ok_or_else(|| {
             Error::Diagram(format!(
-                "diagram {:?} has no manifest; run `folisift diagram build --guide <slug> --id {}`",
+                "diagram {:?} has no manifest; run `folisift diagram build --guide {slug} --id {}`",
                 spec.id, spec.id
             ))
         })?;
         let expected = spec_hash(&spec)?;
         if manifest.spec_sha256 != expected {
             return Err(Error::Diagram(format!(
-                "diagram {:?} is stale; run `folisift diagram build --guide <slug> --id {}`",
+                "diagram {:?} is stale; run `folisift diagram build --guide {slug} --id {}`",
                 spec.id, spec.id
             )));
         }
         if manifest.d2_version != D2_VERSION || manifest.postprocess_version != POSTPROCESS_VERSION
         {
             return Err(Error::Diagram(format!(
-                "diagram {:?} was built with a different engine/post-processor; rebuild it",
-                spec.id
+                "diagram {:?} was built with a different engine/post-processor; rebuild it with `folisift diagram build --guide {slug} --id {}`",
+                spec.id, spec.id
             )));
         }
         let svg_path = safe_asset_path(guide_root, &manifest.svg)?;
         let svg = std::fs::read(&svg_path).map_err(|error| {
             Error::Diagram(format!(
-                "diagram {:?} SVG is missing ({}); run `folisift diagram build --guide <slug> --id {}`",
+                "diagram {:?} SVG is missing ({}); run `folisift diagram build --guide {slug} --id {}`",
                 spec.id,
                 error,
                 spec.id
@@ -723,7 +724,7 @@ pub fn load_assets(guide_root: &Path) -> Result<HashMap<String, DiagramAsset>> {
         let actual = blake3::hash(&svg).to_hex().to_string();
         if actual != manifest.svg_sha256 {
             return Err(Error::Diagram(format!(
-                "diagram {:?} SVG hash mismatch; run `folisift diagram build --guide <slug> --id {}`",
+                "diagram {:?} SVG hash mismatch; run `folisift diagram build --guide {slug} --id {}`",
                 spec.id, spec.id
             )));
         }
@@ -761,10 +762,8 @@ pub fn read_manifest(guide_root: &Path, id: &str) -> Result<Option<DiagramManife
 
 pub fn statuses(guide_slug: &str, guide_root: &Path) -> Result<Vec<DiagramStatus>> {
     let mut statuses = Vec::new();
-    for spec in read_specs(guide_root)? {
-        statuses.push(status_for_spec(guide_slug, guide_root, &spec)?);
-    }
-    let directory = guide_root.join("data/diagrams");
+    let mut known = HashSet::new();
+    let directory = guide_root.join("diagrams");
     if directory.is_dir() {
         for entry in std::fs::read_dir(&directory).map_err(|error| Error::Io {
             path: directory.clone(),
@@ -781,22 +780,62 @@ pub fn statuses(guide_slug: &str, guide_root: &Path) -> Result<Vec<DiagramStatus
             let Some(id) = path.file_stem().and_then(|value| value.to_str()) else {
                 continue;
             };
-            if read_specs(guide_root)?.iter().any(|spec| spec.id == id) {
+            known.insert(id.to_string());
+            match read_spec(guide_root, id) {
+                Ok(spec) => statuses.push(status_for_spec(guide_slug, guide_root, &spec)?),
+                Err(error) => statuses.push(DiagramStatus {
+                    id: id.to_string(),
+                    state: DiagramState::Invalid,
+                    spec: path.display().to_string(),
+                    manifest: None,
+                    svg: None,
+                    command: format!("folisift diagram status --guide {guide_slug}"),
+                    message: Some(error.to_string()),
+                }),
+            }
+        }
+    }
+    let manifests = guide_root.join("data/diagrams");
+    if manifests.is_dir() {
+        for entry in std::fs::read_dir(&manifests).map_err(|error| Error::Io {
+            path: manifests.clone(),
+            source: error,
+        })? {
+            let entry = entry.map_err(|error| Error::Io {
+                path: manifests.clone(),
+                source: error,
+            })?;
+            let path = entry.path();
+            if path.extension().and_then(|value| value.to_str()) != Some("json") {
                 continue;
             }
-            statuses.push(DiagramStatus {
-                id: id.to_string(),
-                state: DiagramState::MissingSpec,
-                spec: spec_path(guide_root, id).display().to_string(),
-                manifest: Some(path.display().to_string()),
-                svg: None,
-                command: format!("folisift diagram status --guide {guide_slug}"),
-                message: Some("manifest has no matching spec".to_string()),
-            });
+            let Some(id) = path.file_stem().and_then(|value| value.to_str()) else {
+                continue;
+            };
+            if !known.contains(id) {
+                statuses.push(DiagramStatus {
+                    id: id.to_string(),
+                    state: DiagramState::MissingSpec,
+                    spec: spec_path(guide_root, id).display().to_string(),
+                    manifest: Some(path.display().to_string()),
+                    svg: None,
+                    command: format!("folisift diagram status --guide {guide_slug}"),
+                    message: Some("manifest has no matching spec".to_string()),
+                });
+            }
         }
     }
     statuses.sort_by(|left, right| left.id.cmp(&right.id));
     Ok(statuses)
+}
+
+fn guide_slug(guide_root: &Path) -> String {
+    guide_root
+        .file_name()
+        .and_then(|value| value.to_str())
+        .filter(|value| !value.is_empty())
+        .unwrap_or("<guide>")
+        .to_string()
 }
 
 fn status_for_spec(

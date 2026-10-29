@@ -24,6 +24,11 @@ if [ -z "${D2}" ] && [ -x "target/package/d2-v0.9.0/bin/d2" ]; then
   D2="target/package/d2-v0.9.0/bin/d2"
 fi
 if [ -n "${D2}" ] && [ -x "${D2}" ]; then
+  D2_VERSION="$("${D2}" --version 2>&1 | tr -d '\r')"
+  if [ "${D2_VERSION}" != "v0.9.0" ]; then
+    echo "error: D2 version ${D2_VERSION} does not match pinned v0.9.0" >&2
+    exit 1
+  fi
   cp "${D2}" "$STAGE/d2"
   if [ -f target/package/D2-LICENSE.txt ]; then
     cp target/package/D2-LICENSE.txt "$STAGE/D2-LICENSE.txt"
