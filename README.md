@@ -47,6 +47,9 @@ cargo run -p folisift-cli -- audit --pdf output/PD0-PD1_Calisma_Ozeti.pdf --expe
 # Style packs
 cargo run -p folisift-cli -- styles list
 cargo run -p folisift-cli -- styles preview clean --language en
+
+# Draft table extraction from a native-text PDF page
+cargo run -p folisift-cli -- table extract --source output/PD0-PD1_Calisma_Ozeti.pdf --page 4
 ```
 
 MCP server (stdio or streamable HTTP):

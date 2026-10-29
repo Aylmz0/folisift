@@ -720,6 +720,8 @@ Kaynak: [PD0, s. 42–43, 51, 62–63]. Bu gösterimlerde `→` üretim kuralın
 PD0 ve PD1’in kesişimi yalnızca “derleme” değildir; asıl kesişim **soyutlama** kavramıdır. Dil düzeyleri, veri tipleri, altprogramlar, soyut dil ve paradigmalar aynı sorunun farklı katmanlarıdır: ayrıntıyı gizleyip anlaşılır bir model kurmak. Bu nedenle ilerleyen bölümlerde “hangi ayrıntı gizleniyor?” sorusu, konuları birbirine bağlayan ortak eksen olarak izlenebilir.
 :::
 
+<!-- audit -->
+
 ::: chapter part="C–G · ORTAK BÖLÜMLER" side="PİLOT DENETİMİ" kicker="G" title="Kapsam denetimi" toc="G. Kapsam denetimi" running="G · Kapsam denetimi" subs=false compact=true lead="Bu bölüm, kılavuzun PD0 ve PD1’in hangi sayfalarını kapsadığını, hangi slaytların metin katmanı olmadan görsel olarak incelendiğini ve neyin bilinçli olarak dışarıda bırakıldığını raporlar."
 :::
 

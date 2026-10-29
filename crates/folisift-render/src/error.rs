@@ -17,6 +17,9 @@ pub enum Error {
     #[error("style config: {0}")]
     StyleConfig(String),
 
+    #[error("diagram: {0}")]
+    Diagram(String),
+
     #[error("I/O error at {path}: {source}")]
     Io {
         path: PathBuf,

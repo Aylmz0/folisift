@@ -25,6 +25,8 @@ pub struct CoverageReport {
     pub empty_sections: Vec<String>,
     pub weak_sections: Vec<String>,
     pub unknown_claims: Vec<String>,
+    pub duplicate_claims: Vec<String>,
+    pub audit_missing: bool,
     pub sources: Vec<SourceCoverage>,
 }
 
@@ -56,7 +58,9 @@ pub fn check_coverage(
 ) -> CoverageReport {
     let lines = guide_lines(guide_markdown);
     let sections_by_number = guide_section_chars(guide_markdown);
-    let claim_chars = guide_claim_chars(guide_markdown);
+    let claims = scan_claims(guide_markdown);
+    let claim_chars = &claims.chars;
+    let audit_missing = !has_audit_section(guide_markdown);
     let mut known_claims = std::collections::HashSet::new();
     for source in &inventory.sources {
         let id = source.filename.trim_end_matches(".pdf");
@@ -138,13 +142,19 @@ pub fn check_coverage(
     }
 
     CoverageReport {
-        passed: missing == 0 && empty_sections.is_empty() && unknown_claims.is_empty(),
+        passed: missing == 0
+            && empty_sections.is_empty()
+            && unknown_claims.is_empty()
+            && claims.duplicates.is_empty()
+            && !audit_missing,
         threshold,
         total,
         missing,
         empty_sections,
         weak_sections,
         unknown_claims,
+        duplicate_claims: claims.duplicates,
+        audit_missing,
         sources,
     }
 }
@@ -227,21 +237,29 @@ pub fn guide_body_chars(markdown: &str) -> std::collections::HashMap<String, usi
     guide_section_chars(markdown)
 }
 
-fn guide_claim_chars(markdown: &str) -> std::collections::HashMap<String, usize> {
+#[derive(Default)]
+struct ClaimScan {
+    chars: std::collections::HashMap<String, usize>,
+    duplicates: Vec<String>,
+}
+
+fn scan_claims(markdown: &str) -> ClaimScan {
     let markdown = strip_frontmatter(markdown);
-    let mut claims = std::collections::HashMap::new();
+    let mut scan = ClaimScan::default();
     let mut pending: Vec<String> = Vec::new();
     let mut current: Option<(Vec<String>, String)> = None;
     let mut fenced = false;
 
-    let finalize = |claims: &mut std::collections::HashMap<String, usize>,
-                    current: Option<(Vec<String>, String)>| {
+    fn finalize(scan: &mut ClaimScan, current: Option<(Vec<String>, String)>) {
         if let Some((keys, body)) = current {
+            let chars = count_body_chars(&body);
             for key in keys {
-                claims.insert(key, count_body_chars(&body));
+                if scan.chars.insert(key.clone(), chars).is_some() {
+                    scan.duplicates.push(key);
+                }
             }
         }
-    };
+    }
 
     for line in markdown.lines() {
         let trimmed = line.trim();
@@ -257,7 +275,7 @@ fn guide_claim_chars(markdown: &str) -> std::collections::HashMap<String, usize>
             continue;
         }
         if trimmed.starts_with('#') {
-            finalize(&mut claims, current.take());
+            finalize(&mut scan, current.take());
             if !pending.is_empty() {
                 current = Some((std::mem::take(&mut pending), String::new()));
             }
@@ -268,8 +286,39 @@ fn guide_claim_chars(markdown: &str) -> std::collections::HashMap<String, usize>
             body.push('\n');
         }
     }
-    finalize(&mut claims, current);
-    claims
+    finalize(&mut scan, current);
+    scan.duplicates.sort();
+    scan.duplicates.dedup();
+    scan
+}
+
+fn has_audit_section(markdown: &str) -> bool {
+    let markdown = strip_frontmatter(markdown);
+    let mut fenced = false;
+    for line in markdown.lines() {
+        let trimmed = line.trim();
+        if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
+            fenced = !fenced;
+            continue;
+        }
+        if fenced {
+            continue;
+        }
+        if trimmed.eq_ignore_ascii_case("<!-- audit -->") {
+            return true;
+        }
+        if trimmed.starts_with('#') {
+            let normalized = normalize(trimmed.trim_start_matches('#').trim());
+            if normalized.contains("kapsam denetimi")
+                || normalized.contains("coverage audit")
+                || normalized == "audit"
+                || normalized.ends_with(" audit")
+            {
+                return true;
+            }
+        }
+    }
+    false
 }
 
 fn covers_comment(line: &str) -> Option<Vec<String>> {
@@ -500,7 +549,7 @@ mod tests {
     fn passes_when_all_sections_are_named() {
         let body = "Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. ";
         let markdown = format!(
-            "# Bölüm 0\n\n## 0.1 Giriş ve amaçlar\n\n{body}\n\n## 0.2 Programlama dili nedir?\n\n{body}\n"
+            "<!-- audit -->\n# Bölüm 0\n\n## 0.1 Giriş ve amaçlar\n\n{body}\n\n## 0.2 Programlama dili nedir?\n\n{body}\n"
         );
         let report = check_coverage(&inventory(), &markdown, DEFAULT_THRESHOLD);
         assert!(report.passed);
@@ -519,7 +568,7 @@ mod tests {
     fn tolerates_a_longer_guide_title() {
         let body = "Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. ";
         let markdown = format!(
-            "# Bölüm 1\n\n## 1.5 Dil kategorileri ve programlama paradigmaları\n\n{body}\n## 0.1 Giriş ve amaçlar\n\n{body}\n## 0.2 Programlama dili nedir?\n\n{body}\n"
+            "<!-- audit -->\n# Bölüm 1\n\n## 1.5 Dil kategorileri ve programlama paradigmaları\n\n{body}\n## 0.1 Giriş ve amaçlar\n\n{body}\n## 0.2 Programlama dili nedir?\n\n{body}\n"
         );
         let report = check_coverage(&inventory(), &markdown, DEFAULT_THRESHOLD);
         assert!(report.passed);
@@ -528,7 +577,9 @@ mod tests {
     #[test]
     fn covers_metadata_claims_non_a_g_sections() {
         let body = "Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. ";
-        let markdown = format!("<!-- covers: PD0:0.1, PD0:0.2 -->\n## Foundations\n\n{body}\n");
+        let markdown = format!(
+            "<!-- audit -->\n<!-- covers: PD0:0.1, PD0:0.2 -->\n## Foundations\n\n{body}\n"
+        );
         let report = check_coverage(&inventory(), &markdown, DEFAULT_THRESHOLD);
         assert!(report.passed, "{report:?}");
         assert_eq!(report.unknown_claims.len(), 0);
@@ -540,6 +591,25 @@ mod tests {
         let report = check_coverage(&inventory(), markdown, DEFAULT_THRESHOLD);
         assert!(!report.passed);
         assert_eq!(report.unknown_claims, vec!["PD0:9.9"]);
+    }
+
+    #[test]
+    fn rejects_duplicate_covers_claims() {
+        let body = "Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. ";
+        let markdown = format!(
+            "<!-- audit -->\n<!-- covers: PD0:0.1 -->\n## A\n\n{body}\n<!-- covers: PD0:0.1 -->\n## B\n\n{body}\n"
+        );
+        let report = check_coverage(&inventory(), &markdown, DEFAULT_THRESHOLD);
+        assert!(!report.passed);
+        assert_eq!(report.duplicate_claims, vec!["PD0:0.1"]);
+    }
+
+    #[test]
+    fn requires_an_audit_section() {
+        let markdown = "<!-- covers: PD0:0.1, PD0:0.2 -->\n## Foundations\n\nShort.\n";
+        let report = check_coverage(&inventory(), markdown, DEFAULT_THRESHOLD);
+        assert!(!report.passed);
+        assert!(report.audit_missing);
     }
 
     #[test]

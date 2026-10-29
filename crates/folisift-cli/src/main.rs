@@ -110,6 +110,10 @@ enum Command {
         check: bool,
     },
     /// Read a bounded page range from cached source text.
+    Table {
+        #[command(subcommand)]
+        command: TableCommand,
+    },
     ReadSource {
         #[arg(long)]
         source: PathBuf,
@@ -146,6 +150,19 @@ enum Command {
         /// Render DPI (72–200).
         #[arg(long)]
         dpi: Option<f32>,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+enum TableCommand {
+    /// Extract a draft table from one native-text PDF page.
+    Extract {
+        #[arg(long)]
+        source: PathBuf,
+        #[arg(long)]
+        page: usize,
+        #[arg(long)]
+        out: Option<PathBuf>,
     },
 }
 
@@ -187,8 +204,26 @@ struct GuideStatus {
     target_pages: Option<String>,
     style: folisift_core::StyleProfile,
     content_words: usize,
+    prose_words: usize,
     section_count: usize,
+    source_section_count: usize,
     empty_sections: Vec<String>,
+}
+
+fn prose_words(markdown: &str) -> usize {
+    markdown
+        .lines()
+        .map(str::trim)
+        .filter(|line| {
+            !line.is_empty()
+                && !line.starts_with('#')
+                && !line.starts_with('|')
+                && !line.starts_with(":::")
+                && !line.starts_with("```")
+                && !line.starts_with("---")
+        })
+        .map(|line| line.split_whitespace().count())
+        .sum()
 }
 
 #[tokio::main]
@@ -308,7 +343,12 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 target_pages: guide.config.target_pages,
                 style,
                 content_words: markdown.split_whitespace().count(),
+                prose_words: prose_words(&markdown),
                 section_count: body_chars.len(),
+                source_section_count: body_chars
+                    .keys()
+                    .filter(|number| number.chars().next().is_some_and(|c| c.is_ascii_digit()))
+                    .count(),
                 empty_sections,
             };
             println!("{}", serde_json::to_string_pretty(&status)?);
@@ -501,6 +541,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                         sources: &[],
                         style: Some(&style),
                         styles_root: Some(workspace.root()),
+                        cache_dir: Some(&workspace.root().join("data/cache/build")),
                     },
                 )?;
                 std::fs::write(&output, &rendered.pdf)?;
@@ -563,6 +604,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                     sources: &sources,
                     style: Some(&style),
                     styles_root: Some(workspace.root()),
+                    cache_dir: Some(&workspace.root().join("data/cache/build")),
                 },
             )?;
             std::fs::write(&output_path, &rendered.pdf)?;
@@ -600,6 +642,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                     "output": output_path.display().to_string(),
                     "pages": rendered.pages,
                     "content_hash": rendered.content_hash,
+                    "cache_hit": rendered.cache_hit,
                     "style": style,
                     "warnings": rendered.warnings.len(),
                     "coverage": coverage.as_ref().map(|report| json!({
@@ -612,6 +655,24 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 }))?
             );
         }
+        Command::Table { command } => match command {
+            TableCommand::Extract { source, page, out } => {
+                let source = workspace.resolve_read(&source)?;
+                let tables = folisift_parse::extract_tables(&source, page)?;
+                let value = json!({
+                    "source": source.display().to_string(),
+                    "page": page,
+                    "tables": tables,
+                });
+                if let Some(out) = out {
+                    let out = workspace.resolve_write(out)?;
+                    std::fs::write(&out, serde_json::to_string_pretty(&value)?)?;
+                    println!("{}", out.display());
+                } else {
+                    println!("{}", serde_json::to_string_pretty(&value)?);
+                }
+            }
+        },
         Command::ReadSource {
             source,
             pages,

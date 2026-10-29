@@ -26,6 +26,8 @@ sources: [PD0]
 **Term:** A precise definition. [PD0, s. 1]
 :::
 
+<!-- audit -->
+
 <!-- covers: PD0:0.2 -->
 ## Methods
 

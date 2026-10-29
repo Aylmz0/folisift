@@ -42,6 +42,8 @@ pub struct StylePack {
 pub struct StyleStrings {
     pub toc: String,
     pub figure: String,
+    #[serde(default = "default_table")]
+    pub table: String,
     #[serde(default)]
     pub page: String,
 }
@@ -271,6 +273,10 @@ pub fn validate_profile(pack: &StylePack, profile: &folisift_core::StyleProfile)
         return fail("voice", &profile.voice, &pack.supported_voices);
     }
     Ok(())
+}
+
+fn default_table() -> String {
+    "Tablo".to_string()
 }
 
 #[cfg(test)]

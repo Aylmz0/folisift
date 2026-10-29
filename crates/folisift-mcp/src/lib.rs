@@ -454,6 +454,7 @@ impl FolisiftServer {
                         sources: &[],
                         style: Some(&profile),
                         styles_root: Some(self.workspace.root()),
+                        cache_dir: Some(&self.workspace.root().join("data/cache/build")),
                     },
                 )
                 .map_err(|error| error.to_string())?;
@@ -533,6 +534,7 @@ impl FolisiftServer {
         let cache = SourceCache::new(self.workspace.root().join("data/cache"));
         let mut source_rows = Vec::new();
         let mut outline = Vec::new();
+        let mut visual_targets = Vec::new();
         for source in &inventory.sources {
             let cached = cache
                 .load(
@@ -553,6 +555,15 @@ impl FolisiftServer {
                 "text": cached.cache_path.display().to_string(),
                 "cache_hit": cached.cache_hit,
             }));
+            let source_id = source.filename.trim_end_matches(".pdf");
+            for page in source.low_text_pages.iter().take(24) {
+                visual_targets.push(json!({
+                    "source": source_id,
+                    "page": page,
+                    "reason": "low-text page; inspect for a diagram, table or worked example",
+                    "suggested_kinds": ["concept", "flow", "tree", "matrix", "annotated"],
+                }));
+            }
             for heading in &source.headings {
                 let number = heading
                     .heading
@@ -582,6 +593,8 @@ impl FolisiftServer {
             "style": style,
             "domain_profile": folisift_render::domains::load(self.workspace.root(), &style.domain)
                 .ok(),
+            "visual_targets": visual_targets,
+            "visual_rules": "Use 0-3 meaningful diagrams per chapter; no decorative images; every figure needs a takeaway caption, source and alt text.",
             "sources": source_rows,
             "outline": outline,
             "next": [
@@ -698,6 +711,7 @@ impl FolisiftServer {
                 sources: &source_names,
                 style: Some(&style),
                 styles_root: Some(self.workspace.root()),
+                cache_dir: Some(&self.workspace.root().join("data/cache/build")),
             },
         )
         .map_err(|error| error.to_string())?;
@@ -733,6 +747,7 @@ impl FolisiftServer {
             "output": output_path.display().to_string(),
             "pages": rendered.pages,
             "content_hash": rendered.content_hash,
+            "cache_hit": rendered.cache_hit,
             "style": style,
             "warnings": rendered.warnings.len(),
             "coverage": coverage,

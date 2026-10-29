@@ -12,6 +12,7 @@ pub mod pdfium;
 pub mod render;
 pub mod source_cache;
 pub mod source_read;
+pub mod table;
 pub mod text;
 
 pub use audit::{LayoutAudit, PageAudit, audit_pdf};
@@ -27,4 +28,5 @@ pub use source_cache::{PageText, SourceCache, SourceText};
 pub use source_read::{
     ReadSourceResult, SearchHit, SearchSourceResult, read_source, search_source,
 };
+pub use table::{BBox, ExtractedTable, extract_tables};
 pub use text::LOW_TEXT_THRESHOLD;

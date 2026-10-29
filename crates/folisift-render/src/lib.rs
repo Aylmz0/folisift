@@ -3,6 +3,7 @@
 //! The content format is deliberately small: CommonMark, YAML frontmatter and
 //! four block directives. Guides never contain raw Typst.
 
+pub mod diagram;
 pub mod domains;
 pub mod error;
 pub mod markdown;
@@ -15,7 +16,10 @@ use typst::{World, WorldExt, compile};
 use typst_layout::PagedDocument;
 
 pub use error::{Error, Result};
-pub use markdown::{Frontmatter, markdown_to_typst, markdown_to_typst_styled, parse_document};
+pub use markdown::{
+    Frontmatter, markdown_to_typst, markdown_to_typst_styled, markdown_to_typst_styled_with_table,
+    parse_document,
+};
 pub use styles::{LoadedStyle, StylePack, StyleStrings};
 
 /// Stable content hash used for cross-style parity checks.
@@ -50,6 +54,8 @@ pub struct RenderOptions<'a> {
     pub style: Option<&'a folisift_core::StyleProfile>,
     /// Workspace root for `styles/` overrides; built-ins work without it.
     pub styles_root: Option<&'a Path>,
+    /// Optional build-cache directory. Cache failures never fail a build.
+    pub cache_dir: Option<&'a Path>,
 }
 
 #[derive(Debug, Clone)]
@@ -57,6 +63,7 @@ pub struct Rendered {
     pub pdf: Vec<u8>,
     pub pages: usize,
     pub content_hash: String,
+    pub cache_hit: bool,
     pub warnings: Vec<String>,
 }
 
@@ -69,7 +76,16 @@ pub fn render(content: &str, options: &RenderOptions<'_>) -> Result<Rendered> {
     let loaded = styles::load(styles_root, &profile.aesthetic)?;
     styles::validate_profile(&loaded.pack, &profile)?;
     let strings = styles::strings(styles_root, &loaded.pack.id, &profile.language)?;
-    let body = markdown_to_typst_styled(&body, &strings.figure, &strings.toc)?;
+    let cache_key = build_cache_key(content, &profile, &loaded, &strings);
+    if let Some(cache_dir) = options.cache_dir
+        && let Some(cached) = load_cached(cache_dir, &cache_key)
+    {
+        return Ok(cached);
+    }
+    let diagram_theme = diagram::DiagramTheme::from_tokens(&loaded.tokens, "Inter");
+    let body = diagram::compile_body(&body, options.guide_root, &diagram_theme)?;
+    let body =
+        markdown_to_typst_styled_with_table(&body, &strings.figure, &strings.toc, &strings.table)?;
     let template = match loaded.pack.layout.as_str() {
         "paper" => PAPER_TEMPLATE,
         "clean" => CLEAN_TEMPLATE,
@@ -143,12 +159,92 @@ pub fn render(content: &str, options: &RenderOptions<'_>) -> Result<Rendered> {
         .map(|warning| format!("{warning:?}"))
         .collect();
 
-    Ok(Rendered {
+    let rendered = Rendered {
         pdf,
         pages,
         content_hash: content_hash(content),
+        cache_hit: false,
+        warnings,
+    };
+    if let Some(cache_dir) = options.cache_dir {
+        store_cached(cache_dir, &cache_key, &rendered);
+    }
+    Ok(rendered)
+}
+
+fn build_cache_key(
+    content: &str,
+    profile: &folisift_core::StyleProfile,
+    loaded: &LoadedStyle,
+    strings: &StyleStrings,
+) -> String {
+    let profile = serde_json::to_string(profile).unwrap_or_default();
+    let tokens = serde_json::to_string(&loaded.tokens).unwrap_or_default();
+    let strings = serde_json::to_string(strings).unwrap_or_default();
+    let template_hash = match loaded.pack.layout.as_str() {
+        "paper" => blake3::hash(PAPER_TEMPLATE.as_bytes()).to_hex().to_string(),
+        "clean" => blake3::hash(CLEAN_TEMPLATE.as_bytes()).to_hex().to_string(),
+        _ => String::new(),
+    };
+    blake3::hash(
+        format!(
+            "{}\n{content}\n{profile}\n{}\n{tokens}\n{strings}\n{template_hash}\n{}",
+            env!("CARGO_PKG_VERSION"),
+            loaded.pack.id,
+            env!("CARGO_PKG_VERSION"),
+        )
+        .as_bytes(),
+    )
+    .to_hex()
+    .to_string()
+}
+
+fn cache_paths(cache_dir: &Path, key: &str) -> (std::path::PathBuf, std::path::PathBuf) {
+    (
+        cache_dir.join(format!("{key}.pdf")),
+        cache_dir.join(format!("{key}.json")),
+    )
+}
+
+fn load_cached(cache_dir: &Path, key: &str) -> Option<Rendered> {
+    let (pdf_path, meta_path) = cache_paths(cache_dir, key);
+    let pdf = std::fs::read(pdf_path).ok()?;
+    let meta: serde_json::Value = serde_json::from_slice(&std::fs::read(meta_path).ok()?).ok()?;
+    let pages = meta.get("pages")?.as_u64()? as usize;
+    let content_hash = meta.get("content_hash")?.as_str()?.to_string();
+    let warnings = meta
+        .get("warnings")
+        .and_then(serde_json::Value::as_array)
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(|item| item.as_str().map(ToString::to_string))
+                .collect()
+        })
+        .unwrap_or_default();
+    Some(Rendered {
+        pdf,
+        pages,
+        content_hash,
+        cache_hit: true,
         warnings,
     })
+}
+
+fn store_cached(cache_dir: &Path, key: &str, rendered: &Rendered) {
+    if std::fs::create_dir_all(cache_dir).is_err() {
+        return;
+    }
+    let (pdf_path, meta_path) = cache_paths(cache_dir, key);
+    let _ = std::fs::write(pdf_path.with_extension("pdf.tmp"), &rendered.pdf)
+        .and_then(|_| std::fs::rename(pdf_path.with_extension("pdf.tmp"), &pdf_path));
+    let meta = serde_json::json!({
+        "pages": rendered.pages,
+        "content_hash": rendered.content_hash,
+        "warnings": rendered.warnings,
+    });
+    let _ = std::fs::write(meta_path.with_extension("json.tmp"), meta.to_string())
+        .and_then(|_| std::fs::rename(meta_path.with_extension("json.tmp"), &meta_path));
 }
 
 fn format_diagnostics(world: &TypstWorld, errors: &[typst::diag::SourceDiagnostic]) -> String {

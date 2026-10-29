@@ -15,6 +15,7 @@ fn options(style: &StyleProfile) -> RenderOptions<'_> {
         sources: &[],
         style: Some(style),
         styles_root: None,
+        cache_dir: None,
     }
 }
 
@@ -43,6 +44,113 @@ fn paper_and_clean_share_the_content_hash() {
     assert_ne!(paper_pdf.pdf, clean_pdf.pdf);
     assert!(paper_pdf.pages >= 4);
     assert!(clean_pdf.pages >= 4);
+}
+
+#[test]
+fn renders_a_captioned_table() {
+    let root = tempfile::tempdir().expect("tempdir");
+    let content = r#"---
+title: "Table test"
+language: en
+sources: [PD0]
+---
+
+::: chapter part="B" title="Tables" toc="Tables"
+:::
+
+::: table caption="Compilation vs interpretation" source="PD0, s. 106" widths="35,65"
+| Criterion | Meaning |
+|---|---|
+| Compilation | Code is generated once. |
+| Interpretation | Each statement is translated at run time. |
+:::
+"#;
+    let profile = StyleProfile {
+        aesthetic: "paper".to_string(),
+        language: "en".to_string(),
+        source_language: "en".to_string(),
+        ..StyleProfile::default()
+    };
+    let mut options = options(&profile);
+    options.guide_root = root.path();
+    options.cache_dir = None;
+    let rendered = render(content, &options).expect("table render");
+    assert!(rendered.pdf.starts_with(b"%PDF-"));
+    assert!(rendered.pages >= 1);
+}
+
+#[test]
+fn compiles_a_diagram_block_to_svg() {
+    let root = tempfile::tempdir().expect("tempdir");
+    let content = r#"---
+title: "Diagram test"
+language: en
+sources: [PD0]
+---
+
+::: chapter part="B" title="Flow" toc="Flow"
+:::
+
+```diagram
+{
+  "kind": "flow",
+  "title": "Compiler pipeline",
+  "alt": "Source program flows through analysis to generated code.",
+  "nodes": [
+    {"id": "src", "label": "Source program"},
+    {"id": "lex", "label": "Lexical analysis"},
+    {"id": "parse", "label": "Syntax analysis"},
+    {"id": "code", "label": "Code generation"}
+  ],
+  "edges": [
+    {"from": "src", "to": "lex", "label": "characters"},
+    {"from": "lex", "to": "parse", "label": "tokens"},
+    {"from": "parse", "to": "code", "label": "AST"}
+  ]
+}
+```
+"#;
+    let profile = StyleProfile {
+        aesthetic: "paper".to_string(),
+        language: "en".to_string(),
+        source_language: "en".to_string(),
+        ..StyleProfile::default()
+    };
+    let mut options = options(&profile);
+    options.guide_root = root.path();
+    options.cache_dir = None;
+    let rendered = render(content, &options).expect("diagram render");
+    assert!(rendered.pdf.starts_with(b"%PDF-"));
+    let svg = std::fs::read_dir(root.path().join("assets/generated"))
+        .expect("generated dir")
+        .filter_map(Result::ok)
+        .find(|entry| entry.path().extension().and_then(|value| value.to_str()) == Some("svg"))
+        .expect("svg");
+    let text = std::fs::read_to_string(svg.path()).expect("svg text");
+    assert!(text.contains("role=\"img\""));
+    assert!(text.contains("<title"));
+    assert!(text.contains("Lexical analysis"));
+}
+
+#[test]
+fn reuses_the_build_cache() {
+    let root = tempfile::tempdir().expect("tempdir");
+    let cache = root.path().join("cache");
+    let profile = StyleProfile {
+        aesthetic: "paper".to_string(),
+        language: "en".to_string(),
+        source_language: "en".to_string(),
+        ..StyleProfile::default()
+    };
+    let mut render_options = options(&profile);
+    render_options.guide_root = Path::new(".");
+    render_options.cache_dir = Some(&cache);
+    let first = render(SAMPLE, &render_options).expect("first render");
+    let second = render(SAMPLE, &render_options).expect("second render");
+    assert!(!first.cache_hit);
+    assert!(second.cache_hit);
+    assert_eq!(first.pdf, second.pdf);
+    assert_eq!(first.content_hash, second.content_hash);
 }
 
 #[test]
