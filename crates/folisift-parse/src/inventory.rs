@@ -38,9 +38,16 @@ pub struct SourceInventory {
 pub struct CanonicalSection {
     pub number: String,
     pub title: String,
-    /// 0 when the topic list does not give the actual section page.
+    /// 0: the topic list does not give the actual section page.
     #[serde(default)]
     pub page: usize,
+    /// `toc`, `toc-sequence` (repeated source numbering) or `manual`.
+    #[serde(default = "default_section_origin")]
+    pub origin: String,
+}
+
+fn default_section_origin() -> String {
+    "toc".to_string()
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

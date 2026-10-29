@@ -517,6 +517,7 @@ Java tipik olarak platformdan bağımsız **bytecode** biçiminde derlenir. Byte
 **Java ≠ JavaScript.** Ad benzerliği dışında ilişki yoktur; JavaScript betik dilidir ve Java’nın veri tipi katılığına karşı dinamik tipleme kullanır (bkz. 2.18). Java’da `Object` kalıtımı ve JVM bytecode modeli belirleyicidir.
 :::
 
+<!-- covers: PD2:2.18 -->
 ## 2.18 Ağ için betik dilleri
 
 Betik dili (scripting language), çalıştırılacak komutları içeren bir **yazı dosyası (script file)** üzerinden çalışır; `sh`, `awk`, `tcl/tk` diğer örneklerdir [PD2, s. 92]. Bu bölümdeki diller, web ve metin işleme alanında farklı tasarım tercihlerini temsil eder.

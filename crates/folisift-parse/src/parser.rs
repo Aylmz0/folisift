@@ -165,7 +165,13 @@ fn canonical_sections(pages: &[(usize, &str)], prefix: Option<&str>) -> Vec<Cano
     let mut seen = HashSet::new();
     let mut last_major = 0usize;
 
-    for (page_number, text) in pages {
+    for (_page_number, text) in pages {
+        let looks_like_toc = ["Konular", "Contents", "İçindekiler", "Chapter ", "Bölüm "]
+            .iter()
+            .any(|marker| text.contains(marker));
+        if !looks_like_toc {
+            continue;
+        }
         let lines = text.lines().collect::<Vec<_>>();
         let mut index = 0;
         while index < lines.len() {
@@ -180,11 +186,17 @@ fn canonical_sections(pages: &[(usize, &str)], prefix: Option<&str>) -> Vec<Cano
                 index += 1;
                 continue;
             };
+            if major > 99 {
+                index += 1;
+                continue;
+            }
             // Some decks repeat a number for later items (for example
-            // "8." on every line of a continuation slide). Use list order in
-            // that case; explicit "2.1" entries are left untouched.
+            // "8." on every line of a continuation slide). This is a
+            // heuristic, not a source fact; record it as `toc-sequence`.
+            let mut origin = "toc";
             if minor.is_none() && last_major > 0 && major <= last_major {
                 major = last_major + 1;
+                origin = "toc-sequence";
             }
             let number = match minor {
                 Some(minor) => format!("{major}.{minor}"),
@@ -223,7 +235,8 @@ fn canonical_sections(pages: &[(usize, &str)], prefix: Option<&str>) -> Vec<Cano
             sections.push(CanonicalSection {
                 number,
                 title,
-                page: *page_number,
+                page: 0,
+                origin: origin.to_string(),
             });
             last_major = major;
             if sections.len() >= 100 {
@@ -301,9 +314,12 @@ mod tests {
         let sections = canonical_sections(&[(2, first), (3, second)], Some("2"));
         assert_eq!(sections[0].number, "2.1");
         assert_eq!(sections[0].title, "Zuse'nin Plankalkül'ü");
+        assert_eq!(sections[0].page, 0);
+        assert_eq!(sections[0].origin, "toc");
         assert_eq!(sections[1].number, "2.2");
         assert!(sections[1].title.contains("Pseudocode"));
         assert_eq!(sections[2].number, "2.3");
+        assert_eq!(sections[4].origin, "toc-sequence");
         assert_eq!(
             sections
                 .iter()

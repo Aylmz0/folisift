@@ -355,6 +355,7 @@ Ada’da bir prosedürün `end` üzerindeki adının prosedür adıyla aynı olm
 ::: diagram id="ozellik-akisi"
 :::
 
+<!-- covers: PD3:3.5 -->
 ## 3.5 Semantik (Anlambilim)
 
 Sözdizimsel olarak doğru olan bütün programların bir anlamı olmayabilir. Bir programın çalıştırılabilmesi için hem sözdizimi hem anlam açısından doğru olması gerekir. Bir dilin **anlam (semantik) kuralları**, sözdizimsel olarak geçerli herhangi bir programın anlamını belirler. Sözdizimi BNF gibi ağaçlarla kolayca tanımlanabilirken anlam tanımlaması farklıdır; **semantiği tanımlamak için yaygın kabul edilmiş tek bir gösterim veya formalizm yoktur** [PD3, s. 78].

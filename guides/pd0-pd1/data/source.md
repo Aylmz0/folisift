@@ -1,6 +1,6 @@
 # Kaynak Envanteri
 
-Üretim: 2026-10-29T20:49:56+00:00
+Üretim: 2026-10-29T21:39:07+00:00
 
 | PDF | Sayfa | Kelime | Düşük metinli sayfa |
 |---|---:|---:|---:|
@@ -177,6 +177,19 @@
 | 108 | 1.7 İmplementasyon Metotları |
 | 115 | 1 Lexical analizör |
 | 132 | 1.8 Programlama Platformları |
+
+### Kanonik Bölümler
+
+| No | Başlık |
+|---|---|
+| 1.1 | Programlama Dilleri Kavramlarını Öğrenmenin Nedenleri |
+| 1.2 | Programlama Alanları |
+| 1.3 | Dil Değerlendirme Kriterleri |
+| 1.4 | Dil Tasarımını Etkileyen Faktörler |
+| 1.5 | Dil Kategorileri |
+| 1.6 | Dil Tasarımında Verilen Ödünler (Trade-Offs) |
+| 1.7 | İmplementasyon Metotları |
+| 1.8 | Programlama Platformları (Environments) |
 
 ### Sayfa Haritası
 

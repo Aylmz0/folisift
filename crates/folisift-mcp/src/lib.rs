@@ -848,23 +848,21 @@ impl FolisiftServer {
         let mut coverage = None;
         let mut visual = None;
         if params.check.unwrap_or(true) {
+            let layout =
+                folisift_parse::audit_pdf(&output_path, None).map_err(|error| error.to_string())?;
+            if !layout.underfilled_pages.is_empty() {
+                let pages = layout
+                    .underfilled_pages
+                    .iter()
+                    .map(|page| page.page)
+                    .collect::<Vec<_>>();
+                return Err(format!("underfilled body pages: {pages:?}"));
+            }
             let inventory = self.load_or_analyze_inventory(&guide).await?;
             let audit_path = guide.visual_audit();
             if inventory.totals.low_text_pages > 0 {
-                if !audit_path.is_file() {
-                    return Err(format!(
-                        "visual audit missing: {}. Create it with one decision per low-text page (redraw/table/text/decorative/unreadable).",
-                        audit_path.display()
-                    ));
-                }
-                let audit = VisualAudit::load(&audit_path).map_err(|error| error.to_string())?;
-                let report = audit.validate(&inventory, &guide.dir);
-                if !report.passed {
-                    return Err(format!(
-                        "visual audit failed: missing {:?}, unresolved {:?}",
-                        report.missing, report.unresolved
-                    ));
-                }
+                let report = VisualAudit::load_and_validate(&audit_path, &inventory, &guide.dir)
+                    .map_err(|error| error.to_string())?;
                 visual = Some(serde_json::to_value(report).map_err(|error| error.to_string())?);
             }
             let report = coverage_report(&inventory, &markdown, folisift_parse::DEFAULT_THRESHOLD);
@@ -884,7 +882,11 @@ impl FolisiftServer {
             coverage = Some(json!({
                 "passed": report.passed,
                 "total": report.total,
+                "canonical_total": report.canonical_total,
+                "claimed": report.claimed,
+                "gate_total": report.gate_total,
                 "missing": report.missing,
+                "missing_from_gate": report.missing_from_gate,
                 "empty_sections": report.empty_sections.len(),
                 "weak_sections": report.weak_sections.len(),
             }));
@@ -928,24 +930,34 @@ impl FolisiftServer {
         let visual = if inventory.totals.low_text_pages > 0 {
             let path = guide.visual_audit();
             if !path.is_file() {
-                return Err(format!("visual audit missing: {}", path.display()));
+                Some(json!({
+                    "passed": false,
+                    "path": path.display().to_string(),
+                    "error": "visual audit missing",
+                }))
+            } else {
+                match VisualAudit::load_and_validate(&path, &inventory, &guide.dir) {
+                    Ok(report) => {
+                        Some(serde_json::to_value(report).map_err(|error| error.to_string())?)
+                    }
+                    Err(error) => Some(json!({
+                        "passed": false,
+                        "path": path.display().to_string(),
+                        "error": error.to_string(),
+                    })),
+                }
             }
-            let audit = VisualAudit::load(&path).map_err(|error| error.to_string())?;
-            let report = audit.validate(&inventory, &guide.dir);
-            if !report.passed {
-                return Err(format!(
-                    "visual audit failed: missing {:?}, unresolved {:?}",
-                    report.missing, report.unresolved
-                ));
-            }
-            Some(serde_json::to_value(report).map_err(|error| error.to_string())?)
         } else {
             None
         };
         Ok(Json(json!({
             "passed": report.passed,
             "total": report.total,
+            "canonical_total": report.canonical_total,
+            "claimed": report.claimed,
+            "gate_total": report.gate_total,
             "missing": report.missing,
+            "missing_from_gate": report.missing_from_gate,
             "empty_sections": report.empty_sections,
             "weak_sections": report.weak_sections,
             "sources": report.sources,

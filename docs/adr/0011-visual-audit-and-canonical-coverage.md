@@ -37,8 +37,8 @@ claim coverage or visual inspection without machine-checkable evidence.
 4. `build --check` and MCP `build_guide check=true` fail on a missing or
    unresolved visual audit. `check_coverage` includes the visual result.
 5. The layout audit reports `underfilled_pages` using body-character density;
-   a build/audit with underfilled body pages fails. Reflow, `flow=true` for a
-   compact chapter, or a documented exception — not filler prose.
+   a build/audit with underfilled body pages fails. Reflow or `flow=true` for a compact chapter — not filler prose. A true
+exception requires an explicit gate/ADR change, not a silent note.
 6. D2 remains the only diagram engine. Manual SVG is allowed only as a
    registered exception; D2-compatible trees/flows/concepts use D2.
 7. These gates are evidence requirements, not claims of learning efficacy.

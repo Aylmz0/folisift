@@ -25,7 +25,7 @@ itself never runs a shell, D2 or a network request.
 8. shell: folisift diagram build --guide <slug> --all
 9. diagram status
 10. build_guide check=true
-11. folisift audit --pdf <output> --expected-pages <n>
+11. folisift audit --pdf <output> --expected-pages <n> --strict
 12. make visual (when a baseline exists)
 13. human review: accuracy, G audit, table drafts, visual quality
 14. release only after approval
@@ -60,7 +60,7 @@ folisift diagram build --guide <slug> --id <id>
 folisift diagram build --guide <slug> --all
 folisift diagram status --guide <slug>
 folisift build --guide <slug> --check
-folisift audit --pdf <output> --expected-pages <n>
+folisift audit --pdf <output> --expected-pages <n> --strict
 make visual
 ```
 

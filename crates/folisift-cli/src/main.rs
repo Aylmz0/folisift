@@ -55,6 +55,9 @@ enum Command {
         /// Expected page count, e.g. 22.
         #[arg(long)]
         expected_pages: Option<usize>,
+        /// Fail on underfilled body pages as well as layout defects.
+        #[arg(long, default_value_t = false)]
+        strict: bool,
     },
     /// Build a source inventory with liteparse.
     Analyze {
@@ -395,12 +398,21 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
         Command::Audit {
             pdf,
             expected_pages,
+            strict,
         } => {
             let pdf = workspace.resolve_read(&pdf)?;
             let report = folisift_parse::audit_pdf(&pdf, expected_pages)?;
             println!("{}", serde_json::to_string_pretty(&report)?);
             if !report.passed {
                 return Err("layout audit failed".into());
+            }
+            if strict && !report.underfilled_pages.is_empty() {
+                let pages = report
+                    .underfilled_pages
+                    .iter()
+                    .map(|page| page.page)
+                    .collect::<Vec<_>>();
+                return Err(format!("underfilled body pages: {pages:?}").into());
             }
         }
         Command::GuideStatus { slug } => {
@@ -727,6 +739,15 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
 
             let mut coverage = None;
             if check {
+                let layout = folisift_parse::audit_pdf(&output_path, None)?;
+                if !layout.underfilled_pages.is_empty() {
+                    let pages = layout
+                        .underfilled_pages
+                        .iter()
+                        .map(|page| page.page)
+                        .collect::<Vec<_>>();
+                    return Err(format!("underfilled body pages: {pages:?}").into());
+                }
                 let inventory = match &guide.inventory {
                     Some(path) if path.exists() => {
                         let bytes = std::fs::read(path)?;
@@ -735,23 +756,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                     _ => analyze_sources(&guide.sources, 120).await?,
                 };
                 if inventory.totals.low_text_pages > 0 {
-                    let path = guide.visual_audit();
-                    if !path.is_file() {
-                        return Err(format!(
-                            "visual audit missing: {}. Create it with one decision per low-text page (redraw/table/text/decorative/unreadable).",
-                            path.display()
-                        )
-                        .into());
-                    }
-                    let audit = VisualAudit::load(&path)?;
-                    let visual = audit.validate(&inventory, &guide.dir);
-                    if !visual.passed {
-                        return Err(format!(
-                            "visual audit failed: missing {:?}, unresolved {:?}",
-                            visual.missing, visual.unresolved
-                        )
-                        .into());
-                    }
+                    VisualAudit::load_and_validate(&guide.visual_audit(), &inventory, &guide.dir)?;
                 }
                 let report = check_coverage(&inventory, &markdown, 0.55);
                 if let Some(path) = &guide.coverage {
@@ -783,7 +788,11 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                     "coverage": coverage.as_ref().map(|report| json!({
                         "passed": report.passed,
                         "total": report.total,
+                        "canonical_total": report.canonical_total,
+                        "claimed": report.claimed,
+                        "gate_total": report.gate_total,
                         "missing": report.missing,
+                        "missing_from_gate": report.missing_from_gate,
                         "empty_sections": report.empty_sections.len(),
                         "weak_sections": report.weak_sections.len(),
                     })),

@@ -1,6 +1,6 @@
 # Kaynak Envanteri
 
-Üretim: 2026-10-29T20:49:55+00:00
+Üretim: 2026-10-29T21:39:05+00:00
 
 | PDF | Sayfa | Kelime | Düşük metinli sayfa |
 |---|---:|---:|---:|
@@ -30,6 +30,16 @@
 | 71 | 1 Sentaks kuralı: <assign>  <var> = <expr> |
 | 78 | 3.5 Semantik |
 | 135 | 1 BNF ve EBNF hakkında detaylı bilgi toplayınız |
+
+### Kanonik Bölümler
+
+| No | Başlık |
+|---|---|
+| 3.1 | Giriş |
+| 3.2 | Genel Sentaks Tanımlama Problemi |
+| 3.3 | Sentaks Tanımlamanın Biçimsel Metotları |
+| 3.4 | Özellik (Attribute) Gramerleri |
+| 3.5 | Programların Anlamlarını Açıklamak: Dinamik Semantik |
 
 ### Sayfa Haritası
 

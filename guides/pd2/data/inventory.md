@@ -1,6 +1,6 @@
 # Kaynak Envanteri
 
-Üretim: 2026-10-29T20:51:26+00:00
+Üretim: 2026-10-29T21:39:03+00:00
 
 | PDF | Sayfa | Kelime | Düşük metinli sayfa |
 |---|---:|---:|---:|
@@ -36,6 +36,31 @@
 | 92 | 2.18 Ağ (Web) için Betik Diller (Scripting |
 | 97 | 2.19 Yeni milenyum için C-temelli bir |
 | 100 | 2.20 İşaretleme(Markup)/Programlama |
+
+### Kanonik Bölümler
+
+| No | Başlık |
+|---|---|
+| 2.1 | Zuse'nin Plankalkul' ü |
+| 2.2 | Minimum Donanım Programlama: Sözde kod (Pseudocode) |
+| 2.3 | IBM 704 ve Fortran |
+| 2.4 | Fonksiyonel Programlama: LISP |
+| 2.5 | Sofistikeliğe doğru ilk adım: ALGOL 60 |
+| 2.6 | Ticari Kayıtları bilgisayara uyarlamak: COBOL |
+| 2.7 | Zaman Paylaşımının (Timesharing) başlangıcı: BASIC |
+| 2.8 | Herkes için Herşey: PL/I |
+| 2.9 | İlk iki Dinamik Dil: APL ve SNOBOL |
+| 2.10 | Veri Soyutlama (Data Abstraction) nın başlangıçları: SIMULA 67 |
+| 2.11 | Ortogonal (Orthogonal) Dizayn: ALGOL 68 |
+| 2.12 | ALGOL'lerin ilk torunlarından bazıları |
+| 2.13 | Mantık (Logic) temelli programlama: Prolog |
+| 2.14 | Tarihin en büyük tasarım çabası: Ada |
+| 2.15 | Nesneye-dayalı Programlama: Smalltalk |
+| 2.16 | Zorunlu(Imperative) ve nesneye-dayalı (Object-Oriented) özellikleri birleştirmek: C+ + |
+| 2.17 | Bir Zorunlu nesneye-dayalı dil (Imperative- Based Object-Oriented): Java |
+| 2.18 | Betik Diller (Scripting Languages): JavaScript, PHP, ve Python |
+| 2.19 | Yeni milenyum için C-temelli bir dil: C# |
+| 2.20 | İşaretleme (Markup)/Programlama Hibrit Diller |
 
 ### Sayfa Haritası
 

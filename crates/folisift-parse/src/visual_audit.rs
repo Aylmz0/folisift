@@ -69,6 +69,36 @@ impl VisualAudit {
         Ok(audit)
     }
 
+    /// Load and validate a manifest, with a single error surface for build
+    /// gates. The caller supplies the guide directory so asset containment is
+    /// resolved against the actual bundle.
+    pub fn load_and_validate(
+        path: &Path,
+        inventory: &Inventory,
+        guide_dir: &Path,
+    ) -> Result<VisualReport> {
+        if !path.is_file() {
+            return Err(Error::Parse {
+                path: path.to_path_buf(),
+                message: "visual audit missing; create it with one decision per low-text page"
+                    .to_string(),
+            });
+        }
+        let audit = Self::load(path)?;
+        let report = audit.validate(inventory, guide_dir);
+        if report.passed {
+            Ok(report)
+        } else {
+            Err(Error::Parse {
+                path: path.to_path_buf(),
+                message: format!(
+                    "visual audit failed: missing {:?}, unresolved {:?}",
+                    report.missing, report.unresolved
+                ),
+            })
+        }
+    }
+
     /// Validate dispositions against the source inventory and guide assets.
     pub fn validate(&self, inventory: &Inventory, guide_dir: &Path) -> VisualReport {
         let mut expected = Vec::new();
@@ -99,6 +129,13 @@ impl VisualAudit {
                 unresolved.push(format!("{key}: unknown decision {:?}", entry.decision));
                 continue;
             }
+            if entry
+                .priority
+                .as_deref()
+                .is_some_and(|priority| !matches!(priority, "low" | "medium" | "high"))
+            {
+                unresolved.push(format!("{key}: unknown priority {:?}", entry.priority));
+            }
             *counts.entry(entry.decision.as_str()).or_default() += 1;
             if matches!(
                 entry.decision.as_str(),
@@ -109,6 +146,9 @@ impl VisualAudit {
                 .is_none_or(|reason| reason.trim().is_empty())
             {
                 unresolved.push(format!("{key}: {} needs a reason", entry.decision));
+            }
+            if entry.priority.as_deref() == Some("high") && entry.decision == "decorative" {
+                unresolved.push(format!("{key}: a high-priority page cannot be decorative"));
             }
             if entry.decision == "redraw" {
                 let Some(asset) = entry.asset.as_deref() else {
@@ -141,7 +181,9 @@ impl VisualAudit {
     }
 }
 
-/// Asset paths must stay inside the guide and point to an existing file.
+/// Asset paths must resolve inside the guide and point to an existing file.
+/// `canonicalize` also rejects symlink escapes; a lexical `..` check is not
+/// enough for a workspace boundary.
 fn safe_asset_path(guide_dir: &Path, asset: &str) -> bool {
     let path = PathBuf::from(asset);
     if path.is_absolute()
@@ -151,7 +193,13 @@ fn safe_asset_path(guide_dir: &Path, asset: &str) -> bool {
     {
         return false;
     }
-    guide_dir.join(path).is_file()
+    let Ok(root) = guide_dir.canonicalize() else {
+        return false;
+    };
+    let Ok(candidate) = guide_dir.join(path).canonicalize() else {
+        return false;
+    };
+    candidate.starts_with(&root) && candidate.is_file()
 }
 
 fn default_schema() -> u32 {
@@ -222,6 +270,7 @@ mod tests {
             source_pages: vec![entry(1, "decorative")],
         };
         audit.source_pages[0].reason = None;
+        audit.source_pages[0].priority = Some("low".to_string());
         let report = audit.validate(&inventory(vec![1]), Path::new("."));
         assert!(!report.passed);
         assert_eq!(report.unresolved.len(), 1);
@@ -237,5 +286,59 @@ mod tests {
         let report = audit.validate(&inventory(vec![1]), Path::new("."));
         assert!(!report.passed);
         assert!(report.unresolved[0].contains("unsafe"));
+    }
+
+    #[test]
+    fn passing_manifest_counts_decisions_and_resolves_assets() {
+        let root = tempfile::tempdir().expect("tempdir");
+        std::fs::create_dir_all(root.path().join("diagrams")).expect("diagrams");
+        std::fs::write(root.path().join("diagrams/flow.json"), "{}").expect("asset");
+        let mut redraw = entry(1, "redraw");
+        redraw.asset = Some("diagrams/flow.json".to_string());
+        let audit = VisualAudit {
+            schema_version: 1,
+            source_pages: vec![redraw, entry(2, "text")],
+        };
+        let report = audit.validate(&inventory(vec![1, 2]), root.path());
+        assert!(report.passed, "{report:?}");
+        assert_eq!(report.redrawn, 1);
+        assert_eq!(report.text, 1);
+    }
+
+    #[test]
+    fn rejects_duplicates_unknown_decisions_and_high_priority_decorative() {
+        let mut duplicate = VisualAudit {
+            schema_version: 1,
+            source_pages: vec![entry(1, "text"), entry(1, "text")],
+        };
+        let report = duplicate.validate(&inventory(vec![1]), Path::new("."));
+        assert!(!report.passed);
+        assert!(
+            report
+                .unresolved
+                .iter()
+                .any(|item| item.contains("duplicate"))
+        );
+
+        duplicate.source_pages = vec![entry(1, "mystery")];
+        let report = duplicate.validate(&inventory(vec![1]), Path::new("."));
+        assert!(!report.passed);
+        assert!(
+            report
+                .unresolved
+                .iter()
+                .any(|item| item.contains("unknown decision"))
+        );
+
+        duplicate.source_pages = vec![entry(1, "decorative")];
+        duplicate.source_pages[0].priority = Some("high".to_string());
+        let report = duplicate.validate(&inventory(vec![1]), Path::new("."));
+        assert!(!report.passed);
+        assert!(
+            report
+                .unresolved
+                .iter()
+                .any(|item| item.contains("high-priority"))
+        );
     }
 }
