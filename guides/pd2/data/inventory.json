@@ -1,0 +1,725 @@
+{
+  "generated_at": "2026-10-29T19:09:47+00:00",
+  "low_text_threshold": 120,
+  "sources": [
+    {
+      "path": "/home/yilmaz/projects/folisift/sources/PD2.pdf",
+      "filename": "PD2.pdf",
+      "title": "Chapter 1",
+      "pages": 103,
+      "chars": 39391,
+      "words": 6448,
+      "low_text_threshold": 120,
+      "low_text_pages": [
+        1,
+        5,
+        19,
+        21,
+        29,
+        33,
+        45,
+        53,
+        101
+      ],
+      "headings": [
+        {
+          "heading": "Bölüm 2: Önemli Programlama Dillerinin",
+          "page": 1
+        },
+        {
+          "heading": "Bölüm 2 Konular",
+          "page": 2
+        },
+        {
+          "heading": "Bölüm 2 Konular (devamı)",
+          "page": 3
+        },
+        {
+          "heading": "2.1 Zuse'nin Plankalkül'ü",
+          "page": 7
+        },
+        {
+          "heading": "2.3 IBM 704 ve Fortran",
+          "page": 15
+        },
+        {
+          "heading": "2.4 Fonksiyonel Programlama: LISP",
+          "page": 26
+        },
+        {
+          "heading": "000200 PROGRAM-ID. HELLOWORLD.                         * Note: In this version of COBOL pressing the Carriage Return (CR)",
+          "page": 49
+        },
+        {
+          "heading": "2.7 Zaman Paylaşımının (Timesharing)",
+          "page": 50
+        },
+        {
+          "heading": "2.8 Herkes için Herşey: PL/I",
+          "page": 55
+        },
+        {
+          "heading": "3 X 3 Committee tarafından beş ayda",
+          "page": 58
+        },
+        {
+          "heading": "2.10 Veri Soyutlama (Data Abstraction)",
+          "page": 64
+        },
+        {
+          "heading": "2.12 ALGOL'lerin ilk torunlarından bazıları",
+          "page": 68
+        },
+        {
+          "heading": "2.14 Tarihin en büyük tasarım çabası: Ada",
+          "page": 75
+        },
+        {
+          "heading": "2.16 Zorunlu (Imperative) ve nesneye dayalı",
+          "page": 82
+        },
+        {
+          "heading": "2.17 Bir Zorunlu nesneye-dayalı dil",
+          "page": 86
+        },
+        {
+          "heading": "2.18 Ağ (Web) için Betik Diller (Scripting",
+          "page": 92
+        },
+        {
+          "heading": "2.19 Yeni milenyum için C-temelli bir",
+          "page": 97
+        },
+        {
+          "heading": "2.20 İşaretleme(Markup)/Programlama",
+          "page": 100
+        }
+      ],
+      "page_map": [
+        {
+          "page": 1,
+          "first_line": "Bölüm 2: Önemli Programlama Dillerinin",
+          "chars": 42,
+          "low_text": true
+        },
+        {
+          "page": 2,
+          "first_line": "Bölüm 2 Konular",
+          "chars": 256,
+          "low_text": false
+        },
+        {
+          "page": 3,
+          "first_line": "Bölüm 2 Konular (devamı)",
+          "chars": 279,
+          "low_text": false
+        },
+        {
+          "page": 4,
+          "first_line": "Bölüm 2 Konular (devamı)",
+          "chars": 350,
+          "low_text": false
+        },
+        {
+          "page": 5,
+          "first_line": "Yaygın",
+          "chars": 34,
+          "low_text": true
+        },
+        {
+          "page": 6,
+          "first_line": "ENIAC",
+          "chars": 358,
+          "low_text": false
+        },
+        {
+          "page": 7,
+          "first_line": "2.1 Zuse'nin Plankalkül'ü",
+          "chars": 434,
+          "low_text": false
+        },
+        {
+          "page": 8,
+          "first_line": "2.1 Zuse'nin Plankalkül'ü",
+          "chars": 230,
+          "low_text": false
+        },
+        {
+          "page": 9,
+          "first_line": "Plankalkül Sentaksı",
+          "chars": 120,
+          "low_text": false
+        },
+        {
+          "page": 10,
+          "first_line": "Plankalkül",
+          "chars": 534,
+          "low_text": false
+        },
+        {
+          "page": 11,
+          "first_line": "2.2 Minimum Donanım Programlama:",
+          "chars": 235,
+          "low_text": false
+        },
+        {
+          "page": 12,
+          "first_line": "Sözdekodlar: Short Code (Kısa Kod)",
+          "chars": 256,
+          "low_text": false
+        },
+        {
+          "page": 13,
+          "first_line": "Sözdekodlar: Speedcoding (hızlıkodlama)",
+          "chars": 332,
+          "low_text": false
+        },
+        {
+          "page": 14,
+          "first_line": "Sözdekodlar : İlgili Sistemler",
+          "chars": 314,
+          "low_text": false
+        },
+        {
+          "page": 15,
+          "first_line": "2.3 IBM 704 ve Fortran",
+          "chars": 515,
+          "low_text": false
+        },
+        {
+          "page": 16,
+          "first_line": "Fortran'ın tasarım işlemi",
+          "chars": 266,
+          "low_text": false
+        },
+        {
+          "page": 17,
+          "first_line": "Fortran I 'e bakış",
+          "chars": 271,
+          "low_text": false
+        },
+        {
+          "page": 18,
+          "first_line": "Fortran I 'e bakış (devamı)",
+          "chars": 272,
+          "low_text": false
+        },
+        {
+          "page": 19,
+          "first_line": "Fortran II",
+          "chars": 65,
+          "low_text": true
+        },
+        {
+          "page": 20,
+          "first_line": "Fortran IV",
+          "chars": 185,
+          "low_text": false
+        },
+        {
+          "page": 21,
+          "first_line": "Fortran 77",
+          "chars": 119,
+          "low_text": true
+        },
+        {
+          "page": 22,
+          "first_line": "Fortran 90",
+          "chars": 323,
+          "low_text": false
+        },
+        {
+          "page": 23,
+          "first_line": "Fortran'ın en son versiyonu",
+          "chars": 283,
+          "low_text": false
+        },
+        {
+          "page": 24,
+          "first_line": "Fortran Değerlendirmesi",
+          "chars": 564,
+          "low_text": false
+        },
+        {
+          "page": 25,
+          "first_line": "Fortran Örnek",
+          "chars": 471,
+          "low_text": false
+        },
+        {
+          "page": 26,
+          "first_line": "2.4 Fonksiyonel Programlama: LISP",
+          "chars": 356,
+          "low_text": false
+        },
+        {
+          "page": 27,
+          "first_line": "2.4 Fonksiyonel Programlama: LISP",
+          "chars": 362,
+          "low_text": false
+        },
+        {
+          "page": 28,
+          "first_line": "2.4 Fonksiyonel Programlama: LISP",
+          "chars": 310,
+          "low_text": false
+        },
+        {
+          "page": 29,
+          "first_line": "İki LISP Listesini Gösterimi",
+          "chars": 71,
+          "low_text": true
+        },
+        {
+          "page": 30,
+          "first_line": "LISP Değerlendirmesi",
+          "chars": 487,
+          "low_text": false
+        },
+        {
+          "page": 31,
+          "first_line": "LISP Örnek",
+          "chars": 164,
+          "low_text": false
+        },
+        {
+          "page": 32,
+          "first_line": "Scheme",
+          "chars": 242,
+          "low_text": false
+        },
+        {
+          "page": 33,
+          "first_line": "COMMON LISP",
+          "chars": 91,
+          "low_text": true
+        },
+        {
+          "page": 34,
+          "first_line": "2.5 Sofistikeliğe doğru ilk adım:",
+          "chars": 339,
+          "low_text": false
+        },
+        {
+          "page": 35,
+          "first_line": "İlk tasarım işlemi",
+          "chars": 415,
+          "low_text": false
+        },
+        {
+          "page": 36,
+          "first_line": "ALGOL 58",
+          "chars": 462,
+          "low_text": false
+        },
+        {
+          "page": 37,
+          "first_line": "ALGOL 58 Implementasyonu",
+          "chars": 156,
+          "low_text": false
+        },
+        {
+          "page": 38,
+          "first_line": "ALGOL 60 'e bakış",
+          "chars": 331,
+          "low_text": false
+        },
+        {
+          "page": 39,
+          "first_line": "ALGOL 60 Değerlendirmesi",
+          "chars": 449,
+          "low_text": false
+        },
+        {
+          "page": 40,
+          "first_line": "ALGOL 60 Değerlendirmesi (devamı)",
+          "chars": 594,
+          "low_text": false
+        },
+        {
+          "page": 41,
+          "first_line": "ALGOL Örnek",
+          "chars": 407,
+          "low_text": false
+        },
+        {
+          "page": 42,
+          "first_line": "Ticari Kayıtları bilgisayara uyarlamak:",
+          "chars": 209,
+          "low_text": false
+        },
+        {
+          "page": 43,
+          "first_line": "COBOL Tarihi arkaplan",
+          "chars": 448,
+          "low_text": false
+        },
+        {
+          "page": 44,
+          "first_line": "COBOL Tasarım İşlemi",
+          "chars": 478,
+          "low_text": false
+        },
+        {
+          "page": 45,
+          "first_line": "",
+          "chars": 0,
+          "low_text": true
+        },
+        {
+          "page": 46,
+          "first_line": "COBOL Değerlendirmesi",
+          "chars": 569,
+          "low_text": false
+        },
+        {
+          "page": 47,
+          "first_line": "COBOL",
+          "chars": 236,
+          "low_text": false
+        },
+        {
+          "page": 48,
+          "first_line": "COBOL: DoD Etkisi",
+          "chars": 259,
+          "low_text": false
+        },
+        {
+          "page": 49,
+          "first_line": "COBOL Örnek",
+          "chars": 1483,
+          "low_text": false
+        },
+        {
+          "page": 50,
+          "first_line": "2.7 Zaman Paylaşımının (Timesharing)",
+          "chars": 670,
+          "low_text": false
+        },
+        {
+          "page": 51,
+          "first_line": "BASIC",
+          "chars": 340,
+          "low_text": false
+        },
+        {
+          "page": 52,
+          "first_line": "BASIC",
+          "chars": 518,
+          "low_text": false
+        },
+        {
+          "page": 53,
+          "first_line": "BASIC'in Şeceresi",
+          "chars": 18,
+          "low_text": true
+        },
+        {
+          "page": 54,
+          "first_line": "BASIC Örnek",
+          "chars": 374,
+          "low_text": false
+        },
+        {
+          "page": 55,
+          "first_line": "2.8 Herkes için Herşey: PL/I",
+          "chars": 300,
+          "low_text": false
+        },
+        {
+          "page": 56,
+          "first_line": "PL/I",
+          "chars": 203,
+          "low_text": false
+        },
+        {
+          "page": 57,
+          "first_line": "PL/I: Arkaplan",
+          "chars": 416,
+          "low_text": false
+        },
+        {
+          "page": 58,
+          "first_line": "PL/I: Tasarım İşlemi",
+          "chars": 334,
+          "low_text": false
+        },
+        {
+          "page": 59,
+          "first_line": "PL/I",
+          "chars": 331,
+          "low_text": false
+        },
+        {
+          "page": 60,
+          "first_line": "PL/I: Değerlendirmesi",
+          "chars": 402,
+          "low_text": false
+        },
+        {
+          "page": 61,
+          "first_line": "2.9: İlk İki Dinamik Dil: APL ve SNOBOL",
+          "chars": 253,
+          "low_text": false
+        },
+        {
+          "page": 62,
+          "first_line": "APL: A Programming Language",
+          "chars": 628,
+          "low_text": false
+        },
+        {
+          "page": 63,
+          "first_line": "SNOBOL",
+          "chars": 494,
+          "low_text": false
+        },
+        {
+          "page": 64,
+          "first_line": "2.10 Veri Soyutlama (Data Abstraction)",
+          "chars": 526,
+          "low_text": false
+        },
+        {
+          "page": 65,
+          "first_line": "Simula Örnek",
+          "chars": 457,
+          "low_text": false
+        },
+        {
+          "page": 66,
+          "first_line": "2.11 Ortogonal(Orthogonal) Dizayn:",
+          "chars": 306,
+          "low_text": false
+        },
+        {
+          "page": 67,
+          "first_line": "ALGOL 68 Değerlendirmesi",
+          "chars": 354,
+          "low_text": false
+        },
+        {
+          "page": 68,
+          "first_line": "2.12 ALGOL'lerin ilk torunlarından bazıları",
+          "chars": 156,
+          "low_text": false
+        },
+        {
+          "page": 69,
+          "first_line": "Pascal - 1971",
+          "chars": 637,
+          "low_text": false
+        },
+        {
+          "page": 70,
+          "first_line": "C - 1972",
+          "chars": 388,
+          "low_text": false
+        },
+        {
+          "page": 71,
+          "first_line": "Modula",
+          "chars": 536,
+          "low_text": false
+        },
+        {
+          "page": 72,
+          "first_line": "Oberon",
+          "chars": 448,
+          "low_text": false
+        },
+        {
+          "page": 73,
+          "first_line": "2.13 Mantık(Logic) temelli programlama:",
+          "chars": 716,
+          "low_text": false
+        },
+        {
+          "page": 74,
+          "first_line": "Prolog Örnek",
+          "chars": 234,
+          "low_text": false
+        },
+        {
+          "page": 75,
+          "first_line": "2.14 Tarihin en büyük tasarım çabası: Ada",
+          "chars": 419,
+          "low_text": false
+        },
+        {
+          "page": 76,
+          "first_line": "Ada Değerlendirmesi",
+          "chars": 611,
+          "low_text": false
+        },
+        {
+          "page": 77,
+          "first_line": "Ada Değerlendirmesi",
+          "chars": 296,
+          "low_text": false
+        },
+        {
+          "page": 78,
+          "first_line": "Ada 95",
+          "chars": 382,
+          "low_text": false
+        },
+        {
+          "page": 79,
+          "first_line": "Ada Örnek",
+          "chars": 774,
+          "low_text": false
+        },
+        {
+          "page": 80,
+          "first_line": "2.15 Nesneye-dayalı Programlama:",
+          "chars": 344,
+          "low_text": false
+        },
+        {
+          "page": 81,
+          "first_line": "Smalltalk",
+          "chars": 729,
+          "low_text": false
+        },
+        {
+          "page": 82,
+          "first_line": "2.16 Zorunlu (Imperative) ve nesneye dayalı",
+          "chars": 448,
+          "low_text": false
+        },
+        {
+          "page": 83,
+          "first_line": "C++",
+          "chars": 473,
+          "low_text": false
+        },
+        {
+          "page": 84,
+          "first_line": "Eiffel (Bertrand Meyer - 1992 de)",
+          "chars": 464,
+          "low_text": false
+        },
+        {
+          "page": 85,
+          "first_line": "Delphi (Borland)",
+          "chars": 454,
+          "low_text": false
+        },
+        {
+          "page": 86,
+          "first_line": "2.17 Bir Zorunlu nesneye-dayalı dil",
+          "chars": 436,
+          "low_text": false
+        },
+        {
+          "page": 87,
+          "first_line": "Java Değerlendirmesi",
+          "chars": 308,
+          "low_text": false
+        },
+        {
+          "page": 88,
+          "first_line": "Java",
+          "chars": 675,
+          "low_text": false
+        },
+        {
+          "page": 89,
+          "first_line": "Java",
+          "chars": 438,
+          "low_text": false
+        },
+        {
+          "page": 90,
+          "first_line": "Java",
+          "chars": 617,
+          "low_text": false
+        },
+        {
+          "page": 91,
+          "first_line": "Java Örnek",
+          "chars": 267,
+          "low_text": false
+        },
+        {
+          "page": 92,
+          "first_line": "2.18 Ağ (Web) için Betik Diller (Scripting",
+          "chars": 539,
+          "low_text": false
+        },
+        {
+          "page": 93,
+          "first_line": "2.18 Ağ (Web) için Betik Diller (Scripting",
+          "chars": 769,
+          "low_text": false
+        },
+        {
+          "page": 94,
+          "first_line": "2.18 Ağ (Web) için Betik Diller (Scripting",
+          "chars": 636,
+          "low_text": false
+        },
+        {
+          "page": 95,
+          "first_line": "2.18 Ağ (Web) için Betik Diller (Scripting",
+          "chars": 561,
+          "low_text": false
+        },
+        {
+          "page": 96,
+          "first_line": "2.18 Ağ (Web) için Betik Diller (Scripting",
+          "chars": 312,
+          "low_text": false
+        },
+        {
+          "page": 97,
+          "first_line": "2.19 Yeni milenyum için C-temelli bir",
+          "chars": 346,
+          "low_text": false
+        },
+        {
+          "page": 98,
+          "first_line": "• C ve C++ dil ailesinin ilk bileşen yönelimli (Component-",
+          "chars": 636,
+          "low_text": false
+        },
+        {
+          "page": 99,
+          "first_line": "• C# otomatik bellek yönetimini kullanır. C# tür",
+          "chars": 369,
+          "low_text": false
+        },
+        {
+          "page": 100,
+          "first_line": "2.20 İşaretleme(Markup)/Programlama",
+          "chars": 484,
+          "low_text": false
+        },
+        {
+          "page": 101,
+          "first_line": "",
+          "chars": 0,
+          "low_text": true
+        },
+        {
+          "page": 102,
+          "first_line": "Özet",
+          "chars": 168,
+          "low_text": false
+        },
+        {
+          "page": 103,
+          "first_line": "Kaynaklar",
+          "chars": 371,
+          "low_text": false
+        }
+      ]
+    }
+  ],
+  "totals": {
+    "pages": 103,
+    "words": 6448,
+    "low_text_pages": 9
+  }
+}

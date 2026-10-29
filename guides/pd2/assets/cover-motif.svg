@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 160" font-family="Inter, sans-serif">
+  <g fill="none" stroke="#8A3E2F" stroke-width="0.8" opacity="0.75">
+    <path d="M 58 22 L 58 138"/>
+    <path d="M 58 22 C 92 22, 102 44, 102 80 C 102 116, 92 138, 58 138"/>
+    <path d="M 302 22 L 302 138"/>
+    <path d="M 302 22 C 268 22, 258 44, 258 80 C 258 116, 268 138, 302 138"/>
+    <path d="M 180 28 L 180 54"/>
+    <path d="M 180 54 L 132 88"/>
+    <path d="M 180 54 L 228 88"/>
+    <path d="M 132 88 L 104 126"/>
+    <path d="M 132 88 L 158 126"/>
+    <path d="M 228 88 L 204 126"/>
+    <path d="M 228 88 L 256 126"/>
+  </g>
+  <g fill="#8A3E2F" opacity="0.85">
+    <circle cx="180" cy="28" r="4"/>
+    <circle cx="132" cy="88" r="3.2"/>
+    <circle cx="228" cy="88" r="3.2"/>
+    <circle cx="104" cy="126" r="2.6"/>
+    <circle cx="158" cy="126" r="2.6"/>
+    <circle cx="204" cy="126" r="2.6"/>
+    <circle cx="256" cy="126" r="2.6"/>
+  </g>
+  <g fill="#5E574B" font-size="7" letter-spacing="1.4">
+    <text x="180" y="18" text-anchor="middle">S</text>
+    <text x="118" y="86" text-anchor="middle">E</text>
+    <text x="242" y="86" text-anchor="middle">E</text>
+    <text x="92" y="144" text-anchor="middle">id</text>
+    <text x="162" y="144" text-anchor="middle">+</text>
+    <text x="200" y="144" text-anchor="middle">*</text>
+    <text x="270" y="144" text-anchor="middle">num</text>
+  </g>
+</svg>
