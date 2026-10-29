@@ -6,6 +6,7 @@ table.
 
 | Tag | Date | Build | Commit | PDFium | What changed |
 |---|---|---:|---|---|---|
+| `v0.7.0` | 2026-10-29 | 78 | `64b0e2620be05551716c9e1e743785a85b90268e` | `chromium/8058` | D2-only diagram pipeline, diagram MCP tool, OpenCode runbook |
 | `v0.6.2` | 2026-10-29 | 68 | `1fa1a7b2a6dc40c18e6b46ce4460289df6628569` | `chromium/8058` | Tall-figure fitting, synthetic PDF defect fixtures, 24-table parity test |
 | `v0.6.1` | 2026-10-29 | 64 | `48503766022525e25cb0a0df8141c6ebe8de9009` | `chromium/8058` | Image-overflow audit, seeded gate fixtures |
 | `v0.6.0` | 2026-10-29 | 60 | `06417467029510a016d598c997bda5e767192683` | `chromium/8058` | Structure packs, visual regression, table/diagram contracts, asset hardening, HTTP auth |
@@ -18,6 +19,9 @@ table.
 
 ## Notes
 
+- `v0.7.0` makes D2 v0.9.0 the single external diagram engine. D2 runs only in
+  `diagram build`; guide builds and MCP embed pre-generated SVG. Adds the
+  diagram MCP tool (schema 2), OpenCode runbook and D2 packaging notice.
 - `v0.6.2` fits tall diagrams inside the page and adds the remaining synthetic
   PDF defect fixtures plus the 24-table parity test.
 - `v0.6.1` adds the image-overflow layout gate and checked-in seeded fixtures.
