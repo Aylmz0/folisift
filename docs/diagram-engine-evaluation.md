@@ -268,6 +268,71 @@ Host LLM / author
 - D2 is a better authoring tool for architecture and sequence diagrams, so it
   stays as an optional importer rather than the default.
 
+## Graphviz vs D2 face-off
+
+| Criterion | Graphviz | D2 | Winner |
+|---|---|---|---|
+| Default aesthetics | Technical, dated shapes/spacing | Modern, clean themes and containers | D2 |
+| Styled aesthetics | Fully controllable with a house DOT template | Good themes, but edge labels sit on lines in tested output | Graphviz for study diagrams |
+| Ease of authoring | DOT is compact but attribute-heavy | D2 syntax is the most pleasant of the mature tools | D2 |
+| Layout quality | Reference-quality layered/tree/cycle; crossing minimisation | Good dagre/ELK/TALA; better containers/architecture | Tie, Graphviz for graphs |
+| Edge-label readability | Labels beside the edge | Connector line crosses labels in tested flow/sequence | Graphviz |
+| Text scaling | Compact output; 869×50 for a five-node flow | 1486×108; text near the 6.5 pt floor at page width | Graphviz |
+| Sequence diagrams | Not native | First-class | D2 |
+| Containers/architecture | Possible with clusters; less natural | First-class | D2 |
+| Large graphs | Excellent | Good, less proven at scale | Graphviz |
+| Determinism | 5/5 identical with fixed input/version | 2/2 identical with fixed salt | Tie |
+| Accessibility | Node/edge titles; root desc missing | No title/desc/ARIA | Both need our wrapper |
+| Runtime | C library or `dot` binary; system package | Single Go binary | D2 for packaging, Graphviz for embedding |
+| MCP self-contained render | Possible in principle via `libgvc` FFI | Not practical; Go binary subprocess only | Graphviz |
+| Licence | EPL-2.0 | MPL-2.0 | Both acceptable |
+| Project age/adoption | Decades, distro packaging, reference implementation | 25k stars, active, modern ecosystem | Tie |
+
+### What this means for OpenCode and MCP
+
+The LLM must not write DOT or D2 directly. It should write one **typed JSON
+spec** and let the engine choose the backend. That keeps the prompt small,
+validates before rendering and prevents shell injection.
+
+Proposed MCP surface (no external process inside MCP):
+
+| Tool/resource | Purpose |
+|---|---|
+| `diagram_schema` resource | JSON Schema for kinds, nodes, edges, caption, source, engine |
+| `diagram_validate` | Validate a spec and return normalized JSON + warnings |
+| `diagram_save` | Write the spec under `guides/<slug>/diagrams/<id>.json` |
+| `diagram_status` | Compare spec hash with the SVG manifest; report missing/stale/engine version |
+| `diagram_render_plan` | Return the exact CLI command and output path; do not run it |
+| `build_guide` | Embed only pre-generated, sanitized SVG; fail if a spec is unresolved |
+| `write-diagram` prompt | Enforce the visual budget, limits, caption/alt/provenance rules |
+
+The host workflow is three explicit calls:
+
+```text
+diagram_validate  →  diagram_save  →  (OpenCode shell) folisift diagram build
+                                      →  diagram_status  →  build_guide
+```
+
+This is intentionally not a single MCP call. Running `dot`/`d2` inside the MCP
+would break the no-shell invariant. If a one-call MCP is mandatory, Graphviz
+can be linked through `libgvc` (with native packaging and unsafe FFI), while D2
+cannot be embedded without a Go runtime. That is a strong argument for
+Graphviz as the default.
+
+### Verdict against the project motto
+
+The motto is: *any course, any source, one engine; every guide is reproducible
+and auditable.*
+
+- **Graphviz** is the better fit for “one engine, reproducible, auditable”:
+  compact deterministic output, version pinning, DOT as the audit record,
+  strong graph layout, and the possibility of an in-process library later.
+- **D2** is the better fit for “beautiful and easy to write”: better defaults,
+  sequence/containers, and a single binary. It is the better *authoring* tool.
+- Therefore: **Graphviz primary; D2 optional authoring/import backend**. If the
+  product priority changes to architecture-heavy courses, D2 can become
+  primary without changing the JSON spec or MCP tools.
+
 ## Migration plan
 
 1. Add a CLI `diagram build` that converts a `DiagramSpec` to styled DOT.
