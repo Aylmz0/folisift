@@ -28,8 +28,12 @@ struct Cli {
 
 #[derive(Debug, Subcommand)]
 enum Command {
-    /// Start the MCP stdio server.
-    Mcp,
+    /// Start the MCP server over stdio, or HTTP with --http.
+    Mcp {
+        /// Bind address for streamable HTTP, e.g. 127.0.0.1:8000.
+        #[arg(long)]
+        http: Option<String>,
+    },
     /// Show workspace root, version and guide count.
     WorkspaceInfo,
     /// List guides and whether each config is valid.
@@ -203,8 +207,12 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
     let workspace = Workspace::open(&cli.root)?;
 
     match cli.command {
-        Command::Mcp => {
-            folisift_mcp::serve(workspace.root()).await?;
+        Command::Mcp { http } => {
+            if let Some(address) = http {
+                folisift_mcp::serve_http(workspace.root(), &address).await?;
+            } else {
+                folisift_mcp::serve(workspace.root()).await?;
+            }
         }
         Command::WorkspaceInfo => {
             let guides = list_guides(&workspace)?;

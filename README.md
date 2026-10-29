@@ -49,11 +49,15 @@ cargo run -p folisift-cli -- styles list
 cargo run -p folisift-cli -- styles preview clean --language en
 ```
 
-MCP server:
+MCP server (stdio or streamable HTTP):
 
 ```bash
 folisift mcp --root /path/to/workspace
+folisift mcp --root /path/to/workspace --http 127.0.0.1:8000
+# HTTP endpoint: http://127.0.0.1:8000/mcp
 ```
+
+Install and platform notes: `docs/install.md`.
 
 ## New guide
 

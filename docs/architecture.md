@@ -48,7 +48,8 @@ folisift-cli / mcp            CLI and stdio MCP tools
    bodies, then writes `data/coverage.md`.
 6. The PDF is written to the configured output path.
 
-The MCP server wraps the same operations. It performs no LLM call, no shell
+The MCP server wraps the same operations over stdio or streamable HTTP
+(`mcp --http`). It performs no LLM call, no shell
 execution and no network access. The host agent writes content; the server
 analyzes, renders and audits.
 

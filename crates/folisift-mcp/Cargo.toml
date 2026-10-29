@@ -1,15 +1,16 @@
 [package]
 name = "folisift-mcp"
-description = "MCP stdio server for Folisift"
+description = "MCP stdio/HTTP server for Folisift"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 publish.workspace = true
 
 [dependencies]
-folisift-core = { path = "../folisift-core", version = "0.4.1" }
-folisift-parse = { path = "../folisift-parse", version = "0.4.1" }
-folisift-render = { path = "../folisift-render", version = "0.4.1" }
+axum.workspace = true
+folisift-core = { path = "../folisift-core", version = "0.5.0" }
+folisift-parse = { path = "../folisift-parse", version = "0.5.0" }
+folisift-render = { path = "../folisift-render", version = "0.5.0" }
 rmcp.workspace = true
 schemars.workspace = true
 serde.workspace = true
