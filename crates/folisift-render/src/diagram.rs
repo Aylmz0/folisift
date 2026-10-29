@@ -22,6 +22,7 @@ pub const DEFAULT_LAYOUT: &str = "tala";
 const DEFAULT_DIRECTION: &str = "right";
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct DiagramSpec {
     #[serde(default = "default_schema")]
     pub schema_version: u32,
@@ -44,6 +45,7 @@ pub struct DiagramSpec {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct Node {
     pub id: String,
     pub label: String,
@@ -52,6 +54,7 @@ pub struct Node {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct Edge {
     pub from: String,
     pub to: String,
@@ -60,6 +63,7 @@ pub struct Edge {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct Group {
     pub id: String,
     pub label: String,
@@ -127,6 +131,8 @@ pub struct DiagramManifest {
     pub layout: String,
     pub salt: String,
     pub fonts: Vec<String>,
+    #[serde(default)]
+    pub font_digest: String,
     pub postprocess_version: u32,
 }
 
@@ -247,9 +253,9 @@ pub fn validate_spec(spec: &DiagramSpec) -> Result<()> {
             spec.edges.len()
         )));
     }
-    if !matches!(spec.layout.as_str(), "tala" | "elk" | "dagre") {
+    if spec.layout != DEFAULT_LAYOUT {
         return Err(Error::Diagram(format!(
-            "unsupported D2 layout {:?}; use tala, elk or dagre",
+            "unsupported D2 layout {:?}; use {DEFAULT_LAYOUT:?}",
             spec.layout
         )));
     }
@@ -830,6 +836,7 @@ fn status_for_spec(
     if manifest.spec_sha256 != spec_hash(spec)?
         || manifest.svg_sha256.is_empty()
         || manifest.svg.is_empty()
+        || !d2_path(guide_root, &spec.id).is_file()
     {
         return Ok(DiagramStatus {
             id: spec.id.clone(),
@@ -1078,6 +1085,16 @@ mod tests {
         assert!(out.contains("<title"));
         assert!(out.contains("<desc"));
         assert!(out.contains("paint-order=\"stroke\""));
+    }
+
+    #[test]
+    fn rejects_unknown_spec_fields_and_non_tala_layout() {
+        let mut value = serde_json::to_value(spec()).expect("value");
+        value["engine"] = serde_json::json!("graphviz");
+        assert!(spec_from_json(&value.to_string()).is_err());
+        let mut value = serde_json::to_value(spec()).expect("value");
+        value["layout"] = serde_json::json!("dagre");
+        assert!(spec_from_json(&value.to_string()).is_err());
     }
 
     #[test]

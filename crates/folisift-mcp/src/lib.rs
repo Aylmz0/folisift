@@ -1121,7 +1121,7 @@ fn diagram_schema() -> String {
             "alt": {"type": "string", "minLength": 1},
             "source": {"type": "string", "minLength": 1},
             "direction": {"enum": ["right", "down", "left", "up"]},
-            "layout": {"enum": ["tala", "elk", "dagre"]},
+            "layout": {"const": "tala"},
             "nodes": {"type": "array", "minItems": 1, "maxItems": 12},
             "edges": {"type": "array", "maxItems": 20},
             "groups": {"type": "array"}

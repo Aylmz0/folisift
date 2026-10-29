@@ -22,4 +22,5 @@ if [ ! -x "${DEST}/bin/d2" ]; then
   mkdir -p "$DEST"
   tar -xzf "target/package/${ASSET}" -C "$DEST" --strip-components=1
 fi
+cp "${DEST}/LICENSE.txt" "target/package/D2-LICENSE.txt"
 echo "${DEST}/bin/d2"

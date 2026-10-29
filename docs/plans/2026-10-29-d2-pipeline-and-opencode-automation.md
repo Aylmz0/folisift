@@ -1,9 +1,9 @@
 # Folisift v0.7 — D2-only diagram pipeline and OpenCode automation
 
-- **Status:** Released in v0.7.0
+- **Status:** Released in v0.7.1
 - **Date:** 2026-10-29
 - **Baseline:** `v0.6.2` (105 tests, 12 MCP tools, native diagram compiler)
-- **Release:** `v0.7.0` (106 tests, 13 MCP tools, D2 v0.9.0)
+- **Release:** `v0.7.1` (107 tests, 13 MCP tools, D2 v0.9.0)
 - **Target:** `v0.7.0`
 - **Decision:** D2 v0.9.0 is the **only** external diagram engine
 - **Related:**
@@ -313,6 +313,7 @@ cache key and manifest.
   "layout": "tala",
   "salt": "fsl-<spec-prefix>",
   "fonts": ["Inter-Regular.ttf", "Inter-SemiBold.ttf", "Inter-Italic.ttf", "NotoSansMono-Regular.ttf"],
+  "font_digest": "…",
   "postprocess_version": 1,
   "caption": "…",
   "alt": "…",
