@@ -6,6 +6,7 @@ table.
 
 | Tag | Date | Build | Commit | PDFium | What changed |
 |---|---|---:|---|---|---|
+| `v0.6.0` | 2026-10-29 | 60 | `06417467029510a016d598c997bda5e767192683` | `chromium/8058` | Structure packs, visual regression, table/diagram contracts, asset hardening, HTTP auth |
 | `v0.5.0` | 2026-10-29 | 48 | `b2f56c1b7bd56621a7a758b85efe2b0e2a9c1739` | `chromium/8058` | Streamable HTTP MCP, cross-platform CI, install/platform docs |
 | `v0.4.1` | 2026-10-29 | 45 | `0107114a232a44d0619dec16c4bf4989cdaec29a` | `chromium/8058` | Accessibility gates, domain profiles, cross-platform CI |
 | `v0.4.0` | 2026-10-29 | 42 | `f14d2562e3a6e2a2b998f9a4c3a60f848ae6bc92` | `chromium/8058` | Schema-3 styles, paper/clean packs, `style` tool, covers metadata, tr/en labels |
@@ -15,6 +16,10 @@ table.
 
 ## Notes
 
+- `v0.6.0` adds structure packs, the table/diagram content contracts, pixel
+  visual regression, bookmark and asset gates, source-page cropping and HTTP
+  bearer auth. The Linux archive is built by `make package`; macOS and Windows
+  remain source builds. Archives are checksum-verified but unsigned.
 - `v0.5.0` adds streamable HTTP MCP and the install/platform contract. Archives
   are checksum-verified but unsigned.
 - `v0.4.1` adds accessibility gates and domain profiles; `paper` remains the
