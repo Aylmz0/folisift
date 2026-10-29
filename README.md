@@ -4,7 +4,7 @@
 into Turkish, paper-like, exam-oriented study guides.
 
 First guide: **BMÜ325 Programlama Dilleri, PD0–PD1** — 22 pages, 260/260
-slides. Latest release: **v0.7.2** — D2-only diagrams, diagram MCP tools and the OpenCode production loop.
+slides. Latest release: **v0.7.3** — D2-only diagrams, diagram MCP tools and the OpenCode production loop.
 
 ## Layout
 

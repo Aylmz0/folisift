@@ -13,10 +13,10 @@ path = "src/main.rs"
 [dependencies]
 blake3.workspace = true
 clap.workspace = true
-folisift-core = { path = "../folisift-core", version = "0.7.2" }
-folisift-parse = { path = "../folisift-parse", version = "0.7.2" }
-folisift-mcp = { path = "../folisift-mcp", version = "0.7.2" }
-folisift-render = { path = "../folisift-render", version = "0.7.2" }
+folisift-core = { path = "../folisift-core", version = "0.7.3" }
+folisift-parse = { path = "../folisift-parse", version = "0.7.3" }
+folisift-mcp = { path = "../folisift-mcp", version = "0.7.3" }
+folisift-render = { path = "../folisift-render", version = "0.7.3" }
 serde.workspace = true
 serde_json.workspace = true
 tokio.workspace = true

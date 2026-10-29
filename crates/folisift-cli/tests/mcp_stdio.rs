@@ -162,6 +162,26 @@ fn mcp_stdio_lists_tools() {
         "{response}"
     );
 
+    writeln!(
+        stdin,
+        "{}",
+        serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": 6,
+            "method": "tools/call",
+            "params": {"name": "style", "arguments": {"action": "preview", "id": "clean", "language": "en", "output": "output/clean.pdf"}}
+        })
+    )
+    .expect("write style preview");
+    stdin.flush().expect("flush style preview");
+    line.clear();
+    reader.read_line(&mut line).expect("read style preview");
+    let response: serde_json::Value = serde_json::from_str(&line).expect("style preview JSON");
+    assert!(
+        !response.to_string().contains("\"isError\":true"),
+        "{response}"
+    );
+
     drop(stdin);
     let status = child.wait().expect("wait");
     assert!(status.success(), "server exited with {status}");
