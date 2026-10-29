@@ -42,12 +42,13 @@ Metrics collected on 2026-10-29.
 
 | Project | Adoption signal | Runtime | Licence | Fit |
 |---|---|---|---|---|
-| **Graphviz 14.1.4** | 40+ years; distro package; GitLab 1,475 stars / 438 forks | C library or `dot` CLI | EPL-2.0 | **Primary layout** |
-| **D2 v0.9.0** | GitHub 25,755 stars / 775 forks; 177,765 Linux downloads for v0.9.0 | Go single binary | MPL-2.0 | **Optional importer** |
-| Mermaid 12.2.0 | GitHub 90,920 stars / 9,424 forks; 2,010 open issues | Node 22.12+ + Chromium for CLI | MIT | Import only; no default |
-| PlantUML | GitHub 13,385 stars / 1,248 forks | JVM; some diagrams need Graphviz | LGPL-3.0 | Not a fit |
+| **Graphviz 16.1.0** | 40+ years; distro package; GitLab 1,475 stars / 438 forks; last commit 2026-10-29 | C library or `dot` CLI | EPL-2.0 | **Primary layout** |
+| **D2 v0.9.0** | GitHub 25,755 stars / 775 forks; 177,765 Linux downloads for v0.9.0; last commit 2026-10-11 | Go single binary | MPL-2.0 | **Optional importer** |
+| Mermaid 12.2.0 | GitHub 90,920 stars / 9,424 forks; 2,010 open issues; last commit 2026-10-28 | Node 22.12+ + Chromium for CLI | MIT | Import only; no default |
+| PlantUML 1.2026.9 | GitHub 13,385 stars / 1,248 forks; last commit 2026-10-28 | JVM; some diagrams need Graphviz | LGPL-3.0 | Not a fit |
 | ELK-rs 0.12.1 | GitHub 9 stars / 4 forks; created 2026-02-10 | pure Rust | EPL-2.0 / GPL-3.0 | **Rejected: too young** |
 | d2-little | 3,087 downloads; 28% documented | pure Rust | MPL-2.0 | Rejected: immature port |
+| diagrams (mingrammer) | GitHub 42,763 stars / 2,732 forks; last commit 2026-10-15; latest release v0.25.1 on 2025-11-22 | Python 3.9+ + Graphviz | MIT | Cloud-only; not a general engine |
 | Kroki | 4,388 stars | server/Docker, multiple tools | MIT | Rejected: service dependency |
 | Current Folisift | in-tree | none | in-house | Keep for sequence/fallback |
 
@@ -58,6 +59,25 @@ for decades. For comparison, D2 has 25k stars, but its tested edge/sequence
 labels overlap the connector line and its SVG has no accessibility metadata;
 both need our post-processing, and Graphviz wins on edge-label readability. D2's 25k stars reflect a modern, active authoring tool; its
 single Go binary is a much better runtime fit than Node/Java.
+
+## Activity snapshot
+
+| Project | Last commit | Latest release | Release age at 2026-10-29 |
+|---|---|---|---|
+| Graphviz | 2026-10-29 | 16.1.0 (2026-09-04) | ~8 weeks |
+| D2 | 2026-10-11 | v0.9.0 (2026-09-07) | ~7 weeks |
+| Mermaid | 2026-10-28 | 12.2.0 (2026-10-13) | ~2 weeks |
+| PlantUML | 2026-10-28 | 1.2026.9 (2026-10) | current month |
+| diagrams | 2026-10-15 | v0.25.1 (2025-11-22) | ~11 months |
+| ELK-rs | 2026-10-23 | 0.12.1 (2026-10-23) | current, but 9 stars |
+| Structurizr CLI | 2026-02-01 | archived | not active |
+| Excalidraw | 2026-10-28 | active | manual editor |
+| draw.io | 2026-10-23 | active | manual editor |
+
+A project can have recent commits but a stale release (diagrams), or a recent
+release but a young codebase (ELK-rs). Both signals matter. For production we
+require **recent commits, a recent tagged release, a stable licence and a
+runtime we can actually ship**.
 
 ## Local evidence
 
@@ -122,6 +142,31 @@ D2 costs:
 - MPL-2.0 file-level copyleft (notice/relink obligations for modifications);
 - less control over fine-grained spacing than DOT attributes.
 
+### Diagrams (mingrammer)
+
+`diagrams` is the project the user found. It is a **Python DSL for cloud
+architecture diagrams**, not a general layout engine. It is healthy and active
+on the icon side: 42,763 stars, 2,732 forks, last commit 2026-10-15. The last
+PyPI release is v0.25.1 from 2025-11-22, so release cadence is slower than the
+commit cadence. It has 400 open issues.
+
+It requires Python 3.9+ and Graphviz, and its documentation explicitly says it
+uses Graphviz to render. Its value is the provider icon catalog (AWS, Azure,
+GCP, Kubernetes, on-prem, C4, programming). It does not provide sequence
+diagrams, concept maps, general flowcharts or accessibility metadata, and its
+layout control is limited.
+
+Reddit signals are consistent: users like that a presentable cloud diagram is
+possible in minutes, but describe the library as tricky to learn and limited to
+infrastructure work:
+<https://www.reddit.com/r/aws/comments/gjxil2/diagrams_as_code_python_with_aws_icon_support/>
+<https://www.reddit.com/r/devops/comments/1o4lbp8/diagram_tools/>
+
+Verdict: **not a core dependency**. It is a domain-specific layer over
+Graphviz. If we ever need cloud-architecture icons, it can be an optional
+authoring importer, but adopting Python would violate the single-binary/no
+extra runtime boundary for no gain on pedagogical diagrams.
+
 ### Mermaid
 
 Mermaid is the most starred project, but its CLI needs Node 22.12+ and a
@@ -142,6 +187,17 @@ The Rust port is technically promising, but a 9-star repository created in
 February 2026 is not the dependency to bet a production documentation system
 on. If ELK layout is ever needed, use the mature Java/JS ELK behind an
 authoring service, not the young port.
+
+### Screened out
+
+| Tool | Why not the default |
+|---|---|
+| Structurizr CLI/Lite | GitHub repositories are archived (last push 2026-02-01); C4 model is a different product scope |
+| Excalidraw | 134k stars, but a manual whiteboard; no deterministic code-to-diagram layout |
+| draw.io | 9k stars, manual editor; XML/HTML model, not a layout library |
+| nomnoml | JavaScript, smaller ecosystem; browser/JS runtime |
+| Pikchr | deterministic and tiny, but manual coordinates; no automatic graph layout |
+| InfraSketch | commercial/natural-language service; not offline or deterministic |
 
 ## What users say
 
@@ -244,6 +300,9 @@ plus visual review.
 - D2 release assets and checksums:
   <https://github.com/d2lang/d2/releases/tag/v0.9.0>
 - d2-little: <https://docs.rs/d2-little/latest/d2_little/>
+- diagrams repository: <https://github.com/mingrammer/diagrams>
+- diagrams docs/requirements: <https://diagrams.mingrammer.com/docs/getting-started/installation>
+- diagrams release v0.25.1: <https://github.com/mingrammer/diagrams/releases/tag/v0.25.1>
 - Mermaid usage/runtime: <https://mermaid.js.org/config/usage.html>
 - Mermaid accessibility: <https://mermaid.js.org/config/accessibility.html>
 - Mermaid non-deterministic IDs: <https://github.com/mermaid-js/mermaid/issues/727>
