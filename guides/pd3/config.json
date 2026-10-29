@@ -1,0 +1,26 @@
+{
+  "schema_version": 3,
+  "slug": "pd3",
+  "title": "Programlama Dilleri — Bölüm 3: Sözdizimi ve Anlambilim",
+  "language": "tr",
+  "content": "guide.md",
+  "stylesheet": null,
+  "output": "../../output/PD3_Calisma_Ozeti.pdf",
+  "sources": [
+    "../../sources/PD3.pdf"
+  ],
+  "inventory": "data/inventory.json",
+  "coverage": "data/coverage.md",
+  "target_pages": "19",
+  "theme": "paper",
+  "style": {
+    "aesthetic": "paper",
+    "structure": "a-g",
+    "language": "tr",
+    "source_language": "tr",
+    "voice": "academic",
+    "study_mode": "exam",
+    "domain": "cs",
+    "citation": "page-ref"
+  }
+}

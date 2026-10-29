@@ -1,0 +1,26 @@
+{
+  "schema_version": 3,
+  "slug": "pd2",
+  "title": "Programlama Dilleri — Bölüm 2: Önemli Programlama Dillerinin Gelişimi",
+  "language": "tr",
+  "content": "guide.md",
+  "stylesheet": null,
+  "output": "../../output/PD2_Calisma_Ozeti.pdf",
+  "sources": [
+    "../../sources/PD2.pdf"
+  ],
+  "inventory": "data/inventory.json",
+  "coverage": "data/coverage.md",
+  "target_pages": "22",
+  "theme": "paper",
+  "style": {
+    "aesthetic": "paper",
+    "structure": "a-g",
+    "language": "tr",
+    "source_language": "tr",
+    "voice": "academic",
+    "study_mode": "exam",
+    "domain": "cs",
+    "citation": "page-ref"
+  }
+}

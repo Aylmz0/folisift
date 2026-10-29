@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 320" font-family="Inter, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#5E574B"/>
+    </marker>
+  </defs>
+  <rect width="860" height="320" fill="#FAF6EC"/>
+  <text x="160" y="34" text-anchor="middle" font-size="10" letter-spacing="1.4" fill="#8A3E2F">GERÇEK DÜNYA</text>
+  <text x="650" y="34" text-anchor="middle" font-size="10" letter-spacing="1.4" fill="#42594F">SOYUT MAKİNE</text>
+  <g stroke="#D8CEBD" stroke-width="0.8">
+    <line x1="22" y1="48" x2="838" y2="48"/>
+  </g>
+  <g stroke="#5E574B" stroke-width="1.1" fill="none">
+    <line x1="160" y1="92" x2="160" y2="132" marker-end="url(#arrow)"/>
+    <line x1="160" y1="172" x2="160" y2="212" marker-end="url(#arrow)"/>
+    <line x1="160" y1="252" x2="160" y2="292" marker-end="url(#arrow)"/>
+    <line x1="292" y1="112" x2="510" y2="112" marker-end="url(#arrow)"/>
+    <line x1="650" y1="132" x2="650" y2="172" marker-end="url(#arrow)"/>
+    <line x1="650" y1="212" x2="650" y2="252" marker-end="url(#arrow)"/>
+  </g>
+  <g font-size="11" fill="#211E19" text-anchor="middle">
+    <rect x="80" y="62" width="160" height="30" fill="#F1EADB" stroke="#D8CEBD"/>
+    <text x="160" y="82">Program</text>
+    <rect x="80" y="132" width="160" height="40" fill="#F1EADB" stroke="#D8CEBD"/>
+    <text x="160" y="150">Giriş fonksiyonu</text>
+    <text x="160" y="164" font-size="9" fill="#5E574B">I : Program → C</text>
+    <rect x="80" y="212" width="160" height="40" fill="#F1EADB" stroke="#D8CEBD"/>
+    <text x="160" y="230">Geçiş kuralları</text>
+    <text x="160" y="244" font-size="9" fill="#5E574B">⇒ ⊆ C × C</text>
+    <rect x="80" y="262" width="160" height="30" fill="#F1EADB" stroke="#D8CEBD"/>
+    <text x="160" y="282">Cevap</text>
+
+    <rect x="530" y="62" width="240" height="30" fill="#F1EADB" stroke="#D8CEBD"/>
+    <text x="650" y="82">Başlangıç konfigürasyonu</text>
+    <rect x="530" y="132" width="240" height="40" fill="#F1EADB" stroke="#D8CEBD"/>
+    <text x="650" y="150">Ara konfigürasyon</text>
+    <text x="650" y="164" font-size="9" fill="#5E574B">C = Komutlar × PC × RegisterFile</text>
+    <rect x="530" y="212" width="240" height="40" fill="#F1EADB" stroke="#D8CEBD"/>
+    <text x="650" y="230">Final konfigürasyon</text>
+    <text x="650" y="244" font-size="9" fill="#5E574B">Komutlar[PC] = HALT</text>
+    <rect x="530" y="262" width="240" height="30" fill="#F1EADB" stroke="#D8CEBD"/>
+    <text x="650" y="282">Çıkış: RegisterFile[0]</text>
+  </g>
+  <g font-size="9" fill="#5E574B" letter-spacing="1.2">
+    <text x="24" y="312">PD3, s. 84 · İşlemsel semantik</text>
+  </g>
+</svg>
