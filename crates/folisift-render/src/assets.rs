@@ -65,13 +65,30 @@ pub fn lint_assets(markdown: &str, guide_root: &Path) -> Result<()> {
                     message: "decorative stock images are not allowed in a study guide".to_string(),
                 });
             }
+            let dest_path = Path::new(&dest);
+            if dest_path.is_absolute()
+                || dest_path
+                    .components()
+                    .any(|component| matches!(component, std::path::Component::ParentDir))
+            {
+                return Err(Error::Markdown {
+                    line: line_number,
+                    message: format!("asset path must stay inside the guide directory: {dest:?}"),
+                });
+            }
+            let asset = guide_root.join(dest_path);
+            if !asset.is_file() {
+                return Err(Error::Markdown {
+                    line: line_number,
+                    message: format!("asset not found: {}", asset.display()),
+                });
+            }
             if dest_lower.ends_with(".svg") {
-                let path = guide_root.join(dest);
-                let svg = std::fs::read_to_string(&path).map_err(|error| Error::Io {
-                    path: path.clone(),
+                let svg = std::fs::read_to_string(&asset).map_err(|error| Error::Io {
+                    path: asset.clone(),
                     source: error,
                 })?;
-                sanitize_svg(&svg, &path)?;
+                sanitize_svg(&svg, &asset)?;
             }
         }
     }
@@ -98,6 +115,10 @@ pub fn sanitize_svg(svg: &str, path: &Path) -> Result<()> {
         "<embed",
         "javascript:",
         "data:text/html",
+        "@import",
+        "url(http",
+        "url(https",
+        "url(//",
     ] {
         if lower.contains(forbidden) {
             return Err(asset_error(
