@@ -4,7 +4,7 @@
 into Turkish, paper-like, exam-oriented study guides.
 
 First guide: **BMÜ325 Programlama Dilleri, PD0–PD1** — 22 pages, 260/260
-slides. Latest release: **v0.6.1** — visual regression, structure packs, table/diagram contracts, hardened assets and HTTP auth.
+slides. Latest release: **v0.6.2** — visual regression, structure packs, table/diagram contracts, hardened assets and HTTP auth.
 
 ## Layout
 
