@@ -1,253 +1,251 @@
 # Diagram engine evaluation
 
-- **Status:** Research / decision input
+- **Status:** Decision input
 - **Date:** 2026-10-29
 - **Scope:** layout and SVG generation for Folisift diagrams
-- **Related:** `docs/plans/2026-10-29-production-hardening-and-visuals.md`,
-  ADR-0007 (Typst renderer), ADR-0009 (workspace sandbox)
+- **Related:** ADR-0007 (Typst renderer), ADR-0009 (workspace sandbox),
+  `docs/plans/2026-10-29-production-hardening-and-visuals.md`
 
-## Question
+## Decision in one page
 
-Should Folisift keep its own diagram layout and SVG renderer, or use an
-existing diagram library? The answer must respect the product invariants:
+Use **Graphviz `dot` as the primary external layout engine at authoring time**.
+Keep the Folisift JSON spec, caption/provenance rules and sanitizer. Keep the
+native SVG renderer for sequence diagrams and as a fallback. Add **D2** as an
+optional CLI importer for architecture/container diagrams. Do **not** adopt
+ELK-rs (9 stars, created 2026), Mermaid, PlantUML or Kroki as the default
+runtime.
 
-- no shell, browser, Node, Java or network inside MCP;
-- offline, reproducible builds;
-- deterministic output for the same spec and engine version;
-- accessible SVG (`role`, `<title>`, `<desc>`, `viewBox`, no scripts or
-  external references);
-- style-token-driven colours and typography;
-- pedagogical limits (nodes, edges, levels, caption, provenance);
-- a small, cross-platform install (binary + PDFium sidecar).
+The external engine runs **only in the CLI**, never in the MCP server. The
+guide build and the MCP server consume a sanitized, hashed SVG asset. This
+preserves the no-shell/no-network rule while gaining a mature layout engine.
 
-## Executive summary
+## Why this changed
 
-Keep the typed Folisift DSL, validation, SVG accessibility layer and Typst
-integration. Replace only the **layout algorithm** with the pure-Rust
-`elk-layout` crate (Eclipse Layout Kernel port).
+The previous recommendation was pure-Rust `elk-layout`. That was rejected on
+maintenance grounds: the Rust port is new (repository created February 2026),
+has 9 stars and is not a proven dependency for a product that claims
+reliability. Eclipse ELK itself is mature, but using the Java or JavaScript
+implementation would add a JVM or Node/Chromium runtime, which conflicts with
+the offline single-binary architecture.
 
-ELK gives us the part that is expensive to build correctly: layered graph
-layout, orthogonal edge routing, crossing reduction, port/compound-node
-support and tree layout. We keep the part that makes Folisift different:
-semantic validation, visual budget, accessible SVG, deterministic hashing,
-caption/provenance rules and style tokens.
-
-Do **not** adopt Mermaid or PlantUML as the default. Do **not** make Graphviz or
-D2 the default runtime. Keep Graphviz/D2 as optional CLI importers for authors
-who already have DOT/D2 sources.
-
-## Candidates
-
-| Candidate | Form | Runtime | Layout quality | Diagram breadth | Determinism |
-|---|---|---|---|---|---|
-| Current Folisift engine | Rust | none | basic layered/tree/sequence; no orthogonal routing or crossing minimisation | 4 kinds | strong; own hash |
-| ELK (`elk-layout`) | pure Rust crate | none | high; layered, orthogonal, ports, clusters, mrtree, radial, force, stress | general graphs/trees, not sequence/UML semantics | strong when version-pinned; JSON output |
-| Graphviz (`dot`) | C library / CLI | libgvc or `dot` binary | very high, mature | DOT graphs; labels/records/clusters | layout can change across versions; pin the package |
-| D2 | Go CLI | `d2` binary | good (dagre/ELK/TALA) | modern architecture/sequence/class-like diagrams | salt controls IDs; pin CLI version |
-| d2-little | pure Rust crate | none | dagre port; young | D2 subset | claimed byte-identical port; low adoption |
-| Mermaid | JS | Node 22.12+ + browser/Chromium for CLI | dagre/ELK via JS | very broad | historically not deterministic (date-based IDs); browser-dependent |
-| PlantUML | Java | JVM (+ Graphviz for some diagrams) | good | UML-heavy | version/Java/Graphviz dependent |
-
-## Evidence
-
-### ELK pure Rust
-
-`elk-layout` is a pure-Rust port of Eclipse Layout Kernel, published as
-`0.12.1` (2026-10-23), licensed `EPL-2.0 OR GPL-3.0-or-later`. It exposes an
-`elkjs`-compatible JSON API and returns laid-out node coordinates plus edge
-`sections`/bend points. It has no system library dependency.
-
-A local prototype with a five-node flow produced:
+Writing a Graphviz-class layout engine in-house is also not rational. Layered
+layout, crossing minimisation, port constraints, orthogonal routing and
+compound graphs are research-grade problems. The sensible boundary is:
 
 ```text
-elapsed_ms=41 deterministic=true
-"src"   x=12  y=12 w=140 h=38
-"lex"   x=172 y=12 w=150 h=38
-"parse" x=342 y=12 w=150 h=38
-"sem"   x=512 y=12 w=150 h=38
-"code"  x=682 y=12 w=130 h=38
-edge "e1" sections=[{"startPoint":{"x":152,"y":31},"endPoint":{"x":172,"y":31},...}]
+mature external layout  →  Folisift sanitiser/accessibility  →  Typst embed
 ```
 
-The prototype used 115 normal dependency edges and produced a 15 MB unstripped
-release binary for a hello-world program. That is not the marginal size in
-Folisift (Typst and embedded fonts already dominate), but it is a real
-dependency-footprint cost. It must be measured after integration and release
-profile tuning.
+## Candidates and current evidence
 
-Pros:
+Metrics collected on 2026-10-29.
 
-- no C, JVM, Node or browser;
-- one Cargo dependency; cross-compiles like the rest of the workspace;
-- far better layered layout than the current row-by-row placement;
-- orthogonal edge routing and bend points are available;
-- supports ports, clusters and multiple algorithms for future diagram kinds;
-- exact version pinning makes regression testing possible.
+| Project | Adoption signal | Runtime | Licence | Fit |
+|---|---|---|---|---|
+| **Graphviz 14.1.4** | 40+ years; distro package; GitLab 1,475 stars / 438 forks | C library or `dot` CLI | EPL-2.0 | **Primary layout** |
+| **D2 v0.9.0** | GitHub 25,755 stars / 775 forks; 177,765 Linux downloads for v0.9.0 | Go single binary | MPL-2.0 | **Optional importer** |
+| Mermaid 12.2.0 | GitHub 90,920 stars / 9,424 forks; 2,010 open issues | Node 22.12+ + Chromium for CLI | MIT | Import only; no default |
+| PlantUML | GitHub 13,385 stars / 1,248 forks | JVM; some diagrams need Graphviz | LGPL-3.0 | Not a fit |
+| ELK-rs 0.12.1 | GitHub 9 stars / 4 forks; created 2026-02-10 | pure Rust | EPL-2.0 / GPL-3.0 | **Rejected: too young** |
+| d2-little | 3,087 downloads; 28% documented | pure Rust | MPL-2.0 | Rejected: immature port |
+| Kroki | 4,388 stars | server/Docker, multiple tools | MIT | Rejected: service dependency |
+| Current Folisift | in-tree | none | in-house | Keep for sequence/fallback |
 
-Cons:
+Stars are not a quality metric on their own. Graphviz's 1,475 GitLab stars
+understate its adoption: it is packaged by every major Linux distribution,
+used by documentation systems and has been the reference DOT implementation
+for decades. D2's 25k stars reflect a modern, active authoring tool; its
+single Go binary is a much better runtime fit than Node/Java.
 
-- 115 transitive crates and all ELK algorithms are compiled in; no obvious
-  fine-grained feature flags;
-- a small maintainer team (9 GitHub stars at the time of writing); young project;
-- EPL-2.0 weak copyleft needs a licence notice and a policy for modifications;
-- it returns geometry, not SVG, so accessibility and styling still belong to us;
-- sequence diagrams are not an ELK concern; keep the custom sequence layout or
-  use a dedicated engine.
+## Local evidence
 
 ### Graphviz
 
-Graphviz is the reference implementation for DOT layout and remains the
-quality benchmark. It is licensed EPL-2.0. It has a C library API and a CLI.
-Its SVG output already gives each node/edge a `<title>`, but the upstream
-accessibility request for graph-level `desc`/alt text is still open, so an
-accessible wrapper still needs post-processing.
+Same DOT input, five runs, Graphviz 14.1.4:
 
-Integration options:
+```text
+327c7738bf50debd0d88828394cab1d0d0205da3a2c5576fdd8655fc808f2bf8
+327c7738bf50debd0d88828394cab1d0d0205da3a2c5576fdd8655fc808f2bf8
+327c7738bf50debd0d88828394cab1d0d0205da3a2c5576fdd8655fc808f2bf8
+327c7738bf50debd0d88828394cab1d0d0205da3a2c5576fdd8655fc808f2bf8
+327c7738bf50debd0d88828394cab1d0d0205da3a2c5576fdd8655fc808f2bf8
+```
 
-- **CLI** (`dot -Tsvg`): easy, but violates the no-shell rule if used from MCP;
-  acceptable only as an author-time CLI importer.
-- **C library via FFI** (`libgvc`, `wrappedviz`, custom bindings): keeps
-  process isolation but adds a platform-specific native build, unsafe FFI,
-  packaging and crash surface. The available wrapper crates are immature;
-  `wrappedviz` docs.rs builds fail and `graphviz-rust` shells out to `dot`.
+A styled five-node flow produced a compact `869 × 50` viewBox, 14 pt node
+labels and 11 pt edge labels. At the 510 pt content width used by the paper
+template, node text renders at about 8.2 pt and edge text at about 6.5 pt:
+inside the 6.5 pt minimum and near the 7.5 pt target. Graphviz emits a
+`<title>` for each node and edge, but not a graph-level `<desc>` or ARIA role;
+we add those in post-processing.
 
-Graphviz is the best choice when the source is already DOT and the author
-accepts an external tool. It is not the best default for a single-binary
-offline product.
+Graphviz strengths:
+
+- reference-quality layered/branching layout and crossing minimisation;
+- deterministic for a fixed input and version in our test;
+- compact output, controllable spacing, fonts, colours and shapes;
+- SVG/PDF/JSON outputs;
+- EPL-2.0; no browser/Node/JVM.
+
+Graphviz costs:
+
+- system package or bundled native binary; not a Rust crate;
+- version must be pinned; layout can change between releases;
+- no graph-level accessible description; needs our accessibility wrapper;
+- `graphviz-rust` only shells out to `dot`;
+- `wrappedviz`/C FFI is immature and adds unsafe native packaging.
 
 ### D2
 
-D2 has excellent authoring ergonomics and modern defaults. Its layout engines
-are dagre (default), ELK and TALA. The official tool is a Go binary; the Rust
-port `d2-little` is a large (≈53k lines) port with 3k downloads and 28%
-documentation, so it is not yet a safe production dependency. D2 also has a
-`salt` option for unique IDs, which means determinism depends on passing a fixed
-salt and pinning the CLI/engine.
+Two runs with `--salt fixed` produced byte-identical SVG. A five-node flow
+with `--pad 20` produced a `1486 × 108` viewBox; at 510 pt width the 20 px
+labels become roughly 6.9 pt. D2 v0.9.0 has no `<title>`, `<desc>` or ARIA
+attributes in the tested output and embeds base64 WOFF fonts.
 
-Use D2 as an optional author-time importer, not as the default MCP runtime.
+D2 strengths:
+
+- 25k stars, active releases, single 18 MB binary;
+- modern architecture/container/sequence diagrams;
+- dagre/ELK/TALA layouts, themes, sketch mode;
+- deterministic with a fixed salt and pinned version;
+- SVG/PNG/PDF/PPTX output with no browser.
+
+D2 costs:
+
+- no accessibility metadata; we must add it;
+- wide diagrams have a large canvas and small relative text unless spacing is
+  tuned or the graph is split;
+- extra 18 MB binary per platform;
+- MPL-2.0 file-level copyleft (notice/relink obligations for modifications);
+- less control over fine-grained spacing than DOT attributes.
 
 ### Mermaid
 
-Mermaid is JavaScript and the CLI ultimately needs Node 22.12+ and a Chromium
-instance via Puppeteer. It has good accessibility options (`accTitle`,
-`accDescr`, ARIA), but the browser dependency is exactly what the product
-architecture excludes. It has a history of non-deterministic IDs (date-based
-IDs in issue #727), and some renderers emit `foreignObject`/HTML that is not
-portable to a PDF/SVG pipeline without cleanup.
+Mermaid is the most starred project, but its CLI needs Node 22.12+ and a
+Chromium instance through Puppeteer. It has a history of non-deterministic
+IDs (date-based IDs, issue #727) and some renderers emit `foreignObject`/HTML.
+It is excellent for Markdown-native docs, but not for a no-browser build
+pipeline.
 
-Mermaid is attractive for authors who already write it. It is the wrong
-default for Folisift.
+### PlantUML and Kroki
 
-### PlantUML
+PlantUML requires a JVM and is LGPL-3.0; some diagram types delegate layout to
+Graphviz. Kroki is a server that wraps many diagram tools, which adds a
+service/network dependency. Neither is a default candidate.
 
-PlantUML is GPL and needs a JVM; some diagram types also use Graphviz. It is
-strong for UML, but the runtime and licence are poor fits for the default
-engine. Optional import only, if ever.
+### ELK-rs
 
-## Weighted decision
+The Rust port is technically promising, but a 9-star repository created in
+February 2026 is not the dependency to bet a production documentation system
+on. If ELK layout is ever needed, use the mature Java/JS ELK behind an
+authoring service, not the young port.
 
-Weights reflect the product invariants, not general popularity.
+## What users say
 
-| Criterion | Weight | Current | ELK + our renderer | Graphviz | D2 | Mermaid |
-|---|---:|---:|---:|---:|---:|---:|
-| Offline / no extra runtime | 20 | 5 | 5 | 3 | 2 | 1 |
-| Layout quality | 20 | 2 | 5 | 5 | 4 | 4 |
-| Determinism / reproducibility | 15 | 5 | 4 | 3 | 3 | 2 |
-| Accessibility control | 15 | 5 | 5 | 3 | 3 | 4 |
-| Product/pedagogy rules | 10 | 5 | 5 | 2 | 2 | 2 |
-| Install/packaging | 10 | 5 | 4 | 2 | 2 | 1 |
-| Maintenance risk | 5 | 3 | 3 | 5 | 4 | 4 |
-| Licence fit | 5 | 5 | 4 | 4 | 4 | 4 |
-| **Weighted total** | 100 | **4.30** | **4.60** | **3.35** | **2.90** | **2.60** |
+These are qualitative signals, not benchmarks:
 
-Scores are 1–5. The current engine wins on control and packaging; ELK wins on
-the expensive layout work while preserving control.
+- D2 users praise the output and the speed of authoring compared with
+  drag-and-drop tools; D2 is repeatedly described as easier to read/write than
+  Mermaid for architecture diagrams.
+  <https://www.reddit.com/r/selfhosted/comments/1gin6ut/holy_crap_d2_diagrams_are_impressive/>
+- In a D2 discussion, users note that unlike Mermaid, D2 lets you influence
+  layout and that Mermaid flowcharts can get ugly.
+  <https://www.reddit.com/r/programming/comments/1qqizxa/your_ai_diagram_looks_great_and_nobody_will_read/>
+- Mermaid complaints focus on wide diagrams, layout quality, flashing/resizing
+  and themes; it remains popular because it is embedded in Markdown tools.
+  <https://www.reddit.com/r/Anytype/comments/1eby9xr/does_mermaid_really_need_to_be_that_horrible/>
+  <https://www.reddit.com/r/dotnet/comments/18cwzda/what_is_your_favorite_tool_for_designing_complex/>
+- Graphviz is repeatedly recommended for maintainable, text-based diagrams,
+  especially network/architecture documentation, with the trade-off of a
+  dated default look that must be styled.
+  <https://www.reddit.com/r/networking/comments/8dbucs/tools_to_create_maintainable_network_diagrams/>
+  <https://www.reddit.com/r/rust/comments/5ljshj/diagrams_in_documentation/>
+
+The recurring user requirement is not “the most beautiful default”; it is
+“readable at a glance, reproducible, and cheap to update”. That favours
+Graphviz for graph-shaped study diagrams and D2 for modern architecture
+figures.
 
 ## Recommended architecture
 
 ```text
-guide Markdown
-  └─ ```diagram JSON spec
-       ├─ Folisift validation: kinds, limits, labels, tree root, provenance
-       ├─ layout backend:
-       │    ├─ ELK layered  → concept / flow
-       │    ├─ ELK mrtree   → tree
-       │    └─ custom       → sequence
-       ├─ Folisift SVG renderer: theme, arrows, labels, role/title/desc
-       ├─ blake3 asset hash + cache
-       └─ Typst figure with caption, alt text, provenance
+Host LLM / author
+  └─ Folisift diagram spec (JSON)  or  existing .dot/.d2 file
+       └─ CLI: folisift diagram build
+            ├─ Graphviz dot (pinned)  → SVG
+            ├─ native sequence layout → SVG
+            └─ D2 (optional)          → SVG
+                 ↓
+            sanitize + accessibility wrapper
+            (role, title, desc, viewBox, no scripts/external refs)
+                 ↓
+            blake3 hash + engine manifest
+            assets/generated/<hash>.svg
+                 ↓
+            guide build / MCP: embed-only, no external process
 ```
 
-Rules:
+### Boundaries
 
-- Pin `elk-layout` to an exact version; a version bump is a visual-regression
-  change and must update baselines.
-- Keep the custom layout behind a feature flag for one release so the old and
-  new SVG can be compared page-by-page.
-- Add a licence notice for EPL-2.0 and document that Folisift does not modify
-  ELK.
-- Keep Graphviz/D2 import as CLI-only, behind an explicit command, with the
-  same SVG sanitizer and no MCP shell.
-- Keep the 12-node/20-edge limit. ELK can lay out more, but the pedagogical
-  budget is a product rule, not an engine limit.
+- MCP never invokes `dot`, `d2`, Node or a browser. It only reads assets.
+- The CLI checks the engine version and records it in
+  `assets/generated/manifest.json`.
+- The graph spec remains engine-neutral. `engine: "graphviz"` and
+  `engine: "d2"` select the authoring backend; `native` remains the fallback.
+- Every imported SVG passes the existing sanitizer and accessibility wrapper.
+- A Graphviz/D2 failure is an authoring error with the exact command and
+  version, not a silent fallback.
+- The native sequence layout stays because sequence diagrams are not a natural
+  DOT graph; D2 can be used when a user explicitly imports one.
+
+### Why Graphviz first, not D2
+
+- Graphviz has the strongest graph-layout algorithms and decades of use.
+- It gives compact output with controllable font size; D2's wide canvas can
+  fall below the 6.5 pt minimum after fitting.
+- It is EPL-2.0 and available as a package on Linux/macOS/Windows.
+- D2 is a better authoring tool for architecture and sequence diagrams, so it
+  stays as an optional importer rather than the default.
 
 ## Migration plan
 
-1. Add `elk-layout = "=0.12.1"` behind a `layout-elk` feature.
-2. Convert `DiagramSpec` to ELK JSON:
-   `layered` for flow/concept, `mrtree` for tree, direction and spacing from
-   style tokens.
-3. Read node `x/y/width/height` and edge `sections`/`bendPoints`.
-4. Render SVG paths with our existing theme, labels and accessibility elements.
-5. Keep the current layout as `layout-legacy` for one release.
-6. Add golden SVG tests for all four kinds, deterministic double-run tests and
-   visual baselines for both styles.
-7. Measure binary size, cold layout time and PDF page count; remove the legacy
-   layout only after baselines pass.
+1. Add a CLI `diagram build` that converts a `DiagramSpec` to styled DOT.
+2. Pin Graphviz 14.x and run it as a subprocess **outside MCP**.
+3. Post-process SVG: add root `role="img"`, `<title>`, `<desc>`,
+   `aria-labelledby`, strip external references/scripts.
+4. Hash the sanitized SVG and write a manifest with engine, version, font and
+   input hash.
+5. Make build/MCP reject an inline spec unless a pre-generated asset exists.
+6. Add golden SVG tests, five-run determinism tests and paper/clean visual
+   baselines.
+7. Add an optional `diagram import --engine d2` for `.d2` files, with the same
+   sanitizer and manifest.
+8. Keep the current native renderer for sequence and as a one-release fallback.
 
-Estimated integration effort: 2–4 engineering days, plus 1–2 days of visual
-review. A full in-house replacement of ELK-class layout would be weeks to
-months and would still be weaker on crossing minimisation and edge routing.
+Estimated effort: 3–5 days for the Graphviz path, 2 days for the D2 importer,
+plus visual review.
 
 ## Sources
 
-- ELK Rust crate and licence:
-  <https://docs.rs/elk-layout/latest/elk_layout/>
-- ELK Rust repository and validation policy:
-  <https://github.com/openedges/elk-rs>
-- ELK project:
-  <https://eclipse.dev/elk/>
-- ELK layered algorithm:
-  <https://eclipse.dev/elk/reference/algorithms/org-eclipse-elk-layered.html>
-- Graphviz licence:
-  <https://graphviz.org/license/>
-- Graphviz SVG output:
-  <https://graphviz.org/docs/outputs/svg/>
-- Graphviz C library API:
-  <https://graphviz.org/docs/library/>
-- Graphviz accessibility issue:
-  <https://gitlab.com/graphviz/graphviz/-/issues/2220>
-- Graphviz Rust CLI wrapper:
-  <https://docs.rs/graphviz-rust/latest/graphviz_rust/>
-- Graphviz C wrapper:
-  <https://docs.rs/wrappedviz/latest/wrappedviz/>
-- D2 layouts:
-  <https://d2lang.com/tour/layouts/>
-- D2 ELK layout:
-  <https://d2lang.com/tour/elk/>
-- D2 licence:
-  <https://github.com/d2lang/d2>
-- d2-little crate:
-  <https://docs.rs/d2-little/latest/d2_little/>
-- Mermaid usage and runtime:
-  <https://mermaid.js.org/config/usage.html>
-- Mermaid accessibility:
-  <https://mermaid.js.org/config/accessibility.html>
-- Mermaid non-deterministic IDs:
-  <https://github.com/mermaid-js/mermaid/issues/727>
+- Graphviz licence: <https://graphviz.org/license/>
+- Graphviz SVG output: <https://graphviz.org/docs/outputs/svg/>
+- Graphviz library API: <https://graphviz.org/docs/library/>
+- Graphviz accessibility issue: <https://gitlab.com/graphviz/graphviz/-/issues/2220>
+- Graphviz GitLab project: <https://gitlab.com/graphviz/graphviz>
+- graphviz-rust (CLI wrapper): <https://docs.rs/graphviz-rust/latest/graphviz_rust/>
+- wrappedviz (C wrapper): <https://docs.rs/wrappedviz/latest/wrappedviz/>
+- D2 repository: <https://github.com/d2lang/d2>
+- D2 layouts: <https://d2lang.com/tour/layouts/>
+- D2 ELK layout: <https://d2lang.com/tour/elk/>
+- D2 CLI flags: <https://d2lang.com/tour/man/>
+- D2 release assets and checksums:
+  <https://github.com/d2lang/d2/releases/tag/v0.9.0>
+- d2-little: <https://docs.rs/d2-little/latest/d2_little/>
+- Mermaid usage/runtime: <https://mermaid.js.org/config/usage.html>
+- Mermaid accessibility: <https://mermaid.js.org/config/accessibility.html>
+- Mermaid non-deterministic IDs: <https://github.com/mermaid-js/mermaid/issues/727>
 - Mermaid CLI Chromium dependency:
   <https://github.com/mermaid-js/mermaid-cli/blob/master/docs/already-installed-chromium.md>
-- PlantUML licence:
-  <https://plantuml.com/faq>
-- libavoid orthogonal routing (ELK integration):
-  <https://eclipse.dev/elk/blog/posts/2022/22-11-17-libavoid.html>
+- PlantUML repository/licence: <https://github.com/plantuml/plantuml>
+- ELK-rs repository: <https://github.com/openedges/elk-rs>
+- ELK project: <https://eclipse.dev/elk/>
+- Kroki: <https://github.com/yuzutech/kroki>
