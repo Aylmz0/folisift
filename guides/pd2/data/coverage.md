@@ -25,7 +25,7 @@ Eşik: **0.55**
 | 2.17 Bir Zorunlu nesneye-dayalı dil (Imperative- Based Object-Oriented): Java | 86 | OK | 1988 | ## 2.17 Zorunlu tabanlı nesneye dayalı dil: Java |
 | 2.18 Betik Diller (Scripting Languages): JavaScript, PHP, ve Python | 92 | OK | 2551 | <!-- covers: PD2:2.18 --> |
 | 2.19 Yeni milenyum için C-temelli bir dil: C# | 97 | OK | 1275 | ## 2.19 Yeni milenyum için C temelli dil: C# |
-| 2.20 İşaretleme (Markup)/Programlama Hibrit Diller | 100 | OK | 9649 | ## 2.20 İşaretleme/programlama hibrit diller |
+| 2.20 İşaretleme (Markup)/Programlama Hibrit Diller | 100 | OK | 9658 | ## 2.20 İşaretleme/programlama hibrit diller |
 
 Alt bölüm: **20** · Düşük metinli slayt: **9**
 

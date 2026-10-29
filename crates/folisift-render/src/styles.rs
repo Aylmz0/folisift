@@ -14,6 +14,11 @@ const PAPER_TOKENS: &str = include_str!("../../../styles/paper/tokens.json");
 const PAPER_TR: &str = include_str!("../../../styles/paper/strings/tr.json");
 const PAPER_EN: &str = include_str!("../../../styles/paper/strings/en.json");
 
+const READER_STYLE: &str = include_str!("../../../styles/reader/style.json");
+const READER_TOKENS: &str = include_str!("../../../styles/reader/tokens.json");
+const READER_TR: &str = include_str!("../../../styles/reader/strings/tr.json");
+const READER_EN: &str = include_str!("../../../styles/reader/strings/en.json");
+
 const CLEAN_STYLE: &str = include_str!("../../../styles/clean/style.json");
 const CLEAN_TOKENS: &str = include_str!("../../../styles/clean/tokens.json");
 const CLEAN_TR: &str = include_str!("../../../styles/clean/strings/tr.json");
@@ -57,7 +62,7 @@ pub struct LoadedStyle {
 
 /// Built-in pack ids shipped in the binary.
 pub fn builtin_ids() -> &'static [&'static str] {
-    &["paper", "clean"]
+    &["paper", "reader", "clean"]
 }
 
 /// List built-in packs plus workspace overrides under `<root>/styles`.
@@ -242,6 +247,12 @@ fn embedded(id: &str, file: &str) -> Option<&'static str> {
         ("paper", "strings/en.json") => Some(PAPER_EN),
         ("paper", "preview.md") => Some(include_str!("../../../styles/paper/preview.md")),
         ("paper", "preview.en.md") => Some(include_str!("../../../styles/paper/preview.en.md")),
+        ("reader", "style.json") => Some(READER_STYLE),
+        ("reader", "tokens.json") => Some(READER_TOKENS),
+        ("reader", "strings/tr.json") => Some(READER_TR),
+        ("reader", "strings/en.json") => Some(READER_EN),
+        ("reader", "preview.md") => Some(include_str!("../../../styles/reader/preview.md")),
+        ("reader", "preview.en.md") => Some(include_str!("../../../styles/reader/preview.en.md")),
         ("clean", "style.json") => Some(CLEAN_STYLE),
         ("clean", "tokens.json") => Some(CLEAN_TOKENS),
         ("clean", "strings/tr.json") => Some(CLEAN_TR),
@@ -271,6 +282,50 @@ pub fn apply_tokens(template: &str, tokens: &Value, layout: &str) -> Result<Stri
         && (6.0..=18.0).contains(&size)
     {
         out = out.replace("9.5pt", &format!("{size}pt"));
+    }
+    if let Some(leading) = typography
+        .and_then(|value| value.get("leading_em"))
+        .and_then(Value::as_f64)
+        && (0.4..=1.2).contains(&leading)
+    {
+        out = out.replace("leading: 0.62em", &format!("leading: {leading}em"));
+    }
+    if let Some(layout) = tokens.get("layout") {
+        let top = layout.get("margin_top_mm").and_then(Value::as_f64);
+        let bottom = layout.get("margin_bottom_mm").and_then(Value::as_f64);
+        let side = layout.get("margin_side_mm").and_then(Value::as_f64);
+        if let (Some(top), Some(bottom), Some(side)) = (top, bottom, side) {
+            out = out.replace(
+                "margin: (top: 16mm, bottom: 14mm, left: 16.5mm, right: 16.5mm)",
+                &format!(
+                    "margin: (top: {top}mm, bottom: {bottom}mm, left: {side}mm, right: {side}mm)"
+                ),
+            );
+        }
+    }
+    if let Some(spacing) = tokens.get("spacing") {
+        if let Some(par) = spacing.get("par_mm").and_then(Value::as_f64) {
+            out = out.replace("spacing: 1.8mm", &format!("spacing: {par}mm"));
+        }
+        if let Some(list) = spacing.get("list_mm").and_then(Value::as_f64) {
+            out = out.replace("spacing: 3.2mm", &format!("spacing: {list}mm"));
+        }
+    }
+    if let Some(toc) = tokens.get("toc") {
+        if let Some(inset) = toc.get("row_inset_mm").and_then(Value::as_f64) {
+            out = out.replace("inset: (y: 1.9mm)", &format!("inset: (y: {inset}mm)"));
+        }
+        if let Some(title) = toc.get("title_pt").and_then(Value::as_f64)
+            && let Some(sub) = toc.get("sub_pt").and_then(Value::as_f64)
+        {
+            out = out.replace(
+                "size: if sub { 8.9pt } else { 9.6pt }",
+                &format!("size: if sub {{ {sub}pt }} else {{ {title}pt }}"),
+            );
+        }
+        if let Some(page) = toc.get("page_pt").and_then(Value::as_f64) {
+            out = out.replace("size: 8.2pt", &format!("size: {page}pt"));
+        }
     }
     Ok(out)
 }
@@ -386,5 +441,25 @@ mod tests {
         assert_eq!(paper.pack.status, "stable");
         let clean = load(Path::new(""), "clean").expect("clean");
         assert_eq!(clean.pack.status, "experimental");
+        let reader = load(Path::new(""), "reader").expect("reader");
+        assert_eq!(reader.pack.layout, "paper");
+        assert_eq!(reader.tokens["typography"]["body_size"], 10.0);
+    }
+
+    #[test]
+    fn applies_reader_rhythm_tokens() {
+        let tokens = serde_json::json!({
+            "palette": {},
+            "typography": {"body_size": 10.2, "leading_em": 0.72},
+            "layout": {"margin_top_mm": 18, "margin_bottom_mm": 16, "margin_side_mm": 18},
+            "spacing": {"par_mm": 2.4, "list_mm": 3.8}
+        });
+        let template = "size 9.5pt; leading: 0.62em; margin: (top: 16mm, bottom: 14mm, left: 16.5mm, right: 16.5mm); spacing: 1.8mm; spacing: 3.2mm;";
+        let applied = apply_tokens(template, &tokens, "paper").expect("rhythm");
+        assert!(applied.contains("10.2pt"));
+        assert!(applied.contains("leading: 0.72em"));
+        assert!(applied.contains("margin: (top: 18mm, bottom: 16mm, left: 18mm, right: 18mm)"));
+        assert!(applied.contains("spacing: 2.4mm"));
+        assert!(applied.contains("spacing: 3.8mm"));
     }
 }

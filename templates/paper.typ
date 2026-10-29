@@ -262,12 +262,20 @@
   #body
 ]
 
-#let toc_row(body, page, sub: false) = grid(
+#let toc_row(body, page, dest, sub: false) = grid(
   columns: (1fr, 15mm),
   stroke: (bottom: 0.35pt + linen),
   inset: (y: 1.9mm),
-  align(left)[#text(size: if sub { 8.9pt } else { 9.6pt }, fill: if sub { muted } else { ink })[#body]],
-  align(right)[#text(font: "Inter", size: 8.2pt, fill: if sub { faint } else { brick })[#page]],
+  align(left)[
+    #link(dest)[
+      #text(size: if sub { 8.9pt } else { 9.6pt }, fill: if sub { muted } else { ink })[#body]
+    ]
+  ],
+  align(right)[
+    #link(dest)[
+      #text(font: "Inter", size: 8.2pt, fill: if sub { faint } else { brick })[#page]
+    ]
+  ],
 )
 
 #let toc_part(body) = grid(
@@ -300,10 +308,10 @@
         (
           value.part,
           value.subs,
-          part-rows + (toc_row(value.body, page-number),),
+          part-rows + (toc_row(value.body, page-number, entry.location()),),
         )
       } else if value.level == 2 and subs {
-        (last, subs, out + (toc_row(value.body, page-number, sub: true),))
+        (last, subs, out + (toc_row(value.body, page-number, entry.location(), sub: true),))
       } else {
         (last, subs, out)
       }

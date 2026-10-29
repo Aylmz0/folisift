@@ -10,7 +10,7 @@ Eşik: **0.55**
 | 3.2 Genel Sentaks Tanımlama Problemi | — | OK | 2290 | ## 3.2 Genel sözdizimi tanımlama problemi |
 | 3.3 Sentaks Tanımlamanın Biçimsel Metotları | 22 | OK | 4678 | ## 3.3 Sözdizimi tanımlamanın biçimsel yöntemleri |
 | 3.4 Özellik (Attribute) Gramerleri | 63 | OK | 2658 | ## 3.4 Özellik (Attribute) Gramerleri |
-| 3.5 Programların Anlamlarını Açıklamak: Dinamik Semantik | 78 | OK | 14967 | <!-- covers: PD3:3.5 --> |
+| 3.5 Programların Anlamlarını Açıklamak: Dinamik Semantik | 78 | OK | 14976 | <!-- covers: PD3:3.5 --> |
 
 Alt bölüm: **5** · Düşük metinli slayt: **18**
 
@@ -18,7 +18,7 @@ Alt bölüm: **5** · Düşük metinli slayt: **18**
 
 - Denetlenen alt bölüm: **5**
 - Kanonik toplam: **5**
-- Covers ile işaretlenen: **5**
+- Kılavuzda başlığı/claim'i olan: **5**
 - Gate içinde eşleşen: **5**
 - Eksik/weak match: **0**
 - Boş bölüm: **0**

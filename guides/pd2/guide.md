@@ -682,7 +682,7 @@ ALGOL 60’ın etkilediği seçilmiş dil ailesi aşağıda gösterilmiştir. Bu
 LISP, COBOL, APL/SNOBOL ve Prolog aileleri bu seçilmiş grafikte yer almaz; ilgili bölümlerde ayrı ayrı açıklanmıştır. Kaynak slayttaki tam soyağacı, bu kolu da içeren daha geniş bir grafiktir [PD2, s. 5].
 :::
 
-::: chapter part="C–G · ORTAK BÖLÜMLER" side="SINAV BİLGİLERİ" kicker="E" title="Formüller, kurallar ve olgular" toc="E. Formüller, kurallar ve olgular" running="E · Formüller, kurallar ve olgular" subs=false compact=true lead="PD2’de geçen tarihler, sürümler, sayısal sınırlar ve dil özellikleri. Yalnızca kaynakta verilen bilgiler; ek açıklamalar etiketlidir."
+::: chapter flow=true part="C–G · ORTAK BÖLÜMLER" side="SINAV BİLGİLERİ" kicker="E" title="Formüller, kurallar ve olgular" toc="E. Formüller, kurallar ve olgular" running="E · Formüller, kurallar ve olgular" subs=false compact=true lead="PD2’de geçen tarihler, sürümler, sayısal sınırlar ve dil özellikleri. Yalnızca kaynakta verilen bilgiler; ek açıklamalar etiketlidir."
 :::
 
 ### E.1 Tarihler ve sürümler
@@ -788,10 +788,9 @@ PD2’de **9** düşük metinli slayt vardır: **1, 5, 19, 21, 29, 33, 45, 53, 1
 
 ## G.3 Bilinçli dışarıda bırakılanlar ve sonuç
 
-- **Kapak ve konu listeleri** (s. 1–4) içindekilere yansıtıldı; her madde ayrıca açılmadı.
-- **COBOL örneği** (s. 49) iki sütunlu, çok uzun bir kod görselidir; kılavuzda dilin yapısı ve `IDENTIFICATION`, `ENVIRONMENT`, `DATA`, `PROCEDURE` bölümleri kavramsal olarak açıklandı, kod birebir çoğaltılmadı.
-- **Fortran, BASIC, LISP, Simula, Prolog, Ada ve Java örnekleri** (s. 25, 31, 54, 65, 74, 79, 91) yalnızca ayırt edici yapılarıyla özetlendi; tam kod listeleri sayfa sınırı nedeniyle alınmadı. LISP listeleri ve BASIC şeceresi D2 diagramıyla temsil edildi.
-- **Dekoratif görseller** ve tekrarlanan kaynak listeleri (s. 103) yeniden üretilmedi; kaynakça listesi birleştirildi.
-- **Ödev slaytı yoktur**; PD2’de ödev sayfası bulunmaz.
+- **Kapak/konu listeleri** (s. 1–4) ve dekoratif görseller (s. 45, 101) yeniden üretilmedi.
+- **COBOL örneği** (s. 49) tam kod olarak değil, bölüm yapısı ve kavramlarıyla özetlendi.
+- **Fortran, BASIC, LISP, Simula, Prolog, Ada ve Java örnekleri** yalnızca ayırt edici yapılarıyla verildi; LISP listeleri ve BASIC şeceresi D2 ile çizildi.
+- **Kaynakça** (s. 103) birleştirildi; PD2’de ödev slaytı yok.
 
-**Sonuç:** PD2’nin **20/20 alt bölümü** ve **103/103 slaytı** kapsandı. Düşük metinli 9 slaytın tamamı incelendi; erişilemeyen sayfa tespit edilmedi. Otomatik başlık denetimi `build --check` ile, tablo/şekil/örnek denetimi bu bölümde elle yapılmıştır.
+**Sonuç:** **20/20 alt bölüm**, **103/103 slayt**; 9 düşük metinli slayt karara bağlandı. `build --check` ve G denetimi geçti.

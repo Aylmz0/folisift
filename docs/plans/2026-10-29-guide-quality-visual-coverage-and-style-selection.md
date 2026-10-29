@@ -27,18 +27,24 @@ Landed in the working tree:
   PD2 20/20, PD3 5/5, PD0–PD1 13/13.
 - `visual-audit.json` + build gate for every low-text page; manifests exist for
   `pd0-pd1`, `pd2`, `pd3`.
+- TOC rows and page numbers are real internal PDF links.
+- `reader` style: 10.0 pt body, 0.70 em leading, 17 mm margins, 2.6 mm
+  paragraph spacing; PD2/PD3 use it instead of the tighter paper default.
+- MCP `style recommend` returns compatible candidates; specialized packs and
+  persisted style rationale remain open.
 - `LayoutAudit.underfilled_pages`: PD2 and PD3 were reflowed to zero
   underfilled pages; PD0–PD1 is still clean.
 - PD2 D2 diagrams: `dil-soyagaci`, `lisp-listeleri`, `basic-seceresi`.
 - PD3 D2 diagrams: `ayristirma-agaci`, `ozellik-akisi`, `sozdizim-grafigi`,
   `anlam-yontemleri`, `islemel-semantik`.
 - Manual `parse-tree.svg` and `operational.svg` removed; outputs rebuilt.
-- `build --check` and `audit` pass for PD2 (21 pages), PD3 (19 pages) and
-  PD0–PD1 (22 pages).
+- `build --check` and `audit --strict` pass for PD2 (23 pages), PD3 (20 pages)
+  and PD0–PD1 (22 pages). No underfilled pages remain.
 
-Still open: style recommendation/packs, dynamic `page_range`, evidence-based
-recall/spacing components, figure/vector counts, and a new OpenCode production
-run. This is a P0 slice, not the whole v0.9 plan.
+Still open: specialized `journal`/`brief`/`clinical`/`casebook`/`accessible`
+packs, automatic `style_rationale` persistence, computed `page_range`,
+evidence-based recall/spacing components, vector figure counts, MCP schema 4,
+and a new OpenCode production run. This is a P0 slice, not the whole v0.9 plan.
 
 ## 1. Executive summary
 
@@ -414,7 +420,7 @@ unverified coverage and no visual evidence for the remaining pages.
 
 | Axis | Current values | Notes |
 |---|---|---|
-| `aesthetic` | `paper`, `clean` | paper stable, clean experimental |
+| `aesthetic` | `paper`, `reader`, `clean` | paper stable, reader spacious/experimental, clean technical/experimental |
 | `structure` | `a-g`, `imrad`, `irac`, `soap`, `formula-sheet`, `literature-matrix`, `lecture-notes`, `executive-brief` | structure packs exist, but domains can make some unusable |
 | `language` | `tr`, `en` | localized labels; no `de/fr`/RTL |
 | `voice` | `academic`, `technical`, `plain`, `legal`, `clinical`, `business` | validated, not injected into prompt or rendering |
@@ -1106,8 +1112,8 @@ style/study-mode driven.
       registered as explicit exceptions with a manifest.
 - [x] Every low-text page has exactly one `visual-audit.json` decision.
 - [x] No high-priority visual target is unresolved.
-- [x] No manual content SVGs remain in PD2/PD3. A future manual SVG
-exception policy is still open (A6).
+- [x] No manual content SVGs remain in PD2/PD3; a future manual SVG
+      exception policy is still open (A6).
 - [ ] `build_guide` reports figures/diagrams/tables and `audit` distinguishes
       raster images from vector figures.
 
@@ -1120,28 +1126,28 @@ exception policy is still open (A6).
 
 ### Layout
 
-- [x] PD2 p16/p20 and PD3 p17 are fixed (no underfilled pages remain).
+- [x] Underfilled body pages are fixed in PD2 and PD3; no underfilled pages remain.
 - [x] `underfilled_pages` is reported by audit and fails in strict mode.
 - [ ] TOC page numbers are machine-checked (bookmarks pass; TOC text is not yet checked).
 
 ### Style
 
-- [ ] `style recommend` returns 2–3 valid candidates with rationale.
+- [x] `style recommend` returns compatible candidates with rationale.
 - [ ] `prepare_guide` does not silently default when the domain is ambiguous.
-- [ ] law/medicine/business have at least one valid style/domain/structure
-      combination.
-- [ ] `paper`, `clean` and at least `journal`/`brief`/`accessible` have
-      previews and compatibility tests.
+- [x] law/medicine/business have at least one valid style/domain/structure
+      combination (reader).
+- [x] `paper`, `reader` and `clean` have previews and compatibility tests.
+- [ ] Specialized `journal`/`brief`/`accessible` packs remain open.
 - [ ] `style_rationale` is recorded in the guide.
 - [ ] `voice`/`study_mode`/`citation` are either implemented or rejected with
       a clear “not implemented” error.
 
 ### Evidence and adaptation
 
-- [ ] `docs/authoring-evidence.md` is linked from the authoring spec and the
+- [x] `docs/authoring-evidence.md` is linked from the authoring spec and the
       plan; every guide component has an evidence basis or is labelled as a
       design convention.
-- [ ] The plan does not claim “scientifically proven”; product claims are tied
+- [x] The plan does not claim “scientifically proven”; product claims are tied
       to the evaluation protocol.
 - [ ] `prepare_guide` returns source, learner and output profiles.
 - [ ] `page_range` is computed; new configs no longer require a fixed
