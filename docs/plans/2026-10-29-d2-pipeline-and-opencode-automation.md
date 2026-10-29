@@ -1,9 +1,11 @@
 # Folisift v0.7 — D2-only diagram pipeline and OpenCode automation
 
-- **Status:** Released in v0.7.3
+- **Status:** Released in v0.7.3; MCP response-shape fix in v0.8.0
 - **Date:** 2026-10-29
 - **Baseline:** `v0.6.2` (105 tests, 12 MCP tools, native diagram compiler)
 - **Release:** `v0.7.3` (107 tests, 13 MCP tools, D2 v0.9.0)
+- **Post-release:** `v0.8.0` conforms MCP array results to object
+  `structuredContent` and bumps the tool schema to 3.
 - **Target:** `v0.7.0`
 - **Decision:** D2 v0.9.0 is the **only** external diagram engine
 - **Related:**
