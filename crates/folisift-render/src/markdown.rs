@@ -693,8 +693,10 @@ impl Renderer {
                         None => caption_typst(&caption),
                     };
                     self.push(&format!(
-                        "#figure(image({}, width: 100%), caption: [{caption}], numbering: none)\n\n",
-                        typst_string(&image.dest)
+                        "#figure(image({}, width: 100%, alt: {}), caption: [{caption}], numbering: none, alt: {})\n\n",
+                        typst_string(&image.dest),
+                        typst_string(&image.alt),
+                        typst_string(&image.alt)
                     ));
                 }
             }
