@@ -6,6 +6,7 @@ table.
 
 | Tag | Date | Build | Commit | PDFium | What changed |
 |---|---|---:|---|---|---|
+| `v0.7.2` | 2026-10-29 | 83 | `a1afffc8519f631df611ac2b755bb5feb9af3b1c` | `chromium/8058` | Actionable diagram status, pinned D2 archive check |
 | `v0.7.1` | 2026-10-29 | 81 | `81a090cf8f4db8ff1b599672f72ff7ebf4ec486c` | `chromium/8058` | D2 manifest/cache hardening, licence-complete archive |
 | `v0.7.0` | 2026-10-29 | 78 | `64b0e2620be05551716c9e1e743785a85b90268e` | `chromium/8058` | D2-only diagram pipeline, diagram MCP tool, OpenCode runbook |
 | `v0.6.2` | 2026-10-29 | 68 | `1fa1a7b2a6dc40c18e6b46ce4460289df6628569` | `chromium/8058` | Tall-figure fitting, synthetic PDF defect fixtures, 24-table parity test |
@@ -20,6 +21,8 @@ table.
 
 ## Notes
 
+- `v0.7.2` reports invalid diagram specs in status and rejects a package whose
+  D2 sidecar is not pinned.
 - `v0.7.1` rejects unknown diagram fields, locks the layout to TALA, hashes
   diagram fonts, requires audited D2 source, and packages the D2 licence.
 - `v0.7.0` makes D2 v0.9.0 the single external diagram engine. D2 runs only in
