@@ -121,6 +121,7 @@ separately.
 - [Authoring](docs/authoring.md)
 - [Authoring specification](docs/authoring-spec.md)
 - [Structure packs](docs/structures.md)
+- [Diagram engine evaluation](docs/diagram-engine-evaluation.md)
 - [Design system](docs/design-system.md)
 - [ADRs](docs/adr/)
 - [Plans](docs/plans/)
