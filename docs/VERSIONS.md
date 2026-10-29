@@ -6,6 +6,7 @@ table.
 
 | Tag | Date | Build | Commit | PDFium | What changed |
 |---|---|---:|---|---|---|
+| `v0.4.1` | 2026-10-29 | 45 | `0107114a232a44d0619dec16c4bf4989cdaec29a` | `chromium/8058` | Accessibility gates, domain profiles, cross-platform CI |
 | `v0.4.0` | 2026-10-29 | 42 | `f14d2562e3a6e2a2b998f9a4c3a60f848ae6bc92` | `chromium/8058` | Schema-3 styles, paper/clean packs, `style` tool, covers metadata, tr/en labels |
 | `v0.3.0` | 2026-10-28 | 40 | `8fba8aebe303e8524d595086ba977ac6904d82de` | `chromium/8058` | 22-page `paper` parity, front/TOC/chapter directives, `prepare_guide`, doctor and layout audit |
 | `v0.2.0` | 2026-10-27 | 22 | `e41c1f8b1e1e5ff84716b6c8ab20dddaf0732f4e` | `chromium/8058` | Chunked source reads/search, source cache, empty-section coverage gate, 10 MCP tools |
