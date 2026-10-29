@@ -220,6 +220,21 @@ coverage report is written to `data/coverage.md`. A passing gate is necessary,
 not sufficient: the G section still needs a human audit of tables, figures,
 examples and low-text pages.
 
+### Visual regression
+
+```bash
+make visual          # compare selected pages against the baseline
+make visual-capture  # accept the current PDF as the new baseline
+```
+
+`visual compare` renders both PDFs with PDFium, writes `diff-NNN.png` images
+under `data/visual/`, and fails when either the mean pixel difference or the
+changed-pixel ratio exceeds the limit. The baseline is a PDF, not a set of
+screenshots, so page size and rendering DPI stay under engine control.
+
+Review the diff images before running `visual-capture`; the tool proves that
+pixels changed, not that the new pixels are better.
+
 ## New guide
 
 ```bash
