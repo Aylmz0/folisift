@@ -11,6 +11,8 @@ use folisift_render::{RenderOptions, render, styles};
 use serde::Serialize;
 use serde_json::json;
 
+mod diagram_cmd;
+
 #[derive(Debug, Parser)]
 #[command(
     name = "folisift",
@@ -112,6 +114,11 @@ enum Command {
         #[arg(long)]
         check: bool,
     },
+    /// Validate, build or inspect D2 diagram assets.
+    Diagram {
+        #[command(subcommand)]
+        command: DiagramCommand,
+    },
     /// Extract draft tables from a native-text PDF.
     Table {
         #[command(subcommand)]
@@ -162,6 +169,40 @@ enum Command {
         /// Crop as normalized fractions: left,top,width,height.
         #[arg(long)]
         crop: Option<String>,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+enum DiagramCommand {
+    /// Validate one or all diagram specs without running D2.
+    Validate {
+        #[arg(long)]
+        guide: String,
+        #[arg(long)]
+        id: Option<String>,
+        #[arg(long)]
+        all: bool,
+    },
+    /// Render one or all diagram specs with D2.
+    Build {
+        #[arg(long)]
+        guide: String,
+        #[arg(long)]
+        id: Option<String>,
+        #[arg(long)]
+        all: bool,
+        #[arg(long)]
+        force: bool,
+    },
+    /// Compare specs, manifests and SVG assets without running D2.
+    Status {
+        #[arg(long)]
+        guide: String,
+    },
+    /// Remove unreferenced generated D2/SVG files.
+    Clean {
+        #[arg(long)]
+        guide: String,
     },
 }
 
@@ -333,6 +374,10 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 json!({"name": "guides", "ok": !guides.is_empty() && invalid_guides == 0, "detail": format!("{} guide(s), {invalid_guides} invalid", guides.len())}),
                 json!({"name": "fonts", "ok": font_count > 0, "detail": format!("{font_count} embedded face(s)")}),
                 json!({"name": "structures", "ok": !folisift_core::structures::packs().is_empty(), "detail": format!("{} pack(s)", folisift_core::structures::packs().len())}),
+                {
+                    let d2 = diagram_cmd::engine_info();
+                    json!({"name": "d2", "ok": d2["ok"], "required": d2["required"], "detail": d2["detail"], "path": d2["path"], "version": d2["version"]})
+                },
             ];
             let ok = checks.iter().all(|check| check["ok"] == true);
             let value = json!({
@@ -754,6 +799,29 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 if fail_on_diff && !report.passed {
                     return Err("visual comparison exceeded the threshold".into());
                 }
+            }
+        },
+        Command::Diagram { command } => match command {
+            DiagramCommand::Validate { guide, id, all } => {
+                let value = diagram_cmd::validate(&workspace, &guide, id.as_deref(), all)?;
+                println!("{}", serde_json::to_string_pretty(&value)?);
+            }
+            DiagramCommand::Build {
+                guide,
+                id,
+                all,
+                force,
+            } => {
+                let value = diagram_cmd::build(&workspace, &guide, id.as_deref(), all, force)?;
+                println!("{}", serde_json::to_string_pretty(&value)?);
+            }
+            DiagramCommand::Status { guide } => {
+                let value = diagram_cmd::status(&workspace, &guide)?;
+                println!("{}", serde_json::to_string_pretty(&value)?);
+            }
+            DiagramCommand::Clean { guide } => {
+                let value = diagram_cmd::clean(&workspace, &guide)?;
+                println!("{}", serde_json::to_string_pretty(&value)?);
             }
         },
         Command::Table { command } => match command {

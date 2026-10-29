@@ -297,8 +297,10 @@ in a note. Explain what the checkmarks/values mean.
 
 ### Figures and diagrams
 
-Redraw with simple SVG or HTML/CSS. Use the paper palette. Label axes, nodes
-and flows. If a figure is decorative, say so and skip it. If a figure is
+Redraw with a typed D2 spec (`diagrams/<id>.json`) and the paper palette.
+Label axes, nodes and flows. Use a manually supplied SVG only for an annotated
+source figure that cannot be expressed as nodes/edges. Raw HTML/CSS is never
+allowed. If a figure is decorative, say so and skip it. If a figure is
 unreadable, list it in G.
 
 ### Code
@@ -380,7 +382,8 @@ Accent colours are for section numbers, rules, labels and small marks only.
   example = top/bottom rule; note = gold left rule. No shadows.
 - Tables: no vertical lines; dark top/bottom rules; light header fill; zebra
   optional and very subtle.
-- Figures: SVG, thin lines, labels in Inter; caption below with figure number.
+- Figures: D2-generated SVG, thin lines, labels in Inter; caption below with
+  figure number, takeaway and provenance.
 - Code: sand background, gold left rule, wrap long lines, no clipping.
 
 ### Print / PDF

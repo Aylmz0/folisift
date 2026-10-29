@@ -15,6 +15,19 @@ rm -rf "$STAGE"
 mkdir -p "$STAGE"
 cp target/release/folisift "$STAGE/"
 cp -R styles domains "$STAGE/"
+mkdir -p "$STAGE/templates"
+cp -R templates/fonts "$STAGE/templates/"
+cp THIRD_PARTY_NOTICES.md "$STAGE/"
+
+D2="${FOLISIFT_D2:-}"
+if [ -z "${D2}" ] && [ -x "target/package/d2-v0.9.0/bin/d2" ]; then
+  D2="target/package/d2-v0.9.0/bin/d2"
+fi
+if [ -n "${D2}" ] && [ -x "${D2}" ]; then
+  cp "${D2}" "$STAGE/d2"
+else
+  echo "warning: D2 not found; archive has no diagram engine (set FOLISIFT_D2 or run scripts/fetch-d2.sh)" >&2
+fi
 
 PDFIUM="${FOLISIFT_PDFIUM_DIR:-target/release/deps}"
 if [ -f "${PDFIUM}/libpdfium.so" ]; then

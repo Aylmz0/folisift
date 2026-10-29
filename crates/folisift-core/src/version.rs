@@ -7,7 +7,7 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const BUILD: &str = env!("FOLISIFT_BUILD");
 
 /// Version of the MCP tool contract. Bumped independently of the binary version.
-pub const MCP_TOOL_SCHEMA_VERSION: u32 = 1;
+pub const MCP_TOOL_SCHEMA_VERSION: u32 = 2;
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 pub struct VersionInfo {

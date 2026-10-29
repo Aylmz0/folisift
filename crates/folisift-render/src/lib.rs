@@ -19,8 +19,8 @@ use typst_layout::PagedDocument;
 
 pub use error::{Error, Result};
 pub use markdown::{
-    Frontmatter, markdown_to_typst, markdown_to_typst_styled, markdown_to_typst_styled_with_table,
-    parse_document,
+    Frontmatter, markdown_to_typst, markdown_to_typst_styled,
+    markdown_to_typst_styled_with_diagrams, markdown_to_typst_styled_with_table, parse_document,
 };
 pub use styles::{LoadedStyle, StylePack, StyleStrings};
 
@@ -81,8 +81,8 @@ pub fn render(content: &str, options: &RenderOptions<'_>) -> Result<Rendered> {
     let loaded = styles::load(styles_root, &profile.aesthetic)?;
     styles::validate_profile(&loaded.pack, &profile)?;
     let strings = styles::strings(styles_root, &loaded.pack.id, &profile.language)?;
-    let diagram_theme = diagram::DiagramTheme::from_tokens(&loaded.tokens, "Inter");
-    let body = diagram::compile_body(&body, options.guide_root, &diagram_theme)?;
+    diagram::ensure_no_inline_diagrams(&body)?;
+    let diagram_assets = diagram::load_assets(options.guide_root)?;
     assets::lint_assets(&body, options.guide_root)?;
     let cache_key = build_cache_key(
         content,
@@ -91,14 +91,20 @@ pub fn render(content: &str, options: &RenderOptions<'_>) -> Result<Rendered> {
         &strings,
         &body,
         options.guide_root,
+        &diagram_assets,
     );
     if let Some(cache_dir) = options.cache_dir
         && let Some(cached) = load_cached(cache_dir, &cache_key)
     {
         return Ok(cached);
     }
-    let body =
-        markdown_to_typst_styled_with_table(&body, &strings.figure, &strings.toc, &strings.table)?;
+    let body = markdown_to_typst_styled_with_diagrams(
+        &body,
+        &strings.figure,
+        &strings.toc,
+        &strings.table,
+        diagram_assets,
+    )?;
     let template = match loaded.pack.layout.as_str() {
         "paper" => PAPER_TEMPLATE,
         "clean" => CLEAN_TEMPLATE,
@@ -193,6 +199,7 @@ fn build_cache_key(
     strings: &StyleStrings,
     body: &str,
     guide_root: &Path,
+    diagrams: &std::collections::HashMap<String, diagram::DiagramAsset>,
 ) -> String {
     let profile = serde_json::to_string(profile).unwrap_or_default();
     let tokens = serde_json::to_string(&loaded.tokens).unwrap_or_default();
@@ -203,9 +210,10 @@ fn build_cache_key(
         _ => String::new(),
     };
     let assets = asset_digest(body, guide_root);
+    let diagrams = diagram_digest(diagrams);
     blake3::hash(
         format!(
-            "{}\n{content}\n{profile}\n{}\n{tokens}\n{strings}\n{template_hash}\n{assets}\n{}",
+            "{}\n{content}\n{profile}\n{}\n{tokens}\n{strings}\n{template_hash}\n{assets}\n{diagrams}\n{}",
             env!("CARGO_PKG_VERSION"),
             loaded.pack.id,
             env!("CARGO_PKG_VERSION"),
@@ -214,6 +222,15 @@ fn build_cache_key(
     )
     .to_hex()
     .to_string()
+}
+
+fn diagram_digest(diagrams: &std::collections::HashMap<String, diagram::DiagramAsset>) -> String {
+    let mut entries = diagrams
+        .iter()
+        .map(|(id, asset)| format!("{id}:{}:{}:{}", asset.path, asset.caption, asset.alt))
+        .collect::<Vec<_>>();
+    entries.sort();
+    entries.join("\n")
 }
 
 fn asset_digest(body: &str, guide_root: &Path) -> String {

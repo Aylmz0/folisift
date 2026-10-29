@@ -457,6 +457,11 @@
     inset: (top: 1.4mm),
   )[
     #set text(size: 7.9pt, style: "italic", fill: muted)
+    #if it.numbering != none [
+      #it.supplement
+      #context it.counter.display(it.numbering)
+      #h(1.5mm)
+    ]
     #it.body
   ]
 

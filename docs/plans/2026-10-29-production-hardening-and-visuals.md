@@ -9,6 +9,10 @@
   `docs/architecture.md`, `docs/authoring.md`, ADR-0005, ADR-0007
 - **Goal:** close every known production gap, and make tables, diagrams and
   SVG figures a first-class, reproducible part of the guide pipeline.
+- **Diagram backend superseded:** the D2-only decision and implementation plan
+  are in `2026-10-29-d2-pipeline-and-opencode-automation.md` and
+  `docs/diagram-engine-evaluation.md`. The gates, tables and visual QA below
+  remain authoritative.
 
 ## 1. Why this plan exists
 
