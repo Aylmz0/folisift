@@ -62,6 +62,17 @@ cargo run -p folisift-cli -- visual compare \
   --pages 1,4,8 --out data/visual --fail-on-diff
 ```
 
+What v0.6.0 adds:
+
+- **Structure packs** — IMRAD, IRAC, SOAP, formula sheet, literature matrix,
+  lecture notes and executive brief; missing required headings fail the build.
+- **Visual contract** — deterministic accessible SVG diagrams, table captions
+  and ids, figure provenance/alt text, no decorative stock images.
+- **Verification** — pixel baselines, bookmark destination checks, content-box
+  and orphan-heading audits, and a 22-page `paper` parity gate.
+- **Safer surfaces** — SVG sanitizer, asset path confinement and bearer auth for
+  non-loopback MCP HTTP.
+
 MCP server (stdio or streamable HTTP):
 
 ```bash
