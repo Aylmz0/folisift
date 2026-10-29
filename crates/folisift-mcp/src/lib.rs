@@ -62,6 +62,8 @@ pub struct RenderPagesParams {
     pub out: Option<String>,
     pub contact_sheet: Option<bool>,
     pub dpi: Option<f32>,
+    /// Crop as normalized fractions: left,top,width,height.
+    pub crop: Option<String>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -157,6 +159,7 @@ impl FolisiftServer {
             "mcp_tool_schema_version": version::MCP_TOOL_SCHEMA_VERSION,
             "guides": guides.len(),
             "source_count": source_count,
+            "structures": folisift_core::structures::summary(),
             "pdfium_version": folisift_parse::pdfium::PDFIUM_VERSION,
             "sidecar_path": folisift_parse::pdfium::sidecar_path().map(|path| path.display().to_string()),
             "cache_dir": self.workspace.root().join("data/cache").display().to_string(),
@@ -357,12 +360,19 @@ impl FolisiftServer {
                 .resolve_write("data/pages")
                 .map_err(|error| error.to_string())?,
         };
+        let crop = params
+            .crop
+            .as_deref()
+            .map(folisift_parse::CropBox::parse)
+            .transpose()
+            .map_err(|error| error.to_string())?;
         let result = render_page_images(
             &source,
             pages,
             &out,
             params.contact_sheet.unwrap_or(false),
             params.dpi,
+            crop,
         )
         .await
         .map_err(|error| error.to_string())?;
@@ -458,7 +468,7 @@ impl FolisiftServer {
                     },
                 )
                 .map_err(|error| error.to_string())?;
-                std::fs::write(&output, &rendered.pdf).map_err(|error| error.to_string())?;
+                write_pdf(&output, &rendered.pdf).map_err(|error| error.to_string())?;
                 Ok(Json(json!({
                     "style": id,
                     "language": language,
@@ -526,7 +536,7 @@ impl FolisiftServer {
         if !was_existing || !guide.content.exists() {
             std::fs::write(
                 &guide.content,
-                skeleton_markdown(&title, &style.language, &inventory),
+                skeleton_markdown(&title, &style.language, &style.structure, &inventory),
             )
             .map_err(|error| error.to_string())?;
         }
@@ -639,7 +649,7 @@ impl FolisiftServer {
                 title: params.title,
                 course: params.course.unwrap_or_default(),
                 sources: sources.clone(),
-                style: folisift_core::StyleProfile::default(),
+                style: style.clone(),
             },
         )
         .map_err(|error| error.to_string())?;
@@ -647,7 +657,7 @@ impl FolisiftServer {
         let inventory = analyze_sources(&sources, folisift_parse::LOW_TEXT_THRESHOLD)
             .await
             .map_err(|error| error.to_string())?;
-        let body = skeleton_markdown(&title, &style.language, &inventory);
+        let body = skeleton_markdown(&title, &style.language, &style.structure, &inventory);
         let content_path = guide.dir.join("guide.md");
         std::fs::write(&content_path, body).map_err(|error| error.to_string())?;
         Ok(Json(json!({
@@ -715,7 +725,7 @@ impl FolisiftServer {
             },
         )
         .map_err(|error| error.to_string())?;
-        std::fs::write(&output_path, &rendered.pdf).map_err(|error| error.to_string())?;
+        write_pdf(&output_path, &rendered.pdf).map_err(|error| error.to_string())?;
 
         let mut coverage = None;
         if params.check.unwrap_or(true) {
@@ -991,7 +1001,12 @@ fn build_style(
     Ok(style)
 }
 
-fn skeleton_markdown(title: &str, language: &str, inventory: &Inventory) -> String {
+fn skeleton_markdown(
+    title: &str,
+    language: &str,
+    structure: &str,
+    inventory: &Inventory,
+) -> String {
     let mut body = format!(
         "---\ntitle: {title:?}\nrunning: {title:?}\nlanguage: {language:?}\nsources: []\n---\n\n"
     );
@@ -1035,6 +1050,22 @@ fn skeleton_markdown(title: &str, language: &str, inventory: &Inventory) -> Stri
             }
         }
     }
+    let required = folisift_core::structures::scaffold_sections(structure, language);
+    if !required.is_empty() {
+        if language == "en" {
+            body.push_str("::: chapter part=\"C · STRUCTURE\" side=\"FRAMEWORK\" kicker=\"C\" title=\"Structure checklist\" toc=\"Structure checklist\" running=\"Structure checklist\" subs=false\n:::\n\n");
+        } else {
+            body.push_str("::: chapter part=\"C · YAPI\" side=\"ÇERÇEVE\" kicker=\"C\" title=\"Yapı denetim listesi\" toc=\"Yapı denetim listesi\" running=\"Yapı denetim listesi\" subs=false\n:::\n\n");
+        }
+        for (section, hint) in required {
+            let hint = if language == "en" {
+                "Source content goes here.".to_string()
+            } else {
+                hint
+            };
+            body.push_str(&format!("## {section}\n\n{hint}\n\n"));
+        }
+    }
     body.push_str("<!-- audit -->\n");
     if language == "en" {
         body.push_str("::: chapter part=\"AUDIT\" side=\"QUALITY\" kicker=\"AUDIT\" title=\"Coverage audit\" toc=\"Coverage audit\" running=\"Coverage audit\" subs=false\n:::\n\n## Coverage\n\nSource coverage and limitations will be reported here.\n");
@@ -1061,16 +1092,46 @@ pub async fn serve(root: impl AsRef<Path>) -> Result<(), Box<dyn std::error::Err
     Ok(())
 }
 
+fn write_pdf(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    std::fs::write(path, bytes)
+}
+
+fn is_loopback(address: &str) -> bool {
+    if let Ok(address) = address.parse::<std::net::SocketAddr>() {
+        return address.ip().is_loopback();
+    }
+    let host = address
+        .rsplit_once(':')
+        .map_or(address, |(host, _port)| host)
+        .trim_matches(['[', ']']);
+    host.eq_ignore_ascii_case("localhost")
+}
+
 /// Serve the same MCP server over streamable HTTP at `/mcp`.
 pub async fn serve_http(
     root: impl AsRef<Path>,
     address: &str,
+    token: Option<&str>,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    use axum::body::Body;
+    use axum::http::{Request, StatusCode};
+    use axum::middleware::{self, Next};
+    use axum::response::IntoResponse;
     use rmcp::transport::streamable_http_server::session::local::LocalSessionManager;
     use rmcp::transport::streamable_http_server::{
         StreamableHttpServerConfig, StreamableHttpService,
     };
 
+    let token = token.map(str::trim).filter(|value| !value.is_empty());
+    if !is_loopback(address) && token.is_none() {
+        return Err(
+            "refusing a non-loopback HTTP bind without a token; set --http-token or              FOLISIFT_HTTP_TOKEN (or bind 127.0.0.1)"
+                .into(),
+        );
+    }
     let root = root.as_ref().to_path_buf();
     let service = StreamableHttpService::new(
         move || {
@@ -1080,8 +1141,47 @@ pub async fn serve_http(
         StreamableHttpServerConfig::default(),
     );
     let app = axum::Router::new().nest_service("/mcp", service);
+    let app = match token {
+        Some(token) => {
+            let expected = format!("Bearer {token}");
+            app.layer(middleware::from_fn(
+                move |request: Request<Body>, next: Next| {
+                    let expected = expected.clone();
+                    async move {
+                        let authorized = request
+                            .headers()
+                            .get("authorization")
+                            .and_then(|value| value.to_str().ok())
+                            .is_some_and(|value| value == expected);
+                        if !authorized {
+                            return StatusCode::UNAUTHORIZED.into_response();
+                        }
+                        next.run(request).await
+                    }
+                },
+            ))
+        }
+        None => app,
+    };
     let listener = tokio::net::TcpListener::bind(address).await?;
     eprintln!("folisift MCP listening on http://{address}/mcp");
+    if token.is_some() {
+        eprintln!("bearer token required");
+    }
     axum::serve(listener, app).await?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_loopback;
+
+    #[test]
+    fn detects_loopback_binds() {
+        assert!(is_loopback("127.0.0.1:8000"));
+        assert!(is_loopback("[::1]:8000"));
+        assert!(is_loopback("localhost:8000"));
+        assert!(!is_loopback("0.0.0.0:8000"));
+        assert!(!is_loopback("192.168.1.10:8000"));
+    }
 }

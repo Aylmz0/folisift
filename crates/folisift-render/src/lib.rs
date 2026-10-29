@@ -3,9 +3,11 @@
 //! The content format is deliberately small: CommonMark, YAML frontmatter and
 //! four block directives. Guides never contain raw Typst.
 
+pub mod assets;
 pub mod diagram;
 pub mod domains;
 pub mod error;
+pub mod localization;
 pub mod markdown;
 pub mod styles;
 pub mod world;
@@ -72,18 +74,29 @@ pub fn render(content: &str, options: &RenderOptions<'_>) -> Result<Rendered> {
     let (frontmatter, body) = parse_document(content)?;
     let profile = options.style.cloned().unwrap_or_default();
     profile.validate().map_err(Error::StyleConfig)?;
+    folisift_core::structures::validate(&profile.structure, &profile.language, &body)
+        .map_err(Error::Structure)?;
+    localization::lint(&body, &profile.language)?;
     let styles_root = options.styles_root.unwrap_or(Path::new(""));
     let loaded = styles::load(styles_root, &profile.aesthetic)?;
     styles::validate_profile(&loaded.pack, &profile)?;
     let strings = styles::strings(styles_root, &loaded.pack.id, &profile.language)?;
-    let cache_key = build_cache_key(content, &profile, &loaded, &strings);
+    let diagram_theme = diagram::DiagramTheme::from_tokens(&loaded.tokens, "Inter");
+    let body = diagram::compile_body(&body, options.guide_root, &diagram_theme)?;
+    assets::lint_assets(&body, options.guide_root)?;
+    let cache_key = build_cache_key(
+        content,
+        &profile,
+        &loaded,
+        &strings,
+        &body,
+        options.guide_root,
+    );
     if let Some(cache_dir) = options.cache_dir
         && let Some(cached) = load_cached(cache_dir, &cache_key)
     {
         return Ok(cached);
     }
-    let diagram_theme = diagram::DiagramTheme::from_tokens(&loaded.tokens, "Inter");
-    let body = diagram::compile_body(&body, options.guide_root, &diagram_theme)?;
     let body =
         markdown_to_typst_styled_with_table(&body, &strings.figure, &strings.toc, &strings.table)?;
     let template = match loaded.pack.layout.as_str() {
@@ -178,6 +191,8 @@ fn build_cache_key(
     profile: &folisift_core::StyleProfile,
     loaded: &LoadedStyle,
     strings: &StyleStrings,
+    body: &str,
+    guide_root: &Path,
 ) -> String {
     let profile = serde_json::to_string(profile).unwrap_or_default();
     let tokens = serde_json::to_string(&loaded.tokens).unwrap_or_default();
@@ -187,9 +202,10 @@ fn build_cache_key(
         "clean" => blake3::hash(CLEAN_TEMPLATE.as_bytes()).to_hex().to_string(),
         _ => String::new(),
     };
+    let assets = asset_digest(body, guide_root);
     blake3::hash(
         format!(
-            "{}\n{content}\n{profile}\n{}\n{tokens}\n{strings}\n{template_hash}\n{}",
+            "{}\n{content}\n{profile}\n{}\n{tokens}\n{strings}\n{template_hash}\n{assets}\n{}",
             env!("CARGO_PKG_VERSION"),
             loaded.pack.id,
             env!("CARGO_PKG_VERSION"),
@@ -198,6 +214,35 @@ fn build_cache_key(
     )
     .to_hex()
     .to_string()
+}
+
+fn asset_digest(body: &str, guide_root: &Path) -> String {
+    let mut entries = Vec::new();
+    for line in body.lines() {
+        let mut rest = line;
+        while let Some(start) = rest.find("![") {
+            let after = &rest[start + 2..];
+            let Some(close) = after.find("](") else {
+                break;
+            };
+            let after_dest = &after[close + 2..];
+            let Some(end) = after_dest.find(')') else {
+                break;
+            };
+            let dest = after_dest[..end].trim();
+            if !dest.starts_with("http://") && !dest.starts_with("https://") {
+                let path = guide_root.join(dest);
+                let digest = std::fs::read(&path)
+                    .map(|bytes| blake3::hash(&bytes).to_hex().to_string())
+                    .unwrap_or_else(|_| "missing".to_string());
+                entries.push(format!("{dest}:{digest}"));
+            }
+            rest = &after_dest[end + 1..];
+        }
+    }
+    entries.sort();
+    entries.dedup();
+    entries.join("\n")
 }
 
 fn cache_paths(cache_dir: &Path, key: &str) -> (std::path::PathBuf, std::path::PathBuf) {

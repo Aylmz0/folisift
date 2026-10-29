@@ -1,0 +1,10 @@
+{
+  "id": "lecture-notes",
+  "title": "Lecture notes",
+  "sections": [
+    { "id": "goals", "tr": "Öğrenme hedefleri", "en": "Learning goals", "hint": "Bu bölüm sonunda bilinmesi gerekenler." },
+    { "id": "concepts", "tr": "Ana kavramlar", "en": "Key concepts", "hint": "Tanım, örnek ve karşıtlık." },
+    { "id": "examples", "tr": "Örnekler", "en": "Examples", "hint": "Çözümlü örnek ve yaygın hata." },
+    { "id": "summary", "tr": "Özet", "en": "Summary", "hint": "Sınav için kısa özet ve kontrol listesi." }
+  ]
+}

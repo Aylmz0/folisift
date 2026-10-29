@@ -5,12 +5,36 @@
   "status": "experimental",
   "layout": "clean",
   "aesthetic": "clean",
-  "supported_structures": ["imrad", "lecture-notes", "formula-sheet", "literature-matrix", "a-g"],
-  "supported_languages": ["tr", "en"],
-  "supported_domains": ["general", "cs", "math", "business"],
-  "supported_voices": ["technical", "academic", "plain"],
+  "supported_structures": [
+    "a-g",
+    "imrad",
+    "irac",
+    "soap",
+    "formula-sheet",
+    "literature-matrix",
+    "lecture-notes",
+    "executive-brief"
+  ],
+  "supported_languages": [
+    "tr",
+    "en"
+  ],
+  "supported_domains": [
+    "general",
+    "cs",
+    "math",
+    "business"
+  ],
+  "supported_voices": [
+    "technical",
+    "academic",
+    "plain"
+  ],
   "tokens": "tokens.json",
-  "strings": ["tr", "en"],
+  "strings": [
+    "tr",
+    "en"
+  ],
   "engine_min": "0.4.0",
   "page_target": "18-26",
   "preview": "preview.md"

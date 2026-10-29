@@ -24,6 +24,26 @@ sha256sum -c folisift-v0.5.0-linux-x86_64.tar.gz.sha256
 Archives are **not code-signed**. Verify the published SHA-256 before use;
 signing certificates are not part of the current release process.
 
+Build the same archive locally with:
+
+```bash
+make package
+# target/package/folisift-v<version>-linux-<arch>.tar.gz
+# target/package/folisift-v<version>-linux-<arch>.tar.gz.sha256
+```
+
+## Platform status
+
+| Platform | Binary | PDFium sidecar | Status |
+|---|---|---|---|
+| Linux x86_64 | archive | `libpdfium.so` | released |
+| macOS arm64/x86_64 | source build | `libpdfium.dylib` | no archive yet |
+| Windows x86_64 | source build | `pdfium.dll` | no archive yet |
+
+The engine and CLI are platform-neutral; only the PDFium sidecar and archive
+smoke test differ. A macOS/Windows archive is accepted only after
+`folisift doctor`, a fixture build and `folisift audit` pass on that platform.
+
 ## MCP
 
 stdio (default):
@@ -39,9 +59,17 @@ folisift mcp --root /path/to/workspace --http 127.0.0.1:8000
 # endpoint: http://127.0.0.1:8000/mcp
 ```
 
+Non-loopback binds are refused unless a bearer token is supplied:
+
+```bash
+export FOLISIFT_HTTP_TOKEN="$(head -c 32 /dev/urandom | base64)"
+folisift mcp --root /path/to/workspace --http 0.0.0.0:8000
+# Every request must include: Authorization: Bearer $FOLISIFT_HTTP_TOKEN
+```
+
 OpenCode V2 configuration uses `mcp.servers`; see the project docs for the
-local command example. Do not expose the HTTP endpoint to an untrusted network:
-v0.5 has no authentication or multi-user isolation.
+local command example. Prefer loopback. The token is a single shared bearer
+secret: there is no user account, rate limit or multi-user isolation yet.
 
 ## Sources and guides
 

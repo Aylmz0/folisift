@@ -1,0 +1,10 @@
+{
+  "id": "imrad",
+  "title": "IMRAD research report",
+  "sections": [
+    { "id": "introduction", "tr": "Giriş", "en": "Introduction", "hint": "Araştırma sorusu, bağlam ve boşluk." },
+    { "id": "methods", "tr": "Yöntem", "en": "Methods", "hint": "Veri, örneklem, ölçüm ve analiz." },
+    { "id": "results", "tr": "Bulgular", "en": "Results", "hint": "Kanıt, tablo ve şekiller; yorum yok." },
+    { "id": "discussion", "tr": "Tartışma", "en": "Discussion", "hint": "Yorum, sınırlılık ve sonuç." }
+  ]
+}

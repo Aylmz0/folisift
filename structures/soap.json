@@ -1,0 +1,10 @@
+{
+  "id": "soap",
+  "title": "SOAP clinical note",
+  "sections": [
+    { "id": "subjective", "tr": "Öznel", "en": "Subjective", "hint": "Hasta öyküsü ve yakınma." },
+    { "id": "objective", "tr": "Nesnel", "en": "Objective", "hint": "Muayene, laboratuvar ve görüntüleme." },
+    { "id": "assessment", "tr": "Değerlendirme", "en": "Assessment", "hint": "Ayırıcı tanı ve klinik değerlendirme." },
+    { "id": "plan", "tr": "Plan", "en": "Plan", "hint": "Tedavi, izlem ve hasta eğitimi." }
+  ]
+}

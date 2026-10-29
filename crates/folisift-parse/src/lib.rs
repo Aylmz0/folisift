@@ -24,6 +24,7 @@ pub use error::{Error, Result};
 pub use inventory::{Heading, Inventory, PageRow, SourceInventory, Totals};
 pub use parser::{LiteparseParser, SourceParser, analyze_source, analyze_sources, parse_page_list};
 pub use pdfium::{PDFIUM_DIR_ENV, init as init_pdfium};
+pub use render::CropBox;
 pub use render::{PageImage, render_pages};
 pub use source_cache::{PageText, SourceCache, SourceText};
 pub use source_read::{

@@ -70,6 +70,7 @@ struct RenderConfig {
     table_kind: Option<String>,
     table_caption: Option<String>,
     table_source: Option<String>,
+    table_id: Option<String>,
     figure_label: String,
     toc_label: String,
     table_label: String,
@@ -82,6 +83,7 @@ impl Default for RenderConfig {
             table_kind: None,
             table_caption: None,
             table_source: None,
+            table_id: None,
             figure_label: "Şekil".to_string(),
             toc_label: "İÇİNDEKİLER".to_string(),
             table_label: "Tablo".to_string(),
@@ -268,6 +270,10 @@ fn markdown_to_typst_with(markdown: &str, config: &RenderConfig) -> Result<Strin
                     table_config.table_kind = attr(&attrs, "kind").map(ToString::to_string);
                     table_config.table_caption = attr(&attrs, "caption").map(ToString::to_string);
                     table_config.table_source = attr(&attrs, "source").map(ToString::to_string);
+                    table_config.table_id = match attr(&attrs, "id") {
+                        Some(id) => Some(validate_table_id(id, start_line)?),
+                        None => None,
+                    };
                     out.push_str(&markdown_to_typst_with(&inner_markdown, &table_config)?);
                 }
                 other => {
@@ -341,6 +347,12 @@ fn markdown_table_columns(markdown: &str) -> usize {
 }
 
 fn parse_widths(value: &str, line: usize) -> Result<Vec<String>> {
+    if value.trim().is_empty() {
+        return Err(Error::Markdown {
+            line,
+            message: "table widths is empty".to_string(),
+        });
+    }
     let widths = value
         .split([',', ' '])
         .map(str::trim)
@@ -363,6 +375,16 @@ fn parse_widths(value: &str, line: usize) -> Result<Vec<String>> {
         return Err(Error::Markdown {
             line,
             message: "table widths is empty".to_string(),
+        });
+    }
+    let sum = widths
+        .iter()
+        .filter_map(|width| width.trim_end_matches('%').parse::<f32>().ok())
+        .sum::<f32>();
+    if !(99.0..=101.0).contains(&sum) {
+        return Err(Error::Markdown {
+            line,
+            message: format!("table widths must sum to 100%, got {sum}%"),
         });
     }
     Ok(widths)
@@ -522,6 +544,7 @@ struct Renderer {
     table_kind: Option<String>,
     table_caption: Option<String>,
     table_source: Option<String>,
+    table_id: Option<String>,
     figure_label: String,
     table_label: String,
 }
@@ -540,6 +563,7 @@ impl Renderer {
             table_kind: config.table_kind.clone(),
             table_caption: config.table_caption.clone(),
             table_source: config.table_source.clone(),
+            table_id: config.table_id.clone(),
             figure_label: config.figure_label.clone(),
             table_label: config.table_label.clone(),
         }
@@ -792,6 +816,9 @@ impl Renderer {
         let facts = self.table_kind.as_deref() == Some("facts");
         if facts {
             self.out.push_str(&facts_typst(&rows));
+            if let Some(id) = &self.table_id {
+                self.out.push_str(&format!(" <{id}>"));
+            }
         } else {
             self.out.push_str(&table_typst(
                 &header,
@@ -800,6 +827,7 @@ impl Renderer {
                 self.table_caption.as_deref(),
                 self.table_source.as_deref(),
                 &self.table_label,
+                self.table_id.as_deref(),
             ));
         }
         self.out.push_str("\n\n");
@@ -846,6 +874,7 @@ fn table_typst(
     caption: Option<&str>,
     source: Option<&str>,
     table_label: &str,
+    id: Option<&str>,
 ) -> String {
     let columns = header
         .len()
@@ -873,7 +902,7 @@ fn table_typst(
         .collect();
     out.push_str(&format!("  rows: {},\n", array_literal(row_literals)));
     out.push(')');
-    if caption.is_some() || source.is_some() {
+    let body = if caption.is_some() || source.is_some() {
         let caption = caption.map_or_else(|| "none".to_string(), typst_string);
         let source = source.map_or_else(|| "none".to_string(), typst_string);
         format!(
@@ -883,7 +912,25 @@ fn table_typst(
         )
     } else {
         out
+    };
+    match id {
+        Some(id) => format!("{body} <{id}>"),
+        None => body,
     }
+}
+
+fn validate_table_id(id: &str, line: usize) -> Result<String> {
+    if id.is_empty()
+        || !id.chars().all(|character| {
+            character.is_ascii_alphanumeric() || matches!(character, '-' | '_' | ':')
+        })
+    {
+        return Err(Error::Markdown {
+            line,
+            message: format!("table id must use letters, digits, '-', '_' or ':': {id:?}"),
+        });
+    }
+    Ok(id.to_string())
 }
 
 fn facts_typst(rows: &[Vec<String>]) -> String {
@@ -954,6 +1001,31 @@ mod tests {
         let typst = markdown_to_typst("| A | B |\n|---|---|\n| 1 | 2 |\n").expect("typst");
         assert!(typst.contains("#data_table("));
         assert!(typst.contains("header:"));
+    }
+
+    #[test]
+    fn renders_a_table_label() {
+        let typst = markdown_to_typst(
+            "::: table caption=\"Derleme\" source=\"PD0, s. 106\" id=\"tab-derleme\"\n| A | B |\n|---|---|\n| 1 | 2 |\n:::\n",
+        )
+        .expect("typst");
+        assert!(typst.contains("<tab-derleme>"));
+    }
+
+    #[test]
+    fn rejects_an_unsafe_table_id() {
+        let error =
+            markdown_to_typst("::: table id=\"bad id\"\n| A | B |\n|---|---|\n| 1 | 2 |\n:::\n")
+                .expect_err("must reject");
+        assert!(error.to_string().contains("table id"));
+    }
+
+    #[test]
+    fn rejects_table_widths_that_do_not_sum_to_100() {
+        let error =
+            markdown_to_typst("::: table widths=\"20,30\"\n| A | B |\n|---|---|\n| 1 | 2 |\n:::\n")
+                .expect_err("must reject");
+        assert!(error.to_string().contains("sum to 100"));
     }
 
     #[test]

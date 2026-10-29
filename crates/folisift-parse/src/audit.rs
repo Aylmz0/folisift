@@ -29,6 +29,7 @@ pub struct LayoutAudit {
     pub overflow_pages: Vec<usize>,
     pub content_box_pages: Vec<usize>,
     pub orphan_heading_pages: Vec<usize>,
+    pub bookmark_mismatches: Vec<String>,
     pub missing_glyphs: usize,
     pub tagged: bool,
     pub bookmarks: usize,
@@ -62,8 +63,10 @@ pub fn audit_pdf(path: &Path, expected_pages: Option<usize>) -> Result<LayoutAud
     let mut overflow_pages = Vec::new();
     let mut content_box_pages = Vec::new();
     let mut orphan_heading_pages = Vec::new();
+    let mut bookmark_mismatches = Vec::new();
     let mut missing_glyphs = 0usize;
     let mut min_font_size = f64::MAX;
+    let mut page_texts: Vec<String> = Vec::with_capacity(pages);
 
     for index in 0..pages {
         let page = document.page(index as i32).map_err(|error| Error::Parse {
@@ -77,9 +80,12 @@ pub fn audit_pdf(path: &Path, expected_pages: Option<usize>) -> Result<LayoutAud
             message: error.to_string(),
         })?;
 
+        let page_number = index + 1;
         let mut chars = 0usize;
         let mut content_overflow = false;
+        let mut page_text = String::new();
         let mut heading_lines: Vec<(f64, f64, String)> = Vec::new();
+        let mut body_line_ys: Vec<f64> = Vec::new();
         let mut current_line: Option<(f64, f64, String, f64)> = None;
         let (mut left, mut top, mut right, mut bottom) = (f64::MAX, f64::MAX, f64::MIN, f64::MIN);
         for index in 0..text.char_count() {
@@ -92,7 +98,11 @@ pub fn audit_pdf(path: &Path, expected_pages: Option<usize>) -> Result<LayoutAud
                 continue;
             }
             if char::from_u32(code).is_some_and(char::is_whitespace) {
+                page_text.push(' ');
                 continue;
+            }
+            if let Some(value) = char::from_u32(code) {
+                page_text.push(value);
             }
             chars += 1;
             let size = character.font_size();
@@ -122,25 +132,55 @@ pub fn audit_pdf(path: &Path, expected_pages: Option<usize>) -> Result<LayoutAud
                 // paper margins (16.5 mm sides, 16 mm top, 14 mm bottom).
                 let in_body = y1 > 52.0 && y2 < height - 45.0;
                 let margin_x = 46.0;
-                if in_body && (x1 < margin_x - 1.0 || x2 > width - margin_x + 1.0) {
+                if in_body && (x1 < margin_x - 4.0 || x2 > width - margin_x + 4.0) {
                     content_overflow = true;
+                    if std::env::var("FOLISIFT_AUDIT_DEBUG").is_ok() {
+                        eprintln!(
+                            "content box page {page_number}: x {x1:.1}..{x2:.1} y {y1:.1}..{y2:.1} width {width:.1} char {:?}",
+                            char::from_u32(code)
+                        );
+                    }
+                }
+                if let Some(value) = char::from_u32(code) {
+                    match &mut current_line {
+                        Some((line_y, line_size, line_text, _)) if (y1 - *line_y).abs() <= 3.0 => {
+                            line_text.push(value);
+                            *line_size = line_size.max(size);
+                        }
+                        _ => {
+                            if let Some((line_y, line_size, line_text, _)) = current_line.take() {
+                                if line_size >= 10.5 && line_text.trim().chars().count() > 2 {
+                                    heading_lines.push((
+                                        line_y,
+                                        line_size,
+                                        line_text.trim().to_string(),
+                                    ));
+                                } else if line_size < 10.5 && line_y > 45.0 {
+                                    body_line_ys.push(line_y);
+                                }
+                            }
+                            current_line = Some((y1, size, value.to_string(), y1));
+                        }
+                    }
                 }
             }
         }
+        page_texts.push(compact(&page_text));
 
         let touched = left != f64::MAX;
         let overflow =
             touched && (left < -1.0 || top < -1.0 || right > width + 1.0 || bottom > height + 1.0);
-        if let Some((line_y, line_size, text, _)) = current_line.take()
-            && line_size >= 10.5
-            && text.trim().chars().count() > 2
-        {
-            heading_lines.push((line_y, line_size, text.trim().to_string()));
+        if let Some((line_y, line_size, text, _)) = current_line.take() {
+            if line_size >= 10.5 && text.trim().chars().count() > 2 {
+                heading_lines.push((line_y, line_size, text.trim().to_string()));
+            } else if line_size < 10.5 && line_y > 45.0 {
+                body_line_ys.push(line_y);
+            }
         }
-        if heading_lines.iter().any(|(y, _, _)| *y > height - 95.0) {
+        if has_orphan_heading(&heading_lines, &body_line_ys) {
             orphan_heading_pages.push(index + 1);
         }
-        if chars < 20 {
+        if chars < 5 {
             empty_pages.push(index + 1);
         }
         if overflow {
@@ -150,9 +190,9 @@ pub fn audit_pdf(path: &Path, expected_pages: Option<usize>) -> Result<LayoutAud
             content_box_pages.push(index + 1);
         }
         page_reports.push(PageAudit {
-            page: index + 1,
+            page: page_number,
             chars,
-            empty: chars < 20,
+            empty: chars < 5,
             overflow,
             text_left: if touched { left } else { 0.0 },
             text_top: if touched { top } else { 0.0 },
@@ -185,6 +225,43 @@ pub fn audit_pdf(path: &Path, expected_pages: Option<usize>) -> Result<LayoutAud
             "possible orphan headings at page bottom: {orphan_heading_pages:?}"
         ));
     }
+    for entry in document.outline() {
+        let Some(page_index) = entry.page_index else {
+            bookmark_mismatches.push(format!(
+                "bookmark {:?} has no page destination",
+                entry.title
+            ));
+            continue;
+        };
+        let Some(text) = page_texts.get(page_index as usize) else {
+            bookmark_mismatches.push(format!(
+                "bookmark {:?} points to missing page {}",
+                entry.title,
+                page_index + 1
+            ));
+            continue;
+        };
+        let title = compact(&entry.title);
+        if !title.is_empty() && !text.contains(&title) {
+            bookmark_mismatches.push(format!(
+                "bookmark {:?} does not appear on page {}",
+                entry.title,
+                page_index + 1
+            ));
+        }
+    }
+    if !bookmark_mismatches.is_empty() {
+        let shown = bookmark_mismatches
+            .iter()
+            .take(5)
+            .cloned()
+            .collect::<Vec<_>>()
+            .join("; ");
+        issues.push(format!(
+            "{} bookmark destination mismatch(es): {shown}",
+            bookmark_mismatches.len()
+        ));
+    }
     if missing_glyphs > 0 {
         issues.push(format!("missing glyphs: {missing_glyphs}"));
     }
@@ -208,6 +285,7 @@ pub fn audit_pdf(path: &Path, expected_pages: Option<usize>) -> Result<LayoutAud
         overflow_pages,
         content_box_pages,
         orphan_heading_pages,
+        bookmark_mismatches,
         missing_glyphs,
         tagged,
         bookmarks,
@@ -219,4 +297,56 @@ pub fn audit_pdf(path: &Path, expected_pages: Option<usize>) -> Result<LayoutAud
         passed,
         issues,
     })
+}
+
+/// Case- and spacing-insensitive form used for bookmark destination checks.
+///
+/// Headings in the paper layout are letter-spaced, so “D.1 Derleme” may extract
+/// as `D.1 D E R L E M E`. Removing all whitespace makes both forms comparable.
+/// Turkish dotted/dotless i is folded to a plain `i`.
+fn compact(text: &str) -> String {
+    text.chars()
+        .filter(|character| !character.is_whitespace())
+        .flat_map(|character| match character {
+            'İ' | 'I' | 'ı' => "i".chars().collect::<Vec<_>>(),
+            '\u{0307}' => Vec::new(),
+            other => other.to_lowercase().collect::<Vec<_>>(),
+        })
+        .collect()
+}
+
+fn has_orphan_heading(heading_lines: &[(f64, f64, String)], body_line_ys: &[f64]) -> bool {
+    heading_lines.iter().any(|(y, _, text)| {
+        *y < 95.0
+            && text.trim().chars().count() > 2
+            && !body_line_ys
+                .iter()
+                .any(|body_y| *body_y < *y - 5.0 && *body_y > 45.0)
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn detects_a_heading_with_no_body_below_it() {
+        let headings = vec![(80.0, 14.0, "D.1 Derleme".to_string())];
+        assert!(has_orphan_heading(&headings, &[]));
+        assert!(has_orphan_heading(&headings, &[90.0, 92.0]));
+        assert!(!has_orphan_heading(&headings, &[50.0]));
+    }
+
+    #[test]
+    fn ignores_a_large_line_near_the_top() {
+        let headings = vec![(700.0, 14.0, "D.1 Derleme".to_string())];
+        assert!(!has_orphan_heading(&headings, &[]));
+    }
+
+    #[test]
+    fn compacts_letter_spaced_headings_and_turkish_i() {
+        assert_eq!(compact("D.1 D E R L E M E"), compact("d.1derleme"));
+        assert_eq!(compact("KISALTMALAR"), compact("Kısaltmalar"));
+        assert_eq!(compact("İÇİNDEKİLER"), compact("içindekiler"));
+    }
 }

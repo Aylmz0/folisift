@@ -1,0 +1,10 @@
+{
+  "id": "formula-sheet",
+  "title": "Formula sheet",
+  "sections": [
+    { "id": "symbols", "tr": "Semboller", "en": "Symbols", "hint": "Sembol, anlam ve birim tablosu." },
+    { "id": "formulas", "tr": "Formüller", "en": "Formulas", "hint": "Koşul ve geçerlilik sınırıyla formüller." },
+    { "id": "units", "tr": "Birimler", "en": "Units", "hint": "Birim dönüşümleri ve tipik değerler." },
+    { "id": "pitfalls", "tr": "Tuzaklar", "en": "Pitfalls", "hint": "Sık yapılan hatalar ve sınav uyarıları." }
+  ]
+}
