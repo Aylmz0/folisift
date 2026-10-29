@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-29T20:49:56+00:00",
+  "generated_at": "2026-10-29T21:39:07+00:00",
   "low_text_threshold": 120,
   "sources": [
     {
@@ -86,33 +86,7 @@
           "page": 115
         }
       ],
-      "sections": [
-        {
-          "number": "0.1",
-          "title": "Giriş ve Amaçlar",
-          "page": 2
-        },
-        {
-          "number": "0.2",
-          "title": "Programlama Dili Nedir?",
-          "page": 2
-        },
-        {
-          "number": "0.3",
-          "title": "Programlama Dilleri Düzeyleri",
-          "page": 2
-        },
-        {
-          "number": "0.4",
-          "title": "Dil Çevrimi",
-          "page": 2
-        },
-        {
-          "number": "0.5",
-          "title": "Programlama Dillerinin Yazılım Yaşam Döngüsündeki Yeri",
-          "page": 2
-        }
-      ],
+      "sections": [],
       "page_map": [
         {
           "page": 1,
@@ -929,42 +903,50 @@
         {
           "number": "1.1",
           "title": "Programlama Dilleri Kavramlarını Öğrenmenin Nedenleri",
-          "page": 2
+          "page": 0,
+          "origin": "toc"
         },
         {
           "number": "1.2",
           "title": "Programlama Alanları",
-          "page": 2
+          "page": 0,
+          "origin": "toc"
         },
         {
           "number": "1.3",
           "title": "Dil Değerlendirme Kriterleri",
-          "page": 2
+          "page": 0,
+          "origin": "toc"
         },
         {
           "number": "1.4",
           "title": "Dil Tasarımını Etkileyen Faktörler",
-          "page": 2
+          "page": 0,
+          "origin": "toc"
         },
         {
           "number": "1.5",
           "title": "Dil Kategorileri",
-          "page": 2
+          "page": 0,
+          "origin": "toc"
         },
         {
           "number": "1.6",
           "title": "Dil Tasarımında Verilen Ödünler (Trade-Offs)",
-          "page": 2
+          "page": 0,
+          "origin": "toc"
         },
         {
           "number": "1.7",
           "title": "İmplementasyon Metotları",
-          "page": 2
+          "page": 0,
+          "origin": "toc"
         },
         {
           "number": "1.8",
           "title": "Programlama Platformları (Environments)",
-          "page": 2
+          "page": 0,
+          "origin": "toc"
         }
       ],
       "page_map": [

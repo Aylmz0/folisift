@@ -1106,7 +1106,8 @@ style/study-mode driven.
       registered as explicit exceptions with a manifest.
 - [x] Every low-text page has exactly one `visual-audit.json` decision.
 - [x] No high-priority visual target is unresolved.
-- [x] Manual SVGs have a manifest/exception record and title/desc/alt/source.
+- [x] No manual content SVGs remain in PD2/PD3. A future manual SVG
+exception policy is still open (A6).
 - [ ] `build_guide` reports figures/diagrams/tables and `audit` distinguishes
       raster images from vector figures.
 
@@ -1119,9 +1120,9 @@ style/study-mode driven.
 
 ### Layout
 
-- [x] PD2 p16/p20 and PD3 p17 are either fixed or explicitly justified.
+- [x] PD2 p16/p20 and PD3 p17 are fixed (no underfilled pages remain).
 - [x] `underfilled_pages` is reported by audit and fails in strict mode.
-- [x] TOC page numbers and bookmarks still match after reflow.
+- [ ] TOC page numbers are machine-checked (bookmarks pass; TOC text is not yet checked).
 
 ### Style
 

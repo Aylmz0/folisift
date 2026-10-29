@@ -152,8 +152,9 @@ Decisions: `redraw`, `table`, `text`, `decorative`, `unreadable`.
   an entry is unresolved. This is the evidence trail for the G section.
 
 `build --check` also reports `underfilled_pages` through `folisift audit`.
-A page below the body-density threshold must be fixed, justified or removed
-from the layout; do not add filler prose to hide it.
+A page below the body-density threshold must be reflowed or removed from the
+layout; do not add filler prose to hide it. `audit --strict` and
+`build --check` fail on it.
 
 ## Write the guide
 

@@ -21,7 +21,11 @@ pub struct CoverageReport {
     pub passed: bool,
     pub threshold: f64,
     pub total: usize,
+    pub canonical_total: usize,
+    pub claimed: usize,
+    pub gate_total: usize,
     pub missing: usize,
+    pub missing_from_gate: Vec<String>,
     pub empty_sections: Vec<String>,
     pub weak_sections: Vec<String>,
     pub unknown_claims: Vec<String>,
@@ -66,7 +70,7 @@ fn source_candidates(source: &SourceInventory) -> Vec<(String, String, usize)> {
                             .captures(heading.heading.trim())
                             .is_some_and(|captures| captures[1] == section.number)
                     })
-                    .map_or(section.page, |heading| heading.page);
+                    .map_or(0, |heading| heading.page);
                 (section.number.clone(), section.title.clone(), page)
             })
             .collect();
@@ -110,7 +114,10 @@ pub fn check_coverage(
         .collect::<Vec<_>>();
     let mut sources = Vec::with_capacity(inventory.sources.len());
     let mut total = 0;
+    let mut claimed_total = 0;
+    let mut gate_total = 0;
     let mut missing = 0;
+    let mut missing_from_gate = Vec::new();
     let mut empty_sections = Vec::new();
     let mut weak_sections = Vec::new();
 
@@ -125,14 +132,20 @@ pub fn check_coverage(
             let source_id = source.filename.trim_end_matches(".pdf");
             let claim_key = format!("{source_id}:{number}");
             let claimed = claim_chars.get(&claim_key).copied();
+            if claimed.is_some() || sections_by_number.contains_key(&number) {
+                claimed_total += 1;
+            }
             let (score, matched) = if claimed.is_some() {
                 (1.0, format!("<!-- covers: {claim_key} -->"))
             } else {
                 best_line(&number, &title, &lines)
             };
             let heading_ok = claimed.is_some() || score >= threshold;
-            if !heading_ok {
+            if heading_ok {
+                gate_total += 1;
+            } else {
                 missing += 1;
+                missing_from_gate.push(number.clone());
             }
             let body_chars = claimed
                 .or_else(|| sections_by_number.get(&number).copied())
@@ -170,7 +183,11 @@ pub fn check_coverage(
             && !audit_missing,
         threshold,
         total,
+        canonical_total: total,
+        claimed: claimed_total,
+        gate_total,
         missing,
+        missing_from_gate,
         empty_sections,
         weak_sections,
         unknown_claims,
@@ -208,15 +225,15 @@ impl CoverageReport {
                 };
                 let matched = section.matched.replace('|', "\\|");
                 let matched = matched.chars().take(150).collect::<String>();
+                let page = if section.page == 0 {
+                    "—".to_string()
+                } else {
+                    section.page.to_string()
+                };
                 let _ = writeln!(
                     out,
                     "| {} {} | {} | {} | {} | {} |",
-                    section.number,
-                    section.title,
-                    section.page,
-                    status,
-                    section.body_chars,
-                    matched
+                    section.number, section.title, page, status, section.body_chars, matched
                 );
             }
             let _ = writeln!(
@@ -228,7 +245,21 @@ impl CoverageReport {
         }
         let _ = writeln!(out, "## Sonuç\n");
         let _ = writeln!(out, "- Denetlenen alt bölüm: **{}**", self.total);
+        let _ = writeln!(out, "- Kanonik toplam: **{}**", self.canonical_total);
+        let _ = writeln!(
+            out,
+            "- Kılavuzda başlığı/claim'i olan: **{}**",
+            self.claimed
+        );
+        let _ = writeln!(out, "- Gate içinde eşleşen: **{}**", self.gate_total);
         let _ = writeln!(out, "- Eksik/weak match: **{}**", self.missing);
+        if !self.missing_from_gate.is_empty() {
+            let _ = writeln!(
+                out,
+                "- Gate dışında kalan: **{}**",
+                self.missing_from_gate.join(", ")
+            );
+        }
         let _ = writeln!(out, "- Boş bölüm: **{}**", self.empty_sections.len());
         let _ = writeln!(
             out,
@@ -295,11 +326,15 @@ fn scan_claims(markdown: &str) -> ClaimScan {
             pending.extend(keys);
             continue;
         }
-        if trimmed.starts_with('#') {
+        if trimmed.starts_with("## ") {
             finalize(&mut scan, current.take());
             if !pending.is_empty() {
                 current = Some((std::mem::take(&mut pending), String::new()));
             }
+            continue;
+        }
+        if trimmed.starts_with('#') {
+            // A subheading stays inside the current section body.
             continue;
         }
         if let Some((_, body)) = &mut current {
@@ -451,13 +486,7 @@ fn best_line(number: &str, title: &str, lines: &[String]) -> (f64, String) {
         if !contains_number(line, &number_re) {
             continue;
         }
-        let mut score = sequence_ratio(&target, &normalize(line));
-        // A numbered guide heading is the canonical key. The title may be a
-        // paraphrase (and source titles often wrap badly), so do not fail only
-        // because the wording differs.
-        if line.trim_start().starts_with("## ") {
-            score = score.max(0.8);
-        }
+        let score = sequence_ratio(&target, &normalize(line));
         if score > best_score {
             best_score = score;
             best_text = line.clone();
@@ -614,6 +643,17 @@ mod tests {
     }
 
     #[test]
+    fn covers_body_includes_subheadings() {
+        let body = "Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. Bu bölüm sınav için gerekli tanımı, mekanizmayı ve kritik ayrımı açıklar. ";
+        let markdown = format!(
+            "<!-- audit -->\n<!-- covers: PD0:0.1, PD0:0.2 -->\n## Foundations\n\n### Subheading\n\n{body}\n"
+        );
+        let report = check_coverage(&inventory(), &markdown, DEFAULT_THRESHOLD);
+        assert!(report.passed, "{report:?}");
+        assert!(report.sources[0].sections[0].body_chars > MIN_SECTION_CHARS);
+    }
+
+    #[test]
     fn rejects_unknown_covers_claims() {
         let markdown = "<!-- covers: PD0:9.9 -->\n## Foundations\n\nshort\n";
         let report = check_coverage(&inventory(), markdown, DEFAULT_THRESHOLD);
@@ -675,16 +715,19 @@ mod tests {
                 number: "0.1".to_string(),
                 title: "Giriş ve amaçlar".to_string(),
                 page: 2,
+                origin: "toc".to_string(),
             },
             crate::inventory::CanonicalSection {
                 number: "0.2".to_string(),
                 title: "Programlama dili nedir?".to_string(),
                 page: 3,
+                origin: "toc".to_string(),
             },
             crate::inventory::CanonicalSection {
                 number: "0.3".to_string(),
                 title: "Biçimsel diller".to_string(),
                 page: 4,
+                origin: "toc".to_string(),
             },
         ];
         let markdown = format!(
@@ -693,6 +736,9 @@ mod tests {
         let report = check_coverage(&inv, &markdown, DEFAULT_THRESHOLD);
         assert!(report.passed, "{report:?}");
         assert_eq!(report.total, 3);
+        assert_eq!(report.canonical_total, 3);
+        assert_eq!(report.claimed, 3);
+        assert_eq!(report.gate_total, 3);
         assert_eq!(report.missing, 0);
     }
 
@@ -703,6 +749,7 @@ mod tests {
             number: "0.3".to_string(),
             title: "Biçimsel diller".to_string(),
             page: 4,
+            origin: "toc".to_string(),
         }];
         let report = check_coverage(
             &inv,

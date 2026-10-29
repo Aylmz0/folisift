@@ -365,6 +365,15 @@ fn validate_tree(spec: &DiagramSpec) -> Result<()> {
             "tree needs exactly one root (no incoming edges)".to_string(),
         ));
     }
+    let mut parent_count = HashMap::<&str, usize>::new();
+    for edge in &spec.edges {
+        *parent_count.entry(edge.to.as_str()).or_default() += 1;
+    }
+    if parent_count.values().any(|count| *count > 1) {
+        return Err(Error::Diagram(
+            "tree node has multiple parents; use concept/flow or split it".to_string(),
+        ));
+    }
     let depth = tree_depth(spec);
     if depth > MAX_DEPTH {
         return Err(Error::Diagram(format!(
@@ -1141,6 +1150,19 @@ mod tests {
         let mut value = serde_json::to_value(spec()).expect("value");
         value["layout"] = serde_json::json!("dagre");
         assert!(spec_from_json(&value.to_string()).is_err());
+    }
+
+    #[test]
+    fn tree_rejects_multiple_parents() {
+        let mut spec = spec();
+        spec.kind = "tree".to_string();
+        spec.edges.push(Edge {
+            from: "src".to_string(),
+            to: "code".to_string(),
+            label: None,
+        });
+        let error = validate_spec(&spec).expect_err("multi-parent tree");
+        assert!(error.to_string().contains("multiple parents"), "{error}");
     }
 
     #[test]

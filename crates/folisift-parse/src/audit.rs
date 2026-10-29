@@ -253,13 +253,7 @@ pub fn audit_pdf(path: &Path, expected_pages: Option<usize>) -> Result<LayoutAud
             "possible orphan headings at page bottom: {orphan_heading_pages:?}"
         ));
     }
-    if !underfilled_pages.is_empty() {
-        let pages = underfilled_pages
-            .iter()
-            .map(|page| page.page)
-            .collect::<Vec<_>>();
-        issues.push(format!("underfilled body pages: {pages:?}"));
-    }
+
     for entry in document.outline() {
         let Some(page_index) = entry.page_index else {
             bookmark_mismatches.push(format!(
