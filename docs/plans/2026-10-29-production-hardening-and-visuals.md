@@ -967,13 +967,14 @@ compared; visual snapshots are committed only for selected pages. The
 ### Layout backend decision
 
 The layout and SVG engine evaluation is in
-`docs/diagram-engine-evaluation.md`. Short version: keep the typed DSL,
-accessibility wrapper and SVG sanitiser; use pinned **Graphviz `dot`** in the
-CLI for graph-like diagrams (flow/concept/tree/cycle); keep the native layout
-for sequence diagrams; add **D2** as an optional CLI importer. MCP and guide
-builds embed only pre-generated, sanitised SVG. ELK-rs is rejected as too
-young (9 stars, created 2026); Eclipse ELK's Java/JS runtime is not a fit.
-Full in-house layout is the expensive, low-differentiation part.
+`docs/diagram-engine-evaluation.md`. Final decision: **D2 v0.9.0 is the single
+external diagram engine**, pinned and invoked only by the CLI. It covers flow,
+concept, tree, sequence and container diagrams with TALA. The typed JSON spec,
+D2 source generation, SVG sanitisation, accessibility post-processing and Typst
+integration stay in Rust. There is no Graphviz fallback and no second external
+backend. MCP and guide builds embed only pre-generated, sanitised SVG. ELK-rs
+is rejected as too young (9 stars, created 2026); Eclipse ELK's Java/JS runtime
+is not a fit. Full in-house layout is the expensive, low-differentiation part.
 
 ### Diagrams and LLM reliability
 

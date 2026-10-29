@@ -1,381 +1,268 @@
-# Diagram engine evaluation
+# Diagram engine decision
 
-- **Status:** Decision input
+- **Status:** Final decision
 - **Date:** 2026-10-29
-- **Scope:** layout and SVG generation for Folisift diagrams
+- **Scope:** diagram layout and SVG generation for Folisift
 - **Related:** ADR-0007 (Typst renderer), ADR-0009 (workspace sandbox),
   `docs/plans/2026-10-29-production-hardening-and-visuals.md`
 
-## Decision in one page
+## Decision
 
-Use **Graphviz `dot` as the primary external layout engine at authoring time**.
-Keep the Folisift JSON spec, caption/provenance rules and sanitizer. Keep the
-native SVG renderer for sequence diagrams and as a fallback. Add **D2** as an
-optional CLI importer for architecture/container diagrams. Do **not** adopt
-ELK-rs (9 stars, created 2026), Mermaid, PlantUML or Kroki as the default
-runtime.
+Use **D2 v0.9.0 as the single external diagram engine**.
 
-The external engine runs **only in the CLI**, never in the MCP server. The
-guide build and the MCP server consume a sanitized, hashed SVG asset. This
-preserves the no-shell/no-network rule while gaining a mature layout engine.
-
-## Why this changed
-
-The previous recommendation was pure-Rust `elk-layout`. That was rejected on
-maintenance grounds: the Rust port is new (repository created February 2026),
-has 9 stars and is not a proven dependency for a product that claims
-reliability. Eclipse ELK itself is mature, but using the Java or JavaScript
-implementation would add a JVM or Node/Chromium runtime, which conflicts with
-the offline single-binary architecture.
-
-Writing a Graphviz-class layout engine in-house is also not rational. Layered
-layout, crossing minimisation, port constraints, orthogonal routing and
-compound graphs are research-grade problems. The sensible boundary is:
+There is no second external backend. There is no Graphviz fallback. The native
+Rust code keeps only the typed JSON contract, validation, D2 source generation,
+SVG sanitisation/accessibility post-processing, hashing and the Typst
+integration. The native layout code is retired as a user-facing backend.
 
 ```text
-mature external layout  →  Folisift sanitiser/accessibility  →  Typst embed
+typed JSON spec
+  → deterministic D2 source
+  → d2 --layout=tala --salt folisift --pad 20
+  → SVG post-processing
+  → sanitise + role/title/desc + edge-label background
+  → blake3 hash + engine manifest
+  → Typst embed
 ```
 
-## Candidates and current evidence
+Graphviz is not used. `diagrams`, Mermaid, PlantUML, Structurizr and Kroki are
+not used.
 
-Metrics collected on 2026-10-29.
+## Why D2, not Graphviz
 
-| Project | Adoption signal | Runtime | Licence | Fit |
-|---|---|---|---|---|
-| **Graphviz 16.1.0** | 40+ years; distro package; GitLab 1,475 stars / 438 forks; last commit 2026-10-29 | C library or `dot` CLI | EPL-2.0 | **Primary layout** |
-| **D2 v0.9.0** | GitHub 25,755 stars / 775 forks; 177,765 Linux downloads for v0.9.0; last commit 2026-10-11 | Go single binary | MPL-2.0 | **Optional importer** |
-| Mermaid 12.2.0 | GitHub 90,920 stars / 9,424 forks; 2,010 open issues; last commit 2026-10-28 | Node 22.12+ + Chromium for CLI | MIT | Import only; no default |
-| PlantUML 1.2026.9 | GitHub 13,385 stars / 1,248 forks; last commit 2026-10-28 | JVM; some diagrams need Graphviz | LGPL-3.0 | Not a fit |
-| ELK-rs 0.12.1 | GitHub 9 stars / 4 forks; created 2026-02-10 | pure Rust | EPL-2.0 / GPL-3.0 | **Rejected: too young** |
-| d2-little | 3,087 downloads; 28% documented | pure Rust | MPL-2.0 | Rejected: immature port |
-| diagrams (mingrammer) | GitHub 42,763 stars / 2,732 forks; last commit 2026-10-15; latest release v0.25.1 on 2025-11-22 | Python 3.9+ + Graphviz | MIT | Cloud-only; not a general engine |
-| Kroki | 4,388 stars | server/Docker, multiple tools | MIT | Rejected: service dependency |
-| Current Folisift | in-tree | none | in-house | Keep for sequence/fallback |
+The project motto is:
 
-Stars are not a quality metric on their own. Graphviz's 1,475 GitLab stars
-understate its adoption: it is packaged by every major Linux distribution,
-used by documentation systems and has been the reference DOT implementation
-for decades. For comparison, D2 has 25k stars, but its tested edge/sequence
-labels overlap the connector line and its SVG has no accessibility metadata;
-both need our post-processing, and Graphviz wins on edge-label readability. D2's 25k stars reflect a modern, active authoring tool; its
-single Go binary is a much better runtime fit than Node/Java.
+> any course, any source, one engine; every guide is reproducible and auditable.
 
-## Activity snapshot
+D2 fits the “one engine” part better than Graphviz because it covers the whole
+diagram range we need:
 
-| Project | Last commit | Latest release | Release age at 2026-10-29 |
+| Need | D2 | Graphviz |
+|---|---|---|
+| Flow / pipeline | yes | yes |
+| Concept map | yes | yes |
+| Tree / hierarchy | yes | yes |
+| Sequence diagram | **first-class** | not native |
+| Containers / architecture | **first-class** | clusters are limited |
+| Matrix / table-like | grid / SQL table | HTML labels / records |
+| One binary for Linux/macOS/Windows | **yes** | C library/package, platform build |
+| Offline | yes | yes |
+| Deterministic with fixed input | yes, fixed salt | yes, fixed version |
+| Accessibility | no; we post-process | partial; we post-process |
+| Dense graph layout | good | better |
+| Edge-label readability | TALA + post-process | good by default |
+| Default aesthetics | strong | dated |
+| Community | 25.7k stars, active | decades of use, GitLab 1.5k stars |
+
+The “dense graph layout” advantage of Graphviz is not relevant to Folisift: the
+visual budget is deliberately 0–3 diagrams per chapter and 12 nodes / 20 edges
+per diagram. At that size, D2’s TALA layout is good, and D2’s breadth
+(sequence, containers, themes, one binary) removes the need for a second
+engine.
+
+Graphviz’s edge-label and compactness advantages are real. They are the reason
+this was a close decision. They are addressed in the D2 pipeline by:
+
+- `--layout=tala` for graph-shaped diagrams;
+- `*.style.font-size: 28` and connection-label font size 22;
+- `--pad 20` to remove default whitespace;
+- a post-process background stroke behind edge labels;
+- the existing 17 cm figure cap and centering.
+
+## Activity evidence
+
+Collected 2026-10-29.
+
+| Project | Last commit | Latest release | Adoption |
 |---|---|---|---|
-| Graphviz | 2026-10-29 | 16.1.0 (2026-09-04) | ~8 weeks |
-| D2 | 2026-10-11 | v0.9.0 (2026-09-07) | ~7 weeks |
-| Mermaid | 2026-10-28 | 12.2.0 (2026-10-13) | ~2 weeks |
-| PlantUML | 2026-10-28 | 1.2026.9 (2026-10) | current month |
-| diagrams | 2026-10-15 | v0.25.1 (2025-11-22) | ~11 months |
-| ELK-rs | 2026-10-23 | 0.12.1 (2026-10-23) | current, but 9 stars |
-| Structurizr CLI | 2026-02-01 | archived | not active |
-| Excalidraw | 2026-10-28 | active | manual editor |
-| draw.io | 2026-10-23 | active | manual editor |
+| **D2** | 2026-10-11 | **v0.9.0** (2026-09-07) | GitHub 25,755 stars / 775 forks; Linux v0.9.0 asset 177,765 downloads |
+| Graphviz | 2026-10-29 | **16.1.0** (2026-09-04) | GitLab 1,475 stars / 438 forks; distro package |
+| Mermaid | 2026-10-28 | 12.2.0 (2026-10-13) | GitHub 90,920 stars / 9,424 forks |
+| PlantUML | 2026-10-28 | 1.2026.9 | GitHub 13,385 stars |
+| diagrams | 2026-10-15 | v0.25.1 (2025-11-22) | GitHub 42,763 stars; Python + Graphviz |
+| ELK-rs | 2026-10-23 | 0.12.1 | GitHub **9 stars**, created 2026-02-10 |
+| Structurizr CLI | 2026-02-01 | **archived** | no |
+| Excalidraw | 2026-10-28 | active | 134,793 stars; manual editor |
+| draw.io | 2026-10-23 | active | 9,061 stars; manual editor |
 
-A project can have recent commits but a stale release (diagrams), or a recent
-release but a young codebase (ELK-rs). Both signals matter. For production we
-require **recent commits, a recent tagged release, a stable licence and a
-runtime we can actually ship**.
+D2 is active in both commits and releases. Graphviz is also active and has the
+strongest history, but it is a C/system dependency and cannot cover sequence
+diagrams without another engine. The 9-star ELK-rs port is rejected; the mature
+Eclipse ELK would add a JVM or JS runtime.
 
-## Local evidence
+`diagrams` is a Python cloud-architecture DSL over Graphviz. Its own README
+says it uses Graphviz to render. It has 400 open issues and a release from
+November 2025. It is not a general diagram engine and would add Python to the
+offline product. It is not selected.
 
-### Graphviz
-
-Same DOT input, five runs, locally installed Graphviz 14.1.4. The current
-stable release at the time of research is 16.1.0; CI/release must pin 16.1.0
-and repeat this test, because layout can change between major versions.
-
-```text
-327c7738bf50debd0d88828394cab1d0d0205da3a2c5576fdd8655fc808f2bf8
-327c7738bf50debd0d88828394cab1d0d0205da3a2c5576fdd8655fc808f2bf8
-327c7738bf50debd0d88828394cab1d0d0205da3a2c5576fdd8655fc808f2bf8
-327c7738bf50debd0d88828394cab1d0d0205da3a2c5576fdd8655fc808f2bf8
-327c7738bf50debd0d88828394cab1d0d0205da3a2c5576fdd8655fc808f2bf8
-```
-
-A styled five-node flow produced a compact `869 × 50` viewBox, 14 pt node
-labels and 11 pt edge labels. At the 510 pt content width used by the paper
-template, node text renders at about 8.2 pt and edge text at about 6.5 pt:
-inside the 6.5 pt minimum and near the 7.5 pt target. Graphviz emits a
-`<title>` for each node and edge, but not a graph-level `<desc>` or ARIA role;
-we add those in post-processing.
-
-Graphviz strengths:
-
-- reference-quality layered/branching layout and crossing minimisation;
-- deterministic for a fixed input and version in our test;
-- compact output, controllable spacing, fonts, colours and shapes;
-- SVG/PDF/JSON outputs;
-- EPL-2.0; no browser/Node/JVM.
-
-Graphviz costs:
-
-- system package or bundled native binary; not a Rust crate;
-- version must be pinned; layout can change between releases;
-- no graph-level accessible description; needs our accessibility wrapper;
-- `graphviz-rust` only shells out to `dot`;
-- `wrappedviz`/C FFI is immature and adds unsafe native packaging.
+## Aesthetic comparison
 
 ### D2
 
-Two runs with `--salt fixed` produced byte-identical SVG. A five-node flow
-with `--pad 20` produced a `1486 × 108` viewBox; at 510 pt width the 20 px
-labels become roughly 6.9 pt. D2 v0.9.0 has no `<title>`, `<desc>` or ARIA
-attributes in the tested output and embeds base64 WOFF fonts.
+- Modern default themes, including a colorblind-safe theme.
+- Containers, sequence diagrams, SQL tables, classes and architecture are
+  first-class.
+- Cleaner authoring syntax; smaller prompts if the LLM ever writes D2 directly.
+- TALA places flow labels above connectors in our local test.
+- Sequence labels still sit on the lifeline in the tested output; the post-
+  processor adds a background stroke so the line does not cross the text.
+- Default canvas is wide; font-size and `--pad` must be set by the generator.
 
-D2 strengths:
+### Graphviz
 
-- 25k stars, active releases, single 18 MB binary;
-- modern architecture/container/sequence diagrams;
-- dagre/ELK/TALA layouts, themes, sketch mode;
-- deterministic with a fixed salt and pinned version;
-- SVG/PNG/PDF/PPTX output with no browser.
+- Default output is functional/technical, not “paper-like”.
+- With a house DOT template (Inter, paper fill, accent stroke, box nodes,
+  `nodesep`, `ranksep`, `fontsize`) it looks clean and compact.
+- Edge labels are placed beside the edge.
+- No sequence diagram support.
+- Best when graphs are large or crossing minimisation matters; our budget is
+  small.
 
-D2 costs:
+### Local A/B evidence
 
-- in the tested output, edge and sequence labels sit on the connector line, so
-  the line crosses the text; Graphviz places labels beside the edge;
-- no accessibility metadata; we must add it;
-- wide diagrams have a large canvas and small relative text unless spacing is
-  tuned or the graph is split;
-- extra 18 MB binary per platform;
-- MPL-2.0 file-level copyleft (notice/relink obligations for modifications);
-- less control over fine-grained spacing than DOT attributes.
+Same five-node flow:
 
-### Diagrams (mingrammer)
+| Metric | Graphviz 14.1.4 | D2 v0.9.0 with TALA + font tuning |
+|---|---|---|
+| ViewBox | 869 × 50 | 1695 × 123 (font 28/22) |
+| Node text at 510 pt width | ≈ 8.2 pt | ≈ 8.4 pt |
+| Edge text at 510 pt width | ≈ 6.5 pt | ≈ 6.6 pt |
+| Edge label placement | beside edge | above edge with TALA; sequence masked by post-process |
+| Accessibility metadata | node/edge titles | none; we add root metadata |
+| Same input twice | 5/5 identical | 2/2 identical with fixed salt |
 
-`diagrams` is the project the user found. It is a **Python DSL for cloud
-architecture diagrams**, not a general layout engine. It is healthy and active
-on the icon side: 42,763 stars, 2,732 forks, last commit 2026-10-15. The last
-PyPI release is v0.25.1 from 2025-11-22, so release cadence is slower than the
-commit cadence. It has 400 open issues.
+Graphviz is more compact, but D2’s tuned output reaches the same readable text
+size and covers sequence/containers with one binary.
 
-It requires Python 3.9+ and Graphviz, and its documentation explicitly says it
-uses Graphviz to render. Its value is the provider icon catalog (AWS, Azure,
-GCP, Kubernetes, on-prem, C4, programming). It does not provide sequence
-diagrams, concept maps, general flowcharts or accessibility metadata, and its
-layout control is limited.
+## Output examples
 
-Reddit signals are consistent: users like that a presentable cloud diagram is
-possible in minutes, but describe the library as tricky to learn and limited to
-infrastructure work:
-<https://www.reddit.com/r/aws/comments/gjxil2/diagrams_as_code_python_with_aws_icon_support/>
-<https://www.reddit.com/r/devops/comments/1o4lbp8/diagram_tools/>
+D2:
 
-Verdict: **not a core dependency**. It is a domain-specific layer over
-Graphviz. If we ever need cloud-architecture icons, it can be an optional
-authoring importer, but adopting Python would violate the single-binary/no
-extra runtime boundary for no gain on pedagogical diagrams.
+- Official examples: <https://d2lang.com/examples/overview/>
+- D2 playground: <https://play.d2lang.com>
+- Architecture example: <https://blog.jread.com/posts/d2-is-a-great-language-for-architecture-diagrams/>
+- D2 vs Graphviz examples:
+  <https://github.com/andrewleech/d2plugin-graphviz>
 
-### Mermaid
+Graphviz:
 
-Mermaid is the most starred project, but its CLI needs Node 22.12+ and a
-Chromium instance through Puppeteer. It has a history of non-deterministic
-IDs (date-based IDs, issue #727) and some renderers emit `foreignObject`/HTML.
-It is excellent for Markdown-native docs, but not for a no-browser build
-pipeline.
+- Official gallery: <https://graphviz.org/gallery/>
+- Cluster example: <https://graphviz.org/Gallery/directed/cluster.html>
+- Online DOT editor: <https://edotor.net>
 
-### PlantUML and Kroki
+## OpenCode MCP design
 
-PlantUML requires a JVM and is LGPL-3.0; some diagram types delegate layout to
-Graphviz. Kroki is a server that wraps many diagram tools, which adds a
-service/network dependency. Neither is a default candidate.
+The MCP must not run `d2` or any shell. The LLM must not write D2; it writes the
+typed JSON spec, and Folisift generates D2.
 
-### ELK-rs
-
-The Rust port is technically promising, but a 9-star repository created in
-February 2026 is not the dependency to bet a production documentation system
-on. If ELK layout is ever needed, use the mature Java/JS ELK behind an
-authoring service, not the young port.
-
-### Screened out
-
-| Tool | Why not the default |
+| MCP surface | Purpose |
 |---|---|
-| Structurizr CLI/Lite | GitHub repositories are archived (last push 2026-02-01); C4 model is a different product scope |
-| Excalidraw | 134k stars, but a manual whiteboard; no deterministic code-to-diagram layout |
-| draw.io | 9k stars, manual editor; XML/HTML model, not a layout library |
-| nomnoml | JavaScript, smaller ecosystem; browser/JS runtime |
-| Pikchr | deterministic and tiny, but manual coordinates; no automatic graph layout |
-| InfraSketch | commercial/natural-language service; not offline or deterministic |
+| `diagram_schema` resource | JSON Schema: kind, nodes, edges, caption, source, engine options |
+| `diagram_validate` | Validate and normalise a spec |
+| `diagram_save` | Write `guides/<slug>/diagrams/<id>.json` |
+| `diagram_status` | Compare spec hash with the SVG manifest; report missing/stale |
+| `diagram_render_plan` | Return the exact CLI command and output path; do not execute |
+| `build_guide` | Embed only prebuilt, sanitised SVG; fail on unresolved spec |
+| `write-diagram` prompt | Visual budget, limits, caption/alt/provenance rules |
 
-## What users say
-
-These are qualitative signals, not benchmarks:
-
-- D2 users praise the output and the speed of authoring compared with
-  drag-and-drop tools; D2 is repeatedly described as easier to read/write than
-  Mermaid for architecture diagrams.
-  <https://www.reddit.com/r/selfhosted/comments/1gin6ut/holy_crap_d2_diagrams_are_impressive/>
-- In a D2 discussion, users note that unlike Mermaid, D2 lets you influence
-  layout and that Mermaid flowcharts can get ugly.
-  <https://www.reddit.com/r/programming/comments/1qqizxa/your_ai_diagram_looks_great_and_nobody_will_read/>
-- Mermaid complaints focus on wide diagrams, layout quality, flashing/resizing
-  and themes; it remains popular because it is embedded in Markdown tools.
-  <https://www.reddit.com/r/Anytype/comments/1eby9xr/does_mermaid_really_need_to_be_that_horrible/>
-  <https://www.reddit.com/r/dotnet/comments/18cwzda/what_is_your_favorite_tool_for_designing_complex/>
-- Graphviz is repeatedly recommended for maintainable, text-based diagrams,
-  especially network/architecture documentation, with the trade-off of a
-  dated default look that must be styled.
-  <https://www.reddit.com/r/networking/comments/8dbucs/tools_to_create_maintainable_network_diagrams/>
-  <https://www.reddit.com/r/rust/comments/5ljshj/diagrams_in_documentation/>
-
-The recurring user requirement is not “the most beautiful default”; it is
-“readable at a glance, reproducible, and cheap to update”. That favours
-Graphviz for graph-shaped study diagrams and D2 for modern architecture
-figures.
-
-## Recommended architecture
+Workflow:
 
 ```text
-Host LLM / author
-  └─ Folisift diagram spec (JSON)  or  existing .dot/.d2 file
-       └─ CLI: folisift diagram build
-            ├─ Graphviz dot (pinned)  → SVG
-            ├─ native sequence layout → SVG
-            └─ D2 (optional)          → SVG
-                 ↓
-            sanitize + accessibility wrapper
-            (role, title, desc, viewBox, no scripts/external refs)
-                 ↓
-            blake3 hash + engine manifest
-            assets/generated/<hash>.svg
-                 ↓
-            guide build / MCP: embed-only, no external process
+diagram_validate
+  → diagram_save
+  → OpenCode shell: folisift diagram build
+  → diagram_status
+  → build_guide
 ```
 
-### Boundaries
+This is one extra shell step by design. Running D2 inside MCP would violate the
+no-shell invariant; embedding the Go runtime in Rust is not practical. The LLM’s
+job is small: produce JSON, then call one CLI command.
 
-- MCP never invokes `dot`, `d2`, Node or a browser. It only reads assets.
-- The CLI checks the engine version and records it in
-  `assets/generated/manifest.json`.
-- The graph spec remains engine-neutral. `engine: "graphviz"` and
-  `engine: "d2"` select the authoring backend; `native` remains the fallback.
-- Every imported SVG passes the existing sanitizer and accessibility wrapper.
-- A Graphviz/D2 failure is an authoring error with the exact command and
-  version, not a silent fallback.
-- The native sequence layout stays because sequence diagrams are not a natural
-  DOT graph; D2 can be used when a user explicitly imports one.
+## D2 pipeline rules
 
-### Why Graphviz first, not D2
+- Pin the D2 binary version and record it in the asset manifest.
+- Use `--salt folisift` (constant) so SVG IDs are stable.
+- Use `--layout=tala` for flow/concept/tree; sequence uses D2’s sequence engine.
+- Use `--pad 20`, `--no-xml-tag` and a fixed theme/font.
+- Generate `*.style.font-size: 28` and connection labels 22 for 510 pt width;
+  adjust only through the generator, not per diagram.
+- Post-process every SVG:
+  - add `role="img"`, `aria-labelledby`, `<title>`, `<desc>`;
+  - add `paint-order: stroke` and background stroke to `text-italic` edge
+    labels;
+  - reject scripts, external refs, foreignObject and CSS imports;
+  - hash the final SVG.
+- Limit D2 to 12 nodes / 20 edges and 4 hierarchy levels; split large diagrams.
+- The generated D2 source is stored next to the JSON spec for audit.
+- MPL-2.0 notice is included in the release.
 
-- Graphviz has the strongest graph-layout algorithms and decades of use.
-- It gives compact output with controllable font size; D2's wide canvas can
-  fall below the 6.5 pt minimum after fitting.
-- It is EPL-2.0 and available as a package on Linux/macOS/Windows.
-- D2 is a better authoring tool for architecture and sequence diagrams, so it
-  stays as an optional importer rather than the default.
+## Risks and mitigations
 
-## Graphviz vs D2 face-off
-
-| Criterion | Graphviz | D2 | Winner |
-|---|---|---|---|
-| Default aesthetics | Technical, dated shapes/spacing | Modern, clean themes and containers | D2 |
-| Styled aesthetics | Fully controllable with a house DOT template | Good themes, but edge labels sit on lines in tested output | Graphviz for study diagrams |
-| Ease of authoring | DOT is compact but attribute-heavy | D2 syntax is the most pleasant of the mature tools | D2 |
-| Layout quality | Reference-quality layered/tree/cycle; crossing minimisation | Good dagre/ELK/TALA; better containers/architecture | Tie, Graphviz for graphs |
-| Edge-label readability | Labels beside the edge | Connector line crosses labels in tested flow/sequence | Graphviz |
-| Text scaling | Compact output; 869×50 for a five-node flow | 1486×108; text near the 6.5 pt floor at page width | Graphviz |
-| Sequence diagrams | Not native | First-class | D2 |
-| Containers/architecture | Possible with clusters; less natural | First-class | D2 |
-| Large graphs | Excellent | Good, less proven at scale | Graphviz |
-| Determinism | 5/5 identical with fixed input/version | 2/2 identical with fixed salt | Tie |
-| Accessibility | Node/edge titles; root desc missing | No title/desc/ARIA | Both need our wrapper |
-| Runtime | C library or `dot` binary; system package | Single Go binary | D2 for packaging, Graphviz for embedding |
-| MCP self-contained render | Possible in principle via `libgvc` FFI | Not practical; Go binary subprocess only | Graphviz |
-| Licence | EPL-2.0 | MPL-2.0 | Both acceptable |
-| Project age/adoption | Decades, distro packaging, reference implementation | 25k stars, active, modern ecosystem | Tie |
-
-### What this means for OpenCode and MCP
-
-The LLM must not write DOT or D2 directly. It should write one **typed JSON
-spec** and let the engine choose the backend. That keeps the prompt small,
-validates before rendering and prevents shell injection.
-
-Proposed MCP surface (no external process inside MCP):
-
-| Tool/resource | Purpose |
+| Risk | Mitigation |
 |---|---|
-| `diagram_schema` resource | JSON Schema for kinds, nodes, edges, caption, source, engine |
-| `diagram_validate` | Validate a spec and return normalized JSON + warnings |
-| `diagram_save` | Write the spec under `guides/<slug>/diagrams/<id>.json` |
-| `diagram_status` | Compare spec hash with the SVG manifest; report missing/stale/engine version |
-| `diagram_render_plan` | Return the exact CLI command and output path; do not run it |
-| `build_guide` | Embed only pre-generated, sanitized SVG; fail if a spec is unresolved |
-| `write-diagram` prompt | Enforce the visual budget, limits, caption/alt/provenance rules |
+| D2 output changes between versions | pin exact version; golden SVG + visual baselines |
+| Edge-label line collision | TALA + background stroke; regression test |
+| No accessibility metadata | deterministic post-processor + tests |
+| Wide canvas / small text | tuned font sizes, pad, split rule, 17 cm cap |
+| Extra 18 MB binary | compress in release; D2 is optional at authoring time, not needed to build PDFs |
+| MPL-2.0 | distribute unmodified binary + notice; no source modifications |
+| Render cannot run in MCP | CLI authoring + embed-only MCP; `diagram_render_plan` guides the host |
 
-The host workflow is three explicit calls:
+## Rejected tools
 
-```text
-diagram_validate  →  diagram_save  →  (OpenCode shell) folisift diagram build
-                                      →  diagram_status  →  build_guide
-```
-
-This is intentionally not a single MCP call. Running `dot`/`d2` inside the MCP
-would break the no-shell invariant. If a one-call MCP is mandatory, Graphviz
-can be linked through `libgvc` (with native packaging and unsafe FFI), while D2
-cannot be embedded without a Go runtime. That is a strong argument for
-Graphviz as the default.
-
-### Verdict against the project motto
-
-The motto is: *any course, any source, one engine; every guide is reproducible
-and auditable.*
-
-- **Graphviz** is the better fit for “one engine, reproducible, auditable”:
-  compact deterministic output, version pinning, DOT as the audit record,
-  strong graph layout, and the possibility of an in-process library later.
-- **D2** is the better fit for “beautiful and easy to write”: better defaults,
-  sequence/containers, and a single binary. It is the better *authoring* tool.
-- Therefore: **Graphviz primary; D2 optional authoring/import backend**. If the
-  product priority changes to architecture-heavy courses, D2 can become
-  primary without changing the JSON spec or MCP tools.
+- **Graphviz:** strongest layout history, but C/system dependency, no sequence,
+  and would require a second engine for the full diagram range.
+- **diagrams:** Python cloud-icon DSL over Graphviz; not general, adds Python.
+- **Mermaid:** Node + Chromium, non-deterministic history, layout issues.
+- **PlantUML:** JVM, LGPL, verbose.
+- **Structurizr:** archived repositories.
+- **Excalidraw/draw.io:** manual editors, not deterministic code-first layout.
+- **ELK-rs:** 9 stars, created 2026; too young.
+- **d2-little:** 3k downloads, incomplete documentation.
+- **Kroki:** server/network dependency.
 
 ## Migration plan
 
-1. Add a CLI `diagram build` that converts a `DiagramSpec` to styled DOT.
-2. Pin Graphviz 14.x and run it as a subprocess **outside MCP**.
-3. Post-process SVG: add root `role="img"`, `<title>`, `<desc>`,
-   `aria-labelledby`, strip external references/scripts.
-4. Hash the sanitized SVG and write a manifest with engine, version, font and
-   input hash.
-5. Make build/MCP reject an inline spec unless a pre-generated asset exists.
-6. Add golden SVG tests, five-run determinism tests and paper/clean visual
-   baselines.
-7. Add an optional `diagram import --engine d2` for `.d2` files, with the same
-   sanitizer and manifest.
-8. Keep the current native renderer for sequence and as a one-release fallback.
+1. Vendor/pin D2 v0.9.0 for Linux, macOS and Windows.
+2. Replace the native `diagram` fence renderer with the D2 source generator.
+3. Add the SVG post-processor (accessibility + edge-label background).
+4. Add `diagram_schema`, `diagram_validate`, `diagram_save`, `diagram_status`
+   and `diagram_render_plan` MCP tools.
+5. Make `build_guide` embed-only for diagrams; unresolved specs fail.
+6. Add golden SVG tests, 2-run determinism, paper/clean visual baselines and a
+   tall/wide figure test.
+7. Remove Graphviz/D2 choices from the user-facing spec; `engine` is always D2.
+8. Keep the native sequence layout only until the D2 sequence post-processor
+   passes; then delete it.
 
-Estimated effort: 3–5 days for the Graphviz path, 2 days for the D2 importer,
-plus visual review.
+Estimated effort: 4–6 engineering days plus visual review.
 
 ## Sources
 
-- Graphviz licence: <https://graphviz.org/license/>
-- Graphviz SVG output: <https://graphviz.org/docs/outputs/svg/>
-- Graphviz library API: <https://graphviz.org/docs/library/>
-- Graphviz accessibility issue: <https://gitlab.com/graphviz/graphviz/-/issues/2220>
-- Graphviz GitLab project: <https://gitlab.com/graphviz/graphviz>
-- graphviz-rust (CLI wrapper): <https://docs.rs/graphviz-rust/latest/graphviz_rust/>
-- wrappedviz (C wrapper): <https://docs.rs/wrappedviz/latest/wrappedviz/>
 - D2 repository: <https://github.com/d2lang/d2>
+- D2 examples: <https://d2lang.com/examples/overview/>
 - D2 layouts: <https://d2lang.com/tour/layouts/>
-- D2 ELK layout: <https://d2lang.com/tour/elk/>
-- D2 CLI flags: <https://d2lang.com/tour/man/>
-- D2 release assets and checksums:
+- D2 ELK: <https://d2lang.com/tour/elk/>
+- D2 TALA: <https://d2lang.com/blog/tala-is-open-source/>
+- D2 styles: <https://d2lang.com/tour/style/>
+- D2 globs: <https://d2lang.com/tour/globs/>
+- D2 positions: <https://d2lang.com/tour/positions/>
+- D2 v0.9.0 release:
   <https://github.com/d2lang/d2/releases/tag/v0.9.0>
-- d2-little: <https://docs.rs/d2-little/latest/d2_little/>
-- diagrams repository: <https://github.com/mingrammer/diagrams>
-- diagrams docs/requirements: <https://diagrams.mingrammer.com/docs/getting-started/installation>
-- diagrams release v0.25.1: <https://github.com/mingrammer/diagrams/releases/tag/v0.25.1>
-- Mermaid usage/runtime: <https://mermaid.js.org/config/usage.html>
-- Mermaid accessibility: <https://mermaid.js.org/config/accessibility.html>
-- Mermaid non-deterministic IDs: <https://github.com/mermaid-js/mermaid/issues/727>
-- Mermaid CLI Chromium dependency:
-  <https://github.com/mermaid-js/mermaid-cli/blob/master/docs/already-installed-chromium.md>
-- PlantUML repository/licence: <https://github.com/plantuml/plantuml>
-- ELK-rs repository: <https://github.com/openedges/elk-rs>
-- ELK project: <https://eclipse.dev/elk/>
-- Kroki: <https://github.com/yuzutech/kroki>
+- Graphviz gallery: <https://graphviz.org/gallery/>
+- Graphviz licence: <https://graphviz.org/license/>
+- Graphviz SVG: <https://graphviz.org/docs/outputs/svg/>
+- Graphviz accessibility: <https://gitlab.com/graphviz/graphviz/-/issues/2220>
+- diagrams: <https://github.com/mingrammer/diagrams>
+- diagrams release: <https://github.com/mingrammer/diagrams/releases/tag/v0.25.1>
+- Mermaid: <https://mermaid.js.org/config/usage.html>
+- PlantUML: <https://github.com/plantuml/plantuml>
+- Structurizr CLI: <https://github.com/structurizr/cli>
+- ELK-rs: <https://github.com/openedges/elk-rs>
+- Reddit D2: <https://www.reddit.com/r/selfhosted/comments/1gin6ut/holy_crap_d2_diagrams_are_impressive/>
+- Reddit Mermaid: <https://www.reddit.com/r/programming/comments/1qqizxa/your_ai_diagram_looks_great_and_nobody_will_read/>
+- Reddit Graphviz:
+  <https://www.reddit.com/r/networking/comments/8dbucs/tools_to_create_maintainable_network_diagrams/>
+- Reddit diagrams:
+  <https://www.reddit.com/r/aws/comments/gjxil2/diagrams_as_code_python_with_aws_icon_support/>
