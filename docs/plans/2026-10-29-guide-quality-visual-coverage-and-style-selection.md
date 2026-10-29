@@ -1114,8 +1114,8 @@ style/study-mode driven.
 - [x] No high-priority visual target is unresolved.
 - [x] No manual content SVGs remain in PD2/PD3; a future manual SVG
       exception policy is still open (A6).
-- [ ] `build_guide` reports figures/diagrams/tables and `audit` distinguishes
-      raster images from vector figures.
+- [x] `build_guide` reports figures/diagrams/tables.
+- [ ] `audit` distinguishes raster images from vector figures.
 
 ### Coverage
 
