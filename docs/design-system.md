@@ -4,9 +4,12 @@ The guide is a study object, not a slide deck. The engine now separates
 **genre** (reader, revision sheet, knowledge organiser), **structure** (A–G,
 revision-sheet, organiser) and **style** (layout, density, accessibility).
 The evidence for these choices is in
-[`document-genres-and-layout-systems.md`](document-genres-and-layout-systems.md)
-and [`revision-format-research.md`](revision-format-research.md). The visual language is warm,
-editorial and print-friendly. The design system is shared by every guide and
+[`document-genres-and-layout-systems.md`](document-genres-and-layout-systems.md),
+[`revision-format-research.md`](revision-format-research.md) and
+[`typography-standardization-research.md`](typography-standardization-research.md).
+The 12-palette/5-pairing library and code-size standard are planned in
+[`plans/2026-10-31-typography-standardization-and-font-system.md`](plans/2026-10-31-typography-standardization-and-font-system.md). The default visual language is warm, editorial and print-friendly; palette is
+an independent token layer (see the typography plan). The design system is shared by every guide and
 lives in `templates/paper.typ` and `templates/fonts/`. See
 `docs/adr/0002-paper-design-system.md` and `docs/adr/0007-typst-renderer.md`.
 
@@ -117,6 +120,11 @@ They are experimental until their snapshots pass.
 | Source ref | Traceability | Small caps, `[PD0, s. 3]` |
 
 ## Figures and tables
+
+The D2 capability expansion (sequence, UML class, ERD, edge arrowheads, shape
+allowlist and safety rules) is planned in
+[`plans/2026-10-31-d2-capability-and-codebase-hardening.md`](plans/2026-10-31-d2-capability-and-codebase-hardening.md).
+
 
 - Redraw important diagrams as simple SVG. Do not paste screenshots unless the
   original image is the only faithful representation.

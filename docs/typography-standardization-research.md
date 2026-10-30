@@ -185,7 +185,7 @@ This directly fixes both complaints: body down, code up.
 The reader body stays 10 pt because the complaint is code size, not prose
 size. If the reader measure is later shortened, body size can be revisited.
 
-## 5. Palettes: separate semantic layer
+## 5. Palettes: a semantic library, not three skins
 
 A palette is a set of semantic roles, not a style name. Proposed roles:
 
@@ -207,22 +207,59 @@ A palette is a set of semantic roles, not a style name. Proposed roles:
 }
 ```
 
-Candidate palettes:
+### 5.1 Palette library
 
-| Palette | Paper | Ink | Accent | Use |
-|---|---|---|---|---|
-| `warm` | `#FAF6EC` | `#211E19` | `#8A3E2F` | paper, reader, journal, revision |
-| `cool` | `#FFFFFF` | `#111827` | `#1D4ED8` | clean, technical |
-| `contrast` | `#FFFFFF` | `#111111` | `#8A1C1C` | accessible/high-contrast |
+All core text roles below pass 4.5:1 on `paper`; the “worst” column is the
+lowest of ink/muted/faint/accent/secondary on paper. Full files also define
+`cream`, `zebra`, `headerfill`, `code_bg` and `cover_bg`, and each is checked
+against `ink`.
 
-Rules:
+| Id | Family | Paper | Ink | Accent | Faint | Worst text |
+|---|---|---|---:|---:|---:|---:|
+| `warm-paper` | warm/editorial | `#FAF6EC` | `#211E19` | `#8A3E2F` | `#75664E` | 5.17 |
+| `sepia-archive` | warm/archive | `#F4ECD8` | `#2B2118` | `#7B2D26` | `#7A6650` | 4.64 |
+| `clay` | warm/earthy | `#FAF6F2` | `#2E211C` | `#9C4A2F` | `#7A655B` | 5.09 |
+| `berry` | warm/plum | `#FBF7F8` | `#2B1E24` | `#7A2E4A` | `#78656E` | 5.09 |
+| `cool-slate` | cool/technical | `#FFFFFF` | `#0F172A` | `#1D4ED8` | `#64748B` | 4.76 |
+| `academic-navy` | cool/academic | `#FBF8F1` | `#14213D` | `#1D3557` | `#6B7280` | 4.56 |
+| `cobalt` | cool/strong | `#F8FAFC` | `#0F172A` | `#1E3A8A` | `#64748B` | 4.55 |
+| `forest-sage` | natural | `#F7F5EF` | `#1F2A24` | `#2F5D50` | `#5F7265` | 4.72 |
+| `ocean-teal` | natural/cool | `#F7FBFC` | `#0B2B33` | `#0F6E7A` | `#527078` | 4.82 |
+| `graphite` | neutral | `#FAFAFA` | `#111111` | `#374151` | `#6B7280` | 4.63 |
+| `mono-print` | grayscale | `#FFFFFF` | `#000000` | `#000000` | `#555555` | 7.46 |
+| `high-contrast` | accessibility | `#FFFFFF` | `#000000` | `#A40000` | `#4D4D4D` | 8.14 |
 
-- Validate contrast for every text role against every actual background where
-  it is used, not only `ink/paper`.
-- `faint` must pass 4.5:1; gold is decoration/rules only unless a darker text
-  variant is defined.
-- Palette choice is independent of genre and layout; a revision sheet can be
-  warm or cool.
+This is intentionally a **library**, not a free-for-all:
+
+- four warm/editorial options for long reading and revision;
+- four cool/academic options for technical and scientific material;
+- one natural option for humanities/business;
+- two neutral/print options including a grayscale proof;
+- one high-contrast accessibility option.
+
+### 5.2 Palette rules
+
+- Palette is independent of genre. A revision sheet can be warm, cool or
+  grayscale; a reader can be warm or academic navy.
+- A palette must pass every text/background pair, not only `ink/paper`.
+- Test grayscale/black-and-white print; if two categories are distinguishable
+  only by hue, add a label, pattern, icon or rule.
+- Do not use red/green as the only distinction. Colour-blind prevalence is
+  about 1 in 12 men and 1 in 200 women of Northern European descent; labels
+  and shapes carry the meaning.
+- Colour psychology is context-dependent; do not claim “blue improves focus”.
+  Use colour for structure and signalling, not as a learning intervention
+  (Elliot & Maier, 2014).
+- `gold` is a rule/accent colour; it is not used for small text unless a
+  darker text variant passes 4.5:1.
+
+### 5.3 What “proven style” means
+
+There is no RCT showing that “warm paper” or “cobalt” raises exam scores.
+“Proven” applies to **learning techniques** (retrieval, spacing, worked
+examples, concept maps, graphic organizers) and to **accessibility standards**
+(contrast, type size, tagged PDF). Palette and font choices are professional
+design choices constrained by those standards, not learning-outcome claims.
 
 ## 6. Fonts: pairings, not random families
 
@@ -232,22 +269,36 @@ Current trio is coherent:
 - **Inter** — headings, revision body, UI labels; large x-height.
 - **Noto Sans Mono** — code; x-height matches Noto Serif.
 
-Recommended **font pairings**:
+### 6.1 Pairing library
 
-| Pairing | Body | Heading | Mono | Use |
-|---|---|---|---|---|
-| `editorial` | Noto Serif | Inter | Noto Sans Mono | paper, reader, journal |
-| `technical` | Inter | Inter | Noto Sans Mono | clean, revision, brief |
-| `accessible` | Noto Serif | Inter | Noto Sans Mono | accessible (12 pt) |
+| Pairing | Body | Heading | Mono | Status | Use |
+|---|---|---|---|---|---|
+| `editorial` | Noto Serif | Inter | Noto Sans Mono | embedded, verified | paper, reader, journal |
+| `technical` | Inter | Inter | Noto Sans Mono | embedded, verified | clean, revision, brief |
+| `academic` | Source Serif 4 | Source Sans 3 | Source Code Pro | candidate, OFL; Turkish glyph test required | academic reader/report |
+| `accessible` | Atkinson Hyperlegible Next | Atkinson Hyperlegible Next | Noto Sans Mono | candidate, OFL; Latin Extended/Turkish glyph test required | large-print |
+| `plex` | IBM Plex Serif | IBM Plex Sans | IBM Plex Mono | candidate, OFL; extended Latin/Turkish glyph test required | technical/academic |
 
-Do **not** add more families until the three above are correctly tokenized.
-If a new pairing is added later, require:
+Do **not** add all candidates at once. Keep the embedded trio as default for
+v0.10.1; add one candidate pairing only after a glyph/licence/package test.
 
-- OFL/compatible licence,
-- embedded in the PDF,
-- x-height within ~10% of the body face,
-- a full glyph/ Turkish diacritic check,
-- package-size and licence review.
+### 6.2 Pairing rules
+
+- Maximum three families: body, heading, mono.
+- A new pairing replaces a family, not adds a fourth.
+- OFL/compatible licence; embed and subset in the PDF.
+- Full Turkish glyph coverage: `ı İ ğ ş ç ö ü` in regular/bold/italic.
+- x-height within ~10% of the body face; otherwise adjust body size visually.
+- No near-duplicate sans as a “second heading” font.
+- Test actual PDF output at 8–12 pt, not just specimen images.
+
+### 6.3 Why not “one font for everything”
+
+A serif body improves long-form reading texture; Inter gives structural
+contrast and a large x-height for revision; Noto Sans Mono makes code literal
+and aligned. Using one family for all roles collapses hierarchy and makes
+code/body distinction weaker. Using four or more families adds package weight
+and visual noise without a reading task.
 
 ## 7. Architecture fix
 
@@ -325,6 +376,16 @@ layout is just body 12 with the same ratios and floors.
 ## 9. References
 
 - Bringhurst, R. (2012). *The elements of typographic style* (4th ed.).
+- Elliot, A. J., & Maier, M. A. (2014). Color psychology: Effects of perceiving
+  color on psychological functioning in humans. *Annual Review of Psychology,
+  65*, 95–120. <https://doi.org/10.1146/annurev-psych-010213-115035>
+- Colour Blind Awareness. *About colour blindness*.
+  <https://www.colourblindawareness.org/colour-blindness/>
+- Adobe. *Source Serif 4 / Source Sans 3 / Source Code Pro* (SIL OFL).
+  <https://github.com/adobe-fonts>
+- IBM. *IBM Plex* (SIL OFL). <https://github.com/ibm/plex>
+- Braille Institute. *Atkinson Hyperlegible* (SIL OFL).
+  <https://www.brailleinstitute.org/freefont/>
 - Dyson, M. C., & Haselgrove, M. (2001). The influence of reading speed and
   line length. *International Journal of Human-Computer Studies, 54*(4),
   585–612. <https://doi.org/10.1006/ijhc.2001.0458>

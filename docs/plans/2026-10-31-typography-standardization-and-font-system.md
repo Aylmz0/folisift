@@ -6,6 +6,9 @@
   organiser 1 page; paper parity 22 pages)
 - **Trigger:** the PD2 revision body is too large; PD2 summary code blocks are
   too small relative to body text; every layout uses a different size logic
+- **Follow-on:** [`2026-10-31-d2-capability-and-codebase-hardening.md`](2026-10-31-d2-capability-and-codebase-hardening.md)
+- **Glossary:** [`GLOSSARY.md`](../../GLOSSARY.md)
+- **Audit:** [`docs/codebase-audit-2026-10-31.md`](../codebase-audit-2026-10-31.md)
 - **Research note:** [`docs/typography-standardization-research.md`](../typography-standardization-research.md)
 - **Decision in one sentence:** one computed **TypographyScale** for every
   layout; code and tables get proper ratios/floors; palettes and font pairings
@@ -131,43 +134,94 @@ keep 23 pages.
 }
 ```
 
-Candidate palettes:
+### 3.2 Palette library (12, not 3)
 
-| Id | Paper | Ink | Accent | Use |
-|---|---|---|---|---|
-| `warm` | `#FAF6EC` | `#211E19` | `#8A3E2F` | paper, reader, journal, revision |
-| `cool` | `#FFFFFF` | `#111827` | `#1D4ED8` | clean, technical |
-| `contrast` | `#FFFFFF` | `#111111` | `#8A1C1C` | accessible/high-contrast |
+All core text roles pass 4.5:1 on paper; each palette file also defines
+`cream`, `zebra`, `headerfill`, `code_bg` and `cover_bg`, tested against `ink`.
 
-Palette and genre are independent: a revision sheet can be warm or cool. Every
-text role is contrast-checked against every background where it appears.
+| Id | Family | Paper | Ink | Accent | Faint | Worst text |
+|---|---|---|---:|---:|---:|---:|
+| `warm-paper` | warm/editorial | `#FAF6EC` | `#211E19` | `#8A3E2F` | `#75664E` | 5.17 |
+| `sepia-archive` | warm/archive | `#F4ECD8` | `#2B2118` | `#7B2D26` | `#7A6650` | 4.64 |
+| `clay` | warm/earthy | `#FAF6F2` | `#2E211C` | `#9C4A2F` | `#7A655B` | 5.09 |
+| `berry` | warm/plum | `#FBF7F8` | `#2B1E24` | `#7A2E4A` | `#78656E` | 5.09 |
+| `cool-slate` | cool/technical | `#FFFFFF` | `#0F172A` | `#1D4ED8` | `#64748B` | 4.76 |
+| `academic-navy` | cool/academic | `#FBF8F1` | `#14213D` | `#1D3557` | `#6B7280` | 4.56 |
+| `cobalt` | cool/strong | `#F8FAFC` | `#0F172A` | `#1E3A8A` | `#64748B` | 4.55 |
+| `forest-sage` | natural | `#F7F5EF` | `#1F2A24` | `#2F5D50` | `#5F7265` | 4.72 |
+| `ocean-teal` | natural/cool | `#F7FBFC` | `#0B2B33` | `#0F6E7A` | `#527078` | 4.82 |
+| `graphite` | neutral | `#FAFAFA` | `#111111` | `#374151` | `#6B7280` | 4.63 |
+| `mono-print` | grayscale | `#FFFFFF` | `#000000` | `#000000` | `#555555` | 7.46 |
+| `high-contrast` | accessibility | `#FFFFFF` | `#000000` | `#A40000` | `#4D4D4D` | 8.14 |
 
-### 3.2 Font pairings
+Palette and genre are independent: a revision sheet can be warm, cool or
+grayscale. Palette is not a “mood”; it is a contrast-tested semantic layer.
 
-Keep the existing three embedded families; do not add a fourth family until
-the current three are tokenized and audited.
+### 3.3 Palette rules
 
-| Id | Body | Heading | Mono | Use |
-|---|---|---|---|---|
-| `editorial` | Noto Serif | Inter | Noto Sans Mono | paper, reader, journal |
-| `technical` | Inter | Inter | Noto Sans Mono | clean, revision, brief |
-| `accessible` | Noto Serif | Inter | Noto Sans Mono | accessible |
+- Validate every text/background pair, not only `ink/paper`.
+- Print a grayscale proof; if categories differ only by hue, add a label,
+  pattern, icon or rule.
+- Do not use red/green as the only distinction. Colour-blind prevalence is
+  about 1 in 12 men and 1 in 200 women of Northern European descent.
+- Colour psychology is context-dependent; do not claim “blue improves focus”.
+  Use colour for hierarchy and signalling (Elliot & Maier, 2014).
+- `gold` stays a rule/accent colour unless a darker text variant passes 4.5:1.
 
-Rules for a future pairing:
+### 3.4 Font pairing library
 
-- OFL/compatible licence;
-- embedded and subset in the PDF;
-- Turkish glyph coverage;
-- x-height within ~10% of the body face;
-- no near-duplicate sans as a “second” heading font;
-- package-size and licence review.
+| Id | Body | Heading | Mono | Status | Use |
+|---|---|---|---|---|---|
+| `editorial` | Noto Serif | Inter | Noto Sans Mono | embedded, verified | paper, reader, journal |
+| `technical` | Inter | Inter | Noto Sans Mono | embedded, verified | clean, revision, brief |
+| `academic` | Source Serif 4 | Source Sans 3 | Source Code Pro | candidate, OFL; Turkish glyph test required | academic reader/report |
+| `accessible` | Atkinson Hyperlegible Next | Atkinson Hyperlegible Next | Noto Sans Mono | candidate, OFL; Turkish glyph test required | large-print |
+| `plex` | IBM Plex Serif | IBM Plex Sans | IBM Plex Mono | candidate, OFL; Turkish glyph test required | technical/academic |
 
-### 3.3 Why three families, not more
+Do not add a pairing until it passes licence, embedding, Turkish glyph and
+x-height tests. For v0.10.1, keep the embedded trio; add one candidate only
+after the palette/scale work is stable.
+
+### 3.5 Why three families, not more
 
 A serif body, sans heading and mono code cover the functional contrasts:
 reading texture, structural clarity, literal code. A fourth family adds
 package weight and visual noise without a reading task. If a new pairing is
 needed, it replaces one of the three, not adds to it.
+
+### 3.6 Evidence map by style
+
+“Proven style” must mean proven **learning technique** or accessibility standard,
+not a claim that a palette or font raises exam scores.
+
+| Style/genre | Evidence | Strength | What is actually supported |
+|---|---|---|---|
+| Long-form reader | Signalling, coherence, dual coding, segmenting | strong/moderate | Headings, captions, adjacent visuals, no decoration; prose remains appropriate |
+| Revision sheet | Retrieval, spacing, concept maps, worked examples, graphic organizers | strong/moderate | Recall prompts + answers, maps, matrices, faded examples, review plan |
+| Knowledge organiser | Graphic organizers, concept maps; practitioner genre | moderate | One-page structure, labelled map/timeline, key terms; no proven “one-page effect” |
+| Guided notes | Guided notes d≈0.55; note-taking mixed | moderate | Provided framework + blanks + cues + summary |
+| Workbook | Worked examples, retrieval, self-explanation, ICAP | strong/moderate | Full → faded → independent; answer key; mixed review |
+| Reference sheet | Information design/typography | standard | Lookup speed, units, conditions, contrast; not first learning |
+| Academic paper | Genre conventions (Swales, Hyland) | standard | IMRAD/argument/citations; not a study technique |
+| Executive brief | Minto/BLUF | professional standard | Answer-first, findings, recommendation, risks |
+| Clinical/legal note | SOAP/IRAC | professional standard | Facts/rules/assessment/plan; not exam revision |
+| Palette/font choice | WCAG/PDF/UA, x-height, typography practice | standard/heuristic | Contrast, legibility, hierarchy; no learning-outcome claim |
+
+### 3.7 Layout × palette × font matrix
+
+| Layout | Default palette | Default fonts | Allowed palettes | Allowed fonts |
+|---|---|---|---|---|
+| `paper` legacy | `warm-paper` | `editorial` | warm, neutral (frozen) | editorial (frozen) |
+| `reader` | `warm-paper` | `editorial` | all 12 | editorial, academic |
+| `clean` | `cool-slate` | `technical` | all cool/neutral | technical, plex |
+| `journal` | `academic-navy` | `editorial` | all academic/warm | editorial, academic |
+| `brief` | `cool-slate` | `technical` | all cool/neutral | technical, plex |
+| `revision` | `warm-paper` | `technical` | all 12 | technical, accessible |
+| `accessible` | `high-contrast` | `accessible` | high-contrast, mono-print | accessible |
+
+This is the actual “multiple styles” model: a genre selects the layout and
+structure; a palette and font pairing are independent, validated choices. The
+style id is not a fourth dimension that silently changes all three.
 
 ## 4. Architecture
 
@@ -177,8 +231,8 @@ needed, it replaces one of the three, not adds to it.
 style pack
   ├── genre: reader | revision-sheet | knowledge-organiser | ...
   ├── layout: paper | clean | revision
-  ├── palette: warm | cool | contrast
-  ├── fonts: editorial | technical | accessible
+  ├── palette: warm-paper | cool-slate | academic-navy | ... | high-contrast
+  ├── fonts: editorial | technical | academic | accessible | plex
   ├── density: compact | comfortable | spacious
   └── accessibility: standard | large-print
 ```
@@ -270,6 +324,10 @@ uses body 12 and the same ratios/floors.
 - [ ] Add `TypographyScale` and placeholder replacement in `styles.rs`.
 - [ ] Add `code_block`/`code_inline` tokens and placeholders to paper/clean/
       revision.
+- [ ] Wire `heading` and `mono` font tokens; replace only explicit
+      `__BODY_FONT__`/`__HEADING_FONT__`/`__MONO_FONT__` placeholders.
+- [ ] Wire all palette roles (`faint`, `cream`, `sand`, `zebra`, `headerfill`)
+      in every template; no silent drop.
 - [ ] Remove `component_scale` from accessible; use the shared scale.
 - [ ] Keep `paper` legacy values (parity) unless the parity decision changes.
 - [ ] Add unit tests for ratios/floors and code/body ratio.
@@ -297,15 +355,20 @@ uses body 12 and the same ratios/floors.
 - [ ] Do not change body 10.0 unless the measure review says so.
 - **Exit:** PD2/PD3 code/body ratio ≥ 0.90; no code overflow; strict audit.
 
-### Phase 4 — Palettes and font pairings
+### Phase 4 — Palette and font library
 
-- [ ] Add `styles/palettes/{warm,cool,contrast}.json` with semantic roles.
-- [ ] Add `styles/fonts/{editorial,technical,accessible}.json`.
+- [ ] Add `styles/palettes/` with 12 semantic palettes:
+      `warm-paper`, `sepia-archive`, `clay`, `berry`, `cool-slate`,
+      `academic-navy`, `cobalt`, `forest-sage`, `ocean-teal`, `graphite`,
+      `mono-print`, `high-contrast`.
+- [ ] Add `styles/fonts/` with `editorial`, `technical`; add `academic`,
+      `accessible` and `plex` only after licence/glyph/x-height tests.
 - [ ] `StylePack` schema 2: optional `palette`, `fonts`, `scale`; default from
       layout.
-- [ ] Contrast tests for every text role. No new fonts in this phase.
-- **Exit:** `paper`/`reader`/`revision` can share a palette; `clean` can use
-      cool; accessible can use contrast/12 pt.
+- [ ] Contrast tests for every text role; grayscale proof for every palette.
+- [ ] Add `palette list`/`palette preview` CLI (or `styles info` fields).
+- **Exit:** all 12 palettes load; paper/reader/revision can share a palette;
+      clean can use cool; accessible can use contrast/12 pt.
 
 ### Phase 5 — Audit and gates
 
@@ -314,8 +377,10 @@ uses body 12 and the same ratios/floors.
 - [ ] `line_chars_p50/p90`, `long_line_pages`.
 - [ ] `audit --guide <slug>` reads the style scale/floors.
 - [ ] `make type-check` and `make revision-check`.
+- [ ] Add EN revision/organiser label parity test (B13).
+- [ ] Validate all text-role contrast, not only `ink/paper` (B17).
 - **Exit:** gates fail on 0.74 code ratio or 6.9 pt labels in new styles;
-      paper legacy is explicitly exempt.
+      paper legacy is explicitly exempt; EN labels contain no Turkish defaults.
 
 ### Phase 6 — Docs and release candidate
 
@@ -344,8 +409,8 @@ uses body 12 and the same ratios/floors.
 ### Palettes/fonts
 
 - [ ] Palette roles are semantic and contrast-tested.
-- [ ] `warm`, `cool` and `contrast` palettes can be selected independently of
-      genre.
+- [ ] All 12 palettes load and can be selected independently of genre; every
+      text role passes 4.5:1 and a grayscale proof.
 - [ ] Font pairing is a token layer; only embedded families are allowed.
 - [ ] No fourth family without licence/x-height/package review.
 
@@ -371,8 +436,8 @@ uses body 12 and the same ratios/floors.
 2. **Code ratio:** 0.92 block / 0.95 inline (recommended) or 0.90/0.93?
 3. **Paper parity:** keep `paper` legacy frozen and standardize `reader`/
    `clean`/`revision` (recommended), or migrate paper and retire exact parity?
-4. **Palettes:** implement `warm` + `cool` + `contrast` in v0.10.1, or only
-   warm/cool and keep contrast for v0.11?
+4. **Palettes:** implement all 12 in v0.10.1, or start with warm/editorial +
+   cool/technical + high-contrast and add the rest in v0.11?
 5. **Fonts:** keep the current three embedded families for v0.10.1
    (recommended), or add a second pairing such as IBM Plex in v0.11?
 
