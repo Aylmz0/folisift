@@ -854,4 +854,4 @@ PD3’te **18** düşük metinli slayt vardır: **1, 5, 19, 26, 39, 42, 46, 60, 
 - **Uzun kod parçaları ve tam ayrıştırma ağacı çizimleri** (s. 111, 128–130) birebir çoğaltılmadı; ayırt edici yapı ve sonuçlar verildi. `X := Y + Z` ağacı, nitelik akışı, sözdizim grafiği ve anlam yöntemleri D2 diagramlarıyla temsil edildi.
 - **Dekoratif görseller** yeniden üretilmedi; tekrar eden kaynakça listesi (s. 136) kapsam dışı bırakıldı.
 
-**Sonuç:** PD3’ün **5/5 alt bölümü** ve **136/136 slaytı** kapsandı. Düşük metinli 18 slaytın tamamı incelendi; erişilemeyen sayfa tespit edilmedi. Otomatik başlık denetimi `build --check` ile, tablo/şekil/örnek denetimi bu bölümde elle yapılmıştır.
+**Sonuç:** Kapsam ve görsel kararlar `data/coverage.md` ile `visual-audit.json` dosyalarında makine tarafından üretilir. Bu bölümdeki tablolar kaynak aralıklarını ve insan değerlendirmesini özetler; sayısal iddialar bu iki rapora dayanır.

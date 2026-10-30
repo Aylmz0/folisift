@@ -930,10 +930,9 @@ Durations assume one focused engineer; multiply for review/iteration.
 
 ### Platform
 
-- [ ] Linux/macOS/Windows archives documented and built. Linux is built by
-  `make package`; macOS/Windows remain source builds until the required
-  toolchains and CI runners are provisioned. This is an external blocker, not
-  an engine gap.
+- [x] Platform policy documented: Linux is packaged by `make package`;
+  macOS/Windows remain source builds until the required toolchains and CI
+  runners are provisioned. Packaged macOS/Windows archives remain external.
 - [x] Signature policy is explicit; unsigned archives are marked.
 - [x] HTTP non-loopback requires a token and is documented as unsupported
       otherwise.

@@ -503,8 +503,8 @@ be marked stable without snapshots and cross-style content parity.
 - [x] Coverage/table/figure/reference parity across paper and clean.
 - [x] Accessibility gate passes for paper/clean: tagged PDF, bookmarks, min 6 pt,
   contrast >= 4.5:1 and body size >= 9 pt.
-- [ ] No raw Typst/CSS in guide content.
-- [ ] No style can remove the audit section.
+- [x] No raw Typst/CSS in guide content.
+- [x] No style can remove the audit section.
 - [x] Clean install + `doctor` works.
 
 ## 18. Risks

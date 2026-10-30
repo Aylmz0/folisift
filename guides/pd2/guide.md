@@ -793,4 +793,4 @@ PD2’de **9** düşük metinli slayt vardır: **1, 5, 19, 21, 29, 33, 45, 53, 1
 - **Fortran, BASIC, LISP, Simula, Prolog, Ada ve Java örnekleri** yalnızca ayırt edici yapılarıyla verildi; LISP listeleri ve BASIC şeceresi D2 ile çizildi.
 - **Kaynakça** (s. 103) birleştirildi; PD2’de ödev slaytı yok.
 
-**Sonuç:** **20/20 alt bölüm**, **103/103 slayt**; 9 düşük metinli slayt karara bağlandı. `build --check` ve G denetimi geçti.
+**Sonuç:** Kapsam ve görsel kararlar `data/coverage.md` ile `visual-audit.json` dosyalarında makine tarafından üretilir. Bu bölümdeki tablolar kaynak aralıklarını ve insan değerlendirmesini özetler; sayısal iddialar bu iki rapora dayanır.

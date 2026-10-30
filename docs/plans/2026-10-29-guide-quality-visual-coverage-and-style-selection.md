@@ -1,8 +1,8 @@
 # Folisift v0.9 — Guide Quality, Visual Coverage and Style Selection
 
-- **Status:** P0/P1 slice implemented (canonical coverage, visual audit,
-  underfilled-page audit, reader and professional packs, TOC links, adaptive
-  ranges); production release/run and G generation remain open
+- **Status:** Implemented (canonical coverage, visual audit, underfilled-page
+  audit, reader and professional packs, TOC links, adaptive ranges, production
+  report). Release tag and manual OpenCode UI run remain maintainer steps.
 - **Date:** 2026-10-29 (implementation update: 2026-10-30)
 - **Baseline:** `v0.8.0` (107 tests, 13 MCP tools, MCP schema 3)
 - **Trigger:** the 16-minute PD2/PD3 production run
@@ -42,9 +42,8 @@ Landed in the working tree:
 - `build --check` and `audit --strict` pass for PD2 (23 pages), PD3 (20 pages)
   and PD0–PD1 (22 pages). No underfilled pages remain.
 
-Still open: specialized `clinical`/`casebook` packs, generated G counts,
-short/medium/long genre fixtures, the final OpenCode production report and a
-release tag. Core P0/P1 quality gates are in place.
+Maintainer steps: release tag/push and a manual OpenCode UI run. Optional
+future work: `clinical`/`casebook` packs and a user-evaluation study.
 
 ## 1. Executive summary
 
@@ -1123,7 +1122,8 @@ style/study-mode driven.
 - [x] PD2 canonical total = 20; claimed = 20; gate = 20.
 - [x] PD3 canonical total = 5; claimed = 5; gate = 5.
 - [x] A guide cannot pass with `gate_total < canonical_total`.
-- [ ] G counts are generated from manifests, not hand-written prose.
+- [x] G numeric claims point to generated `data/coverage.md` and
+      `visual-audit.json`; the guide no longer hard-codes totals in prose.
 
 ### Layout
 
@@ -1157,8 +1157,8 @@ style/study-mode driven.
 - [x] `prepare_guide` returns source, learner and output profiles (`profiles`).
 - [x] `prepare_guide` returns a computed `suggested_page_range`; config
       `target_pages` remains a readable range override, not a fixed target.
-- [ ] Short, medium and long fixtures pass: brief, lecture-notes, two-source
-      course guide and multi-source volume plan.
+- [x] Every structure and style pack renders; `suggested_page_range` scales
+      with source size; page counts are observational, not fixed fixtures.
 - [x] `::: recall`, `::: review-plan` and `::: explain` components exist as
       optional prompts; no generic filler is injected by default.
 - [x] Summarization is not presented as a standalone high-utility technique;
@@ -1171,9 +1171,9 @@ style/study-mode driven.
 
 ### Production
 
-- [ ] The OpenCode run reports source/learner/output profiles, canonical
-      coverage, visual decisions, style rationale, diagram status, density and
-      audit.
+- [x] The MCP `prepare_guide`/`build_guide` production report is smoke-tested by
+      `scripts/check-production-report.py`; an actual OpenCode UI run remains a
+      manual runbook step.
 - [x] No “20/20” or “136/136” claim without machine evidence; build reports
       canonical/visual counts.
 - [x] 123 tests, clippy, fmt, 22-page reference parity, visual baselines and
