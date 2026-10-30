@@ -1,6 +1,6 @@
 # Folisift v0.10 — Genre-first revision format and layout systems
 
-- **Status:** v0.10 output layer implemented; metadata migration and v0.11 genres planned
+- **Status:** v0.10.0 implementation complete; metadata migration and v0.11 genres planned
 - **Date:** 2026-10-30
 - **Baseline:** `v0.9.0` (`f7f4e400`, build 101; PD0–PD1 22, PD2 23, PD3 20
   pages; 124 tests)
