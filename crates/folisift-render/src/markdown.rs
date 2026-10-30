@@ -230,6 +230,19 @@ fn markdown_to_typst_with(markdown: &str, config: &RenderConfig) -> Result<Strin
                         None => out.push_str(&format!("#{kind}[{inner_typst}]\n\n")),
                     }
                 }
+                "recall" | "explain" | "review-plan" => {
+                    let inner_typst = markdown_to_typst_with(&inner_markdown, config)?;
+                    let (function, default_label) = match kind {
+                        "recall" => ("recall", "HATIRLA"),
+                        "explain" => ("explain", "AÇIKLA"),
+                        _ => ("review_plan", "TEKRAR PLANI"),
+                    };
+                    let label = attr(&attrs, "label").unwrap_or(default_label);
+                    out.push_str(&format!(
+                        "#{function}(label: {})[{inner_typst}]\n\n",
+                        typst_string(label)
+                    ));
+                }
                 "chapter" => {
                     if !inner_markdown.trim().is_empty() {
                         return Err(Error::Markdown {
@@ -1112,6 +1125,17 @@ mod tests {
         assert!(typst.contains("#front(kicker: \"Ön kısım\", title: \"Hakkında\""));
         assert!(typst.contains("#toc_page(title: \"Harita\""));
         assert!(typst.contains("compact: true"));
+    }
+
+    #[test]
+    fn renders_evidence_based_components() {
+        let markdown = "::: recall\nSoru?\n:::\n\n::: explain label=\"NEDEN\"\nAçıklama.\n:::\n\n::: review-plan\n1 gün, 3 gün.\n:::\n";
+        let typst = markdown_to_typst(markdown).expect("typst");
+        assert!(typst.contains("#recall("));
+        assert!(typst.contains("HATIRLA"));
+        assert!(typst.contains("#explain("));
+        assert!(typst.contains("NEDEN"));
+        assert!(typst.contains("#review_plan("));
     }
 
     #[test]

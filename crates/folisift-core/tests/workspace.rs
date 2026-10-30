@@ -254,7 +254,7 @@ fn loads_a_schema_three_style_profile() {
             "voice": "technical",
             "study_mode": "exam",
             "domain": "cs",
-            "citation": "ieee"
+            "citation": "page-ref"
           }
         }"#,
     )

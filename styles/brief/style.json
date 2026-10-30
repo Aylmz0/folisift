@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "id": "brief",
+  "name": "Brief — decision memo",
+  "status": "experimental",
+  "layout": "clean",
+  "aesthetic": "brief",
+  "supported_structures": [
+    "executive-brief",
+    "a-g"
+  ],
+  "supported_languages": [
+    "tr",
+    "en"
+  ],
+  "supported_domains": [
+    "business",
+    "general"
+  ],
+  "supported_voices": [
+    "business",
+    "academic",
+    "plain"
+  ],
+  "tokens": "tokens.json",
+  "strings": [
+    "tr",
+    "en"
+  ],
+  "engine_min": "0.8.0",
+  "page_target": "dynamic",
+  "preview": "preview.md"
+}

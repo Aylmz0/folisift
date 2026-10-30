@@ -125,7 +125,7 @@ pinned binary. The full command list and authoring rules are in
 ```text
 crates/          # Rust workspace: core, parse, render, mcp, cli
 templates/       # paper.typ, clean.typ and embedded OFL fonts
-styles/          # paper/reader/clean style packs
+styles/          # paper/reader/clean/journal/brief/accessible packs
 guides/          # guide bundles
 docs/            # architecture, authoring, design, ADRs, plans
 sources/         # local PDFs; gitignored

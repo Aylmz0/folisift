@@ -242,6 +242,11 @@
   #body
 ]
 
+// ---- evidence-based learning components --------------------------------
+#let recall(label: "HATIRLA", body) = definition(label: label, body)
+#let explain(label: "AÇIKLA", body) = note(label: label, body)
+#let review_plan(label: "TEKRAR PLANI", body) = definition(label: label, body)
+
 // ---- front matter and TOC ----------------------------------------------
 #let front(kicker: "", title: "", lead: none, body) = page(header: none)[
   #set text(font: "Noto Serif", size: 9.5pt, fill: ink)

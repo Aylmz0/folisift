@@ -79,6 +79,8 @@ pub fn scaffold(workspace: &Workspace, options: &ScaffoldOptions) -> Result<Guid
         target_pages: None,
         theme: options.style.aesthetic.clone(),
         style: Some(options.style.clone()),
+        style_rationale: None,
+        style_source: Some("scaffold".to_string()),
         extra: Default::default(),
     };
     let config_path = guide_dir.join("config.json");

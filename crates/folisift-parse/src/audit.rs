@@ -40,6 +40,8 @@ pub struct LayoutAudit {
     pub orphan_heading_pages: Vec<usize>,
     pub bookmark_mismatches: Vec<String>,
     pub image_pages: usize,
+    pub figure_captions: usize,
+    pub figure_caption_pages: Vec<usize>,
     pub image_overflow_pages: Vec<usize>,
     pub missing_glyphs: usize,
     pub tagged: bool,
@@ -76,6 +78,8 @@ pub fn audit_pdf(path: &Path, expected_pages: Option<usize>) -> Result<LayoutAud
     let mut orphan_heading_pages = Vec::new();
     let mut bookmark_mismatches = Vec::new();
     let mut image_pages = 0usize;
+    let mut figure_captions = 0usize;
+    let mut figure_caption_pages = Vec::new();
     let mut image_overflow_pages = Vec::new();
     let mut missing_glyphs = 0usize;
     let mut min_font_size = f64::MAX;
@@ -191,6 +195,11 @@ pub fn audit_pdf(path: &Path, expected_pages: Option<usize>) -> Result<LayoutAud
                     }
                 }
             }
+        }
+        let captions = count_figure_captions(&page_text);
+        if captions > 0 {
+            figure_captions += captions;
+            figure_caption_pages.push(page_number);
         }
         page_texts.push(compact(&page_text));
 
@@ -322,6 +331,8 @@ pub fn audit_pdf(path: &Path, expected_pages: Option<usize>) -> Result<LayoutAud
         orphan_heading_pages,
         bookmark_mismatches,
         image_pages,
+        figure_captions,
+        figure_caption_pages,
         image_overflow_pages,
         missing_glyphs,
         tagged,
@@ -334,6 +345,10 @@ pub fn audit_pdf(path: &Path, expected_pages: Option<usize>) -> Result<LayoutAud
         passed,
         issues,
     })
+}
+
+fn count_figure_captions(page_text: &str) -> usize {
+    page_text.matches("Şekil").count() + page_text.matches("Figure").count()
 }
 
 /// Flag pages whose body text is far below the normal body density.
@@ -419,6 +434,13 @@ mod tests {
         assert_eq!(compact("D.1 D E R L E M E"), compact("d.1derleme"));
         assert_eq!(compact("KISALTMALAR"), compact("Kısaltmalar"));
         assert_eq!(compact("İÇİNDEKİLER"), compact("içindekiler"));
+    }
+
+    #[test]
+    fn counts_figure_captions() {
+        assert_eq!(count_figure_captions("“Şekil” 1 Açıklama"), 1);
+        assert_eq!(count_figure_captions("Figure 2.1 Example and Figure 3"), 2);
+        assert_eq!(count_figure_captions("no caption"), 0);
     }
 
     #[test]
