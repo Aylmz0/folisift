@@ -223,6 +223,36 @@ fn every_structure_pack_renders_in_both_languages() {
 }
 
 #[test]
+fn every_style_pack_renders_the_sample() {
+    for id in styles::builtin_ids() {
+        let pack = styles::load(Path::new(""), id).expect("style pack");
+        let profile = StyleProfile {
+            aesthetic: pack.pack.aesthetic.clone(),
+            structure: "a-g".to_string(),
+            language: "en".to_string(),
+            source_language: "en".to_string(),
+            domain: pack
+                .pack
+                .supported_domains
+                .first()
+                .cloned()
+                .unwrap_or_else(|| "general".to_string()),
+            voice: pack
+                .pack
+                .supported_voices
+                .first()
+                .cloned()
+                .unwrap_or_else(|| "academic".to_string()),
+            ..StyleProfile::default()
+        };
+        let rendered =
+            render(SAMPLE, &options(&profile)).unwrap_or_else(|error| panic!("{id}: {error}"));
+        assert!(rendered.pdf.starts_with(b"%PDF-"), "{id}");
+        assert!(rendered.pages >= 1, "{id}");
+    }
+}
+
+#[test]
 fn rejects_a_missing_structure_section() {
     let profile = StyleProfile {
         aesthetic: "clean".to_string(),
