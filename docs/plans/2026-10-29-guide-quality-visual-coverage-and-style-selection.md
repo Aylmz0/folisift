@@ -1,8 +1,8 @@
 # Folisift v0.9 — Guide Quality, Visual Coverage and Style Selection
 
-- **Status:** Implemented (canonical coverage, visual audit, underfilled-page
+- **Status:** v0.9.0 (canonical coverage, visual audit, underfilled-page
   audit, reader and professional packs, TOC links, adaptive ranges, production
-  report). Release tag and manual OpenCode UI run remain maintainer steps.
+  report). Release tag and manual OpenCode UI run are maintainer steps.
 - **Date:** 2026-10-29 (implementation update: 2026-10-30)
 - **Baseline:** `v0.8.0` (107 tests, 13 MCP tools, MCP schema 3)
 - **Trigger:** the 16-minute PD2/PD3 production run
