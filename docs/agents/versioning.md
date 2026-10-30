@@ -14,7 +14,7 @@ release ownership. `AGENTS.md` only points here.
 `FOLISIFT_BUILD` may override the build number for a reproducible build. A
 binary must never read `.git` at runtime.
 
-The MCP tool contract has its own `mcp_tool_schema_version` (currently `3`).
+The MCP tool contract has its own `mcp_tool_schema_version` (currently `4`).
 A breaking tool-schema change requires at least a MINOR SemVer bump.
 
 ## SemVer rules

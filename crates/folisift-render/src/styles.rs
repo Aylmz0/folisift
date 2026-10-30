@@ -19,6 +19,21 @@ const READER_TOKENS: &str = include_str!("../../../styles/reader/tokens.json");
 const READER_TR: &str = include_str!("../../../styles/reader/strings/tr.json");
 const READER_EN: &str = include_str!("../../../styles/reader/strings/en.json");
 
+const JOURNAL_STYLE: &str = include_str!("../../../styles/journal/style.json");
+const JOURNAL_TOKENS: &str = include_str!("../../../styles/journal/tokens.json");
+const JOURNAL_TR: &str = include_str!("../../../styles/journal/strings/tr.json");
+const JOURNAL_EN: &str = include_str!("../../../styles/journal/strings/en.json");
+
+const BRIEF_STYLE: &str = include_str!("../../../styles/brief/style.json");
+const BRIEF_TOKENS: &str = include_str!("../../../styles/brief/tokens.json");
+const BRIEF_TR: &str = include_str!("../../../styles/brief/strings/tr.json");
+const BRIEF_EN: &str = include_str!("../../../styles/brief/strings/en.json");
+
+const ACCESSIBLE_STYLE: &str = include_str!("../../../styles/accessible/style.json");
+const ACCESSIBLE_TOKENS: &str = include_str!("../../../styles/accessible/tokens.json");
+const ACCESSIBLE_TR: &str = include_str!("../../../styles/accessible/strings/tr.json");
+const ACCESSIBLE_EN: &str = include_str!("../../../styles/accessible/strings/en.json");
+
 const CLEAN_STYLE: &str = include_str!("../../../styles/clean/style.json");
 const CLEAN_TOKENS: &str = include_str!("../../../styles/clean/tokens.json");
 const CLEAN_TR: &str = include_str!("../../../styles/clean/strings/tr.json");
@@ -62,7 +77,7 @@ pub struct LoadedStyle {
 
 /// Built-in pack ids shipped in the binary.
 pub fn builtin_ids() -> &'static [&'static str] {
-    &["paper", "reader", "clean"]
+    &["paper", "reader", "clean", "journal", "brief", "accessible"]
 }
 
 /// List built-in packs plus workspace overrides under `<root>/styles`.
@@ -253,6 +268,26 @@ fn embedded(id: &str, file: &str) -> Option<&'static str> {
         ("reader", "strings/en.json") => Some(READER_EN),
         ("reader", "preview.md") => Some(include_str!("../../../styles/reader/preview.md")),
         ("reader", "preview.en.md") => Some(include_str!("../../../styles/reader/preview.en.md")),
+        ("journal", "style.json") => Some(JOURNAL_STYLE),
+        ("journal", "tokens.json") => Some(JOURNAL_TOKENS),
+        ("journal", "strings/tr.json") => Some(JOURNAL_TR),
+        ("journal", "strings/en.json") => Some(JOURNAL_EN),
+        ("journal", "preview.md") => Some(include_str!("../../../styles/journal/preview.md")),
+        ("journal", "preview.en.md") => Some(include_str!("../../../styles/journal/preview.en.md")),
+        ("brief", "style.json") => Some(BRIEF_STYLE),
+        ("brief", "tokens.json") => Some(BRIEF_TOKENS),
+        ("brief", "strings/tr.json") => Some(BRIEF_TR),
+        ("brief", "strings/en.json") => Some(BRIEF_EN),
+        ("brief", "preview.md") => Some(include_str!("../../../styles/brief/preview.md")),
+        ("brief", "preview.en.md") => Some(include_str!("../../../styles/brief/preview.en.md")),
+        ("accessible", "style.json") => Some(ACCESSIBLE_STYLE),
+        ("accessible", "tokens.json") => Some(ACCESSIBLE_TOKENS),
+        ("accessible", "strings/tr.json") => Some(ACCESSIBLE_TR),
+        ("accessible", "strings/en.json") => Some(ACCESSIBLE_EN),
+        ("accessible", "preview.md") => Some(include_str!("../../../styles/accessible/preview.md")),
+        ("accessible", "preview.en.md") => {
+            Some(include_str!("../../../styles/accessible/preview.en.md"))
+        }
         ("clean", "style.json") => Some(CLEAN_STYLE),
         ("clean", "tokens.json") => Some(CLEAN_TOKENS),
         ("clean", "strings/tr.json") => Some(CLEAN_TR),
@@ -444,6 +479,9 @@ mod tests {
         let reader = load(Path::new(""), "reader").expect("reader");
         assert_eq!(reader.pack.layout, "paper");
         assert_eq!(reader.tokens["typography"]["body_size"], 10.0);
+        for id in ["journal", "brief", "accessible"] {
+            assert!(load(Path::new(""), id).is_ok(), "{id}");
+        }
     }
 
     #[test]

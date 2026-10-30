@@ -22,5 +22,7 @@
     "study_mode": "exam",
     "domain": "cs",
     "citation": "page-ref"
-  }
+  },
+  "style_source": "explicit",
+  "style_rationale": "Reader style for a 103-slide history deck with three high-value diagrams."
 }

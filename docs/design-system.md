@@ -55,9 +55,12 @@ slightly tighter so a 20-section guide still fits on one contents page.
 It is selected with `aesthetic: "reader"`; `paper` remains the stable
 old-PDF parity style. Reader is experimental until its cross-style and
 accessibility snapshots pass, but it is the preferred readable default for new
-guides.
+guides; MCP `prepare_guide` reports `style_source: "default-reader"` when it
+auto-selects it.
 
 ## Clean style
+
+`journal`, `brief` and `accessible` are token-driven variants of the paper/clean layouts: journal is a serif academic reader, brief is a compact decision memo, accessible is a 12 pt high-contrast reader. They are experimental until their snapshots pass.
 
 `clean` is the second engine-owned layout. It keeps the same content model and
 directives but uses an Inter body, white paper, a blue accent, a single cover

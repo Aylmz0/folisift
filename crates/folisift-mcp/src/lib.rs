@@ -531,12 +531,17 @@ impl FolisiftServer {
                 candidates.sort_by_key(|candidate| {
                     let id = candidate["id"].as_str().unwrap_or_default();
                     let status = candidate["status"].as_str().unwrap_or_default();
-                    if id == "reader" {
+                    let domain_fit = (domain == "humanities" && id == "journal")
+                        || (domain == "business" && id == "brief")
+                        || (structure == "executive-brief" && id == "brief");
+                    if domain_fit {
                         0
-                    } else if status == "stable" {
+                    } else if id == "reader" {
                         1
-                    } else {
+                    } else if status == "stable" {
                         2
+                    } else {
+                        3
                     }
                 });
                 let recommended = candidates.first().cloned();
@@ -769,6 +774,12 @@ impl FolisiftServer {
             }
         }
 
+        let page_range = guide
+            .config
+            .target_pages
+            .clone()
+            .unwrap_or_else(|| loaded_style.pack.page_target.clone());
+        let profiles = guide_profiles(&style, &inventory, outline.len(), &page_range);
         let visual_template = json!({
             "schema_version": 1,
             "source_pages": visual_targets
@@ -790,8 +801,12 @@ impl FolisiftServer {
             "pages": inventory.totals.pages,
             "words": inventory.totals.words,
             "style": style,
+            "style_source": if params.style.is_some() { "explicit" } else { "default-reader" },
+            "style_rationale_required": true,
             "domain_profile": folisift_render::domains::load(self.workspace.root(), &style.domain)
                 .ok(),
+            "prompt_fragment": style_prompt_fragment(&style),
+            "profiles": profiles,
             "visual_targets": visual_targets,
             "visual_audit": guide.visual_audit().display().to_string(),
             "visual_audit_template": visual_template,
@@ -973,6 +988,7 @@ impl FolisiftServer {
             "content_hash": rendered.content_hash,
             "cache_hit": rendered.cache_hit,
             "style": style,
+            "style_rationale": guide.config.style_rationale,
             "warnings": rendered.warnings.len(),
             "stats": content_stats(&markdown),
             "coverage": coverage,
@@ -1267,6 +1283,117 @@ fn diagram_rules() -> &'static str {
     "Diagram rules\n\n- 0-3 diagrams per chapter; one idea per diagram.\n- 1-12 nodes, max 20 edges, tree depth max 4.\n- Use flow for processes, concept for relationships, tree for hierarchy, sequence for messages.\n- No decorative images, stock photos or AI illustrations.\n- Every diagram needs a takeaway caption, an alt text and provenance.\n- The host writes JSON only; D2, SVG and Typst are engine-owned.\n- Builds read pre-generated SVG; the CLI `folisift diagram build` is the only D2 caller."
 }
 
+fn suggested_page_range(inventory: &Inventory, style: &folisift_core::StyleProfile) -> String {
+    let sections = inventory
+        .sources
+        .iter()
+        .map(|source| source.sections.len())
+        .sum::<usize>()
+        .max(1);
+    let pages = inventory.totals.pages.max(1);
+    let per_section = match style.study_mode.as_str() {
+        "deep" => 1.2,
+        "reference" => 0.6,
+        "teach" => 1.0,
+        _ => 0.8,
+    };
+    let visual_pages = inventory.totals.low_text_pages.div_ceil(4);
+    let section_min = (sections as f64 * per_section * 0.8).ceil() as usize + 4;
+    let section_max = (sections as f64 * per_section * 1.3).ceil() as usize + 6 + visual_pages;
+    let density_min = (pages as f64 * 0.075).ceil() as usize + 3;
+    let density_max = (pages as f64 * 0.125).ceil() as usize + 6;
+    let min = section_min.max(density_min).max(4);
+    let max = section_max.max(density_max).max(min);
+    format!("{min}-{max}")
+}
+
+fn guide_profiles(
+    style: &folisift_core::StyleProfile,
+    inventory: &Inventory,
+    outline_len: usize,
+    page_range: &str,
+) -> Value {
+    let pages = inventory.totals.pages.max(1);
+    let low_ratio = inventory.totals.low_text_pages as f64 / pages as f64;
+    let visual_load = if low_ratio > 0.15 {
+        "high"
+    } else if low_ratio > 0.05 {
+        "medium"
+    } else {
+        "low"
+    };
+    let source_type = if low_ratio > 0.5 {
+        "scanned/mixed"
+    } else {
+        "slides/text"
+    };
+    let structure_clarity = if outline_len > 0 {
+        "explicit"
+    } else {
+        "implicit"
+    };
+    let accessibility = if style.aesthetic == "accessible" {
+        "large-print"
+    } else {
+        "standard"
+    };
+    json!({
+        "source_profile": {
+            "source_type": source_type,
+            "units": {
+                "pages": inventory.totals.pages,
+                "words": inventory.totals.words,
+                "sections": inventory.sources.iter().map(|source| source.sections.len()).sum::<usize>(),
+            },
+            "low_text_pages": inventory.totals.low_text_pages,
+            "visual_load": visual_load,
+            "text_layer": if low_ratio > 0.5 { "partial/none" } else { "native" },
+            "structure_clarity": structure_clarity,
+            "language": style.source_language,
+            "domain_hint": style.domain,
+        },
+        "learner_profile": {
+            "study_mode": style.study_mode,
+            "prior_knowledge": "intermediate",
+            "time_budget": "standard",
+            "accessibility": accessibility,
+            "output_language": style.language,
+        },
+        "output_profile": {
+            "structure": style.structure,
+            "style": style.aesthetic,
+            "page_range": page_range,
+            "suggested_page_range": suggested_page_range(inventory, style),
+            "visual_budget": if visual_load == "high" { "high-priority targets mandatory" } else { "0-3 meaningful diagrams per chapter" },
+            "component_mix": {
+                "definitions": "high",
+                "worked_examples": if matches!(style.domain.as_str(), "cs" | "math" | "business") { "high" } else { "medium" },
+                "tables": "medium",
+                "diagrams": if visual_load == "low" { "medium" } else { "high" },
+                "recall_prompts": if style.study_mode == "exam" { "optional" } else { "low" },
+            },
+        },
+    })
+}
+
+fn style_prompt_fragment(style: &folisift_core::StyleProfile) -> String {
+    let voice = match style.voice.as_str() {
+        "technical" => "Adım adım, önkoşul ve hata durumları belirtilen teknik anlatım.",
+        "plain" => "Kısa cümle, aktif ses ve tanımlanmış jargon ile sade anlatım.",
+        "legal" => "IRAC disiplini; jurisdiction, kural ve uygulama ayrımı.",
+        "clinical" => "SOAP disiplini; kanıt, belirsizlik ve red flag'ler.",
+        "business" => "BLUF; bulgu, etki ve öneri ayrımı.",
+        _ => "Kanıt odaklı, mesafeli akademik anlatım; kaynak iddiası ile yorumu ayır.",
+    };
+    let mode = match style.study_mode.as_str() {
+        "deep" => "Mekanizma, varsayım, sınır ve bağlantıları derinleştir.",
+        "reference" => "Yoğun tanım, formül, tablo ve hızlı başvuru düzeni kullan.",
+        "teach" => "Ders anlatımı gibi ilerle; somut örnek ve görsel açıklama ekle.",
+        _ => "Sınav odaklı yüksek verim: tanım, karşılaştırma, örnek ve sık hata.",
+    };
+    format!("{voice} {mode}")
+}
+
 fn content_stats(markdown: &str) -> Value {
     let diagrams = markdown
         .lines()
@@ -1294,7 +1421,7 @@ fn build_style(
 ) -> Result<folisift_core::StyleProfile, String> {
     let language = language.unwrap_or_else(|| "tr".to_string());
     let style = folisift_core::StyleProfile {
-        aesthetic: aesthetic.unwrap_or_else(|| "paper".to_string()),
+        aesthetic: aesthetic.unwrap_or_else(|| "reader".to_string()),
         structure: structure.unwrap_or_else(|| "a-g".to_string()),
         language: language.clone(),
         source_language: language,
@@ -1480,7 +1607,59 @@ pub async fn serve_http(
 
 #[cfg(test)]
 mod tests {
-    use super::is_loopback;
+    use super::{content_stats, is_loopback, suggested_page_range};
+    use folisift_core::StyleProfile;
+    use folisift_parse::{CanonicalSection, Inventory, SourceInventory, Totals};
+
+    fn inventory(pages: usize, low_text: usize, sections: usize) -> Inventory {
+        let sections = (0..sections)
+            .map(|index| CanonicalSection {
+                number: format!("1.{}", index + 1),
+                title: format!("Section {}", index + 1),
+                page: 0,
+                origin: "toc".to_string(),
+            })
+            .collect();
+        Inventory {
+            generated_at: String::new(),
+            low_text_threshold: 120,
+            sources: vec![SourceInventory {
+                path: String::new(),
+                filename: "PD0.pdf".to_string(),
+                title: String::new(),
+                pages,
+                chars: 0,
+                words: 0,
+                low_text_threshold: 120,
+                low_text_pages: (1..=low_text).collect(),
+                headings: vec![],
+                sections,
+                page_map: vec![],
+            }],
+            totals: Totals {
+                pages,
+                words: 0,
+                low_text_pages: low_text,
+            },
+        }
+    }
+
+    #[test]
+    fn suggested_page_range_scales_with_content() {
+        let style = StyleProfile::default();
+        let small = suggested_page_range(&inventory(10, 1, 1), &style);
+        let large = suggested_page_range(&inventory(120, 20, 20), &style);
+        let max = |value: &str| value.split('-').nth(1).unwrap().parse::<usize>().unwrap();
+        assert!(max(&large) > max(&small), "{small} {large}");
+    }
+
+    #[test]
+    fn counts_content_components() {
+        let stats = content_stats("::: diagram id=\"x\"\n:::\n\n::: table\n:::\n\n![Fig](a.svg)\n");
+        assert_eq!(stats["diagrams"], 1);
+        assert_eq!(stats["tables"], 1);
+        assert_eq!(stats["figures"], 1);
+    }
 
     #[test]
     fn detects_loopback_binds() {

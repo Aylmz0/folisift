@@ -11,13 +11,14 @@ VISUAL_BASELINE ?= tests/baselines/pd0-pd1.pdf
 CLEAN_BASELINE ?= tests/baselines/clean-preview.pdf
 VISUAL_PAGES ?= 1,4,8,12,18,22
 
-.PHONY: help build check verify audit doctor parity parity-capture visual visual-capture diagram diagram-status package test fmt clippy analyze pages scaffold
+.PHONY: help build check verify audit toc-check doctor parity parity-capture visual visual-capture diagram diagram-status package test fmt clippy analyze pages scaffold
 
 help:
 	@echo "make build      # guide PDF"
 	@echo "make check      # build + coverage gate"
 	@echo "make verify     # check + layout audit + pdfinfo"
 	@echo "make audit      # layout audit of the built PDF"
+	@echo "make toc-check  # TOC page-number links (dev: PyMuPDF)"
 	@echo "make doctor     # PDFium/cache/guides/fonts checks"
 	@echo "make parity     # page map + layout audit against the paper reference"
 	@echo "make diagram    # render all D2 diagram assets (DIAGRAM_ID=... for one)"
@@ -42,7 +43,10 @@ verify: check audit
 	@pdfinfo $(OUTPUT) | grep -E '^(Title|Author|Pages|Page size|Tagged):'
 
 audit:
-	cargo run -p folisift-cli -- audit --pdf $(OUTPUT) --expected-pages 22
+	cargo run -p folisift-cli -- audit --pdf $(OUTPUT) --expected-pages 22 --strict
+
+toc-check:
+	python3 scripts/check-toc-links.py $(OUTPUT)
 
 doctor:
 	cargo run -p folisift-cli -- doctor

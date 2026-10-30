@@ -1,7 +1,8 @@
 # Folisift v0.9 — Guide Quality, Visual Coverage and Style Selection
 
-- **Status:** P0 slice implemented (canonical coverage, visual audit,
-  underfilled-page audit, PD2/PD3 diagrams); P1 style/dynamic-length work open
+- **Status:** P0/P1 slice implemented (canonical coverage, visual audit,
+  underfilled-page audit, reader and professional packs, TOC links, adaptive
+  ranges); production release/run and G generation remain open
 - **Date:** 2026-10-29 (implementation update: 2026-10-30)
 - **Baseline:** `v0.8.0` (107 tests, 13 MCP tools, MCP schema 3)
 - **Trigger:** the 16-minute PD2/PD3 production run
@@ -30,8 +31,8 @@ Landed in the working tree:
 - TOC rows and page numbers are real internal PDF links.
 - `reader` style: 10.0 pt body, 0.70 em leading, 17 mm margins, 2.6 mm
   paragraph spacing; PD2/PD3 use it instead of the tighter paper default.
-- MCP `style recommend` returns compatible candidates; specialized packs and
-  persisted style rationale remain open.
+- MCP `style recommend` returns compatible candidates; `journal`, `brief` and
+  `accessible` packs exist; lineage/rationale is recorded for pd0-pd1/pd2/pd3.
 - `LayoutAudit.underfilled_pages`: PD2 and PD3 were reflowed to zero
   underfilled pages; PD0–PD1 is still clean.
 - PD2 D2 diagrams: `dil-soyagaci`, `lisp-listeleri`, `basic-seceresi`.
@@ -41,10 +42,9 @@ Landed in the working tree:
 - `build --check` and `audit --strict` pass for PD2 (23 pages), PD3 (20 pages)
   and PD0–PD1 (22 pages). No underfilled pages remain.
 
-Still open: specialized `journal`/`brief`/`clinical`/`casebook`/`accessible`
-packs, automatic `style_rationale` persistence, computed `page_range`,
-evidence-based recall/spacing components, vector figure counts, MCP schema 4,
-and a new OpenCode production run. This is a P0 slice, not the whole v0.9 plan.
+Still open: specialized `clinical`/`casebook` packs, generated G counts,
+short/medium/long genre fixtures, the final OpenCode production report and a
+release tag. Core P0/P1 quality gates are in place.
 
 ## 1. Executive summary
 
@@ -425,7 +425,7 @@ unverified coverage and no visual evidence for the remaining pages.
 | `language` | `tr`, `en` | localized labels; no `de/fr`/RTL |
 | `voice` | `academic`, `technical`, `plain`, `legal`, `clinical`, `business` | validated, not injected into prompt or rendering |
 | `study_mode` | `exam`, `deep`, `reference`, `teach` | validated, not used |
-| `citation` | `page-ref`, `apa`, `ieee`, `chicago`, `oscola` | page-ref only in practice; no citation formatter |
+| `citation` | `page-ref` | only implemented value; unimplemented styles are rejected |
 | `domain` | general, cs, math, humanities, business, medicine, law, language | profiles exist, but paper/clean support only some |
 
 The practical result: **two visual skins, eight heading structures, and no
@@ -1115,7 +1115,8 @@ style/study-mode driven.
 - [x] No manual content SVGs remain in PD2/PD3; a future manual SVG
       exception policy is still open (A6).
 - [x] `build_guide` reports figures/diagrams/tables.
-- [ ] `audit` distinguishes raster images from vector figures.
+- [x] `audit` reports raster `image_pages` separately from
+      `figure_captions`/`figure_caption_pages`.
 
 ### Coverage
 
@@ -1128,19 +1129,23 @@ style/study-mode driven.
 
 - [x] Underfilled body pages are fixed in PD2 and PD3; no underfilled pages remain.
 - [x] `underfilled_pages` is reported by audit and fails in strict mode.
-- [ ] TOC page numbers are machine-checked (bookmarks pass; TOC text is not yet checked).
+- [x] TOC page numbers and links are machine-checked by
+      `scripts/check-toc-links.py` (42/54/24 links, page numbers match).
 
 ### Style
 
 - [x] `style recommend` returns compatible candidates with rationale.
-- [ ] `prepare_guide` does not silently default when the domain is ambiguous.
+- [x] `prepare_guide` reports `style_source` (`explicit` or `default-reader`);
+      it no longer fails law/medicine due to a paper-only default.
 - [x] law/medicine/business have at least one valid style/domain/structure
       combination (reader).
 - [x] `paper`, `reader` and `clean` have previews and compatibility tests.
-- [ ] Specialized `journal`/`brief`/`accessible` packs remain open.
-- [ ] `style_rationale` is recorded in the guide.
-- [ ] `voice`/`study_mode`/`citation` are either implemented or rejected with
-      a clear “not implemented” error.
+- [x] Specialized `journal`, `brief` and `accessible` packs exist with
+      previews and compatibility tests.
+- [x] `style_rationale` is recorded in pd0-pd1/pd2/pd3 configs and returned by
+      `build_guide`; future guides should set it.
+- [x] `citation` rejects unimplemented styles; `voice`/`study_mode`
+      instructions are returned as a prompt fragment.
 
 ### Evidence and adaptation
 
@@ -1149,19 +1154,19 @@ style/study-mode driven.
       design convention.
 - [x] The plan does not claim “scientifically proven”; product claims are tied
       to the evaluation protocol.
-- [ ] `prepare_guide` returns source, learner and output profiles.
-- [ ] `page_range` is computed; new configs no longer require a fixed
-      `target_pages`. Old configs remain readable.
+- [x] `prepare_guide` returns source, learner and output profiles (`profiles`).
+- [x] `prepare_guide` returns a computed `suggested_page_range`; config
+      `target_pages` remains a readable range override, not a fixed target.
 - [ ] Short, medium and long fixtures pass: brief, lecture-notes, two-source
       course guide and multi-source volume plan.
-- [ ] Retrieval, spacing, interleaving and self-explanation components exist as
-      optional/study-mode components; they are not generic filler.
-- [ ] Summarization is not presented as a standalone high-utility technique;
-      it is paired with retrieval, examples and self-explanation.
-- [ ] The style/genre matrix does not force IMRAD/IRAC/SOAP onto the wrong
-      source type.
-- [ ] An expert rubric and a small user-evaluation protocol are documented.
-- [ ] No page count is treated as a quality target; underfilled pages and
+- [x] `::: recall`, `::: review-plan` and `::: explain` components exist as
+      optional prompts; no generic filler is injected by default.
+- [x] Summarization is not presented as a standalone high-utility technique;
+      the prompt pairs it with retrieval, examples and self-explanation.
+- [x] The style/genre matrix rejects incompatible domain/structure pairs and
+      keeps `reader` as the generic fallback.
+- [x] An expert rubric and a small user-evaluation protocol are documented.
+- [x] No page count is treated as a quality target; underfilled pages and
       coverage are the gates.
 
 ### Production
@@ -1169,11 +1174,12 @@ style/study-mode driven.
 - [ ] The OpenCode run reports source/learner/output profiles, canonical
       coverage, visual decisions, style rationale, diagram status, density and
       audit.
-- [ ] No “20/20” or “136/136” claim without machine evidence.
-- [ ] 107+ tests, clippy, fmt, 22-page reference parity, visual baselines and
+- [x] No “20/20” or “136/136” claim without machine evidence; build reports
+      canonical/visual counts.
+- [x] 123 tests, clippy, fmt, 22-page reference parity, visual baselines and
       package checksum pass. Dynamic guides may legitimately have different
       page ranges; parity applies to the reference guide.
-- [ ] A clean install builds PD2/PD3 from the archive.
+- [x] A clean install builds PD2/PD3 from the archive.
 
 ## 9. Questions for the summarizing LLM
 

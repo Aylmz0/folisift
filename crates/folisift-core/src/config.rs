@@ -50,7 +50,7 @@ pub const DOMAINS: &[&str] = &[
     "humanities",
     "language",
 ];
-pub const CITATIONS: &[&str] = &["page-ref", "apa", "ieee", "chicago", "oscola"];
+pub const CITATIONS: &[&str] = &["page-ref"];
 
 /// The independent style axes for a guide.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -154,6 +154,12 @@ pub struct GuideConfig {
     pub theme: String,
     #[serde(default)]
     pub style: Option<StyleProfile>,
+    /// Why the host chose this style; required by the v0.9 quality contract.
+    #[serde(default)]
+    pub style_rationale: Option<String>,
+    /// `explicit`, `default-reader` or another host-provided provenance.
+    #[serde(default)]
+    pub style_source: Option<String>,
     #[serde(flatten)]
     pub extra: BTreeMap<String, Value>,
 }

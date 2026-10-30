@@ -46,7 +46,9 @@ search it with `search_source`; the host LLM writes the prose.
 
 Styles are engine-owned packs under `styles/`. `paper` is the stable parity
 style; `reader` is the spacious paper variant for new long-form guides;
-`clean` is the experimental technical style.
+`clean` is the experimental technical style; `journal`, `brief` and
+`accessible` are experimental professional variants for humanities, business
+and large-print reading.
 
 ```bash
 cargo run -p folisift-cli -- styles list
@@ -55,9 +57,10 @@ cargo run -p folisift-cli -- styles preview reader --language tr
 ```
 
 The MCP `style` tool also has a `recommend` action. It returns only packs
-compatible with the requested domain/structure/language, with `reader` first
-for spacious long-form reading. This is a heuristic; the host must choose a
-candidate and record `style_rationale`.
+compatible with the requested domain/structure/language. Domain-specific packs
+(`journal`, `brief`) rank first where they fit; `reader` is the spacious
+fallback. This is a heuristic; the host must choose a candidate and record
+`style_rationale`.
 
 A schema-3 guide config carries the independent axes:
 
@@ -232,6 +235,9 @@ The template owns pagination and typography; content uses semantic blocks.
 | `::: critical label=...` | sage critical-distinction box |
 | `::: example label=...` | rule-top/bottom example box |
 | `::: note label=...` | gold note box (use for **Açıklayıcı not**) |
+| `::: recall label=...` | optional retrieval question/prompt (answer separated in prose) |
+| `::: explain label=...` | optional self-explanation prompt (“why/how/what-if”) |
+| `::: review-plan label=...` | optional short spaced-review schedule |
 | `::: table widths="5,20,35,40" kind="facts" caption="..." source="..." id="..."` | table metadata; wrap the Markdown table |
 | `::: columns` … `::: columnbreak` … `:::` | two-column region and explicit break |
 | `::: pagebreak` | start the next block on a new page (rare) |
