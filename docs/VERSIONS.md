@@ -6,6 +6,7 @@ table.
 
 | Tag | Date | Build | Commit | PDFium | What changed |
 |---|---|---:|---|---|---|
+| `v0.9.0` | 2026-10-30 | 101 | `f7f4e400491ac4852859915fff27c1ad6c9ebf60` | `chromium/8058` | Reader/professional styles, linked TOC, canonical/visual gates, adaptive ranges |
 | `v0.8.0` | 2026-10-29 | 88 | `f39e13bacb0a9f779b4a3736c2087676a5d23476` | `chromium/8058` | MCP object structuredContent, schema 3, public install |
 | `v0.7.3` | 2026-10-29 | 85 | `75b2b4ce2ae752abbc5915cd758f00f102d8396a` | `chromium/8058` | MCP style-preview fix, D2 spec hardening |
 | `v0.7.2` | 2026-10-29 | 83 | `a1afffc8519f631df611ac2b755bb5feb9af3b1c` | `chromium/8058` | Actionable diagram status, pinned D2 archive check |
@@ -23,6 +24,10 @@ table.
 
 ## Notes
 
+- `v0.9.0` adds the reader/journal/brief/accessible packs, linked TOC,
+  canonical source-topic coverage, visual-audit and underfilled-page gates,
+  adaptive page ranges, recall/review/explain components and the production
+  report.
 - `v0.8.0` wraps `list_guides` and `style list` results in objects so strict
   MCP clients accept `structuredContent`; the MCP tool schema is now 3. The
   repository is public again, so the one-command installer works.
