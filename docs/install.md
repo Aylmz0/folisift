@@ -32,8 +32,8 @@ committed SVG assets.
 Manual archive verification:
 
 ```bash
-tar -xzf folisift-v0.8.0-linux-x86_64.tar.gz
-sha256sum -c folisift-v0.8.0-linux-x86_64.tar.gz.sha256
+tar -xzf folisift-v0.9.0-linux-x86_64.tar.gz
+sha256sum -c folisift-v0.9.0-linux-x86_64.tar.gz.sha256
 ./folisift doctor
 ```
 
