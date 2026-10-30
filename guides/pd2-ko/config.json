@@ -1,0 +1,26 @@
+{
+  "schema_version": 3,
+  "slug": "pd2-ko",
+  "title": "LISP — Bilgi Organizatörü",
+  "language": "tr",
+  "content": "guide.md",
+  "stylesheet": null,
+  "output": "../../output/PD2_LISP_Bilgi_Organizatoru.pdf",
+  "sources": ["../../sources/PD2.pdf"],
+  "inventory": null,
+  "coverage": null,
+  "target_pages": "1-2",
+  "theme": "revision",
+  "style": {
+    "aesthetic": "revision",
+    "structure": "knowledge-organiser",
+    "language": "tr",
+    "source_language": "tr",
+    "voice": "plain",
+    "study_mode": "exam",
+    "domain": "cs",
+    "citation": "page-ref"
+  },
+  "style_source": "explicit",
+  "style_rationale": "Tek sayfalık LISP bilgi organizatörü; sınav öncesi hızlı bakış ve kendini yoklama."
+}

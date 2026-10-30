@@ -1,5 +1,6 @@
 //! Deterministic PDF layout checks that do not need an LLM.
 
+use std::collections::BTreeMap;
 use std::path::Path;
 
 use serde::Serialize;
@@ -84,6 +85,41 @@ pub fn audit_pdf(path: &Path, expected_pages: Option<usize>) -> Result<LayoutAud
     let mut missing_glyphs = 0usize;
     let mut min_font_size = f64::MAX;
     let mut page_texts: Vec<String> = Vec::with_capacity(pages);
+
+    // Body text is the font size with the most characters in the document.
+    // This keeps heading/orphan detection style-aware: revision bodies are
+    // 11 pt, accessible bodies 12 pt, paper bodies 9.5 pt.
+    let mut font_counts: BTreeMap<u32, usize> = BTreeMap::new();
+    for index in 0..pages {
+        let page = document.page(index as i32).map_err(|error| Error::Parse {
+            path: path.to_path_buf(),
+            message: error.to_string(),
+        })?;
+        let text = page.text().map_err(|error| Error::Parse {
+            path: path.to_path_buf(),
+            message: error.to_string(),
+        })?;
+        for char_index in 0..text.char_count() {
+            if let Some(character) = text.char_at(char_index) {
+                let size = character.font_size();
+                if size > 0.0 {
+                    let key = (size * 10.0).round() as u32;
+                    *font_counts.entry(key).or_default() += 1;
+                }
+            }
+        }
+    }
+    let body_font_size = if font_counts.len() < 2 {
+        // A single-size fixture is usually a heading-only seed; use the
+        // paper body default so a large bottom line is still checked.
+        9.5
+    } else {
+        font_counts
+            .into_iter()
+            .max_by_key(|(_, count)| *count)
+            .map(|(size, _)| f64::from(size) / 10.0)
+            .unwrap_or(9.5)
+    };
 
     for index in 0..pages {
         let page = document.page(index as i32).map_err(|error| Error::Parse {
@@ -180,13 +216,15 @@ pub fn audit_pdf(path: &Path, expected_pages: Option<usize>) -> Result<LayoutAud
                         }
                         _ => {
                             if let Some((line_y, line_size, line_text, _)) = current_line.take() {
-                                if line_size >= 10.5 && line_text.trim().chars().count() > 2 {
+                                if line_size > body_font_size + 1.0
+                                    && line_text.trim().chars().count() > 2
+                                {
                                     heading_lines.push((
                                         line_y,
                                         line_size,
                                         line_text.trim().to_string(),
                                     ));
-                                } else if line_size < 10.5 && line_y > 45.0 {
+                                } else if line_y > 45.0 && line_y < height - 45.0 {
                                     body_line_ys.push(line_y);
                                 }
                             }
@@ -207,9 +245,9 @@ pub fn audit_pdf(path: &Path, expected_pages: Option<usize>) -> Result<LayoutAud
         let overflow =
             touched && (left < -1.0 || top < -1.0 || right > width + 1.0 || bottom > height + 1.0);
         if let Some((line_y, line_size, text, _)) = current_line.take() {
-            if line_size >= 10.5 && text.trim().chars().count() > 2 {
+            if line_size > body_font_size + 1.0 && text.trim().chars().count() > 2 {
                 heading_lines.push((line_y, line_size, text.trim().to_string()));
-            } else if line_size < 10.5 && line_y > 45.0 {
+            } else if line_y > 45.0 && line_y < height - 45.0 {
                 body_line_ys.push(line_y);
             }
         }
@@ -407,7 +445,7 @@ fn has_orphan_heading(heading_lines: &[(f64, f64, String)], body_line_ys: &[f64]
             && text.trim().chars().count() > 2
             && !body_line_ys
                 .iter()
-                .any(|body_y| *body_y < *y - 5.0 && *body_y > 45.0)
+                .any(|body_y| *body_y < *y - 15.0 && *body_y > 45.0)
     })
 }
 
@@ -419,7 +457,7 @@ mod tests {
     fn detects_a_heading_with_no_body_below_it() {
         let headings = vec![(80.0, 14.0, "D.1 Derleme".to_string())];
         assert!(has_orphan_heading(&headings, &[]));
-        assert!(has_orphan_heading(&headings, &[90.0, 92.0]));
+        assert!(has_orphan_heading(&headings, &[90.0]));
         assert!(!has_orphan_heading(&headings, &[50.0]));
     }
 

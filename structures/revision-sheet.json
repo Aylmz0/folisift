@@ -1,0 +1,55 @@
+{
+  "id": "revision-sheet",
+  "title": "Revision sheet",
+  "sections": [
+    {
+      "id": "map",
+      "tr": "Kapsam ve harita",
+      "en": "Scope and map",
+      "hint": "Kaynak aralığı, 5–8 bilinmesi gereken fikir ve kavram haritası."
+    },
+    {
+      "id": "must-know",
+      "tr": "Bilmen gerekenler",
+      "en": "Must-know",
+      "hint": "Kesin tanımlar, kritik ayrımlar ve kaynak referansları."
+    },
+    {
+      "id": "comparisons",
+      "tr": "Karşılaştırma",
+      "en": "Comparisons",
+      "hint": "1–3 karşılaştırma tablosu; her tablonun bir çıkarım cümlesi olsun."
+    },
+    {
+      "id": "worked-examples",
+      "tr": "Çözümlü örnekler",
+      "en": "Worked examples",
+      "hint": "Adım → neden → sonuç; son adımı öğrenci tamamlasın.",
+      "required": false
+    },
+    {
+      "id": "traps",
+      "tr": "Sınav tuzakları",
+      "en": "Exam traps",
+      "hint": "X görürsen Y yapma, Z yap; her tuzak kaynaklı olsun."
+    },
+    {
+      "id": "recall",
+      "tr": "Hatırlama",
+      "en": "Recall",
+      "hint": "8–12 soru; cevaplar ayrı bir cevap anahtarında."
+    },
+    {
+      "id": "synthesis",
+      "tr": "Tek sayfa sentez",
+      "en": "One-page synthesis",
+      "hint": "5–8 madde, 2 karşılaştırma, 3 tuzak, 5 terim ve 1 harita."
+    },
+    {
+      "id": "review-plan",
+      "tr": "Tekrar planı",
+      "en": "Review plan",
+      "hint": "24 saat, 3 gün, 7 gün ve 14 gün için somut hatırlama görevleri."
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+# spec_sha256: 3ad77d0443d60ee5582270df99af7dd64bb99f9674fb8a55c7a08ea1a5800131
+# engine: d2 v0.9.0
+direction: right
+style: { fill: "#FAF6EC" }
+*.style: {
+  fill: "#FAF6EC"
+  stroke: "#8A3E2F"
+  font-color: "#211E19"
+  font-size: 28
+  border-radius: 3
+}
+(* -> *)[*].style: {
+  stroke: "#8A3E2F"
+  font-color: "#5E574B"
+  font-size: 22
+}
+n0: "LISP"
+n1: "Liste"
+n2: "Atom"
+n3: "Kod"
+n4: "Veri"
+n5: "quote"
+n6: "eval"
+n0 -> n1: "temel temsil"
+n1 -> n2: "içerir"
+n1 -> n3: "okunabilir"
+n1 -> n4: "okunabilir"
+n5 -> n4: "korur"
+n6 -> n3: "değerlendirir"

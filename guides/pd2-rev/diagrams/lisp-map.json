@@ -1,0 +1,28 @@
+{
+  "schema_version": 2,
+  "id": "lisp-map",
+  "kind": "concept",
+  "title": "LISP'in temel kavramları",
+  "caption": "LISP'te kod ve veri aynı liste temsilini paylaşır; quote veriyi korur, eval değerlendirir.",
+  "alt": "Kod ve veri aynı liste temsilini paylaşır; liste atomlardan ve alt listelerden oluşur; quote veriyi korur, eval değerlendirir.",
+  "source": "PD2, s. 26-29",
+  "direction": "right",
+  "layout": "tala",
+  "nodes": [
+    {"id": "lisp", "label": "LISP"},
+    {"id": "liste", "label": "Liste"},
+    {"id": "atom", "label": "Atom"},
+    {"id": "kod", "label": "Kod"},
+    {"id": "veri", "label": "Veri"},
+    {"id": "quote", "label": "quote"},
+    {"id": "eval", "label": "eval"}
+  ],
+  "edges": [
+    {"from": "lisp", "to": "liste", "label": "temel temsil"},
+    {"from": "liste", "to": "atom", "label": "içerir"},
+    {"from": "liste", "to": "kod", "label": "okunabilir"},
+    {"from": "liste", "to": "veri", "label": "okunabilir"},
+    {"from": "quote", "to": "veri", "label": "korur"},
+    {"from": "eval", "to": "kod", "label": "değerlendirir"}
+  ]
+}

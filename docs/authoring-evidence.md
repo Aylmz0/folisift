@@ -5,6 +5,7 @@
 - **Scope:** learning science, note-taking, summarization, document design,
   accessibility and academic/professional genre conventions
 - **Related:** `docs/plans/2026-10-29-guide-quality-visual-coverage-and-style-selection.md`,
+  `docs/revision-format-research.md`, `docs/document-genres-and-layout-systems.md`,
   `docs/authoring-spec.md`, `docs/design-system.md`
 
 ## 1. Purpose and claims policy
@@ -44,7 +45,10 @@ professional/accessibility convention, not a learning-outcome claim;
 | Multimedia / dual coding | Mayer’s cognitive theory of multimedia learning; Paivio’s dual coding | strong for principles, mixed by context | Meaningful diagrams with adjacent captions; coherence (no decoration), signaling, segmenting, spatial contiguity | Static PDF cannot use all multimedia principles (modality, temporal contiguity); do not overgeneralize |
 | Cognitive load | Sweller (1988); cognitive load theory | strong | Segment complex material, remove extraneous load, use worked examples, avoid split attention and redundancy | Novice/expert reversal: advanced learners may need less scaffolding |
 | Worked examples | Sweller & Cooper (1985); Dunlosky et al. (2013) | strong/moderate | For procedural/math/code domains: full worked example, then faded practice, then independent problem | Fading and self-explanation matter; a bare example is not enough |
-| Document design / accessibility | WCAG 2.2; PDF/UA (ISO 14289) | standard | Contrast, type size, tagged PDF, headings, alt text, captions, no colour-only meaning, readable tables | Accessibility is a floor, not a guarantee of comprehension |
+| Document design / accessibility | WCAG 2.2; PDF/UA (ISO 14289); Section 508; UKAAF clear print | standard | Contrast, type size, tagged PDF, headings, alt text, captions, no colour-only meaning, readable tables | Accessibility is a floor, not a guarantee of comprehension |
+| Generative drawing | Wammes et al. (2016) drawing effect; Fiorella & Zhang (2018) boundary conditions | moderate | Blank/partial visual templates for the learner to complete; not finished sketchnotes | A pre-made drawing is not learner-generated drawing |
+| Graphic organizers | Ponce, Mayer & Méndez (2025): learner-generated g≈0.59/0.63; instructor-provided g≈0.70/0.53 | moderate | Matrices, timelines, flowcharts, partial maps; require completion | Heterogeneous; organizer type and instruction matter |
+| Typography / reading measure | Dyson & Haselgrove (2001); Bringhurst; WCAG 2.2 AAA 1.4.8 | moderate/standard | 55–80 characters, left-aligned, 4.5:1 contrast, 9 pt tables, 8 pt refs | Standards are not learning-outcome claims |
 | Academic explanation | Composition and genre research; academic style guides | standard | Claim → evidence → explanation → implication; define terms; distinguish source claim from interpretation; cite | Not every guide is an argument; formula sheets and glossaries need different genres |
 | Plain language | Federal plain language guidelines; professional style guides | standard | Short sentences, active voice, common words, explicit structure; define jargon | Plain does not mean simplistic; technical terms must remain precise |
 | Academic/professional genre | APA, IEEE, Chicago, OSCOLA; IMRAD, IRAC, SOAP, BLUF | standard | Structure and citation conventions appropriate to domain; do not force one genre onto every subject | Genre conventions are not empirical learning effects; they are professional expectations |
@@ -139,8 +143,10 @@ Detected deterministically where possible:
 
 ```json
 {
-  "structure": "a-g | imrad | irac | soap | formula-sheet | literature-matrix | lecture-notes | executive-brief",
-  "style": "paper | clean | journal | brief | clinical | casebook | accessible",
+  "structure": "a-g | revision-sheet | knowledge-organiser | imrad | irac | soap | formula-sheet | literature-matrix | lecture-notes | executive-brief",
+  "genre": "reader | revision-sheet | knowledge-organiser | guided-notes | workbook | reference-sheet | academic-paper | brief | clinical-note | legal-note",
+  "layout": "paper | clean | revision | notes | workbook | reference",
+  "style": "paper | reader | clean | journal | brief | revision | accessible (modifier)",
   "page_range": [18, 26],
   "visual_budget": "0-3 per chapter; high-priority targets mandatory",
   "component_mix": {
@@ -151,7 +157,7 @@ Detected deterministically where possible:
     "recall_prompts": "optional",
     "review_schedule": "optional"
   },
-  "citation": "page-ref | apa | ieee | chicago | oscola"
+  "citation": "page-ref"
 }
 ```
 
@@ -189,10 +195,10 @@ Study-mode implications:
 | `domain=cs`, slides, exam | `a-g` or `lecture-notes`; `paper`/`clean`; visual budget medium–high | Host may choose `clean` for code-heavy material; record why |
 | `domain=humanities`, paper/textbook | `imrad`/`literature-matrix`; `journal`; visual budget low–medium | Use `paper` if the output is a course reader, not a research report |
 | `domain=business` | `executive-brief`; `brief`; visual budget low–medium | Use `clean` for data-heavy reports; `brief` for decision memos |
-| `domain=medicine` | `soap`; `clinical`; visual budget medium | No diagnosis without evidence; red flags and uncertainty required |
-| `domain=law` | `irac`; `casebook`; visual budget low | Jurisdiction and citations required; no invented outcomes |
+| `domain=medicine` | `soap`; `paper`/`clean`; visual budget medium | No diagnosis without evidence; red flags and uncertainty required; `clinical` is a future genre, not an implemented pack |
+| `domain=law` | `irac`; `paper`/`clean`; visual budget low | Jurisdiction and citations required; no invented outcomes; `casebook` is a future genre, not an implemented pack |
 | `domain=math` | `formula-sheet`/`a-g`; `paper`/`clean`; visual budget medium | Worked examples and units are mandatory; diagrams only for geometry/process |
-| Accessibility request | `accessible`; 12 pt+; high contrast | Any structure is allowed; tables/figures must reflow |
+| Accessibility request | same genre + `accessible` modifier; 12 pt+; high contrast | Any structure is allowed; tables/figures must reflow; `accessible` is not a genre |
 | Short output request | `executive-brief`/`formula-sheet`/`lecture-notes` | Do not compress a full course into a brief; choose the right genre |
 | Long multi-source course | one guide with one B part per source, or a volume set | Split at source/part boundaries; do not shrink type below the floor |
 
@@ -305,6 +311,26 @@ sample”. Until then: “designed around evidence-based principles”.
   University Press.
 - Swales, J. M. (1990). *Genre analysis: English in academic and research
   settings*. Cambridge University Press.
+- Fiorella, L., & Zhang, Q. (2018). Drawing boundary conditions for learning by
+  drawing. *Educational Psychology Review, 30*, 1115–1137.
+  <https://doi.org/10.1007/s10648-018-9444-8>
+- Wammes, J. D., Meade, M. E., & Fernandes, M. A. (2016). The drawing effect:
+  Evidence for reliable and robust memory benefits in free recall. *Quarterly
+  Journal of Experimental Psychology, 69*(9), 1752–1776.
+  <https://doi.org/10.1080/17470218.2015.1094494>
+- Ponce, H. R., Mayer, R. E., & Méndez, E. E. (2025). Learner-generated and
+  instructor-provided graphic organizers as aids to learning from text: A
+  meta-analysis. *Educational Psychology Review, 37*, 107.
+  <https://doi.org/10.1007/s10648-025-10084-6>
+- Dyson, M. C., & Haselgrove, M. (2001). The influence of reading speed and
+  line length on the effectiveness of reading from screen. *International
+  Journal of Human-Computer Studies, 54*(4), 585–612.
+  <https://doi.org/10.1006/ijhc.2001.0458>
+- Section508.gov. (2026). *Understanding accessible fonts and typography*.
+  <https://www.section508.gov/develop/fonts-typography/>
+- UK Association for Accessible Formats. (2024). *Creating clear print and
+  large print documents* (G003, v4).
+  <https://www.ukaaf.org/wp-content/uploads/2024/12/G003-UKAAF-Creating-clear-print-and-large-print-documents-v4.pdf>
 - W3C (2023). *Web Content Accessibility Guidelines (WCAG) 2.2*.
   <https://www.w3.org/TR/WCAG22/>
 - ISO 14289-1:2014. *Document management applications — Electronic document

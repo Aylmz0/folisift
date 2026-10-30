@@ -1,0 +1,236 @@
+//! Deterministic genre grammar checks that do not need an LLM.
+//!
+//! These checks encode the document rules that make a revision sheet different
+//! from a long-form reader. They are deliberately conservative: they report a
+//! small set of high-signal violations instead of trying to judge prose.
+
+/// Check a revision-sheet Markdown body against the revision grammar.
+///
+/// The rules are house standards derived from the evidence note, not universal
+/// laws. Errors are actionable and mention the first offending line.
+pub fn revision_issues(markdown: &str) -> Vec<String> {
+    let body = strip_frontmatter(markdown);
+    let mut issues = Vec::new();
+    let mut paragraph: Vec<String> = Vec::new();
+    let mut paragraph_start = 0usize;
+    let mut fenced = false;
+    let mut table_rows = 0usize;
+    let mut table_columns = 0usize;
+    let mut table_start = 0usize;
+
+    let flush_paragraph = |paragraph: &mut Vec<String>, start: usize, issues: &mut Vec<String>| {
+        if paragraph.is_empty() {
+            return;
+        }
+        let words = paragraph
+            .iter()
+            .map(|line| line.split_whitespace().count())
+            .sum::<usize>();
+        if words > 60 {
+            let preview = paragraph.join(" ");
+            let preview = preview.chars().take(48).collect::<String>();
+            issues.push(format!(
+                "paragraph at line {start} has {words} words (max 60): {preview}…"
+            ));
+        }
+        paragraph.clear();
+    };
+
+    let flush_table = |rows: usize, columns: usize, start: usize, issues: &mut Vec<String>| {
+        if columns > 5 {
+            issues.push(format!(
+                "table at line {start} has {columns} columns (max 5)"
+            ));
+        }
+        if rows > 8 {
+            issues.push(format!("table at line {start} has {rows} rows (max 8)"));
+        }
+    };
+
+    for (index, raw) in body.lines().enumerate() {
+        let line = raw.trim();
+        let line_number = index + 1;
+        if line.starts_with("```") || line.starts_with("~~~") {
+            fenced = !fenced;
+            flush_paragraph(&mut paragraph, paragraph_start, &mut issues);
+            if table_rows > 0 {
+                flush_table(table_rows, table_columns, table_start, &mut issues);
+                table_rows = 0;
+                table_columns = 0;
+            }
+            continue;
+        }
+        if fenced {
+            continue;
+        }
+        if line.is_empty() {
+            flush_paragraph(&mut paragraph, paragraph_start, &mut issues);
+            if table_rows > 0 {
+                flush_table(table_rows, table_columns, table_start, &mut issues);
+                table_rows = 0;
+                table_columns = 0;
+            }
+            continue;
+        }
+        if line.starts_with('#')
+            || line.starts_with(":::")
+            || line.starts_with("<!--")
+            || line.starts_with("![")
+            || line.starts_with('>')
+            || line.starts_with('|')
+        {
+            flush_paragraph(&mut paragraph, paragraph_start, &mut issues);
+            if line.starts_with('|') {
+                if table_rows == 0 {
+                    table_start = line_number;
+                }
+                table_rows += 1;
+                table_columns = table_columns.max(line.trim_matches('|').split('|').count());
+            } else if table_rows > 0 {
+                flush_table(table_rows, table_columns, table_start, &mut issues);
+                table_rows = 0;
+                table_columns = 0;
+            }
+            continue;
+        }
+        if let Some(item) = line.strip_prefix("- ").or_else(|| line.strip_prefix("* ")) {
+            flush_paragraph(&mut paragraph, paragraph_start, &mut issues);
+            let words = item.split_whitespace().count();
+            if words > 25 {
+                issues.push(format!(
+                    "bullet at line {line_number} has {words} words (max 25)"
+                ));
+            }
+            continue;
+        }
+        if line
+            .chars()
+            .next()
+            .is_some_and(|character| character.is_ascii_digit())
+            && (line.contains(". ") || line.contains(") "))
+        {
+            flush_paragraph(&mut paragraph, paragraph_start, &mut issues);
+            continue;
+        }
+        if paragraph.is_empty() {
+            paragraph_start = line_number;
+        }
+        paragraph.push(line.to_string());
+    }
+    flush_paragraph(&mut paragraph, paragraph_start, &mut issues);
+    if table_rows > 0 {
+        flush_table(table_rows, table_columns, table_start, &mut issues);
+    }
+
+    for (needle, label) in [
+        ("::: must-know", "must-know card block"),
+        ("::: diagram", "concept map or diagram"),
+        ("::: recall", "recall prompt"),
+        ("::: answer", "answer key"),
+        ("::: synthesis", "one-page synthesis"),
+    ] {
+        if !body.contains(needle) {
+            issues.push(format!("revision sheet is missing a {label} ({needle})"));
+        }
+    }
+
+    let recalls = body.matches("::: recall").count();
+    let answers = body.matches("::: answer").count();
+    if answers < recalls {
+        issues.push(format!(
+            "revision sheet has {recalls} recall prompts but only {answers} answer blocks"
+        ));
+    }
+
+    issues
+}
+
+fn strip_frontmatter(markdown: &str) -> &str {
+    let markdown = markdown.strip_prefix("---\n").unwrap_or(markdown);
+    if let Some((_, body)) = markdown.split_once("\n---\n") {
+        body
+    } else {
+        markdown
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const GOOD: &str = r#"## Scope and map
+
+A short paragraph with a source reference. [PD0, p. 1]
+
+::: must-know
+- **Term:** A short definition. [PD0, p. 1]
+:::
+
+::: diagram id="map"
+:::
+
+## Recall
+
+::: recall
+What is X?
+:::
+
+::: answer
+X is Y. [PD0, p. 1]
+:::
+
+## Synthesis
+
+::: synthesis
+- One
+- Two
+:::
+"#;
+
+    #[test]
+    fn accepts_a_well_formed_revision_sheet() {
+        assert!(
+            revision_issues(GOOD).is_empty(),
+            "{:?}",
+            revision_issues(GOOD)
+        );
+    }
+
+    #[test]
+    fn rejects_long_paragraphs_and_bullets() {
+        let long = format!(
+            "## Scope\n\n{}\n\n::: must-know\n- **Term:** {}\n:::\n\n::: diagram id=\"x\"\n:::\n\n::: recall\nQ\n:::\n\n::: answer\nA\n:::\n\n::: synthesis\n- One\n:::\n",
+            "word ".repeat(61),
+            "word ".repeat(26)
+        );
+        let issues = revision_issues(&long);
+        assert!(
+            issues.iter().any(|issue| issue.contains("max 60")),
+            "{issues:?}"
+        );
+        assert!(
+            issues.iter().any(|issue| issue.contains("max 25")),
+            "{issues:?}"
+        );
+    }
+
+    #[test]
+    fn demo_revision_sheet_passes_the_grammar() {
+        let markdown = include_str!("../../../guides/pd2-rev/guide.md");
+        let issues = revision_issues(markdown);
+        assert!(issues.is_empty(), "{issues:?}");
+    }
+
+    #[test]
+    fn rejects_missing_answer_and_components() {
+        let issues = revision_issues("## Scope\n\nText.\n\n::: recall\nQ\n:::\n");
+        assert!(
+            issues.iter().any(|issue| issue.contains("must-know")),
+            "{issues:?}"
+        );
+        assert!(
+            issues.iter().any(|issue| issue.contains("answer")),
+            "{issues:?}"
+        );
+    }
+}

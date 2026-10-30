@@ -1,0 +1,28 @@
+{
+  "schema_version": 3,
+  "slug": "pd2-rev",
+  "title": "Programlama Dilleri — LISP Revizyon Sayfası",
+  "language": "tr",
+  "content": "guide.md",
+  "stylesheet": null,
+  "output": "../../output/PD2_Revizyon.pdf",
+  "sources": [
+    "../../sources/PD2.pdf"
+  ],
+  "inventory": null,
+  "coverage": null,
+  "target_pages": "4-6",
+  "theme": "revision",
+  "style": {
+    "aesthetic": "revision",
+    "structure": "revision-sheet",
+    "language": "tr",
+    "source_language": "tr",
+    "voice": "plain",
+    "study_mode": "exam",
+    "domain": "cs",
+    "citation": "page-ref"
+  },
+  "style_source": "explicit",
+  "style_rationale": "Sınav öncesi LISP tekrarı için görsel revizyon sayfası; uzun prose yerine kart, tablo, harita ve hatırlama blokları."
+}

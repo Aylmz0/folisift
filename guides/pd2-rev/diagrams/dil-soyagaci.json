@@ -1,0 +1,35 @@
+{
+  "schema_version": 2,
+  "id": "dil-soyagaci",
+  "kind": "concept",
+  "title": "ALGOL sonrası dil ailesi",
+  "caption": "ALGOL 60'ın etkilediği seçilmiş dil ailesi; oklar tam türetme değil, etki/soy ilişkisini gösterir.",
+  "alt": "ALGOL 60'tan Pascal, C, Simula 67 ve ardından gelen dillerin seçilmiş soy ağacı.",
+  "source": "PD2, s. 5, 68, 82, 86, 97",
+  "direction": "right",
+  "layout": "tala",
+  "nodes": [
+    {"id": "algol60", "label": "ALGOL 60"},
+    {"id": "pascal", "label": "Pascal"},
+    {"id": "modula", "label": "Modula"},
+    {"id": "oberon", "label": "Oberon"},
+    {"id": "c", "label": "C"},
+    {"id": "cpp", "label": "C++"},
+    {"id": "simula", "label": "Simula 67"},
+    {"id": "smalltalk", "label": "Smalltalk"},
+    {"id": "java", "label": "Java"},
+    {"id": "csharp", "label": "C#"}
+  ],
+  "edges": [
+    {"from": "algol60", "to": "pascal"},
+    {"from": "pascal", "to": "modula"},
+    {"from": "modula", "to": "oberon"},
+    {"from": "algol60", "to": "c"},
+    {"from": "c", "to": "cpp"},
+    {"from": "algol60", "to": "simula"},
+    {"from": "simula", "to": "smalltalk"},
+    {"from": "simula", "to": "cpp"},
+    {"from": "cpp", "to": "java"},
+    {"from": "java", "to": "csharp"}
+  ]
+}

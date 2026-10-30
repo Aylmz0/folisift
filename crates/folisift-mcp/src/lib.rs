@@ -801,7 +801,13 @@ impl FolisiftServer {
             "pages": inventory.totals.pages,
             "words": inventory.totals.words,
             "style": style,
-            "style_source": if params.style.is_some() { "explicit" } else { "default-reader" },
+            "style_source": if params.style.is_some() {
+                "explicit"
+            } else if style.aesthetic == "revision" {
+                "default-revision"
+            } else {
+                "default-reader"
+            },
             "style_rationale_required": true,
             "domain_profile": folisift_render::domains::load(self.workspace.root(), &style.domain)
                 .ok(),
@@ -1420,9 +1426,15 @@ fn build_style(
     citation: Option<String>,
 ) -> Result<folisift_core::StyleProfile, String> {
     let language = language.unwrap_or_else(|| "tr".to_string());
+    let structure = structure.unwrap_or_else(|| "a-g".to_string());
+    let default_layout = if matches!(structure.as_str(), "revision-sheet" | "knowledge-organiser") {
+        "revision"
+    } else {
+        "reader"
+    };
     let style = folisift_core::StyleProfile {
-        aesthetic: aesthetic.unwrap_or_else(|| "reader".to_string()),
-        structure: structure.unwrap_or_else(|| "a-g".to_string()),
+        aesthetic: aesthetic.unwrap_or_else(|| default_layout.to_string()),
+        structure,
         language: language.clone(),
         source_language: language,
         domain: domain.unwrap_or_else(|| "general".to_string()),
@@ -1659,6 +1671,32 @@ mod tests {
         assert_eq!(stats["diagrams"], 1);
         assert_eq!(stats["tables"], 1);
         assert_eq!(stats["figures"], 1);
+    }
+
+    #[test]
+    fn revision_structures_default_to_the_revision_layout() {
+        let style = super::build_style(
+            None,
+            Some("revision-sheet".to_string()),
+            Some("tr".to_string()),
+            Some("cs".to_string()),
+            None,
+            Some("exam".to_string()),
+            None,
+        )
+        .expect("style");
+        assert_eq!(style.aesthetic, "revision");
+        let organiser = super::build_style(
+            None,
+            Some("knowledge-organiser".to_string()),
+            Some("tr".to_string()),
+            Some("cs".to_string()),
+            None,
+            None,
+            None,
+        )
+        .expect("style");
+        assert_eq!(organiser.aesthetic, "revision");
     }
 
     #[test]

@@ -34,6 +34,11 @@ const ACCESSIBLE_TOKENS: &str = include_str!("../../../styles/accessible/tokens.
 const ACCESSIBLE_TR: &str = include_str!("../../../styles/accessible/strings/tr.json");
 const ACCESSIBLE_EN: &str = include_str!("../../../styles/accessible/strings/en.json");
 
+const REVISION_STYLE: &str = include_str!("../../../styles/revision/style.json");
+const REVISION_TOKENS: &str = include_str!("../../../styles/revision/tokens.json");
+const REVISION_TR: &str = include_str!("../../../styles/revision/strings/tr.json");
+const REVISION_EN: &str = include_str!("../../../styles/revision/strings/en.json");
+
 const CLEAN_STYLE: &str = include_str!("../../../styles/clean/style.json");
 const CLEAN_TOKENS: &str = include_str!("../../../styles/clean/tokens.json");
 const CLEAN_TR: &str = include_str!("../../../styles/clean/strings/tr.json");
@@ -77,7 +82,15 @@ pub struct LoadedStyle {
 
 /// Built-in pack ids shipped in the binary.
 pub fn builtin_ids() -> &'static [&'static str] {
-    &["paper", "reader", "clean", "journal", "brief", "accessible"]
+    &[
+        "paper",
+        "reader",
+        "clean",
+        "journal",
+        "brief",
+        "accessible",
+        "revision",
+    ]
 }
 
 /// List built-in packs plus workspace overrides under `<root>/styles`.
@@ -288,6 +301,14 @@ fn embedded(id: &str, file: &str) -> Option<&'static str> {
         ("accessible", "preview.en.md") => {
             Some(include_str!("../../../styles/accessible/preview.en.md"))
         }
+        ("revision", "style.json") => Some(REVISION_STYLE),
+        ("revision", "tokens.json") => Some(REVISION_TOKENS),
+        ("revision", "strings/tr.json") => Some(REVISION_TR),
+        ("revision", "strings/en.json") => Some(REVISION_EN),
+        ("revision", "preview.md") => Some(include_str!("../../../styles/revision/preview.md")),
+        ("revision", "preview.en.md") => {
+            Some(include_str!("../../../styles/revision/preview.en.md"))
+        }
         ("clean", "style.json") => Some(CLEAN_STYLE),
         ("clean", "tokens.json") => Some(CLEAN_TOKENS),
         ("clean", "strings/tr.json") => Some(CLEAN_TR),
@@ -310,6 +331,46 @@ pub fn apply_tokens(template: &str, tokens: &Value, layout: &str) -> Result<Stri
         .and_then(Value::as_str)
     {
         out = out.replace("\"Noto Serif\"", &format!("\"{}\"", body.replace('\"', "")));
+    }
+    // Accessible is a modifier of the paper layout: scale every component
+    // that is smaller than the body before replacing the 9.5 pt body size.
+    // This keeps paper/reader byte-for-byte stable while making the large-print
+    // pack scale tables, captions, labels, notes and TOC rows too.
+    if let Some(scale) = tokens.get("component_scale").and_then(Value::as_f64)
+        && (1.0..=1.6).contains(&scale)
+    {
+        let sizes = [
+            ("6.6pt", 6.6),
+            ("6.8pt", 6.8),
+            ("6.9pt", 6.9),
+            ("7.0pt", 7.0),
+            ("7.2pt", 7.2),
+            ("7.4pt", 7.4),
+            ("7.8pt", 7.8),
+            ("7.9pt", 7.9),
+            ("8.0pt", 8.0),
+            ("8.2pt", 8.2),
+            ("8.4pt", 8.4),
+            ("8.6pt", 8.6),
+            ("8.9pt", 8.9),
+            ("9.4pt", 9.4),
+            ("9.6pt", 9.6),
+            ("10.8pt", 10.8),
+            ("11.2pt", 11.2),
+            ("12pt", 12.0),
+            ("8.25pt", 8.25),
+        ];
+        // Two-phase replacement avoids cascading matches such as 6.8 -> 8.8
+        // being read again as 8pt.
+        for (index, (old, _)) in sizes.iter().enumerate() {
+            out = out.replace(old, &format!("@@FOLISIFT_SIZE_{index}@@"));
+        }
+        for (index, (_, value)) in sizes.iter().enumerate() {
+            out = out.replace(
+                &format!("@@FOLISIFT_SIZE_{index}@@"),
+                &format!("{:.1}pt", value * scale),
+            );
+        }
     }
     if let Some(size) = typography
         .and_then(|value| value.get("body_size"))
@@ -362,7 +423,106 @@ pub fn apply_tokens(template: &str, tokens: &Value, layout: &str) -> Result<Stri
             out = out.replace("size: 8.2pt", &format!("size: {page}pt"));
         }
     }
+    out = apply_type_placeholders(out, tokens);
     Ok(out)
+}
+
+/// Replace the explicit revision-layout placeholders with a deterministic
+/// type scale. The paper/clean templates keep their legacy sizes until the
+/// parity decision; the revision template is always token-driven.
+fn apply_type_placeholders(mut out: String, tokens: &Value) -> String {
+    let typography = tokens.get("typography");
+    let body = typography
+        .and_then(|value| value.get("body_size"))
+        .and_then(Value::as_f64)
+        .unwrap_or(11.0)
+        .clamp(9.0, 18.0);
+    let ratio = |key: &str, default: f64| {
+        typography
+            .and_then(|value| value.get("scale"))
+            .and_then(|value| value.get(key))
+            .and_then(Value::as_f64)
+            .unwrap_or(default)
+    };
+    let floor = |key: &str, default: f64| {
+        typography
+            .and_then(|value| value.get("floor"))
+            .and_then(|value| value.get(key))
+            .and_then(Value::as_f64)
+            .unwrap_or(default)
+    };
+    let component = floor("component_pt", 8.0);
+    let table_floor = floor("table_pt", 9.0);
+    let size = |ratio: f64, floor: f64| (body * ratio).max(floor);
+    let pt = |value: f64| format!("{value:.1}pt");
+
+    for (placeholder, value) in [
+        ("__BODY_SIZE__", body),
+        ("__H1_SIZE__", size(ratio("h1", 2.0), component)),
+        ("__H2_SIZE__", size(ratio("h2", 1.4), component)),
+        ("__H3_SIZE__", size(ratio("h3", 1.1), component)),
+        ("__LEAD_SIZE__", size(ratio("lead", 1.12), component)),
+        ("__TABLE_SIZE__", size(ratio("table", 0.86), table_floor)),
+        (
+            "__CAPTION_SIZE__",
+            size(ratio("caption", 0.86), table_floor),
+        ),
+        ("__LABEL_SIZE__", size(ratio("label", 0.76), component)),
+        ("__SOURCE_SIZE__", size(ratio("source", 0.76), component)),
+        ("__CODE_SIZE__", size(ratio("code", 0.81), component)),
+        (
+            "__TOC_TITLE_SIZE__",
+            size(ratio("toc_title", 0.95), component),
+        ),
+        ("__TOC_SUB_SIZE__", size(ratio("toc_sub", 0.88), component)),
+        (
+            "__TOC_PAGE_SIZE__",
+            size(ratio("toc_page", 0.82), component),
+        ),
+    ] {
+        out = out.replace(placeholder, &pt(value));
+    }
+
+    let leading = typography
+        .and_then(|value| value.get("leading_em"))
+        .and_then(Value::as_f64)
+        .unwrap_or(0.72)
+        .clamp(0.4, 1.2);
+    out = out.replace("__LEADING__", &format!("{leading}em"));
+
+    let par = tokens
+        .get("spacing")
+        .and_then(|value| value.get("par_mm"))
+        .and_then(Value::as_f64)
+        .unwrap_or(2.4);
+    let list = tokens
+        .get("spacing")
+        .and_then(|value| value.get("list_mm"))
+        .and_then(Value::as_f64)
+        .unwrap_or(3.6);
+    out = out.replace("__PAR_SPACING__", &format!("{par}mm"));
+    out = out.replace("__LIST_SPACING__", &format!("{list}mm"));
+
+    let toc_inset = tokens
+        .get("toc")
+        .and_then(|value| value.get("row_inset_mm"))
+        .and_then(Value::as_f64)
+        .unwrap_or(1.4);
+    out = out.replace("__TOC_ROW_INSET__", &format!("{toc_inset}mm"));
+
+    let layout = tokens.get("layout");
+    for (placeholder, key, default) in [
+        ("__MARGIN_TOP__", "margin_top_mm", 18.0),
+        ("__MARGIN_BOTTOM__", "margin_bottom_mm", 16.0),
+        ("__MARGIN_SIDE__", "margin_side_mm", 32.0),
+    ] {
+        let value = layout
+            .and_then(|value| value.get(key))
+            .and_then(Value::as_f64)
+            .unwrap_or(default);
+        out = out.replace(placeholder, &format!("{value}mm"));
+    }
+    out
 }
 
 pub fn apply_palette(template: &str, tokens: &Value, layout: &str) -> Result<String> {
@@ -384,6 +544,21 @@ pub fn apply_palette(template: &str, tokens: &Value, layout: &str) -> Result<Str
             ("rule", "#D8CEBD"),
             ("code_bg", "#F1EADB"),
             ("cover_bg", "#F3EBDD"),
+        ],
+        "revision" => &[
+            ("paper", "#FAF6EC"),
+            ("ink", "#211E19"),
+            ("muted", "#5E574B"),
+            ("accent", "#8A3E2F"),
+            ("secondary", "#42594F"),
+            ("gold", "#B08A4F"),
+            ("rule", "#D8CEBD"),
+            ("code_bg", "#F1EADB"),
+            ("cover_bg", "#F3EBDD"),
+            ("faint", "#75664E"),
+            ("cream", "#F4ECDE"),
+            ("zebra", "#F7F1E5"),
+            ("headerfill", "#EFE7D8"),
         ],
         "clean" => &[
             ("paper", "#FFFFFF"),
@@ -479,9 +654,25 @@ mod tests {
         let reader = load(Path::new(""), "reader").expect("reader");
         assert_eq!(reader.pack.layout, "paper");
         assert_eq!(reader.tokens["typography"]["body_size"], 10.0);
-        for id in ["journal", "brief", "accessible"] {
+        for id in ["journal", "brief", "accessible", "revision"] {
             assert!(load(Path::new(""), id).is_ok(), "{id}");
         }
+    }
+
+    #[test]
+    fn scales_accessible_components_before_body_replacement() {
+        let tokens = serde_json::json!({
+            "palette": {},
+            "component_scale": 1.3,
+            "typography": {"body_size": 12.0}
+        });
+        let template = "6.9pt 7.9pt 8.9pt 12pt 9.5pt";
+        let applied = apply_tokens(template, &tokens, "paper").expect("scale");
+        assert!(applied.contains("9.0pt"));
+        assert!(applied.contains("10.3pt"));
+        assert!(applied.contains("11.6pt"));
+        assert!(applied.contains("15.6pt"));
+        assert!(applied.contains("12pt"));
     }
 
     #[test]

@@ -43,6 +43,10 @@ const CLEAN_TEMPLATE: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/../../templates/clean.typ"
 ));
+const REVISION_TEMPLATE: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../templates/revision.typ"
+));
 
 pub struct RenderOptions<'a> {
     /// Directory containing `assets/` and the generated Typst source.
@@ -105,9 +109,17 @@ pub fn render(content: &str, options: &RenderOptions<'_>) -> Result<Rendered> {
         &strings.table,
         diagram_assets,
     )?;
-    let template = match loaded.pack.layout.as_str() {
-        "paper" => PAPER_TEMPLATE,
-        "clean" => CLEAN_TEMPLATE,
+    let (template, document_function) = match loaded.pack.layout.as_str() {
+        "paper" => (PAPER_TEMPLATE, "paper"),
+        "clean" => (CLEAN_TEMPLATE, "paper"),
+        "revision" => (
+            REVISION_TEMPLATE,
+            if profile.structure == "knowledge-organiser" {
+                "organiser"
+            } else {
+                "revision_sheet"
+            },
+        ),
         other => {
             return Err(Error::Style {
                 id: loaded.pack.id.clone(),
@@ -149,7 +161,7 @@ pub fn render(content: &str, options: &RenderOptions<'_>) -> Result<Rendered> {
         format!("({cover_notes},)")
     };
     let source = format!(
-        "{template}\n\n#show: paper.with(\n  title: {},\n  subtitle: {},\n  course: {},\n  language: {},\n  sources: ({}),\n  running: {},\n  pilot: {},\n  deck: {},\n  cover_kicker: {},\n  cover_title: {},\n  cover_motif: {},\n  cover_notes: {},\n)\n\n{}",
+        "{template}\n\n#show: {document_function}.with(\n  title: {},\n  subtitle: {},\n  course: {},\n  language: {},\n  sources: ({}),\n  running: {},\n  pilot: {},\n  deck: {},\n  cover_kicker: {},\n  cover_title: {},\n  cover_motif: {},\n  cover_notes: {},\n)\n\n{}",
         typst_string(title),
         typst_string(subtitle),
         typst_string(course),
@@ -207,6 +219,9 @@ fn build_cache_key(
     let template_hash = match loaded.pack.layout.as_str() {
         "paper" => blake3::hash(PAPER_TEMPLATE.as_bytes()).to_hex().to_string(),
         "clean" => blake3::hash(CLEAN_TEMPLATE.as_bytes()).to_hex().to_string(),
+        "revision" => blake3::hash(REVISION_TEMPLATE.as_bytes())
+            .to_hex()
+            .to_string(),
         _ => String::new(),
     };
     let assets = asset_digest(body, guide_root);

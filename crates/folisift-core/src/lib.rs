@@ -5,6 +5,7 @@
 
 pub mod config;
 pub mod error;
+pub mod genre;
 pub mod paths;
 pub mod scaffold;
 pub mod structures;

@@ -36,6 +36,14 @@ const BRIEF: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/../../structures/executive-brief.json"
 ));
+const REVISION: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../structures/revision-sheet.json"
+));
+const ORGANISER: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../structures/knowledge-organiser.json"
+));
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct StructurePack {
@@ -52,13 +60,22 @@ pub struct Section {
     pub en: String,
     #[serde(default)]
     pub hint: Option<String>,
+    /// Optional sections are scaffolded but not required by the structure gate.
+    #[serde(default = "default_required")]
+    pub required: bool,
+}
+
+fn default_required() -> bool {
+    true
 }
 
 pub fn packs() -> Vec<StructurePack> {
-    [IMRAD, IRAC, SOAP, FORMULA, LITERATURE, LECTURE, BRIEF]
-        .iter()
-        .filter_map(|text| serde_json::from_str(text).ok())
-        .collect()
+    [
+        IMRAD, IRAC, SOAP, FORMULA, LITERATURE, LECTURE, BRIEF, REVISION, ORGANISER,
+    ]
+    .iter()
+    .filter_map(|text| serde_json::from_str(text).ok())
+    .collect()
 }
 
 pub fn get(id: &str) -> Option<StructurePack> {
@@ -78,6 +95,9 @@ pub fn validate(id: &str, language: &str, markdown: &str) -> Result<(), String> 
         .sections
         .iter()
         .filter(|section| {
+            if !section.required {
+                return false;
+            }
             let label = if language == "en" {
                 &section.en
             } else {
@@ -171,7 +191,14 @@ fn normalize(text: &str) -> String {
 pub fn summary() -> HashMap<String, usize> {
     packs()
         .into_iter()
-        .map(|pack| (pack.id, pack.sections.len()))
+        .map(|pack| {
+            let required = pack
+                .sections
+                .iter()
+                .filter(|section| section.required)
+                .count();
+            (pack.id, required)
+        })
         .collect()
 }
 
@@ -205,6 +232,21 @@ mod tests {
     fn turkish_titles_ignore_case_and_diacritics() {
         let complete = "## GİRİŞ\n\n## YÖNTEM\n\n## BULGULAR\n\n## TARTIŞMA\n";
         assert!(validate("imrad", "tr", complete).is_ok());
+    }
+
+    #[test]
+    fn revision_sheet_allows_optional_worked_examples() {
+        let complete = "## Kapsam ve harita\n\n## Bilmen gerekenler\n\n## Karşılaştırma\n\n## Sınav tuzakları\n\n## Hatırlama\n\n## Tek sayfa sentez\n\n## Tekrar planı\n";
+        assert!(validate("revision-sheet", "tr", complete).is_ok());
+        let missing = "## Kapsam ve harita\n\n## Bilmen gerekenler\n";
+        let error = validate("revision-sheet", "tr", missing).expect_err("missing");
+        assert!(error.contains("Karşılaştırma"), "{error}");
+    }
+
+    #[test]
+    fn knowledge_organiser_allows_optional_timeline() {
+        let complete = "## Büyük sorular\n\n## Anahtar sözcükler\n\n## Harita veya şema\n\n## Kritik ayrımlar\n";
+        assert!(validate("knowledge-organiser", "tr", complete).is_ok());
     }
 
     #[test]

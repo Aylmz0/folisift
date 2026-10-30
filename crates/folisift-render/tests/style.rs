@@ -208,8 +208,14 @@ fn every_structure_pack_renders_in_both_languages() {
             let content = format!(
                 "---\ntitle: \"Structure\"\nlanguage: {language}\nsources: [PD0]\n---\n\n::: chapter part=\"B\" title=\"Body\" toc=\"Body\"\n:::\n\n{headings}\n<!-- audit -->\n"
             );
+            let aesthetic = if matches!(pack.id.as_str(), "revision-sheet" | "knowledge-organiser")
+            {
+                "revision"
+            } else {
+                "paper"
+            };
             let profile = StyleProfile {
-                aesthetic: "paper".to_string(),
+                aesthetic: aesthetic.to_string(),
                 structure: pack.id.clone(),
                 language: language.to_string(),
                 source_language: language.to_string(),
@@ -250,6 +256,123 @@ fn every_style_pack_renders_the_sample() {
         assert!(rendered.pdf.starts_with(b"%PDF-"), "{id}");
         assert!(rendered.pages >= 1, "{id}");
     }
+}
+
+#[test]
+fn revision_sheet_renders_all_components() {
+    let content = r#"---
+title: "Revision"
+language: en
+sources: [PD0]
+---
+
+::: front kicker="SAMPLE" title="Revision" lead="Short blocks."
+:::
+
+## Scope and map
+
+::: definition label="MUST KNOW"
+A short definition. [PD0, p. 1]
+:::
+
+## Must-know
+
+::: must-know
+- **Term:** A short definition. [PD0, p. 1]
+- **Term:** Another short definition. [PD0, p. 2]
+:::
+
+## Comparisons
+
+::: table caption="Comparison" source="PD0, p. 2"
+| A | B |
+|---|---|
+| one | two |
+:::
+
+## Exam traps
+
+::: critical label="EXAM TRAP"
+If you see X, do Y, not Z. [PD0, p. 3]
+:::
+
+## Recall
+
+::: recall
+What is X?
+:::
+
+::: answer label="ANSWER"
+X is Y. [PD0, p. 3]
+:::
+
+## One-page synthesis
+
+::: synthesis title="Synthesis"
+- One
+- Two
+- Three
+:::
+
+## Review plan
+
+::: review-plan
+24 hours: recall; 3 days: redo; 7 days: mixed set.
+:::
+"#;
+    let profile = StyleProfile {
+        aesthetic: "revision".to_string(),
+        structure: "revision-sheet".to_string(),
+        language: "en".to_string(),
+        source_language: "en".to_string(),
+        domain: "cs".to_string(),
+        voice: "plain".to_string(),
+        ..StyleProfile::default()
+    };
+    let rendered = render(content, &options(&profile)).expect("revision render");
+    assert!(rendered.pdf.starts_with(b"%PDF-"));
+    assert!(rendered.pages >= 2);
+}
+
+#[test]
+fn knowledge_organiser_renders_one_page() {
+    let content = r#"---
+title: "Organiser"
+language: en
+sources: [PD0]
+---
+
+::: organiser title="Unit 1" source="PD0, p. 1"
+## Big questions
+- What is X?
+- Why does Y happen?
+
+## Key terms
+- **X:** short definition.
+- **Y:** short definition.
+
+## Timeline
+- 1950: event.
+
+## Map or diagram
+- X → Y.
+
+## Critical distinctions
+- X vs Y → consequence.
+:::
+"#;
+    let profile = StyleProfile {
+        aesthetic: "revision".to_string(),
+        structure: "knowledge-organiser".to_string(),
+        language: "en".to_string(),
+        source_language: "en".to_string(),
+        domain: "cs".to_string(),
+        voice: "plain".to_string(),
+        ..StyleProfile::default()
+    };
+    let rendered = render(content, &options(&profile)).expect("organiser render");
+    assert!(rendered.pdf.starts_with(b"%PDF-"));
+    assert_eq!(rendered.pages, 1);
 }
 
 #[test]

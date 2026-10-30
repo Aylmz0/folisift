@@ -1,0 +1,37 @@
+{
+  "id": "knowledge-organiser",
+  "title": "Knowledge organiser",
+  "sections": [
+    {
+      "id": "big-questions",
+      "tr": "Büyük sorular",
+      "en": "Big questions",
+      "hint": "Bu ünitenin cevapladığı 5 soru."
+    },
+    {
+      "id": "key-terms",
+      "tr": "Anahtar sözcükler",
+      "en": "Key terms",
+      "hint": "10–15 terim; her biri tek satır tanım ve kaynak."
+    },
+    {
+      "id": "timeline",
+      "tr": "Kronoloji",
+      "en": "Timeline",
+      "hint": "5–8 tarih, kişi veya olay; kaynakta kronoloji yoksa bu bölümü kaldırın.",
+      "required": false
+    },
+    {
+      "id": "map",
+      "tr": "Harita veya şema",
+      "en": "Map or diagram",
+      "hint": "Tek baskın kavram haritası, zaman çizelgesi veya süreç şeması."
+    },
+    {
+      "id": "distinctions",
+      "tr": "Kritik ayrımlar",
+      "en": "Critical distinctions",
+      "hint": "3–5 kısa karşıtlık: X vs Y → sonuç."
+    }
+  ]
+}

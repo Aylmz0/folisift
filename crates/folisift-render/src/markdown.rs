@@ -243,6 +243,32 @@ fn markdown_to_typst_with(markdown: &str, config: &RenderConfig) -> Result<Strin
                         typst_string(label)
                     ));
                 }
+                "must-know" => {
+                    let inner_typst = markdown_to_typst_with(&inner_markdown, config)?;
+                    out.push_str(&format!("#must_know[{inner_typst}]\n\n"));
+                }
+                "synthesis" => {
+                    let inner_typst = markdown_to_typst_with(&inner_markdown, config)?;
+                    out.push_str(&format!(
+                        "#synthesis_page(title: {})[{inner_typst}]\n\n",
+                        typst_string(attr(&attrs, "title").unwrap_or("TEK SAYFA SENTEZ"))
+                    ));
+                }
+                "answer" => {
+                    let inner_typst = markdown_to_typst_with(&inner_markdown, config)?;
+                    out.push_str(&format!(
+                        "#answer(label: {})[{inner_typst}]\n\n",
+                        typst_string(attr(&attrs, "label").unwrap_or("CEVAP"))
+                    ));
+                }
+                "organiser" => {
+                    let inner_typst = markdown_to_typst_with(&inner_markdown, config)?;
+                    out.push_str(&format!(
+                        "#organiser_page(title: {}, source: {})[{inner_typst}]\n\n",
+                        typst_string(attr(&attrs, "title").unwrap_or("")),
+                        optional_attr(&attrs, "source")
+                    ));
+                }
                 "chapter" => {
                     if !inner_markdown.trim().is_empty() {
                         return Err(Error::Markdown {
@@ -1136,6 +1162,18 @@ mod tests {
         assert!(typst.contains("#explain("));
         assert!(typst.contains("NEDEN"));
         assert!(typst.contains("#review_plan("));
+    }
+
+    #[test]
+    fn renders_revision_components() {
+        let markdown = "::: must-know\n- **A:** B.\n:::\n\n::: synthesis title=\"SENTEZ\"\n- A\n:::\n\n::: answer label=\"CEVAP\"\nB.\n:::\n\n::: organiser title=\"UNITE\" source=\"PD0, s. 1\"\n## Konu\nMetin.\n:::\n";
+        let typst = markdown_to_typst(markdown).expect("typst");
+        assert!(typst.contains("#must_know["));
+        assert!(typst.contains("#synthesis_page("));
+        assert!(typst.contains("SENTEZ"));
+        assert!(typst.contains("#answer("));
+        assert!(typst.contains("#organiser_page("));
+        assert!(typst.contains("UNITE"));
     }
 
     #[test]

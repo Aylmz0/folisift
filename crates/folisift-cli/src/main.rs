@@ -84,10 +84,12 @@ enum Command {
         course: String,
         #[arg(long = "source", required = true, num_args = 1..)]
         sources: Vec<PathBuf>,
-        /// Aesthetic/layout id: paper or clean.
+        /// Style/layout id (run `styles list`): paper, reader, clean,
+        /// journal, brief, accessible, revision.
         #[arg(long = "style", default_value = "paper")]
         style: String,
-        /// Structure profile: a-g, imrad, irac, soap, ...
+        /// Structure profile: a-g, revision-sheet, knowledge-organiser,
+        /// imrad, irac, soap, formula-sheet, lecture-notes, ...
         #[arg(long, default_value = "a-g")]
         structure: String,
         /// Output language: tr or en.
@@ -739,6 +741,14 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
 
             let mut coverage = None;
             if check {
+                if style.structure == "revision-sheet" {
+                    let issues = folisift_core::genre::revision_issues(&markdown);
+                    if !issues.is_empty() {
+                        return Err(
+                            format!("revision grammar failed:\n- {}", issues.join("\n- ")).into(),
+                        );
+                    }
+                }
                 let layout = folisift_parse::audit_pdf(&output_path, None)?;
                 if !layout.underfilled_pages.is_empty() {
                     let pages = layout
@@ -748,21 +758,34 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                         .collect::<Vec<_>>();
                     return Err(format!("underfilled body pages: {pages:?}").into());
                 }
-                let inventory = match &guide.inventory {
-                    Some(path) if path.exists() => {
-                        let bytes = std::fs::read(path)?;
-                        serde_json::from_slice::<Inventory>(&bytes)?
+                // The A-G coverage gate assumes the course-guide structure and
+                // its audit section. A revision sheet has its own grammar and a
+                // different source-to-page model; do not force A-G coverage onto
+                // it. The revision grammar and layout audit still run.
+                if !matches!(
+                    style.structure.as_str(),
+                    "revision-sheet" | "knowledge-organiser"
+                ) {
+                    let inventory = match &guide.inventory {
+                        Some(path) if path.exists() => {
+                            let bytes = std::fs::read(path)?;
+                            serde_json::from_slice::<Inventory>(&bytes)?
+                        }
+                        _ => analyze_sources(&guide.sources, 120).await?,
+                    };
+                    if inventory.totals.low_text_pages > 0 {
+                        VisualAudit::load_and_validate(
+                            &guide.visual_audit(),
+                            &inventory,
+                            &guide.dir,
+                        )?;
                     }
-                    _ => analyze_sources(&guide.sources, 120).await?,
-                };
-                if inventory.totals.low_text_pages > 0 {
-                    VisualAudit::load_and_validate(&guide.visual_audit(), &inventory, &guide.dir)?;
+                    let report = check_coverage(&inventory, &markdown, 0.55);
+                    if let Some(path) = &guide.coverage {
+                        report.write_markdown(path)?;
+                    }
+                    coverage = Some(report);
                 }
-                let report = check_coverage(&inventory, &markdown, 0.55);
-                if let Some(path) = &guide.coverage {
-                    report.write_markdown(path)?;
-                }
-                coverage = Some(report);
             }
             if let Some(report) = &coverage
                 && !report.passed

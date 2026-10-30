@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "id": "revision",
+  "name": "Revision — visual study sheet",
+  "status": "experimental",
+  "layout": "revision",
+  "aesthetic": "revision",
+  "supported_structures": [
+    "a-g",
+    "revision-sheet",
+    "knowledge-organiser",
+    "lecture-notes",
+    "formula-sheet"
+  ],
+  "supported_languages": [
+    "tr",
+    "en"
+  ],
+  "supported_domains": [
+    "general",
+    "cs",
+    "math",
+    "medicine",
+    "law",
+    "business",
+    "humanities",
+    "language"
+  ],
+  "supported_voices": [
+    "plain",
+    "academic",
+    "technical",
+    "legal",
+    "clinical",
+    "business"
+  ],
+  "tokens": "tokens.json",
+  "strings": [
+    "tr",
+    "en"
+  ],
+  "engine_min": "0.9.0",
+  "page_target": "dynamic",
+  "preview": "preview.md"
+}

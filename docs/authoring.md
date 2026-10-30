@@ -1,5 +1,11 @@
 # Authoring a guide
 
+> **Evidence basis.** Every format rule in this document is grounded in
+> [`authoring-evidence.md`](authoring-evidence.md),
+> [`revision-format-research.md`](revision-format-research.md) and
+> [`document-genres-and-layout-systems.md`](document-genres-and-layout-systems.md).
+> The rules are evidence-informed, not claims of proven exam-score gains.
+
 This is the practical runbook. `docs/authoring-spec.md` is the normative
 content contract; `docs/authoring-evidence.md` records the learning,
 note-taking, summarization and accessibility basis; `docs/architecture.md`
@@ -45,22 +51,37 @@ search it with `search_source`; the host LLM writes the prose.
 ## Choose a style
 
 Styles are engine-owned packs under `styles/`. `paper` is the stable parity
-style; `reader` is the spacious paper variant for new long-form guides;
-`clean` is the experimental technical style; `journal`, `brief` and
-`accessible` are experimental professional variants for humanities, business
-and large-print reading.
+layout; `reader` is the spacious density variant; `clean` is the technical
+layout; `journal` and `brief` are presets; `accessible` is a large-print
+modifier. None of these is a genre on its own.
+
+`revision` is the exam-revision layout. It implements two structures:
+
+- `revision-sheet`: map, must-know, comparisons, worked examples, traps,
+  recall/answer key, synthesis and review plan.
+- `knowledge-organiser`: one page per unit with big questions, key terms,
+  timeline, one map/diagram and critical distinctions.
+
+Use revision for exam preparation; use `paper`/`reader` for long-form reading.
+The evidence and limits are in
+[`revision-format-research.md`](revision-format-research.md) and
+[`document-genres-and-layout-systems.md`](document-genres-and-layout-systems.md).
 
 ```bash
 cargo run -p folisift-cli -- styles list
 cargo run -p folisift-cli -- styles info reader --language tr
 cargo run -p folisift-cli -- styles preview reader --language tr
+cargo run -p folisift-cli -- styles preview revision --language tr
 ```
 
 The MCP `style` tool also has a `recommend` action. It returns only packs
 compatible with the requested domain/structure/language. Domain-specific packs
 (`journal`, `brief`) rank first where they fit; `reader` is the spacious
 fallback. This is a heuristic; the host must choose a candidate and record
-`style_rationale`.
+`style_rationale`. When the host omits `style`, `prepare_guide` uses
+`revision` for revision-sheet/knowledge-organiser structures and `reader` for
+the other structures; the response reports `style_source` (`explicit`,
+`default-revision` or `default-reader`).
 
 A schema-3 guide config carries the independent axes:
 
@@ -86,8 +107,9 @@ A schema-3 guide config carries the independent axes:
 }
 ```
 
-A style changes presentation and labels, never facts or coverage. Guides
-never contain raw Typst or CSS.
+A style changes presentation and labels; a genre changes the layout logic and
+content grammar. Neither changes facts or coverage. Guides never contain raw
+Typst or CSS.
 
 For a non-A–G structure, claim source sections with a content comment before
 the heading:
@@ -238,6 +260,10 @@ The template owns pagination and typography; content uses semantic blocks.
 | `::: recall label=...` | optional retrieval question/prompt (answer separated in prose) |
 | `::: explain label=...` | optional self-explanation prompt (“why/how/what-if”) |
 | `::: review-plan label=...` | optional short spaced-review schedule |
+| `::: must-know` | compact card stack of must-know definitions; revision layout |
+| `::: synthesis title=...` | one-page synthesis block; revision layout |
+| `::: answer label=...` | separated answer-key block; revision layout |
+| `::: organiser title=... source=...` | one-page knowledge-organiser page; revision layout |
 | `::: table widths="5,20,35,40" kind="facts" caption="..." source="..." id="..."` | table metadata; wrap the Markdown table |
 | `::: columns` … `::: columnbreak` … `:::` | two-column region and explicit break |
 | `::: pagebreak` | start the next block on a new page (rare) |

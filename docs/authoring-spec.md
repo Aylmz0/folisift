@@ -1,9 +1,11 @@
 # MASTER STUDY-GUIDE SPECIFICATION — v2
 
-> **Evidence note (2026-10-29).** The learning, note-taking, summarization,
-> visual and accessibility basis for these rules is documented in
-> [`docs/authoring-evidence.md`](authoring-evidence.md). It is
-> evidence-informed, not a claim of proven product-level learning gains.
+> **Evidence note (2026-10-29, updated 2026-10-31).** The learning,
+> note-taking, summarization, visual and accessibility basis for these rules is
+> documented in [`docs/authoring-evidence.md`](authoring-evidence.md),
+> [`docs/revision-format-research.md`](revision-format-research.md) and
+> [`docs/document-genres-and-layout-systems.md`](document-genres-and-layout-systems.md).
+> It is evidence-informed, not a claim of proven product-level learning gains.
 
 > **v3 implementation note (2026-10-26).** The A–G structure, coverage,
 > accuracy and terminology rules below remain normative. The implementation
@@ -77,8 +79,10 @@ A guide is successful only if all of these are true:
    clipped code, no orphan headings.
 7. **Auditability.** The final coverage report states exactly what was covered,
    what was image-only, and what was inaccessible.
-8. **No quiz material.** No questions, flashcards, mock exams or generic
-   “study tips”. Only explanation and organisation of the source content.
+8. **No generic quiz padding.** Long-form course guides do not add questions,
+   flashcards, mock exams or generic “study tips” as filler. A revision-sheet
+   genre may include optional, source-grounded recall prompts with a separate
+   answer key; that is retrieval design, not padding.
 
 ## 3. NON-NEGOTIABLE RULES
 
@@ -97,7 +101,8 @@ A guide is successful only if all of these are true:
 - Do not use the source’s page numbers and the PDF’s page numbers
   interchangeably without checking. State the convention once in the front
   matter. In this project they are the same (slide number = PDF page).
-- No quizzes, practice questions, flashcards, mock exams or “exam trick” lists.
+- No generic quiz padding, flashcards, mock exams or “exam trick” lists. The
+  revision-sheet genre may use optional recall prompts with an answer key.
 - No generic motivational advice. “Kritik ayrım” boxes are allowed because they
   explain content distinctions, not study habits.
 - Do not repeat the same explanation in several chapters. Cross-reference it.
@@ -480,7 +485,8 @@ Before declaring completion:
 - [ ] TOC page numbers and PDF bookmarks work.
 - [ ] No orphan headings, clipped tables/code, or missing glyphs.
 - [ ] Turkish is consistent; English terms are parenthetical on first use.
-- [ ] No quizzes, flashcards, mock exams or generic study advice.
+- [ ] No generic quiz padding, flashcards, mock exams or generic study advice;
+      revision recall prompts, when used, have a separate answer key.
 - [ ] Page count is within the configured `page_range`; no padding and no
       underfilled body pages.
 - [ ] Final PDF, HTML/CSS, source map and coverage report are delivered.

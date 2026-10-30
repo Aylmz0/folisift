@@ -1,6 +1,11 @@
-# Design system — “paper”
+# Design system — multi-genre
 
-The guide is a study object, not a slide deck. The visual language is warm,
+The guide is a study object, not a slide deck. The engine now separates
+**genre** (reader, revision sheet, knowledge organiser), **structure** (A–G,
+revision-sheet, organiser) and **style** (layout, density, accessibility).
+The evidence for these choices is in
+[`document-genres-and-layout-systems.md`](document-genres-and-layout-systems.md)
+and [`revision-format-research.md`](revision-format-research.md). The visual language is warm,
 editorial and print-friendly. The design system is shared by every guide and
 lives in `templates/paper.typ` and `templates/fonts/`. See
 `docs/adr/0002-paper-design-system.md` and `docs/adr/0007-typst-renderer.md`.
@@ -20,16 +25,22 @@ lives in `templates/paper.typ` and `templates/fonts/`. See
 
 Rules: no gradients, no stock photos, no neon colours, no heavy shadows, no
 rounded “card” interface. Colour marks sections and rules; it never carries
-meaning alone.
+meaning alone. Source references use `faint` `#75664E` (5.17:1 on paper,
+4.75:1 on cream); the old `#8A7A63` failed 4.5:1 at small sizes.
 
 ## Typography
 
-- Body: Noto Serif (embedded), 9.5 pt, line-height 1.33.
+- Body: Noto Serif (embedded), 9.5 pt, Typst leading 0.62 em (≈1.3 line
+  spacing). The old “line-height 1.33” label was ambiguous; Typst `leading` is
+  the extra space between lines, not CSS line-height.
 - Headings: Inter (embedded, Regular/Medium/SemiBold/Bold), semibold.
 - Code: Noto Sans Mono (embedded), 7.4 pt in blocks; DejaVu is only a fallback
   and requires its own licence if shipped.
 - Captions: serif italic, 7.9–8.4 pt.
 - Labels: Inter, uppercase, letter-spacing 0.12–0.18em.
+- Revision layout: Inter 11 pt body, 9.5 pt tables/captions, 8.4 pt
+  labels/source refs; 30–32 mm side margins. The legacy paper layout keeps its
+  7.9/6.9 pt table components for the v0.9 parity fixture.
 
 Turkish characters and hyphenation must be checked in the final PDF.
 
@@ -56,17 +67,39 @@ It is selected with `aesthetic: "reader"`; `paper` remains the stable
 old-PDF parity style. Reader is experimental until its cross-style and
 accessibility snapshots pass, but it is the preferred readable default for new
 guides; MCP `prepare_guide` reports `style_source: "default-reader"` when it
-auto-selects it.
+auto-selects it; revision/organiser structures default to `revision` and report
+`"default-revision"`.
+
+## Revision style
+
+`revision` is the exam-revision layout: A4 portrait, 11 pt Inter, 30–32 mm
+side margins, left-aligned, 0.72 em leading, 9.5 pt tables/captions, 8.4 pt
+labels/source refs. It implements `revision-sheet` (multi-page) and
+`knowledge-organiser` (one page per unit). It is not a shortened reader:
+the grammar is map → must-know → comparison → worked example → traps →
+recall/answer key → one-page synthesis → review plan. See
+[`revision-format-research.md`](revision-format-research.md) §7 and
+[`document-genres-and-layout-systems.md`](document-genres-and-layout-systems.md)
+§4 for the evidence and limits.
 
 ## Clean style
-
-`journal`, `brief` and `accessible` are token-driven variants of the paper/clean layouts: journal is a serif academic reader, brief is a compact decision memo, accessible is a 12 pt high-contrast reader. They are experimental until their snapshots pass.
 
 `clean` is the second engine-owned layout. It keeps the same content model and
 directives but uses an Inter body, white paper, a blue accent, a single cover
 rule, denser tables and square technical boxes. It is selected by the style
 pack `clean`; it is experimental until its snapshots and cross-style gates
 pass. `paper` remains the default and the old-PDF parity standard.
+
+## Presets and accessibility modifiers
+
+`journal`, `brief` and `accessible` are **not genres**:
+
+- `journal` is a `paper` preset (10.5 pt, 18 mm) for IMRAD/literature reviews.
+- `brief` is a `clean` preset (10.5 pt, 17 mm) for executive briefs.
+- `accessible` is a **large-print modifier**; its `component_scale` (1.3)
+  scales body, headings, tables, captions, labels and TOC, not only prose.
+
+They are experimental until their snapshots pass.
 
 ## Components
 

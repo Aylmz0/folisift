@@ -16,9 +16,8 @@ pub const AESTHETICS: &[&str] = &[
     "clean",
     "journal",
     "brief",
-    "clinical",
-    "casebook",
     "accessible",
+    "revision",
 ];
 pub const STRUCTURES: &[&str] = &[
     "a-g",
@@ -29,6 +28,8 @@ pub const STRUCTURES: &[&str] = &[
     "literature-matrix",
     "lecture-notes",
     "executive-brief",
+    "revision-sheet",
+    "knowledge-organiser",
 ];
 pub const LANGUAGES: &[&str] = &["tr", "en"];
 pub const VOICES: &[&str] = &[
@@ -118,12 +119,6 @@ impl StyleProfile {
             return Err(format!(
                 "executive-brief is not compatible with domain {domain:?}"
             ));
-        }
-        if self.aesthetic == "clinical" && structure != "soap" {
-            return Err("clinical aesthetic requires soap structure".to_string());
-        }
-        if self.aesthetic == "casebook" && structure != "irac" {
-            return Err("casebook aesthetic requires irac structure".to_string());
         }
         Ok(())
     }
