@@ -80,7 +80,9 @@ the grammar is map → must-know → comparison → worked example → traps →
 recall/answer key → one-page synthesis → review plan. See
 [`revision-format-research.md`](revision-format-research.md) §7 and
 [`document-genres-and-layout-systems.md`](document-genres-and-layout-systems.md)
-§4 for the evidence and limits.
+§4 for the evidence and limits. The standardized type scale and code sizes are
+specified in
+[`plans/2026-10-31-typography-standardization-and-font-system.md`](plans/2026-10-31-typography-standardization-and-font-system.md).
 
 ## Clean style
 

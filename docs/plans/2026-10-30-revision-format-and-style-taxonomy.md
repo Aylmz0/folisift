@@ -7,6 +7,7 @@
 - **Trigger:** the user review of `paper` vs `reader`, the lack of true
   purpose-specific output genres, and the typography inconsistencies found in
   the production PDFs
+- **Follow-on:** [`2026-10-31-typography-standardization-and-font-system.md`](2026-10-31-typography-standardization-and-font-system.md)
 - **Research notes:**
   [`docs/revision-format-research.md`](../revision-format-research.md),
   [`docs/document-genres-and-layout-systems.md`](../document-genres-and-layout-systems.md)
