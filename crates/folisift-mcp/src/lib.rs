@@ -692,6 +692,30 @@ impl FolisiftServer {
             .map_err(|error| error.to_string())?;
         let existing = Guide::load(&self.workspace, &params.slug).ok();
         let was_existing = existing.is_some();
+        if let Some(existing) = &existing {
+            if style != existing.style() {
+                return Err(
+                    "prepare_guide cannot change the style of an existing guide; use a new slug or edit config.json"
+                        .to_string(),
+                );
+            }
+            let configured = existing
+                .config
+                .sources
+                .iter()
+                .filter_map(|source| existing.dir.join(source).canonicalize().ok())
+                .collect::<Vec<_>>();
+            let requested = sources
+                .iter()
+                .filter_map(|source| source.canonicalize().ok())
+                .collect::<Vec<_>>();
+            if configured != requested {
+                return Err(
+                    "prepare_guide cannot change the sources of an existing guide; use a new slug or edit config.json"
+                        .to_string(),
+                );
+            }
+        }
         let title = params.title.clone();
         let guide = match existing {
             Some(guide) => guide,
@@ -943,9 +967,21 @@ impl FolisiftServer {
 
         let mut coverage = None;
         let mut visual = None;
-        if params.check.unwrap_or(true) {
+        let mut layout_passed = true;
+        let genre_ok = true;
+        let mut visual_passed = None;
+        let check = params.check.unwrap_or(true);
+        if check {
+            let issues = folisift_core::gates::genre_issues(&style.structure, &markdown);
+            if !issues.is_empty() {
+                return Err(format!(
+                    "revision grammar failed:\n- {}",
+                    issues.join("\n- ")
+                ));
+            }
             let layout =
                 folisift_parse::audit_pdf(&output_path, None).map_err(|error| error.to_string())?;
+            layout_passed = layout.passed;
             if !layout.underfilled_pages.is_empty() {
                 let pages = layout
                     .underfilled_pages
@@ -954,42 +990,70 @@ impl FolisiftServer {
                     .collect::<Vec<_>>();
                 return Err(format!("underfilled body pages: {pages:?}"));
             }
-            let inventory = self.load_or_analyze_inventory(&guide).await?;
-            let audit_path = guide.visual_audit();
-            if inventory.totals.low_text_pages > 0 {
-                let report = VisualAudit::load_and_validate(&audit_path, &inventory, &guide.dir)
-                    .map_err(|error| error.to_string())?;
-                visual = Some(serde_json::to_value(report).map_err(|error| error.to_string())?);
+            let page_issues =
+                folisift_core::gates::page_count_issues(&style.structure, layout.pages);
+            if !page_issues.is_empty() {
+                return Err(page_issues.join("\n"));
             }
-            let report = coverage_report(&inventory, &markdown, folisift_parse::DEFAULT_THRESHOLD);
-            if let Some(path) = &guide.coverage {
-                report
-                    .write_markdown(path)
-                    .map_err(|error| error.to_string())?;
+            if folisift_core::gates::uses_course_coverage(&style.structure) {
+                let inventory = self.load_or_analyze_inventory(&guide).await?;
+                let audit_path = guide.visual_audit();
+                if inventory.totals.low_text_pages > 0 {
+                    let report =
+                        VisualAudit::load_and_validate(&audit_path, &inventory, &guide.dir)
+                            .map_err(|error| error.to_string())?;
+                    visual_passed = Some(report.passed);
+                    if !report.passed {
+                        return Err(format!(
+                            "visual audit failed: {} missing, {} unresolved",
+                            report.missing.len(),
+                            report.unresolved.len()
+                        ));
+                    }
+                    visual = Some(serde_json::to_value(report).map_err(|error| error.to_string())?);
+                }
+                let report =
+                    coverage_report(&inventory, &markdown, folisift_parse::DEFAULT_THRESHOLD);
+                if let Some(path) = &guide.coverage {
+                    report
+                        .write_markdown(path)
+                        .map_err(|error| error.to_string())?;
+                }
+                if !report.passed {
+                    return Err(format!(
+                        "coverage gate failed: {}/{} headings missing, {} empty sections",
+                        report.missing,
+                        report.total,
+                        report.empty_sections.len()
+                    ));
+                }
+                coverage = Some(json!({
+                    "passed": report.passed,
+                    "total": report.total,
+                    "canonical_total": report.canonical_total,
+                    "claimed": report.claimed,
+                    "gate_total": report.gate_total,
+                    "missing": report.missing,
+                    "missing_from_gate": report.missing_from_gate,
+                    "empty_sections": report.empty_sections.len(),
+                    "weak_sections": report.weak_sections.len(),
+                }));
             }
-            if !report.passed {
-                return Err(format!(
-                    "coverage gate failed: {}/{} headings missing, {} empty sections",
-                    report.missing,
-                    report.total,
-                    report.empty_sections.len()
-                ));
-            }
-            coverage = Some(json!({
-                "passed": report.passed,
-                "total": report.total,
-                "canonical_total": report.canonical_total,
-                "claimed": report.claimed,
-                "gate_total": report.gate_total,
-                "missing": report.missing,
-                "missing_from_gate": report.missing_from_gate,
-                "empty_sections": report.empty_sections.len(),
-                "weak_sections": report.weak_sections.len(),
-            }));
         }
-
+        let passed = folisift_core::gates::top_level_passed(
+            layout_passed,
+            genre_ok,
+            coverage
+                .as_ref()
+                .and_then(|value| value.get("passed"))
+                .and_then(serde_json::Value::as_bool),
+            visual_passed,
+        );
         Ok(Json(json!({
             "output": output_path.display().to_string(),
+            "passed": passed,
+            "layout_passed": layout_passed,
+            "genre_passed": genre_ok,
             "pages": rendered.pages,
             "content_hash": rendered.content_hash,
             "cache_hit": rendered.cache_hit,
@@ -1068,7 +1132,11 @@ impl FolisiftServer {
             && path.exists()
         {
             let bytes = std::fs::read(path).map_err(|error| error.to_string())?;
-            return serde_json::from_slice(&bytes).map_err(|error| error.to_string());
+            let inventory: Inventory =
+                serde_json::from_slice(&bytes).map_err(|error| error.to_string())?;
+            if inventory.matches_sources(&guide.sources) {
+                return Ok(inventory);
+            }
         }
         analyze_sources(&guide.sources, folisift_parse::LOW_TEXT_THRESHOLD)
             .await
@@ -1643,6 +1711,7 @@ mod tests {
                 chars: 0,
                 words: 0,
                 low_text_threshold: 120,
+                source_digest: None,
                 low_text_pages: (1..=low_text).collect(),
                 headings: vec![],
                 sections,

@@ -120,6 +120,9 @@ impl SourceParser for LiteparseParser {
             .map(|page| (page.page_number, page.text.as_str()))
             .collect::<Vec<_>>();
         let sections = canonical_sections(&toc_pages, prefix.as_deref());
+        let source_digest = std::fs::read(&path)
+            .ok()
+            .map(|bytes| blake3::hash(&bytes).to_hex().to_string());
 
         Ok(SourceInventory {
             path,
@@ -129,6 +132,7 @@ impl SourceParser for LiteparseParser {
             chars: total_chars,
             words: total_words,
             low_text_threshold,
+            source_digest,
             low_text_pages,
             headings,
             sections,

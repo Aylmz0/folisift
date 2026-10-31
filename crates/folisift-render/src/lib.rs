@@ -332,7 +332,7 @@ fn format_diagnostics(world: &TypstWorld, errors: &[typst::diag::SourceDiagnosti
             let location = world.range(error.span).map(|range| {
                 let line = world
                     .source(world.main())
-                    .map(|source| source.text()[..range.start].lines().count())
+                    .map(|source| source.text()[..range.start].lines().count() + 1)
                     .unwrap_or(0);
                 format!("line {line}: ")
             });

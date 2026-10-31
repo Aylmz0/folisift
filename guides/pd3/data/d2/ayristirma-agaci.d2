@@ -1,19 +1,6 @@
-# spec_sha256: e720b21e95db3796837e9e18d0b0e15d3b0229579d110773c2bf52882940e40a
+# spec_sha256: 8854082d5a03aa81e48e606a1b1c084a8ac79f4f9c550deaf50a782809c0ac08
 # engine: d2 v0.9.0
 direction: down
-style: { fill: "#FAF6EC" }
-*.style: {
-  fill: "#FAF6EC"
-  stroke: "#8A3E2F"
-  font-color: "#211E19"
-  font-size: 28
-  border-radius: 3
-}
-(* -> *)[*].style: {
-  stroke: "#8A3E2F"
-  font-color: "#5E574B"
-  font-size: 22
-}
 n0: "<program>"
 n1: "<stmts>"
 n2: "<stmt>"
@@ -33,3 +20,16 @@ n4 -> n6: "+"
 n4 -> n7
 n6 -> n8
 n7 -> n9
+style: { fill: "#FAF6EC" }
+*.style: {
+  fill: "#FAF6EC"
+  stroke: "#8A3E2F"
+  font-color: "#211E19"
+  font-size: 28
+  border-radius: 3
+}
+(* -> *)[*].style: {
+  stroke: "#8A3E2F"
+  font-color: "#5E574B"
+  font-size: 22
+}

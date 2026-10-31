@@ -759,7 +759,7 @@ PD2’nin ortak ekseni **soyutlama düzeyidir**: Plankalkül donanımdan bağım
 
 <!-- audit -->
 
-::: chapter part="C–G · ORTAK BÖLÜMLER" side="BÖLÜM DENETİMİ" kicker="G" title="Kapsam denetimi" toc="G. Kapsam denetimi" running="G · Kapsam denetimi" subs=false compact=true lead="Bu bölüm, PD2’nin hangi sayfalarının kapsandığını, hangi düşük metinli slaytların görsel olarak incelendiğini ve neyin bilinçli olarak dışarıda bırakıldığını raporlar."
+::: chapter flow=true part="C–G · ORTAK BÖLÜMLER" side="BÖLÜM DENETİMİ" kicker="G" title="Kapsam denetimi" toc="G. Kapsam denetimi" running="G · Kapsam denetimi" subs=false compact=true lead="Bu bölüm, PD2’nin hangi sayfalarının kapsandığını, hangi düşük metinli slaytların görsel olarak incelendiğini ve neyin bilinçli olarak dışarıda bırakıldığını raporlar."
 :::
 
 ## G.1 Kaynak bazında kapsam
@@ -790,7 +790,5 @@ PD2’de **9** düşük metinli slayt vardır: **1, 5, 19, 21, 29, 33, 45, 53, 1
 
 - **Kapak/konu listeleri** (s. 1–4) ve dekoratif görseller (s. 45, 101) yeniden üretilmedi.
 - **COBOL örneği** (s. 49) tam kod olarak değil, bölüm yapısı ve kavramlarıyla özetlendi.
-- **Fortran, BASIC, LISP, Simula, Prolog, Ada ve Java örnekleri** yalnızca ayırt edici yapılarıyla verildi; LISP listeleri ve BASIC şeceresi D2 ile çizildi.
-- **Kaynakça** (s. 103) birleştirildi; PD2’de ödev slaytı yok.
+- **Fortran, BASIC, LISP, Simula, Prolog, Ada ve Java örnekleri** yalnızca ayırt edici yapılarıyla verildi; LISP listeleri ve BASIC şeceresi D2 ile çizildi. Kaynakça (s. 103) birleştirildi; PD2’de ödev slaytı yok.
 
-**Sonuç:** Kapsam ve görsel kararlar `data/coverage.md` ile `visual-audit.json` dosyalarında makine tarafından üretilir. Bu bölümdeki tablolar kaynak aralıklarını ve insan değerlendirmesini özetler; sayısal iddialar bu iki rapora dayanır.

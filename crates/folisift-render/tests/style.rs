@@ -103,24 +103,34 @@ fn embeds_a_prebuilt_diagram_and_rejects_inline_blocks() {
                 id: "src".to_string(),
                 label: "Source program".to_string(),
                 group: None,
+                shape: None,
             },
             Node {
                 id: "lex".to_string(),
                 label: "Lexical analysis".to_string(),
                 group: None,
+                shape: None,
             },
             Node {
                 id: "code".to_string(),
                 label: "Code generation".to_string(),
                 group: None,
+                shape: None,
             },
         ],
         edges: vec![Edge {
             from: "src".to_string(),
             to: "lex".to_string(),
             label: Some("characters".to_string()),
+            arrowhead: None,
+            line: None,
         }],
         groups: Vec::new(),
+        actors: Vec::new(),
+        messages: Vec::new(),
+        notes: Vec::new(),
+        classes: Vec::new(),
+        tables: Vec::new(),
     };
     folisift_render::diagram::write_spec(root.path(), &spec).expect("spec");
     folisift_render::diagram::write_d2_source(

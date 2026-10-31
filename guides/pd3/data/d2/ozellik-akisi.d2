@@ -1,19 +1,6 @@
-# spec_sha256: ecf78d8ec4c838cda4db5091046f0e0dd6bea61b95f244cede53dbd0d4b214c3
+# spec_sha256: 19c01e1b31e545d428fdd4e53109e36b20c856672f90ca6af9fbaebe4084456f
 # engine: d2 v0.9.0
 direction: down
-style: { fill: "#FAF6EC" }
-*.style: {
-  fill: "#FAF6EC"
-  stroke: "#8A3E2F"
-  font-color: "#211E19"
-  font-size: 28
-  border-radius: 3
-}
-(* -> *)[*].style: {
-  stroke: "#8A3E2F"
-  font-color: "#5E574B"
-  font-size: 22
-}
 n0: "<assign>"
 n1: "<var>"
 n2: "<expr>"
@@ -28,3 +15,16 @@ n1 -> n4
 n2 -> n4
 n5 -> n0
 n0 -> n6
+style: { fill: "#FAF6EC" }
+*.style: {
+  fill: "#FAF6EC"
+  stroke: "#8A3E2F"
+  font-color: "#211E19"
+  font-size: 28
+  border-radius: 3
+}
+(* -> *)[*].style: {
+  stroke: "#8A3E2F"
+  font-color: "#5E574B"
+  font-size: 22
+}

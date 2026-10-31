@@ -575,6 +575,7 @@ mod tests {
                 chars: 0,
                 words: 0,
                 low_text_threshold: 120,
+                source_digest: None,
                 low_text_pages: vec![1],
                 headings: vec![
                     Heading {

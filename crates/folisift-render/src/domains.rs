@@ -67,6 +67,17 @@ pub fn list(workspace_root: &Path) -> Result<Vec<DomainProfile>> {
 }
 
 pub fn load(workspace_root: &Path, id: &str) -> Result<DomainProfile> {
+    if id.is_empty()
+        || id.len() > 64
+        || !id.bytes().all(|byte| {
+            byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-' || byte == b'_'
+        })
+    {
+        return Err(Error::Style {
+            id: id.to_string(),
+            message: "domain id must be a simple lowercase name".to_string(),
+        });
+    }
     let custom = workspace_root.join("domains").join(format!("{id}.json"));
     if custom.is_file() {
         let json = std::fs::read_to_string(&custom).map_err(|error| crate::error::Error::Io {

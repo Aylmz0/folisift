@@ -39,7 +39,7 @@ Landed in the working tree:
 - PD3 D2 diagrams: `ayristirma-agaci`, `ozellik-akisi`, `sozdizim-grafigi`,
   `anlam-yontemleri`, `islemel-semantik`.
 - Manual `parse-tree.svg` and `operational.svg` removed; outputs rebuilt.
-- `build --check` and `audit --strict` pass for PD2 (23 pages), PD3 (20 pages)
+- `build --check` and `audit --strict` pass for PD2 (23 pages), PD3 (21 pages after code retune)
   and PD0–PD1 (22 pages). No underfilled pages remain.
 
 Maintainer steps: release tag/push and a manual OpenCode UI run. Optional

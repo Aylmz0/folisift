@@ -376,7 +376,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 json!({"name": "pdfium", "ok": pdfium.is_ok(), "detail": pdfium.as_ref().err().map(ToString::to_string).unwrap_or_else(|| folisift_parse::pdfium::PDFIUM_VERSION.to_string())}),
                 json!({"name": "cache", "ok": cache_ok, "detail": cache.display().to_string()}),
                 json!({"name": "output", "ok": output_ok, "detail": output.display().to_string()}),
-                json!({"name": "guides", "ok": !guides.is_empty() && invalid_guides == 0, "detail": format!("{} guide(s), {invalid_guides} invalid", guides.len())}),
+                json!({"name": "guides", "ok": invalid_guides == 0, "detail": format!("{} guide(s), {invalid_guides} invalid", guides.len()), "warning": if guides.is_empty() { Some("no guides yet") } else { None }}),
                 json!({"name": "fonts", "ok": font_count > 0, "detail": format!("{font_count} embedded face(s)")}),
                 json!({"name": "structures", "ok": !folisift_core::structures::packs().is_empty(), "detail": format!("{} pack(s)", folisift_core::structures::packs().len())}),
                 {
@@ -740,16 +740,18 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
             write_pdf(&output_path, &rendered.pdf)?;
 
             let mut coverage = None;
+            let mut visual_passed = None;
+            let mut layout_passed = true;
+            let genre_ok = true;
             if check {
-                if style.structure == "revision-sheet" {
-                    let issues = folisift_core::genre::revision_issues(&markdown);
-                    if !issues.is_empty() {
-                        return Err(
-                            format!("revision grammar failed:\n- {}", issues.join("\n- ")).into(),
-                        );
-                    }
+                let issues = folisift_core::gates::genre_issues(&style.structure, &markdown);
+                if !issues.is_empty() {
+                    return Err(
+                        format!("revision grammar failed:\n- {}", issues.join("\n- ")).into(),
+                    );
                 }
                 let layout = folisift_parse::audit_pdf(&output_path, None)?;
+                layout_passed = layout.passed;
                 if !layout.underfilled_pages.is_empty() {
                     let pages = layout
                         .underfilled_pages
@@ -758,27 +760,41 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                         .collect::<Vec<_>>();
                     return Err(format!("underfilled body pages: {pages:?}").into());
                 }
-                // The A-G coverage gate assumes the course-guide structure and
-                // its audit section. A revision sheet has its own grammar and a
-                // different source-to-page model; do not force A-G coverage onto
-                // it. The revision grammar and layout audit still run.
-                if !matches!(
-                    style.structure.as_str(),
-                    "revision-sheet" | "knowledge-organiser"
-                ) {
+                let page_issues =
+                    folisift_core::gates::page_count_issues(&style.structure, layout.pages);
+                if !page_issues.is_empty() {
+                    return Err(page_issues.join("\n").into());
+                }
+                // A–G coverage is a course-guide gate. Revision/organiser
+                // genres have their own grammar and source model.
+                if folisift_core::gates::uses_course_coverage(&style.structure) {
                     let inventory = match &guide.inventory {
                         Some(path) if path.exists() => {
                             let bytes = std::fs::read(path)?;
-                            serde_json::from_slice::<Inventory>(&bytes)?
+                            let inventory = serde_json::from_slice::<Inventory>(&bytes)?;
+                            if inventory.matches_sources(&guide.sources) {
+                                inventory
+                            } else {
+                                analyze_sources(&guide.sources, 120).await?
+                            }
                         }
                         _ => analyze_sources(&guide.sources, 120).await?,
                     };
                     if inventory.totals.low_text_pages > 0 {
-                        VisualAudit::load_and_validate(
+                        let report = VisualAudit::load_and_validate(
                             &guide.visual_audit(),
                             &inventory,
                             &guide.dir,
                         )?;
+                        visual_passed = Some(report.passed);
+                        if !report.passed {
+                            return Err(format!(
+                                "visual audit failed: {} missing, {} unresolved",
+                                report.missing.len(),
+                                report.unresolved.len()
+                            )
+                            .into());
+                        }
                     }
                     let report = check_coverage(&inventory, &markdown, 0.55);
                     if let Some(path) = &guide.coverage {
@@ -798,11 +814,18 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 )
                 .into());
             }
+            let passed = folisift_core::gates::top_level_passed(
+                layout_passed,
+                genre_ok,
+                coverage.as_ref().map(|report| report.passed),
+                visual_passed,
+            );
 
             println!(
                 "{}",
                 serde_json::to_string_pretty(&json!({
                     "output": output_path.display().to_string(),
+                    "passed": if check { Some(passed) } else { None },
                     "pages": rendered.pages,
                     "content_hash": rendered.content_hash,
                     "cache_hit": rendered.cache_hit,

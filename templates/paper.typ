@@ -455,12 +455,12 @@
     breakable: false,
   )[
     #set par(leading: 0.5em)
-    #text(font: "Noto Sans Mono", size: 7.4pt)[#it]
+    #text(font: "Noto Sans Mono", size: __CODE_BLOCK_SIZE__)[#it]
   ]
   show raw.where(block: false): it => box(
     fill: sand,
     inset: (x: 0.7mm),
-    text(font: "Noto Sans Mono", size: 8.4pt)[#it],
+    text(font: "Noto Sans Mono", size: __CODE_INLINE_SIZE__)[#it],
   )
   set figure(gap: 2mm)
   show figure: it => block(above: 3.6mm, below: 3.8mm, it)

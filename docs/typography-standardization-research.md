@@ -65,7 +65,7 @@ Line length: body-size lines median 95, p90 106. The summary is a long-form
 reader; its measure is already too long, but the code-size problem is separate:
 code is visibly smaller than the prose it explains.
 
-### 2.3 PD3 summary (`output/PD3_Calisma_Ozeti.pdf`, 20 pages)
+### 2.3 PD3 summary (`output/PD3_Calisma_Ozeti.pdf`, 21 pages after the code retune)
 
 PD3 is code-heavy: 5,114 characters at 7.4 pt Noto Sans Mono and 2,334
 characters at 8.4 pt inline code against a 10 pt body. The code is the content;

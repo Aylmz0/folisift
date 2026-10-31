@@ -1,5 +1,5 @@
 use std::fmt::Write as _;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use chrono::{SecondsFormat, Utc};
 use serde::{Deserialize, Serialize};
@@ -23,6 +23,9 @@ pub struct SourceInventory {
     pub chars: usize,
     pub words: usize,
     pub low_text_threshold: usize,
+    /// BLAKE3 of the source PDF at analysis time; absent in old inventories.
+    #[serde(default)]
+    pub source_digest: Option<String>,
     pub low_text_pages: Vec<usize>,
     pub headings: Vec<Heading>,
     /// Sections recovered from the source's own topic list/TOC.
@@ -69,6 +72,32 @@ pub struct Totals {
     pub pages: usize,
     pub words: usize,
     pub low_text_pages: usize,
+}
+
+impl Inventory {
+    /// True when every source file still matches the digest recorded at analysis
+    /// time. Old inventories without digests are treated as stale.
+    pub fn matches_sources(&self, paths: &[PathBuf]) -> bool {
+        if self.sources.len() != paths.len() {
+            return false;
+        }
+        self.sources.iter().all(|source| {
+            let Some(digest) = &source.source_digest else {
+                return false;
+            };
+            paths
+                .iter()
+                .filter(|path| {
+                    path.file_name().and_then(|name| name.to_str())
+                        == Some(source.filename.as_str())
+                })
+                .any(|path| {
+                    std::fs::read(path)
+                        .map(|bytes| blake3::hash(&bytes).to_hex().to_string() == *digest)
+                        .unwrap_or(false)
+                })
+        })
+    }
 }
 
 impl SourceInventory {
@@ -226,6 +255,7 @@ mod tests {
             chars: 130,
             words: 20,
             low_text_threshold: 120,
+            source_digest: None,
             low_text_pages: vec![1],
             headings: vec![Heading {
                 heading: "0.1 Giriş".to_string(),

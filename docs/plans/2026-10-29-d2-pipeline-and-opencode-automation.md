@@ -238,8 +238,8 @@ Rules:
 - Version: **v0.9.0**, exact. A different version fails before rendering.
 - Binary lookup:
   1. `FOLISIFT_D2` environment variable;
-  2. `./d2` or `./d2.exe` next to the `folisift` binary;
-  3. `d2` on `PATH`.
+  2. `./d2` or `./d2.exe` next to the `folisift` binary.
+  Implicit `PATH` lookup is intentionally not used.
 - Invocation uses `std::process::Command` with an argument array, never a shell
   string.
 - Fixed arguments:

@@ -114,6 +114,7 @@ pub fn list(styles_root: &Path) -> Result<Vec<StylePack>> {
 
 /// Load one pack, preferring a workspace override.
 pub fn load(styles_root: &Path, id: &str) -> Result<LoadedStyle> {
+    validate_pack_id(id)?;
     let style_text = read_pack_file(styles_root, id, "style.json")?;
     let pack: StylePack = serde_json::from_str(&style_text).map_err(|error| Error::Style {
         id: id.to_string(),
@@ -155,6 +156,13 @@ pub fn load(styles_root: &Path, id: &str) -> Result<LoadedStyle> {
 
 /// Load localized labels for a pack.
 pub fn strings(styles_root: &Path, id: &str, language: &str) -> Result<StyleStrings> {
+    validate_pack_id(id)?;
+    if !matches!(language, "tr" | "en") {
+        return Err(Error::Style {
+            id: id.to_string(),
+            message: format!("unsupported language {language:?}"),
+        });
+    }
     let path = format!("strings/{language}.json");
     let text = read_pack_file(styles_root, id, &path)?;
     serde_json::from_str(&text).map_err(|error| Error::Style {
@@ -247,6 +255,22 @@ fn contrast_ratio(first: (u8, u8, u8), second: (u8, u8, u8)) -> f64 {
     (lighter + 0.05) / (darker + 0.05)
 }
 
+fn validate_pack_id(id: &str) -> Result<()> {
+    let valid = !id.is_empty()
+        && id.len() <= 64
+        && id.bytes().all(|byte| {
+            byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-' || byte == b'_'
+        });
+    if valid {
+        Ok(())
+    } else {
+        Err(Error::Style {
+            id: id.to_string(),
+            message: "style id must be a simple lowercase name".to_string(),
+        })
+    }
+}
+
 fn io(path: &Path, source: std::io::Error) -> Error {
     Error::Io {
         path: path.to_path_buf(),
@@ -255,6 +279,7 @@ fn io(path: &Path, source: std::io::Error) -> Error {
 }
 
 fn read_pack_file(styles_root: &Path, id: &str, file: &str) -> Result<String> {
+    validate_pack_id(id)?;
     let path = styles_root.join("styles").join(id).join(file);
     if path.is_file() {
         return std::fs::read_to_string(&path).map_err(|error| io(&path, error));
@@ -379,6 +404,18 @@ pub fn apply_tokens(template: &str, tokens: &Value, layout: &str) -> Result<Stri
     {
         out = out.replace("9.5pt", &format!("{size}pt"));
     }
+    if matches!(layout, "paper" | "clean") {
+        let code_block = typography
+            .and_then(|value| value.get("code_block_size"))
+            .and_then(Value::as_f64)
+            .unwrap_or(7.4);
+        let code_inline = typography
+            .and_then(|value| value.get("code_inline_size"))
+            .and_then(Value::as_f64)
+            .unwrap_or(8.4);
+        out = out.replace("__CODE_BLOCK_SIZE__", &format!("{code_block:.1}pt"));
+        out = out.replace("__CODE_INLINE_SIZE__", &format!("{code_inline:.1}pt"));
+    }
     if let Some(leading) = typography
         .and_then(|value| value.get("leading_em"))
         .and_then(Value::as_f64)
@@ -467,9 +504,16 @@ fn apply_type_placeholders(mut out: String, tokens: &Value) -> String {
             "__CAPTION_SIZE__",
             size(ratio("caption", 0.86), table_floor),
         ),
-        ("__LABEL_SIZE__", size(ratio("label", 0.76), component)),
-        ("__SOURCE_SIZE__", size(ratio("source", 0.76), component)),
-        ("__CODE_SIZE__", size(ratio("code", 0.81), component)),
+        ("__LABEL_SIZE__", size(ratio("label", 0.78), component)),
+        ("__SOURCE_SIZE__", size(ratio("source", 0.78), component)),
+        (
+            "__CODE_SIZE__",
+            size(ratio("code_block", 0.92), table_floor),
+        ),
+        (
+            "__CODE_INLINE_SIZE__",
+            size(ratio("code_inline", 0.95), table_floor),
+        ),
         (
             "__TOC_TITLE_SIZE__",
             size(ratio("toc_title", 0.95), component),
@@ -628,6 +672,13 @@ mod tests {
     use super::*;
 
     #[test]
+    fn rejects_path_like_pack_ids() {
+        for id in ["../paper", "a/b", "..", "Paper", ""] {
+            assert!(load(Path::new(""), id).is_err(), "{id}");
+        }
+    }
+
+    #[test]
     fn applies_palette_tokens() {
         let tokens = serde_json::json!({"palette": {"paper": "#123456", "accent": "#abcdef"}});
         let template = "fill: #FAF6EC; stroke: #8A3E2F;";
@@ -657,6 +708,23 @@ mod tests {
         for id in ["journal", "brief", "accessible", "revision"] {
             assert!(load(Path::new(""), id).is_ok(), "{id}");
         }
+    }
+
+    #[test]
+    fn revision_code_roles_use_the_scale() {
+        let tokens: Value = serde_json::from_str(REVISION_TOKENS).expect("tokens");
+        let applied = apply_tokens(
+            include_str!("../../../templates/revision.typ"),
+            &tokens,
+            "revision",
+        )
+        .expect("revision scale");
+        assert!(applied.contains("#let code-size = 9.7pt"), "{applied}");
+        assert!(
+            applied.contains("#let code-inline-size = 10.0pt"),
+            "{applied}"
+        );
+        assert!(applied.contains("#let body-size = 10.5pt"));
     }
 
     #[test]

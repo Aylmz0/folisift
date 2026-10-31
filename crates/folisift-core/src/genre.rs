@@ -42,8 +42,11 @@ pub fn revision_issues(markdown: &str) -> Vec<String> {
                 "table at line {start} has {columns} columns (max 5)"
             ));
         }
-        if rows > 8 {
-            issues.push(format!("table at line {start} has {rows} rows (max 8)"));
+        let data_rows = rows.saturating_sub(2);
+        if data_rows > 8 {
+            issues.push(format!(
+                "table at line {start} has {data_rows} data rows (max 8)"
+            ));
         }
     };
 
@@ -219,6 +222,22 @@ X is Y. [PD0, p. 1]
         let markdown = include_str!("../../../guides/pd2-rev/guide.md");
         let issues = revision_issues(markdown);
         assert!(issues.is_empty(), "{issues:?}");
+    }
+
+    #[test]
+    fn accepts_eight_data_rows() {
+        let mut table = String::from("| A | B |\n|---|---|\n");
+        for index in 0..8 {
+            table.push_str(&format!("| {index} | value |\n"));
+        }
+        let markdown = format!(
+            "## Scope\n\n::: must-know\n- **Term:** x\n:::\n\n::: diagram id=\"x\"\n:::\n\n::: recall\nQ\n:::\n\n::: answer\nA\n:::\n\n::: synthesis\n- One\n:::\n\n{table}"
+        );
+        let issues = revision_issues(&markdown);
+        assert!(
+            !issues.iter().any(|issue| issue.contains("data rows")),
+            "{issues:?}"
+        );
     }
 
     #[test]

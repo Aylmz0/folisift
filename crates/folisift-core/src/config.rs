@@ -302,8 +302,26 @@ impl Guide {
             config.inventory.as_deref(),
             PathKind::Write,
         )?;
+        if let Some(path) = &inventory {
+            if !path.starts_with(&dir) {
+                return Err(config_error(
+                    &config_path,
+                    "inventory must stay inside the guide bundle",
+                ));
+            }
+            require_extension(&config_path, path, "json")?;
+        }
         let coverage =
             resolve_optional(workspace, &dir, config.coverage.as_deref(), PathKind::Write)?;
+        if let Some(path) = &coverage {
+            if !path.starts_with(&dir) {
+                return Err(config_error(
+                    &config_path,
+                    "coverage must stay inside the guide bundle",
+                ));
+            }
+            require_extension(&config_path, path, "md")?;
+        }
 
         if let Some(stylesheet) = &config.stylesheet {
             // Legacy schema-1 compatibility: a stylesheet may live outside the bundle.

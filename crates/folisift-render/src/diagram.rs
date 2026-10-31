@@ -12,11 +12,18 @@ use crate::assets::sanitize_svg;
 use crate::error::{Error, Result};
 
 pub const D2_VERSION: &str = "v0.9.0";
-pub const SPEC_SCHEMA_VERSION: u32 = 2;
+pub const SPEC_SCHEMA_VERSION: u32 = 3;
+pub const SUPPORTED_SPEC_SCHEMA_VERSIONS: &[u32] = &[2, 3];
 pub const POSTPROCESS_VERSION: u32 = 1;
 pub const MAX_NODES: usize = 12;
 pub const MAX_EDGES: usize = 20;
 pub const MAX_DEPTH: usize = 4;
+pub const MAX_SEQUENCE_ACTORS: usize = 6;
+pub const MAX_SEQUENCE_MESSAGES: usize = 10;
+pub const MAX_CLASSES: usize = 6;
+pub const MAX_CLASS_MEMBERS: usize = 12;
+pub const MAX_TABLES: usize = 6;
+pub const MAX_COLUMNS: usize = 12;
 pub const DEFAULT_LAYOUT: &str = "tala";
 
 const DEFAULT_DIRECTION: &str = "right";
@@ -42,6 +49,16 @@ pub struct DiagramSpec {
     pub edges: Vec<Edge>,
     #[serde(default)]
     pub groups: Vec<Group>,
+    #[serde(default)]
+    pub actors: Vec<Actor>,
+    #[serde(default)]
+    pub messages: Vec<Message>,
+    #[serde(default)]
+    pub notes: Vec<SequenceNote>,
+    #[serde(default)]
+    pub classes: Vec<ClassSpec>,
+    #[serde(default)]
+    pub tables: Vec<TableSpec>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -51,6 +68,8 @@ pub struct Node {
     pub label: String,
     #[serde(default)]
     pub group: Option<String>,
+    #[serde(default)]
+    pub shape: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -60,6 +79,62 @@ pub struct Edge {
     pub to: String,
     #[serde(default)]
     pub label: Option<String>,
+    #[serde(default)]
+    pub arrowhead: Option<String>,
+    #[serde(default)]
+    pub line: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct Actor {
+    pub id: String,
+    pub label: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct Message {
+    pub from: String,
+    pub to: String,
+    pub label: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct SequenceNote {
+    pub actor: String,
+    pub label: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct ClassSpec {
+    pub id: String,
+    pub label: String,
+    #[serde(default)]
+    pub fields: Vec<String>,
+    #[serde(default)]
+    pub methods: Vec<String>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct TableSpec {
+    pub id: String,
+    pub label: String,
+    #[serde(default)]
+    pub columns: Vec<Column>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct Column {
+    pub name: String,
+    #[serde(rename = "type")]
+    pub type_name: String,
+    #[serde(default)]
+    pub constraint: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -201,7 +276,48 @@ pub fn spec_to_json(spec: &DiagramSpec) -> Result<String> {
 }
 
 pub fn spec_hash(spec: &DiagramSpec) -> Result<String> {
-    let text = serde_json::to_vec(spec)
+    // Hash a canonical value so v2 specs without the new v3 fields keep their
+    // old manifest hash. Empty new arrays/null option fields are omitted.
+    let mut value = serde_json::to_value(spec)
+        .map_err(|error| Error::Diagram(format!("diagram spec hash: {error}")))?;
+    if let Some(object) = value.as_object_mut() {
+        for key in ["actors", "messages", "notes", "classes", "tables"] {
+            if object
+                .get(key)
+                .and_then(serde_json::Value::as_array)
+                .is_some_and(Vec::is_empty)
+            {
+                object.remove(key);
+            }
+        }
+        if let Some(nodes) = object
+            .get_mut("nodes")
+            .and_then(serde_json::Value::as_array_mut)
+        {
+            for node in nodes {
+                if let Some(node) = node.as_object_mut()
+                    && node.get("shape").is_some_and(serde_json::Value::is_null)
+                {
+                    node.remove("shape");
+                }
+            }
+        }
+        if let Some(edges) = object
+            .get_mut("edges")
+            .and_then(serde_json::Value::as_array_mut)
+        {
+            for edge in edges {
+                if let Some(edge) = edge.as_object_mut() {
+                    for key in ["arrowhead", "line"] {
+                        if edge.get(key).is_some_and(serde_json::Value::is_null) {
+                            edge.remove(key);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    let text = serde_json::to_vec(&value)
         .map_err(|error| Error::Diagram(format!("diagram spec hash: {error}")))?;
     Ok(blake3::hash(&text).to_hex().to_string())
 }
@@ -211,16 +327,19 @@ pub fn salt(spec_hash: &str) -> String {
 }
 
 pub fn validate_spec(spec: &DiagramSpec) -> Result<()> {
-    if spec.schema_version != SPEC_SCHEMA_VERSION {
+    if !SUPPORTED_SPEC_SCHEMA_VERSIONS.contains(&spec.schema_version) {
         return Err(Error::Diagram(format!(
-            "diagram schema_version is {}, expected {SPEC_SCHEMA_VERSION}",
+            "diagram schema_version is {}, expected one of {SUPPORTED_SPEC_SCHEMA_VERSIONS:?}",
             spec.schema_version
         )));
     }
     validate_id(&spec.id)?;
-    if !matches!(spec.kind.as_str(), "flow" | "concept" | "tree" | "sequence") {
+    if !matches!(
+        spec.kind.as_str(),
+        "flow" | "concept" | "tree" | "sequence" | "class" | "erd"
+    ) {
         return Err(Error::Diagram(format!(
-            "unsupported diagram kind {:?}; use flow, concept, tree or sequence",
+            "unsupported diagram kind {:?}; use flow, concept, tree, sequence, class or erd",
             spec.kind
         )));
     }
@@ -241,18 +360,6 @@ pub fn validate_spec(spec: &DiagramSpec) -> Result<()> {
             "alt must describe the takeaway, not say “image of”".to_string(),
         ));
     }
-    if spec.nodes.is_empty() || spec.nodes.len() > MAX_NODES {
-        return Err(Error::Diagram(format!(
-            "diagram must have 1-{MAX_NODES} nodes (found {})",
-            spec.nodes.len()
-        )));
-    }
-    if spec.edges.len() > MAX_EDGES {
-        return Err(Error::Diagram(format!(
-            "diagram has too many edges ({} > {MAX_EDGES}); split it",
-            spec.edges.len()
-        )));
-    }
     if spec.layout != DEFAULT_LAYOUT {
         return Err(Error::Diagram(format!(
             "unsupported D2 layout {:?}; use {DEFAULT_LAYOUT:?}",
@@ -264,6 +371,31 @@ pub fn validate_spec(spec: &DiagramSpec) -> Result<()> {
     {
         return Err(Error::Diagram(format!(
             "unsupported direction {direction:?}; use right, down, left or up"
+        )));
+    }
+    match spec.kind.as_str() {
+        "flow" | "concept" | "tree" => validate_graph(spec),
+        "sequence" if !spec.actors.is_empty() || !spec.messages.is_empty() => {
+            validate_sequence(spec)
+        }
+        "sequence" => validate_graph(spec),
+        "class" => validate_class(spec),
+        "erd" => validate_erd(spec),
+        _ => unreachable!("kind checked above"),
+    }
+}
+
+fn validate_graph(spec: &DiagramSpec) -> Result<()> {
+    if spec.nodes.is_empty() || spec.nodes.len() > MAX_NODES {
+        return Err(Error::Diagram(format!(
+            "diagram must have 1-{MAX_NODES} nodes (found {})",
+            spec.nodes.len()
+        )));
+    }
+    if spec.edges.len() > MAX_EDGES {
+        return Err(Error::Diagram(format!(
+            "diagram has too many edges ({} > {MAX_EDGES}); split it",
+            spec.edges.len()
         )));
     }
     let ids = spec
@@ -281,6 +413,16 @@ pub fn validate_spec(spec: &DiagramSpec) -> Result<()> {
                 node.id
             )));
         }
+        if let Some(shape) = &node.shape
+            && !matches!(
+                shape.as_str(),
+                "rectangle" | "document" | "diamond" | "cylinder" | "cloud" | "person"
+            )
+        {
+            return Err(Error::Diagram(format!(
+                "unsupported node shape {shape:?}; use rectangle, document, diamond, cylinder, cloud or person"
+            )));
+        }
     }
     for edge in &spec.edges {
         if !ids.contains(edge.from.as_str()) || !ids.contains(edge.to.as_str()) {
@@ -289,6 +431,7 @@ pub fn validate_spec(spec: &DiagramSpec) -> Result<()> {
                 edge.from, edge.to
             )));
         }
+        validate_edge_style(edge)?;
     }
     if spec.kind == "tree" {
         validate_tree(spec)?;
@@ -324,6 +467,215 @@ pub fn validate_spec(spec: &DiagramSpec) -> Result<()> {
                 )));
             }
         }
+    }
+    Ok(())
+}
+
+fn validate_sequence(spec: &DiagramSpec) -> Result<()> {
+    if !spec.nodes.is_empty() || !spec.edges.is_empty() || !spec.groups.is_empty() {
+        return Err(Error::Diagram(
+            "sequence diagrams use actors/messages, not nodes/edges/groups".to_string(),
+        ));
+    }
+    if spec.actors.len() < 2 || spec.actors.len() > MAX_SEQUENCE_ACTORS {
+        return Err(Error::Diagram(format!(
+            "sequence needs 2-{MAX_SEQUENCE_ACTORS} actors (found {})",
+            spec.actors.len()
+        )));
+    }
+    if spec.messages.is_empty() || spec.messages.len() > MAX_SEQUENCE_MESSAGES {
+        return Err(Error::Diagram(format!(
+            "sequence needs 1-{MAX_SEQUENCE_MESSAGES} messages (found {})",
+            spec.messages.len()
+        )));
+    }
+    let ids = spec
+        .actors
+        .iter()
+        .map(|actor| actor.id.as_str())
+        .collect::<HashSet<_>>();
+    if ids.len() != spec.actors.len() {
+        return Err(Error::Diagram("duplicate actor id".to_string()));
+    }
+    for actor in &spec.actors {
+        validate_id(&actor.id)?;
+        if actor.label.trim().is_empty() {
+            return Err(Error::Diagram(format!(
+                "actor {:?} has an empty label",
+                actor.id
+            )));
+        }
+    }
+    for message in &spec.messages {
+        if !ids.contains(message.from.as_str()) || !ids.contains(message.to.as_str()) {
+            return Err(Error::Diagram(format!(
+                "message {:?} -> {:?} references an unknown actor",
+                message.from, message.to
+            )));
+        }
+        if message.label.trim().is_empty() {
+            return Err(Error::Diagram(
+                "message label must not be empty".to_string(),
+            ));
+        }
+    }
+    for note in &spec.notes {
+        if !ids.contains(note.actor.as_str()) {
+            return Err(Error::Diagram(format!(
+                "note references unknown actor {:?}",
+                note.actor
+            )));
+        }
+        if note.label.trim().is_empty() {
+            return Err(Error::Diagram("note label must not be empty".to_string()));
+        }
+    }
+    Ok(())
+}
+
+fn validate_class(spec: &DiagramSpec) -> Result<()> {
+    if !spec.nodes.is_empty() || !spec.actors.is_empty() || !spec.messages.is_empty() {
+        return Err(Error::Diagram(
+            "class diagrams use classes/edges, not nodes/actors/messages".to_string(),
+        ));
+    }
+    if spec.classes.is_empty() || spec.classes.len() > MAX_CLASSES {
+        return Err(Error::Diagram(format!(
+            "class diagram needs 1-{MAX_CLASSES} classes (found {})",
+            spec.classes.len()
+        )));
+    }
+    let ids = spec
+        .classes
+        .iter()
+        .map(|class| class.id.as_str())
+        .collect::<HashSet<_>>();
+    if ids.len() != spec.classes.len() {
+        return Err(Error::Diagram("duplicate class id".to_string()));
+    }
+    for class in &spec.classes {
+        validate_id(&class.id)?;
+        if class.label.trim().is_empty() {
+            return Err(Error::Diagram(format!(
+                "class {:?} has an empty label",
+                class.id
+            )));
+        }
+        if class.fields.len() + class.methods.len() > MAX_CLASS_MEMBERS {
+            return Err(Error::Diagram(format!(
+                "class {:?} has too many members (max {MAX_CLASS_MEMBERS})",
+                class.id
+            )));
+        }
+    }
+    for edge in &spec.edges {
+        if !ids.contains(edge.from.as_str()) || !ids.contains(edge.to.as_str()) {
+            return Err(Error::Diagram(format!(
+                "class edge {:?} -> {:?} references an unknown class",
+                edge.from, edge.to
+            )));
+        }
+        validate_edge_style(edge)?;
+    }
+    Ok(())
+}
+
+fn validate_erd(spec: &DiagramSpec) -> Result<()> {
+    if !spec.nodes.is_empty() || !spec.actors.is_empty() || !spec.messages.is_empty() {
+        return Err(Error::Diagram(
+            "ERD diagrams use tables/edges, not nodes/actors/messages".to_string(),
+        ));
+    }
+    if spec.tables.is_empty() || spec.tables.len() > MAX_TABLES {
+        return Err(Error::Diagram(format!(
+            "ERD needs 1-{MAX_TABLES} tables (found {})",
+            spec.tables.len()
+        )));
+    }
+    let ids = spec
+        .tables
+        .iter()
+        .map(|table| table.id.as_str())
+        .collect::<HashSet<_>>();
+    if ids.len() != spec.tables.len() {
+        return Err(Error::Diagram("duplicate table id".to_string()));
+    }
+    for table in &spec.tables {
+        validate_id(&table.id)?;
+        if table.label.trim().is_empty() {
+            return Err(Error::Diagram(format!(
+                "table {:?} has an empty label",
+                table.id
+            )));
+        }
+        if table.columns.is_empty() || table.columns.len() > MAX_COLUMNS {
+            return Err(Error::Diagram(format!(
+                "table {:?} needs 1-{MAX_COLUMNS} columns",
+                table.id
+            )));
+        }
+        for column in &table.columns {
+            if column.name.trim().is_empty() || column.type_name.trim().is_empty() {
+                return Err(Error::Diagram(format!(
+                    "table {:?} has a column with an empty name/type",
+                    table.id
+                )));
+            }
+            if let Some(constraint) = &column.constraint
+                && !matches!(constraint.as_str(), "PK" | "FK" | "UNQ")
+            {
+                return Err(Error::Diagram(format!(
+                    "unsupported column constraint {constraint:?}; use PK, FK or UNQ"
+                )));
+            }
+        }
+    }
+    for edge in &spec.edges {
+        validate_table_reference(&edge.from, spec)?;
+        validate_table_reference(&edge.to, spec)?;
+        validate_edge_style(edge)?;
+    }
+    Ok(())
+}
+
+fn validate_table_reference(reference: &str, spec: &DiagramSpec) -> Result<()> {
+    let Some((table, column)) = reference.split_once('.') else {
+        return Err(Error::Diagram(format!(
+            "ERD reference {reference:?} must be table.column"
+        )));
+    };
+    let Some(table) = spec.tables.iter().find(|candidate| candidate.id == table) else {
+        return Err(Error::Diagram(format!(
+            "ERD reference {reference:?} uses an unknown table"
+        )));
+    };
+    if !table
+        .columns
+        .iter()
+        .any(|candidate| candidate.name == column)
+    {
+        return Err(Error::Diagram(format!(
+            "ERD reference {reference:?} uses an unknown column"
+        )));
+    }
+    Ok(())
+}
+
+fn validate_edge_style(edge: &Edge) -> Result<()> {
+    if let Some(arrowhead) = &edge.arrowhead
+        && !matches!(
+            arrowhead.as_str(),
+            "triangle" | "none" | "cf-one" | "cf-many" | "cf-one-required" | "cf-many-required"
+        )
+    {
+        return Err(Error::Diagram(format!(
+            "unsupported arrowhead {arrowhead:?}"
+        )));
+    }
+    if let Some(line) = &edge.line
+        && !matches!(line.as_str(), "solid" | "dashed")
+    {
+        return Err(Error::Diagram(format!("unsupported line style {line:?}")));
     }
     Ok(())
 }
@@ -419,6 +771,163 @@ fn tree_depth(spec: &DiagramSpec) -> usize {
 pub fn d2_source(spec: &DiagramSpec, theme: &DiagramTheme) -> Result<String> {
     validate_spec(spec)?;
     let hash = spec_hash(spec)?;
+    let mut out = String::new();
+    out.push_str(&format!("# spec_sha256: {hash}\n"));
+    out.push_str(&format!("# engine: d2 {D2_VERSION}\n"));
+    match spec.kind.as_str() {
+        "sequence" if !spec.actors.is_empty() || !spec.messages.is_empty() => {
+            sequence_source(spec, &mut out)?;
+        }
+        "class" => class_source(spec, theme, &mut out)?,
+        "erd" => erd_source(spec, theme, &mut out)?,
+        _ => graph_source(spec, theme, &mut out)?,
+    }
+    ensure_source_allowlist(&out)?;
+    Ok(out)
+}
+
+fn ensure_source_allowlist(source: &str) -> Result<()> {
+    for line in source.lines() {
+        let trimmed = line.trim_start();
+        for forbidden in [
+            "import ",
+            "icon:",
+            "link:",
+            "tooltip:",
+            "vars:",
+            "layers:",
+            "scenarios:",
+            "steps:",
+            "animate",
+            "near:",
+            "far:",
+        ] {
+            if trimmed.starts_with(forbidden) {
+                return Err(Error::Diagram(format!(
+                    "generated D2 source contains forbidden directive {forbidden:?}"
+                )));
+            }
+        }
+    }
+    Ok(())
+}
+
+fn sequence_source(spec: &DiagramSpec, out: &mut String) -> Result<()> {
+    out.push_str("shape: sequence_diagram\n");
+    let keys = spec
+        .actors
+        .iter()
+        .enumerate()
+        .map(|(index, actor)| (actor.id.as_str(), format!("a{index}")))
+        .collect::<HashMap<_, _>>();
+    for actor in &spec.actors {
+        out.push_str(&format!(
+            "{}: {}\n",
+            keys[actor.id.as_str()],
+            d2_quote(&actor.label)
+        ));
+    }
+    for message in &spec.messages {
+        out.push_str(&format!(
+            "{} -> {}: {}\n",
+            keys[message.from.as_str()],
+            keys[message.to.as_str()],
+            d2_quote(&message.label)
+        ));
+    }
+    for note in &spec.notes {
+        out.push_str(&format!(
+            "{}: {{ note: {} }}\n",
+            keys[note.actor.as_str()],
+            d2_quote(&note.label)
+        ));
+    }
+    Ok(())
+}
+
+fn class_source(spec: &DiagramSpec, theme: &DiagramTheme, out: &mut String) -> Result<()> {
+    let direction = spec.direction.as_deref().unwrap_or(DEFAULT_DIRECTION);
+    out.push_str(&format!("direction: {direction}\n"));
+    let keys = spec
+        .classes
+        .iter()
+        .enumerate()
+        .map(|(index, class)| (class.id.as_str(), format!("c{index}")))
+        .collect::<HashMap<_, _>>();
+    for class in &spec.classes {
+        out.push_str(&format!(
+            "{}: {} {{\n  shape: class\n",
+            keys[class.id.as_str()],
+            d2_quote(&class.label)
+        ));
+        for field in &class.fields {
+            let (key, value) = split_member(field);
+            out.push_str(&format!("  {}: {}\n", d2_quote(key), d2_quote(value)));
+        }
+        for method in &class.methods {
+            let (key, value) = split_member(method);
+            out.push_str(&format!("  {}: {}\n", d2_quote(key), d2_quote(value)));
+        }
+        out.push_str("}\n");
+    }
+    for edge in &spec.edges {
+        write_edge(
+            out,
+            &keys[edge.from.as_str()],
+            &keys[edge.to.as_str()],
+            edge,
+        );
+    }
+    apply_graph_style(spec, theme, out);
+    Ok(())
+}
+
+fn erd_source(spec: &DiagramSpec, theme: &DiagramTheme, out: &mut String) -> Result<()> {
+    let direction = spec.direction.as_deref().unwrap_or(DEFAULT_DIRECTION);
+    out.push_str(&format!("direction: {direction}\n"));
+    let keys = spec
+        .tables
+        .iter()
+        .enumerate()
+        .map(|(index, table)| (table.id.as_str(), format!("t{index}")))
+        .collect::<HashMap<_, _>>();
+    for table in &spec.tables {
+        out.push_str(&format!(
+            "{}: {} {{\n  shape: sql_table\n",
+            keys[table.id.as_str()],
+            d2_quote(&table.label)
+        ));
+        for column in &table.columns {
+            let constraint = column
+                .constraint
+                .as_deref()
+                .map(|value| match value {
+                    "PK" => "primary_key",
+                    "FK" => "foreign_key",
+                    "UNQ" => "unique",
+                    other => other,
+                })
+                .map(|value| format!(" {{constraint: {value}}}"))
+                .unwrap_or_default();
+            out.push_str(&format!(
+                "  {}: {}{}\n",
+                d2_quote(&column.name),
+                d2_quote(&column.type_name),
+                constraint
+            ));
+        }
+        out.push_str("}\n");
+    }
+    for edge in &spec.edges {
+        let from = table_reference(&edge.from, &keys);
+        let to = table_reference(&edge.to, &keys);
+        write_edge(out, &from, &to, edge);
+    }
+    apply_graph_style(spec, theme, out);
+    Ok(())
+}
+
+fn graph_source(spec: &DiagramSpec, theme: &DiagramTheme, out: &mut String) -> Result<()> {
     let node_keys = spec
         .nodes
         .iter()
@@ -431,52 +940,16 @@ pub fn d2_source(spec: &DiagramSpec, theme: &DiagramTheme) -> Result<String> {
         .enumerate()
         .map(|(index, group)| (group.id.as_str(), format!("g{index}")))
         .collect::<HashMap<_, _>>();
-    let mut out = String::new();
-    out.push_str(&format!("# spec_sha256: {hash}\n"));
-    out.push_str(&format!("# engine: d2 {D2_VERSION}\n"));
     if spec.kind == "sequence" {
         out.push_str("shape: sequence_diagram\n");
-        for node in &spec.nodes {
-            out.push_str(&format!(
-                "{}: {}\n",
-                node_keys[node.id.as_str()],
-                d2_quote(&node.label)
-            ));
-        }
-        for edge in &spec.edges {
-            out.push_str(&format!(
-                "{} -> {}{}\n",
-                node_keys[edge.from.as_str()],
-                node_keys[edge.to.as_str()],
-                edge.label
-                    .as_deref()
-                    .map(|label| format!(": {}", d2_quote(label)))
-                    .unwrap_or_default()
-            ));
-        }
-        return Ok(out);
-    }
-
-    let direction = spec.direction.as_deref().unwrap_or(if spec.kind == "tree" {
-        "down"
     } else {
-        DEFAULT_DIRECTION
-    });
-    out.push_str(&format!("direction: {direction}\n"));
-    out.push_str(&format!("style: {{ fill: {} }}\n", d2_quote(&theme.paper)));
-    out.push_str("*.style: {\n");
-    out.push_str(&format!("  fill: {}\n", d2_quote(&theme.paper)));
-    out.push_str(&format!("  stroke: {}\n", d2_quote(&theme.accent)));
-    out.push_str(&format!("  font-color: {}\n", d2_quote(&theme.ink)));
-    out.push_str("  font-size: 28\n");
-    out.push_str("  border-radius: 3\n");
-    out.push_str("}\n");
-    out.push_str("(* -> *)[*].style: {\n");
-    out.push_str(&format!("  stroke: {}\n", d2_quote(&theme.accent)));
-    out.push_str(&format!("  font-color: {}\n", d2_quote(&theme.muted)));
-    out.push_str("  font-size: 22\n");
-    out.push_str("}\n");
-
+        let direction = spec.direction.as_deref().unwrap_or(if spec.kind == "tree" {
+            "down"
+        } else {
+            DEFAULT_DIRECTION
+        });
+        out.push_str(&format!("direction: {direction}\n"));
+    }
     let mut grouped: HashMap<&str, &str> = HashMap::new();
     for group in &spec.groups {
         for node in &group.nodes {
@@ -491,11 +964,7 @@ pub fn d2_source(spec: &DiagramSpec, theme: &DiagramTheme) -> Result<String> {
             let Some(node_spec) = spec.nodes.iter().find(|candidate| &candidate.id == node) else {
                 continue;
             };
-            out.push_str(&format!(
-                "  {}: {}\n",
-                node_keys[node_spec.id.as_str()],
-                d2_quote(&node_spec.label)
-            ));
+            write_node(out, "  ", &node_keys[node_spec.id.as_str()], node_spec);
         }
         out.push_str("}\n");
     }
@@ -503,24 +972,94 @@ pub fn d2_source(spec: &DiagramSpec, theme: &DiagramTheme) -> Result<String> {
         if grouped.contains_key(node.id.as_str()) {
             continue;
         }
-        out.push_str(&format!(
-            "{}: {}\n",
-            node_keys[node.id.as_str()],
-            d2_quote(&node.label)
-        ));
+        write_node(out, "", &node_keys[node.id.as_str()], node);
     }
     for edge in &spec.edges {
-        out.push_str(&format!(
-            "{} -> {}{}\n",
-            d2_reference(edge.from.as_str(), &node_keys, &group_keys, &grouped),
-            d2_reference(edge.to.as_str(), &node_keys, &group_keys, &grouped),
-            edge.label
-                .as_deref()
-                .map(|label| format!(": {}", d2_quote(label)))
-                .unwrap_or_default()
-        ));
+        write_edge(
+            out,
+            &d2_reference(edge.from.as_str(), &node_keys, &group_keys, &grouped),
+            &d2_reference(edge.to.as_str(), &node_keys, &group_keys, &grouped),
+            edge,
+        );
     }
-    Ok(out)
+    apply_graph_style(spec, theme, out);
+    Ok(())
+}
+
+fn write_node(out: &mut String, indent: &str, key: &str, node: &Node) {
+    if let Some(shape) = &node.shape {
+        out.push_str(&format!(
+            "{indent}{key}: {} {{\n{indent}  shape: {shape}\n{indent}}}\n",
+            d2_quote(&node.label)
+        ));
+    } else {
+        out.push_str(&format!("{indent}{key}: {}\n", d2_quote(&node.label)));
+    }
+}
+
+fn write_edge(out: &mut String, from: &str, to: &str, edge: &Edge) {
+    let connection = if edge.arrowhead.as_deref() == Some("none") {
+        format!("{from} -- {to}")
+    } else {
+        format!("{from} -> {to}")
+    };
+    let label = edge
+        .label
+        .as_deref()
+        .map(|label| format!(": {}", d2_quote(label)))
+        .unwrap_or_default();
+    let mut style = String::new();
+    if let Some(arrowhead) = &edge.arrowhead
+        && arrowhead != "none"
+        && arrowhead != "triangle"
+    {
+        style.push_str(&format!("  target-arrowhead.shape: {arrowhead}\n"));
+    }
+    if edge.line.as_deref() == Some("dashed") {
+        style.push_str("  style.stroke-dash: 4\n");
+    }
+    if style.is_empty() {
+        out.push_str(&format!("{connection}{label}\n"));
+    } else {
+        out.push_str(&format!("{connection}{label} {{\n{style}}}\n"));
+    }
+}
+
+fn apply_graph_style(spec: &DiagramSpec, theme: &DiagramTheme, out: &mut String) {
+    if spec.kind == "sequence" {
+        return;
+    }
+    out.push_str(&format!("style: {{ fill: {} }}\n", d2_quote(&theme.paper)));
+    out.push_str("*.style: {\n");
+    out.push_str(&format!("  fill: {}\n", d2_quote(&theme.paper)));
+    out.push_str(&format!("  stroke: {}\n", d2_quote(&theme.accent)));
+    out.push_str(&format!("  font-color: {}\n", d2_quote(&theme.ink)));
+    out.push_str("  font-size: 28\n");
+    out.push_str("  border-radius: 3\n");
+    out.push_str("}\n");
+    out.push_str("(* -> *)[*].style: {\n");
+    out.push_str(&format!("  stroke: {}\n", d2_quote(&theme.accent)));
+    out.push_str(&format!("  font-color: {}\n", d2_quote(&theme.muted)));
+    out.push_str("  font-size: 22\n");
+    out.push_str("}\n");
+}
+
+fn split_member(member: &str) -> (&str, &str) {
+    member
+        .split_once(':')
+        .map(|(key, value)| (key.trim(), value.trim()))
+        .unwrap_or((member.trim(), "void"))
+}
+
+fn table_reference(reference: &str, keys: &HashMap<&str, String>) -> String {
+    let Some((table, column)) = reference.split_once('.') else {
+        return reference.to_string();
+    };
+    let key = keys
+        .get(table)
+        .cloned()
+        .unwrap_or_else(|| table.to_string());
+    format!("{key}.{column}")
 }
 
 fn d2_reference(
@@ -1037,16 +1576,19 @@ mod tests {
                     id: "src".to_string(),
                     label: "Kaynak program".to_string(),
                     group: None,
+                    shape: None,
                 },
                 Node {
                     id: "lex".to_string(),
                     label: "Sözcüksel analiz".to_string(),
                     group: None,
+                    shape: None,
                 },
                 Node {
                     id: "code".to_string(),
                     label: "Kod üretimi".to_string(),
                     group: None,
+                    shape: None,
                 },
             ],
             edges: vec![
@@ -1054,14 +1596,23 @@ mod tests {
                     from: "src".to_string(),
                     to: "lex".to_string(),
                     label: Some("karakterler".to_string()),
+                    arrowhead: None,
+                    line: None,
                 },
                 Edge {
                     from: "lex".to_string(),
                     to: "code".to_string(),
                     label: Some("tokenlar".to_string()),
+                    arrowhead: None,
+                    line: None,
                 },
             ],
             groups: Vec::new(),
+            actors: Vec::new(),
+            messages: Vec::new(),
+            notes: Vec::new(),
+            classes: Vec::new(),
+            tables: Vec::new(),
         }
     }
 
@@ -1087,6 +1638,7 @@ mod tests {
                 id: format!("n{index}"),
                 label: format!("Node {index}"),
                 group: None,
+                shape: None,
             })
             .collect();
         spec.edges.clear();
@@ -1095,6 +1647,7 @@ mod tests {
             id: "extra".to_string(),
             label: "Extra".to_string(),
             group: None,
+            shape: None,
         });
         assert!(validate_spec(&spec).is_err());
     }
@@ -1107,6 +1660,7 @@ mod tests {
                 id: format!("n{index}"),
                 label: format!("Node {index}"),
                 group: None,
+                shape: None,
             })
             .collect();
         spec.edges.clear();
@@ -1124,10 +1678,122 @@ mod tests {
             from: "src".to_string(),
             to: "lex".to_string(),
             label: Some("istek".to_string()),
+            arrowhead: None,
+            line: None,
         }];
         let source = d2_source(&spec, &DiagramTheme::default()).expect("sequence");
+
         assert!(source.contains("shape: sequence_diagram"));
         assert!(source.contains(" -> "));
+    }
+
+    #[test]
+    fn sequence_v3_uses_actors_messages_and_notes() {
+        let mut spec = spec();
+        spec.kind = "sequence".to_string();
+        spec.nodes.clear();
+        spec.edges.clear();
+        spec.actors = vec![
+            Actor {
+                id: "client".to_string(),
+                label: "Client".to_string(),
+            },
+            Actor {
+                id: "server".to_string(),
+                label: "Server".to_string(),
+            },
+        ];
+        spec.messages = vec![Message {
+            from: "client".to_string(),
+            to: "server".to_string(),
+            label: "SYN".to_string(),
+        }];
+        spec.notes = vec![SequenceNote {
+            actor: "client".to_string(),
+            label: "seq = x".to_string(),
+        }];
+        let source = d2_source(&spec, &DiagramTheme::default()).expect("sequence");
+
+        assert!(source.contains("shape: sequence_diagram"));
+        assert!(source.contains("a0: \"Client\""));
+        assert!(source.contains("a0 -> a1: \"SYN\""));
+        assert!(source.contains("note: \"seq = x\""));
+    }
+
+    #[test]
+    fn class_v3_uses_class_shape_and_fields() {
+        let mut spec = spec();
+        spec.kind = "class".to_string();
+        spec.nodes.clear();
+        spec.edges.clear();
+        spec.classes = vec![
+            ClassSpec {
+                id: "expr".to_string(),
+                label: "Expr".to_string(),
+                fields: vec!["span: Span".to_string()],
+                methods: vec!["eval(): Value".to_string()],
+            },
+            ClassSpec {
+                id: "literal".to_string(),
+                label: "Literal".to_string(),
+                fields: vec!["value: Value".to_string()],
+                methods: Vec::new(),
+            },
+        ];
+        spec.edges = vec![Edge {
+            from: "literal".to_string(),
+            to: "expr".to_string(),
+            label: Some("inherits".to_string()),
+            arrowhead: Some("triangle".to_string()),
+            line: None,
+        }];
+        let source = d2_source(&spec, &DiagramTheme::default()).expect("class");
+
+        assert!(source.contains("shape: class"));
+        assert!(source.contains("\"span\": \"Span\""));
+        assert!(source.contains("\"eval()\": \"Value\""));
+        assert!(source.contains("c1 -> c0"));
+    }
+
+    #[test]
+    fn erd_v3_uses_sql_table_and_constraints() {
+        let mut spec = spec();
+        spec.kind = "erd".to_string();
+        spec.nodes.clear();
+        spec.edges.clear();
+        spec.tables = vec![
+            TableSpec {
+                id: "customers".to_string(),
+                label: "customers".to_string(),
+                columns: vec![Column {
+                    name: "id".to_string(),
+                    type_name: "int".to_string(),
+                    constraint: Some("PK".to_string()),
+                }],
+            },
+            TableSpec {
+                id: "orders".to_string(),
+                label: "orders".to_string(),
+                columns: vec![Column {
+                    name: "customer_id".to_string(),
+                    type_name: "int".to_string(),
+                    constraint: Some("FK".to_string()),
+                }],
+            },
+        ];
+        spec.edges = vec![Edge {
+            from: "orders.customer_id".to_string(),
+            to: "customers.id".to_string(),
+            label: Some("many-to-one".to_string()),
+            arrowhead: Some("cf-many".to_string()),
+            line: None,
+        }];
+        let source = d2_source(&spec, &DiagramTheme::default()).expect("erd");
+
+        assert!(source.contains("shape: sql_table"));
+        assert!(source.contains("constraint: primary_key"));
+        assert!(source.contains("t1.customer_id -> t0.id"));
+        assert!(source.contains("target-arrowhead.shape: cf-many"));
     }
 
     #[test]
@@ -1160,6 +1826,8 @@ mod tests {
             from: "src".to_string(),
             to: "code".to_string(),
             label: None,
+            arrowhead: None,
+            line: None,
         });
         let error = validate_spec(&spec).expect_err("multi-parent tree");
         assert!(error.to_string().contains("multiple parents"), "{error}");

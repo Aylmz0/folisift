@@ -13,6 +13,7 @@
 #let label-size = __LABEL_SIZE__
 #let source-size = __SOURCE_SIZE__
 #let code-size = __CODE_SIZE__
+#let code-inline-size = __CODE_INLINE_SIZE__
 #let toc-title-size = __TOC_TITLE_SIZE__
 #let toc-sub-size = __TOC_SUB_SIZE__
 #let toc-page-size = __TOC_PAGE_SIZE__
@@ -505,7 +506,7 @@
   show raw.where(block: false): it => box(
     fill: sand,
     inset: (x: 0.7mm),
-    text(font: "Noto Sans Mono", size: code-size)[#it],
+    text(font: "Noto Sans Mono", size: code-inline-size)[#it],
   )
   set figure(gap: 2mm)
   show figure: it => block(above: 3mm, below: 3mm, it)

@@ -8,7 +8,7 @@ itself never runs a shell, D2 or a network request.
 
 - `libpdfium` is available to the binary (`folisift doctor`).
 - D2 **v0.9.0** is available for `folisift diagram build`
-  (`FOLISIFT_D2`, next to the binary, or on `PATH`).
+  (`FOLISIFT_D2` or next to the binary).
 - The workspace has `sources/*.pdf` and a writable `guides/`.
 
 ## Loop

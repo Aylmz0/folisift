@@ -476,22 +476,26 @@ fn parse_widths(value: &str, line: usize) -> Result<Vec<String>> {
 }
 
 fn lint_markdown(markdown: &str) -> Result<()> {
-    let mut fenced_typst = false;
+    let mut fence: Option<String> = None;
     for (index, line) in markdown.lines().enumerate() {
         let trimmed = line.trim();
         if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
+            if fence.is_some() {
+                fence = None;
+                continue;
+            }
             let language = trimmed.trim_start_matches(['`', '~']).trim().to_lowercase();
-            fenced_typst = language == "typst";
-            if fenced_typst {
+            if language == "typst" {
                 return Err(Error::Markdown {
                     line: index + 1,
                     message: "raw Typst is not allowed in guide content; use directives"
                         .to_string(),
                 });
             }
+            fence = Some(language);
             continue;
         }
-        if fenced_typst {
+        if fence.is_some() {
             continue;
         }
         if ["#let ", "#set ", "#show ", "#import ", "#include "]
@@ -1162,6 +1166,12 @@ mod tests {
         assert!(typst.contains("#explain("));
         assert!(typst.contains("NEDEN"));
         assert!(typst.contains("#review_plan("));
+    }
+
+    #[test]
+    fn allows_typst_like_text_inside_code_fences() {
+        let markdown = "```c\n#include <stdio.h>\nint main(void) { return 0; }\n```\n";
+        assert!(markdown_to_typst(markdown).is_ok());
     }
 
     #[test]

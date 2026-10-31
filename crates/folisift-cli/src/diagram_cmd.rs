@@ -193,7 +193,13 @@ fn build_one(
     if let Some(parent) = temp_svg.parent() {
         std::fs::create_dir_all(parent)?;
     }
+    let d2_home = guide.dir.join("data/d2-home");
+    std::fs::create_dir_all(&d2_home)?;
     let output = Command::new(d2)
+        .env_clear()
+        .env("PATH", "")
+        .env("HOME", &d2_home)
+        .env("TMPDIR", &d2_home)
         .arg(format!("--layout={}", spec.layout))
         .arg(format!("--salt={}", diagram::salt(&spec_sha)))
         .arg("--pad=20")
@@ -392,9 +398,5 @@ fn find_d2() -> Option<PathBuf> {
             return Some(candidate);
         }
     }
-    std::env::var_os("PATH").and_then(|paths| {
-        std::env::split_paths(&paths)
-            .map(|dir| dir.join(format!("d2{}", std::env::consts::EXE_SUFFIX)))
-            .find(|candidate| candidate.is_file())
-    })
+    None
 }
