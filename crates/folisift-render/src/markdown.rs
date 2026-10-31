@@ -82,6 +82,9 @@ struct RenderConfig {
     answer_label: String,
     revision_badge: String,
     organiser_badge: String,
+    summary_label: String,
+    workspace_label: String,
+    answer_key_label: String,
     diagram_assets: HashMap<String, DiagramAsset>,
 }
 
@@ -103,6 +106,9 @@ impl Default for RenderConfig {
             answer_label: "CEVAP".to_string(),
             revision_badge: "SINAV TEKRARI".to_string(),
             organiser_badge: "BİLGİ ORGANİZATÖRÜ".to_string(),
+            summary_label: "ÖZET".to_string(),
+            workspace_label: "ÇALIŞMA ALANI".to_string(),
+            answer_key_label: "CEVAP ANAHTARI".to_string(),
             diagram_assets: HashMap::new(),
         }
     }
@@ -179,6 +185,9 @@ pub fn markdown_to_typst_styled_with_strings(
             answer_label: strings.answer.clone(),
             revision_badge: strings.revision_badge.clone(),
             organiser_badge: strings.organiser_badge.clone(),
+            summary_label: strings.summary.clone(),
+            workspace_label: strings.workspace.clone(),
+            answer_key_label: strings.answer_key.clone(),
             diagram_assets,
             ..RenderConfig::default()
         },
@@ -321,7 +330,10 @@ fn markdown_to_typst_with(markdown: &str, config: &RenderConfig) -> Result<Strin
                 }
                 "summary" => {
                     let inner_typst = markdown_to_typst_with(&inner_markdown, config)?;
-                    out.push_str(&format!("#summary_block[{inner_typst}]\n\n"));
+                    out.push_str(&format!(
+                        "#summary_block(label: {})[{inner_typst}]\n\n",
+                        typst_string(&config.summary_label)
+                    ));
                 }
                 "problem" => {
                     let inner_typst = markdown_to_typst_with(&inner_markdown, config)?;
@@ -338,12 +350,16 @@ fn markdown_to_typst_with(markdown: &str, config: &RenderConfig) -> Result<Strin
                         .clamp(1, 20);
                     out.push_str(&format!(
                         "#workspace_block(label: {}, lines: {lines})[{inner_typst}]\n\n",
-                        optional_attr(&attrs, "label")
+                        attr(&attrs, "label")
+                            .map_or_else(|| typst_string(&config.workspace_label), typst_string)
                     ));
                 }
                 "answer-key" => {
                     let inner_typst = markdown_to_typst_with(&inner_markdown, config)?;
-                    out.push_str(&format!("#answer_key[{inner_typst}]\n\n"));
+                    out.push_str(&format!(
+                        "#answer_key(label: {})[{inner_typst}]\n\n",
+                        typst_string(&config.answer_key_label)
+                    ));
                 }
                 "formula" => {
                     let inner_typst = markdown_to_typst_with(&inner_markdown, config)?;

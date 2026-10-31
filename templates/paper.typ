@@ -379,7 +379,7 @@
 }
 
 #let two_col(body) = block[
-  #set text(size: 8.25pt)
+  #set text(size: __TWO_COL_SIZE__)
   #set par(justify: true, leading: 0.56em, spacing: 2.6mm, linebreaks: "optimized")
   #show heading.where(level: 3): it => block(above: 2.4mm, below: 0.9mm)[
     #text(

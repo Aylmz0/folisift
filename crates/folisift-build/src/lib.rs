@@ -115,7 +115,8 @@ pub async fn build(workspace: &Workspace, request: BuildRequest) -> Result<Build
         let issues = gates::genre_issues(&style.structure, &markdown);
         if !issues.is_empty() {
             return Err(Error::Message(format!(
-                "revision grammar failed:\n- {}",
+                "{} grammar failed:\n- {}",
+                style.structure,
                 issues.join("\n- ")
             )));
         }

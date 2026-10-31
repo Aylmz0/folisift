@@ -1,4 +1,4 @@
-// Folisift paper template. Guide content is generated from Markdown and must
+// Folisift workbook template. Guide content is generated from Markdown and must
 // not inject raw Typst. Keep visual decisions in this file.
 
 // ---- tokens -------------------------------------------------------------
@@ -371,7 +371,7 @@
 }
 
 #let two_col(body) = block[
-  #set text(size: 8.25pt)
+  #set text(size: __TWO_COL_SIZE__)
   #set par(justify: true, leading: 0.60em, spacing: 2.6mm, linebreaks: "optimized")
   #show heading.where(level: 3): it => block(above: 2.4mm, below: 0.9mm)[
     #text(
@@ -415,7 +415,7 @@
   stroke: 0.4pt + linen,
   inset: (x: 3mm, y: 2.2mm),
 )[
-  #text(font: "Inter", size: __LABEL_SIZE__, weight: "semibold", tracking: 0.12em, fill: muted)[#upper(label)]
+  #text(font: "Inter", size: __LABEL_SIZE__, weight: "semibold", tracking: 0.12em, fill: muted)[#ui_upper_str(label)]
   #v(1mm)
   #body
   #for _ in range(calc.max(1, lines)) [
@@ -424,7 +424,7 @@
   ]
 ]
 
-#let answer_key(body) = block(
+#let answer_key(label: "ANSWER KEY", body) = block(
   above: 4mm,
   below: 3mm,
   width: 100%,
@@ -433,7 +433,7 @@
   stroke: (left: 1.6pt + sage),
   inset: (left: 3.5mm, right: 3mm, top: 2.5mm, bottom: 2.5mm),
 )[
-  #text(font: "Inter", size: __LABEL_SIZE__, weight: "semibold", tracking: 0.14em, fill: sage)[#ui_upper_str("ANSWER KEY")]
+  #text(font: "Inter", size: __LABEL_SIZE__, weight: "semibold", tracking: 0.14em, fill: sage)[#ui_upper_str(label)]
   #v(1.2mm)
   #body
 ]
@@ -585,7 +585,7 @@
                 hyphenate: false,
               )[#if cover_title == none { title } else { cover_title }]
               #v(5mm)
-              #text(font: "Inter", size: 15pt, style: "italic", fill: muted)[#subtitle]
+              #text(font: "Inter", size: __COVER_SUBTITLE_SIZE__, style: "italic", fill: muted)[#subtitle]
               #if deck != none [
                 #v(9mm)
                 #text(font: "Inter", size: __BODY_SIZE__, tracking: 0.04em, fill: muted)[#deck]

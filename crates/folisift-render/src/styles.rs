@@ -175,6 +175,12 @@ pub struct StyleStrings {
     pub revision_badge: String,
     #[serde(default = "default_organiser_badge")]
     pub organiser_badge: String,
+    #[serde(default = "default_summary_label")]
+    pub summary: String,
+    #[serde(default = "default_workspace_label")]
+    pub workspace: String,
+    #[serde(default = "default_answer_key_label")]
+    pub answer_key: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1142,6 +1148,18 @@ fn default_revision_badge() -> String {
 
 fn default_organiser_badge() -> String {
     "BİLGİ ORGANİZATÖRÜ".to_string()
+}
+
+fn default_summary_label() -> String {
+    "ÖZET".to_string()
+}
+
+fn default_workspace_label() -> String {
+    "ÇALIŞMA ALANI".to_string()
+}
+
+fn default_answer_key_label() -> String {
+    "CEVAP ANAHTARI".to_string()
 }
 
 #[cfg(test)]
