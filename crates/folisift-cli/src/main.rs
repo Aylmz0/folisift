@@ -5,7 +5,7 @@ use clap::{Parser, Subcommand};
 use folisift_core::{Guide, ScaffoldOptions, Workspace, list_guides, scaffold, version};
 use folisift_parse::{
     Inventory, SourceCache, VisualAudit, analyze_sources, check_coverage, parse_page_list,
-    read_source, render_pages, search_source,
+    read_source_at, render_pages, search_source,
 };
 use folisift_render::{RenderOptions, render, styles};
 use serde::Serialize;
@@ -55,6 +55,9 @@ enum Command {
         /// Expected page count, e.g. 22.
         #[arg(long)]
         expected_pages: Option<usize>,
+        /// Read margins/minimum font from this guide's resolved style.
+        #[arg(long)]
+        guide: Option<String>,
         /// Fail on underfilled body pages as well as layout defects.
         #[arg(long, default_value_t = false)]
         strict: bool,
@@ -98,6 +101,12 @@ enum Command {
         /// Domain profile: general, cs, math, medicine, law, ...
         #[arg(long, default_value = "general")]
         domain: String,
+        /// Optional palette id; empty uses the style default.
+        #[arg(long)]
+        palette: Option<String>,
+        /// Optional font-pairing id; empty uses the style default.
+        #[arg(long)]
+        fonts: Option<String>,
     },
     /// List, inspect or preview engine-owned style packs.
     Styles {
@@ -142,6 +151,9 @@ enum Command {
         pages: String,
         #[arg(long)]
         max_chars: Option<usize>,
+        /// Character offset to resume a page that exceeded max_chars.
+        #[arg(long)]
+        offset: Option<usize>,
     },
     /// Search cached source text for a term.
     SearchSource {
@@ -253,11 +265,21 @@ enum TableCommand {
 enum StylesCommand {
     /// List style packs.
     List,
+    /// List semantic palettes.
+    Palettes,
+    /// List font pairings.
+    Fonts,
     /// Show one pack, its tokens and labels.
     Info {
         id: String,
         #[arg(long, default_value = "tr")]
         language: String,
+        /// Optional palette override.
+        #[arg(long)]
+        palette: Option<String>,
+        /// Optional font-pairing override.
+        #[arg(long)]
+        fonts: Option<String>,
         /// Optional domain profile to include.
         #[arg(long)]
         domain: Option<String>,
@@ -267,6 +289,12 @@ enum StylesCommand {
         id: String,
         #[arg(long, default_value = "tr")]
         language: String,
+        /// Optional palette override.
+        #[arg(long)]
+        palette: Option<String>,
+        /// Optional font-pairing override.
+        #[arg(long)]
+        fonts: Option<String>,
         #[arg(long)]
         out: Option<PathBuf>,
     },
@@ -293,11 +321,73 @@ struct GuideStatus {
     empty_sections: Vec<String>,
 }
 
+fn audit_options_for(
+    workspace: &folisift_core::Workspace,
+    style: &folisift_core::StyleProfile,
+) -> Result<folisift_parse::AuditOptions, Box<dyn std::error::Error>> {
+    let loaded = styles::load_with(
+        workspace.root(),
+        &style.aesthetic,
+        Some(style.palette.as_str()),
+        Some(style.fonts.as_str()),
+    )?;
+    Ok(folisift_parse::AuditOptions::from_tokens(&loaded.tokens))
+}
+
 fn write_pdf(path: &std::path::Path, bytes: &[u8]) -> std::io::Result<()> {
-    if let Some(parent) = path.parent() {
+    let parent = path.parent().unwrap_or_else(|| std::path::Path::new("."));
+    std::fs::create_dir_all(parent)?;
+    let name = path
+        .file_name()
+        .and_then(|value| value.to_str())
+        .unwrap_or("output.pdf");
+    let temporary = parent.join(format!(".{name}.{}.tmp", std::process::id()));
+    std::fs::write(&temporary, bytes)?;
+    std::fs::rename(&temporary, path)
+}
+
+/// Gate a PDF before replacing the previous output. The staging file is
+/// removed on failure; `commit` performs the atomic rename.
+struct StagedPdf {
+    path: std::path::PathBuf,
+    output: std::path::PathBuf,
+    committed: bool,
+}
+
+impl StagedPdf {
+    fn create(output: &std::path::Path, bytes: &[u8]) -> std::io::Result<Self> {
+        let parent = output.parent().unwrap_or_else(|| std::path::Path::new("."));
         std::fs::create_dir_all(parent)?;
+        let name = output
+            .file_name()
+            .and_then(|value| value.to_str())
+            .unwrap_or("output.pdf");
+        let path = parent.join(format!(".{name}.{}.staging.pdf", std::process::id()));
+        std::fs::write(&path, bytes)?;
+        Ok(Self {
+            path,
+            output: output.to_path_buf(),
+            committed: false,
+        })
     }
-    std::fs::write(path, bytes)
+
+    fn path(&self) -> &std::path::Path {
+        &self.path
+    }
+
+    fn commit(mut self) -> std::io::Result<()> {
+        std::fs::rename(&self.path, &self.output)?;
+        self.committed = true;
+        Ok(())
+    }
+}
+
+impl Drop for StagedPdf {
+    fn drop(&mut self) {
+        if !self.committed {
+            let _ = std::fs::remove_file(&self.path);
+        }
+    }
 }
 
 fn prose_words(markdown: &str) -> usize {
@@ -366,7 +456,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
             let guides = list_guides(&workspace).unwrap_or_default();
             let invalid_guides = guides.iter().filter(|guide| !guide.valid).count();
             let output = workspace.root().join("output");
-            let output_ok = output.is_dir()
+            let output_ok = std::fs::create_dir_all(&output).is_ok()
                 && output
                     .metadata()
                     .map(|m| !m.permissions().readonly())
@@ -400,10 +490,18 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
         Command::Audit {
             pdf,
             expected_pages,
+            guide,
             strict,
         } => {
             let pdf = workspace.resolve_read(&pdf)?;
-            let report = folisift_parse::audit_pdf(&pdf, expected_pages)?;
+            let options = match guide {
+                Some(slug) => {
+                    let guide = Guide::load(&workspace, &slug)?;
+                    audit_options_for(&workspace, &guide.style())?
+                }
+                None => folisift_parse::AuditOptions::default(),
+            };
+            let report = folisift_parse::audit_pdf_with(&pdf, expected_pages, options)?;
             println!("{}", serde_json::to_string_pretty(&report)?);
             if !report.passed {
                 return Err("layout audit failed".into());
@@ -479,7 +577,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 texts.push(json!({
                     "source": source.display().to_string(),
                     "text": text.cache_path.display().to_string(),
-                    "sha256": text.sha256,
+                    "blake3": text.blake3,
                     "cache_hit": text.cache_hit,
                 }));
             }
@@ -502,6 +600,8 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
             structure,
             language,
             domain,
+            palette,
+            fonts,
         } => {
             let sources = sources
                 .iter()
@@ -514,9 +614,16 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 language: language.clone(),
                 source_language: language.clone(),
                 domain,
+                palette: palette.unwrap_or_default(),
+                fonts: fonts.unwrap_or_default(),
                 ..folisift_core::StyleProfile::default()
             };
-            let loaded_style = styles::load(workspace.root(), &style.aesthetic)?;
+            let loaded_style = styles::load_with(
+                workspace.root(),
+                &style.aesthetic,
+                Some(style.palette.as_str()),
+                Some(style.fonts.as_str()),
+            )?;
             styles::validate_profile(&loaded_style.pack, &style)?;
             let guide = scaffold(
                 &workspace,
@@ -609,12 +716,23 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 let packs = styles::list(workspace.root())?;
                 println!("{}", serde_json::to_string_pretty(&packs)?);
             }
+            StylesCommand::Palettes => {
+                let palettes = styles::list_palettes(workspace.root())?;
+                println!("{}", serde_json::to_string_pretty(&palettes)?);
+            }
+            StylesCommand::Fonts => {
+                let fonts = styles::list_fonts(workspace.root())?;
+                println!("{}", serde_json::to_string_pretty(&fonts)?);
+            }
             StylesCommand::Info {
                 id,
                 language,
+                palette,
+                fonts,
                 domain,
             } => {
-                let loaded = styles::load(workspace.root(), &id)?;
+                let loaded =
+                    styles::load_with(workspace.root(), &id, palette.as_deref(), fonts.as_deref())?;
                 let strings = styles::strings(workspace.root(), &id, &language)?;
                 let domain = domain
                     .map(|domain| folisift_render::domains::load(workspace.root(), &domain))
@@ -623,18 +741,29 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                     "{}",
                     serde_json::to_string_pretty(&json!({
                         "pack": loaded.pack,
+                        "palette": loaded.palette,
+                        "fonts": loaded.fonts,
                         "tokens": loaded.tokens,
                         "strings": strings,
                         "domain": domain,
                     }))?
                 );
             }
-            StylesCommand::Preview { id, language, out } => {
-                let loaded = styles::load(workspace.root(), &id)?;
+            StylesCommand::Preview {
+                id,
+                language,
+                palette,
+                fonts,
+                out,
+            } => {
+                let loaded =
+                    styles::load_with(workspace.root(), &id, palette.as_deref(), fonts.as_deref())?;
                 let strings = styles::strings(workspace.root(), &id, &language)?;
                 let content = styles::preview(workspace.root(), &id, &language)?;
                 let style = folisift_core::StyleProfile {
                     aesthetic: loaded.pack.aesthetic.clone(),
+                    palette: loaded.palette.id.clone(),
+                    fonts: loaded.fonts.id.clone(),
                     // The preview is a layout sample, not a structure sample;
                     // keep it on the course-shaped default so every pack can
                     // preview the same content.
@@ -737,7 +866,15 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                     cache_dir: Some(&workspace.root().join("data/cache/build")),
                 },
             )?;
-            write_pdf(&output_path, &rendered.pdf)?;
+            let staged = if check {
+                Some(StagedPdf::create(&output_path, &rendered.pdf)?)
+            } else {
+                write_pdf(&output_path, &rendered.pdf)?;
+                None
+            };
+            let audit_path = staged
+                .as_ref()
+                .map_or(output_path.as_path(), StagedPdf::path);
 
             let mut coverage = None;
             let mut visual_passed = None;
@@ -750,7 +887,8 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                         format!("revision grammar failed:\n- {}", issues.join("\n- ")).into(),
                     );
                 }
-                let layout = folisift_parse::audit_pdf(&output_path, None)?;
+                let audit_options = audit_options_for(&workspace, &style)?;
+                let layout = folisift_parse::audit_pdf_with(audit_path, None, audit_options)?;
                 layout_passed = layout.passed;
                 if !layout.underfilled_pages.is_empty() {
                     let pages = layout
@@ -820,6 +958,9 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 coverage.as_ref().map(|report| report.passed),
                 visual_passed,
             );
+            if let Some(staged) = staged {
+                staged.commit()?;
+            }
 
             println!(
                 "{}",
@@ -920,10 +1061,11 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
             source,
             pages,
             max_chars,
+            offset,
         } => {
             let source = workspace.resolve_read(source)?;
             let cache = SourceCache::new(workspace.root().join("data/cache"));
-            let result = read_source(&cache, &source, Some(&pages), max_chars).await?;
+            let result = read_source_at(&cache, &source, Some(&pages), max_chars, offset).await?;
             println!("{}", serde_json::to_string_pretty(&result)?);
         }
         Command::SearchSource {

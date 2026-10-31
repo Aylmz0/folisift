@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "id": "ocean-teal",
+  "name": "Ocean teal",
+  "family": "natural",
+  "palette": {
+    "paper": "#F7FBFC",
+    "ink": "#0B2B33",
+    "muted": "#3D5A62",
+    "soft": "#48666C",
+    "faint": "#527078",
+    "accent": "#0F6E7A",
+    "secondary": "#7A4A3A",
+    "gold": "#A07C3F",
+    "rule": "#C9DADF",
+    "code_bg": "#E8F2F4",
+    "cover_bg": "#ECF5F7",
+    "cream": "#EEF6F7",
+    "zebra": "#F0F7F8",
+    "headerfill": "#E2EFF2"
+  }
+}

@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "id": "brief",
   "name": "Brief — decision memo",
   "status": "experimental",
@@ -29,5 +29,18 @@
   ],
   "engine_min": "0.8.0",
   "page_target": "dynamic",
-  "preview": "preview.md"
+  "preview": "preview.md",
+  "palette": "cool-slate",
+  "fonts": "technical",
+  "supported_palettes": [
+    "cool-slate",
+    "cobalt",
+    "graphite",
+    "mono-print",
+    "high-contrast",
+    "ocean-teal"
+  ],
+  "supported_fonts": [
+    "technical"
+  ]
 }

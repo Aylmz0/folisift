@@ -44,6 +44,73 @@ const CLEAN_TOKENS: &str = include_str!("../../../styles/clean/tokens.json");
 const CLEAN_TR: &str = include_str!("../../../styles/clean/strings/tr.json");
 const CLEAN_EN: &str = include_str!("../../../styles/clean/strings/en.json");
 
+const PALETTES: &[(&str, &str)] = &[
+    (
+        "warm-paper",
+        include_str!("../../../styles/palettes/warm-paper.json"),
+    ),
+    (
+        "sepia-archive",
+        include_str!("../../../styles/palettes/sepia-archive.json"),
+    ),
+    ("clay", include_str!("../../../styles/palettes/clay.json")),
+    ("berry", include_str!("../../../styles/palettes/berry.json")),
+    (
+        "cool-slate",
+        include_str!("../../../styles/palettes/cool-slate.json"),
+    ),
+    (
+        "academic-navy",
+        include_str!("../../../styles/palettes/academic-navy.json"),
+    ),
+    (
+        "cobalt",
+        include_str!("../../../styles/palettes/cobalt.json"),
+    ),
+    (
+        "forest-sage",
+        include_str!("../../../styles/palettes/forest-sage.json"),
+    ),
+    (
+        "ocean-teal",
+        include_str!("../../../styles/palettes/ocean-teal.json"),
+    ),
+    (
+        "graphite",
+        include_str!("../../../styles/palettes/graphite.json"),
+    ),
+    (
+        "mono-print",
+        include_str!("../../../styles/palettes/mono-print.json"),
+    ),
+    (
+        "high-contrast",
+        include_str!("../../../styles/palettes/high-contrast.json"),
+    ),
+];
+
+const FONT_PAIRINGS: &[(&str, &str)] = &[
+    (
+        "editorial",
+        include_str!("../../../styles/fonts/editorial.json"),
+    ),
+    (
+        "technical",
+        include_str!("../../../styles/fonts/technical.json"),
+    ),
+];
+
+const EMBEDDED_FAMILIES: &[&str] = &["Noto Serif", "Inter", "Noto Sans Mono"];
+const TEXT_ROLES: &[&str] = &["ink", "muted", "soft", "faint", "accent", "secondary"];
+const SURFACE_ROLES: &[&str] = &[
+    "paper",
+    "code_bg",
+    "cover_bg",
+    "cream",
+    "zebra",
+    "headerfill",
+];
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StylePack {
     pub schema_version: u32,
@@ -56,6 +123,14 @@ pub struct StylePack {
     pub supported_languages: Vec<String>,
     pub supported_domains: Vec<String>,
     pub supported_voices: Vec<String>,
+    #[serde(default)]
+    pub palette: Option<String>,
+    #[serde(default)]
+    pub fonts: Option<String>,
+    #[serde(default)]
+    pub supported_palettes: Vec<String>,
+    #[serde(default)]
+    pub supported_fonts: Vec<String>,
     pub tokens: String,
     pub strings: Vec<String>,
     pub engine_min: String,
@@ -71,6 +146,42 @@ pub struct StyleStrings {
     pub table: String,
     #[serde(default)]
     pub page: String,
+    #[serde(default = "default_recall")]
+    pub recall: String,
+    #[serde(default = "default_explain")]
+    pub explain: String,
+    #[serde(default = "default_review_plan")]
+    pub review_plan: String,
+    #[serde(default = "default_synthesis")]
+    pub synthesis: String,
+    #[serde(default = "default_answer")]
+    pub answer: String,
+    #[serde(default = "default_revision_badge")]
+    pub revision_badge: String,
+    #[serde(default = "default_organiser_badge")]
+    pub organiser_badge: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PaletteDefinition {
+    pub schema_version: u32,
+    pub id: String,
+    pub name: String,
+    pub family: String,
+    pub palette: Value,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FontPairing {
+    pub schema_version: u32,
+    pub id: String,
+    pub name: String,
+    pub status: String,
+    pub body: String,
+    pub heading: String,
+    pub mono: String,
+    #[serde(rename = "use")]
+    pub usage: String,
 }
 
 #[derive(Debug, Clone)]
@@ -78,6 +189,8 @@ pub struct LoadedStyle {
     pub pack: StylePack,
     pub tokens: Value,
     pub strings: StyleStrings,
+    pub palette: PaletteDefinition,
+    pub fonts: FontPairing,
 }
 
 /// Built-in pack ids shipped in the binary.
@@ -114,6 +227,19 @@ pub fn list(styles_root: &Path) -> Result<Vec<StylePack>> {
 
 /// Load one pack, preferring a workspace override.
 pub fn load(styles_root: &Path, id: &str) -> Result<LoadedStyle> {
+    load_with(styles_root, id, None, None)
+}
+
+/// Load a pack and resolve an optional palette/font override.
+///
+/// The layout owns geometry; palette and font pairing are independent token
+/// layers. Empty overrides fall back to the pack defaults in `style.json`.
+pub fn load_with(
+    styles_root: &Path,
+    id: &str,
+    palette_override: Option<&str>,
+    fonts_override: Option<&str>,
+) -> Result<LoadedStyle> {
     validate_pack_id(id)?;
     let style_text = read_pack_file(styles_root, id, "style.json")?;
     let pack: StylePack = serde_json::from_str(&style_text).map_err(|error| Error::Style {
@@ -129,17 +255,57 @@ pub fn load(styles_root: &Path, id: &str) -> Result<LoadedStyle> {
             ),
         });
     }
-    if pack.schema_version != 1 {
+    if !matches!(pack.schema_version, 1 | 2) {
         return Err(Error::Style {
             id: id.to_string(),
             message: format!("unsupported style schema {}", pack.schema_version),
         });
     }
+    let palette_id = choose_design(
+        id,
+        "palette",
+        palette_override,
+        pack.palette.as_deref(),
+        default_palette(&pack.layout),
+        &pack.supported_palettes,
+    )?;
+    let fonts_id = choose_design(
+        id,
+        "fonts",
+        fonts_override,
+        pack.fonts.as_deref(),
+        default_fonts(&pack.layout),
+        &pack.supported_fonts,
+    )?;
+    let palette = load_palette(styles_root, &palette_id)?;
+    let fonts = load_fonts(styles_root, &fonts_id)?;
+    if matches!(pack.layout.as_str(), "clean" | "revision") && fonts.body != fonts.heading {
+        return Err(Error::Style {
+            id: id.to_string(),
+            message: format!(
+                "font pairing {:?} needs explicit body/heading markers for layout {:?}",
+                fonts.id, pack.layout
+            ),
+        });
+    }
     let tokens_text = read_pack_file(styles_root, id, &pack.tokens)?;
-    let tokens: Value = serde_json::from_str(&tokens_text).map_err(|error| Error::Style {
+    let mut tokens: Value = serde_json::from_str(&tokens_text).map_err(|error| Error::Style {
         id: id.to_string(),
         message: format!("tokens: {error}"),
     })?;
+    let object = tokens.as_object_mut().ok_or_else(|| Error::Style {
+        id: id.to_string(),
+        message: "tokens must be a JSON object".to_string(),
+    })?;
+    object.insert("palette".to_string(), palette.palette.clone());
+    let typography = object
+        .entry("typography".to_string())
+        .or_insert_with(|| Value::Object(serde_json::Map::new()));
+    if let Some(typography) = typography.as_object_mut() {
+        typography.insert("body".to_string(), Value::String(fonts.body.clone()));
+        typography.insert("heading".to_string(), Value::String(fonts.heading.clone()));
+        typography.insert("mono".to_string(), Value::String(fonts.mono.clone()));
+    }
     validate_accessibility(id, &tokens)?;
     let language = pack
         .supported_languages
@@ -151,7 +317,234 @@ pub fn load(styles_root: &Path, id: &str) -> Result<LoadedStyle> {
         pack,
         tokens,
         strings,
+        palette,
+        fonts,
     })
+}
+
+fn choose_design(
+    id: &str,
+    axis: &str,
+    requested: Option<&str>,
+    configured: Option<&str>,
+    fallback: &str,
+    supported: &[String],
+) -> Result<String> {
+    let choice = requested
+        .filter(|value| !value.trim().is_empty())
+        .or_else(|| configured.filter(|value| !value.trim().is_empty()))
+        .unwrap_or(fallback);
+    validate_design_id(choice, axis, id)?;
+    if !supported.is_empty() && !supported.iter().any(|value| value == choice) {
+        return Err(Error::Style {
+            id: id.to_string(),
+            message: format!(
+                "{axis} {choice:?} is not supported by this pack; use one of {supported:?}"
+            ),
+        });
+    }
+    Ok(choice.to_string())
+}
+
+fn default_palette(layout: &str) -> &'static str {
+    match layout {
+        "clean" => "cool-slate",
+        "journal" => "academic-navy",
+        "accessible" => "high-contrast",
+        _ => "warm-paper",
+    }
+}
+
+fn default_fonts(layout: &str) -> &'static str {
+    match layout {
+        "clean" | "revision" => "technical",
+        _ => "editorial",
+    }
+}
+
+fn validate_design_id(value: &str, axis: &str, pack: &str) -> Result<()> {
+    let valid = !value.is_empty()
+        && value.len() <= 64
+        && value.bytes().all(|byte| {
+            byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-' || byte == b'_'
+        });
+    if valid {
+        Ok(())
+    } else {
+        Err(Error::Style {
+            id: pack.to_string(),
+            message: format!("{axis} id must be a simple lowercase name: {value:?}"),
+        })
+    }
+}
+
+/// List built-in and workspace palette definitions.
+pub fn list_palettes(styles_root: &Path) -> Result<Vec<PaletteDefinition>> {
+    list_definitions(styles_root, "palettes", PALETTES)
+        .into_iter()
+        .map(|(id, text)| parse_palette(&id, &text))
+        .collect()
+}
+
+/// List built-in and workspace font pairings.
+pub fn list_fonts(styles_root: &Path) -> Result<Vec<FontPairing>> {
+    list_definitions(styles_root, "fonts", FONT_PAIRINGS)
+        .into_iter()
+        .map(|(id, text)| parse_fonts(&id, &text))
+        .collect()
+}
+
+fn list_definitions(
+    styles_root: &Path,
+    kind: &str,
+    builtins: &'static [(&'static str, &'static str)],
+) -> Vec<(String, String)> {
+    let mut definitions = builtins
+        .iter()
+        .map(|(id, text)| ((*id).to_string(), (*text).to_string()))
+        .collect::<std::collections::BTreeMap<_, _>>();
+    let dir = styles_root.join("styles").join(kind);
+    if let Ok(entries) = std::fs::read_dir(&dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.extension().and_then(|value| value.to_str()) == Some("json")
+                && let Some(id) = path.file_stem().and_then(|value| value.to_str())
+                && let Ok(text) = std::fs::read_to_string(&path)
+            {
+                definitions.insert(id.to_string(), text);
+            }
+        }
+    }
+    definitions.into_iter().collect()
+}
+
+/// Load one palette by id.
+pub fn load_palette(styles_root: &Path, id: &str) -> Result<PaletteDefinition> {
+    validate_design_id(id, "palette", id)?;
+    let path = styles_root
+        .join("styles/palettes")
+        .join(format!("{id}.json"));
+    let text = if path.is_file() {
+        std::fs::read_to_string(&path).map_err(|error| io(&path, error))?
+    } else {
+        PALETTES
+            .iter()
+            .find(|(candidate, _)| *candidate == id)
+            .map(|(_, text)| (*text).to_string())
+            .ok_or_else(|| Error::Style {
+                id: id.to_string(),
+                message: format!("unknown palette {id:?}"),
+            })?
+    };
+    let palette = parse_palette(id, &text)?;
+    validate_palette_contrast(&palette)?;
+    Ok(palette)
+}
+
+fn parse_palette(id: &str, text: &str) -> Result<PaletteDefinition> {
+    let palette: PaletteDefinition = serde_json::from_str(text).map_err(|error| Error::Style {
+        id: id.to_string(),
+        message: format!("palette {id:?}: {error}"),
+    })?;
+    if palette.id != id {
+        return Err(Error::Style {
+            id: id.to_string(),
+            message: format!("palette id {:?} does not match {id:?}", palette.id),
+        });
+    }
+    if palette.schema_version != 1 {
+        return Err(Error::Style {
+            id: id.to_string(),
+            message: format!("unsupported palette schema {}", palette.schema_version),
+        });
+    }
+    Ok(palette)
+}
+
+/// Load one font pairing by id.
+pub fn load_fonts(styles_root: &Path, id: &str) -> Result<FontPairing> {
+    validate_design_id(id, "fonts", id)?;
+    let path = styles_root.join("styles/fonts").join(format!("{id}.json"));
+    let text = if path.is_file() {
+        std::fs::read_to_string(&path).map_err(|error| io(&path, error))?
+    } else {
+        FONT_PAIRINGS
+            .iter()
+            .find(|(candidate, _)| *candidate == id)
+            .map(|(_, text)| (*text).to_string())
+            .ok_or_else(|| Error::Style {
+                id: id.to_string(),
+                message: format!("unknown font pairing {id:?}"),
+            })?
+    };
+    parse_fonts(id, &text)
+}
+
+fn parse_fonts(id: &str, text: &str) -> Result<FontPairing> {
+    let fonts: FontPairing = serde_json::from_str(text).map_err(|error| Error::Style {
+        id: id.to_string(),
+        message: format!("font pairing {id:?}: {error}"),
+    })?;
+    if fonts.id != id {
+        return Err(Error::Style {
+            id: id.to_string(),
+            message: format!("font pairing id {:?} does not match {id:?}", fonts.id),
+        });
+    }
+    if fonts.schema_version != 1 || fonts.status != "embedded" {
+        return Err(Error::Style {
+            id: id.to_string(),
+            message: "only schema 1 embedded pairings are allowed".to_string(),
+        });
+    }
+    for family in [&fonts.body, &fonts.heading, &fonts.mono] {
+        if !EMBEDDED_FAMILIES.contains(&family.as_str()) {
+            return Err(Error::Style {
+                id: id.to_string(),
+                message: format!(
+                    "font family {family:?} is not embedded; embedded: {EMBEDDED_FAMILIES:?}"
+                ),
+            });
+        }
+    }
+    Ok(fonts)
+}
+
+fn validate_palette_contrast(palette: &PaletteDefinition) -> Result<()> {
+    let color = |role: &str| -> Result<(u8, u8, u8)> {
+        palette
+            .palette
+            .get(role)
+            .and_then(Value::as_str)
+            .and_then(parse_hex)
+            .ok_or_else(|| Error::Style {
+                id: palette.id.clone(),
+                message: format!("palette.{role} is missing or not #RRGGBB"),
+            })
+    };
+    let paper = color("paper")?;
+    for role in TEXT_ROLES {
+        let foreground = color(role)?;
+        let ratio = contrast_ratio(foreground, paper);
+        if ratio < 4.5 {
+            return Err(Error::Style {
+                id: palette.id.clone(),
+                message: format!("palette.{role}/paper contrast is {ratio:.2}:1, need 4.5:1"),
+            });
+        }
+    }
+    let ink = color("ink")?;
+    for role in SURFACE_ROLES {
+        let background = color(role)?;
+        let ratio = contrast_ratio(ink, background);
+        if ratio < 4.5 {
+            return Err(Error::Style {
+                id: palette.id.clone(),
+                message: format!("palette.ink/{role} contrast is {ratio:.2}:1, need 4.5:1"),
+            });
+        }
+    }
+    Ok(())
 }
 
 /// Load localized labels for a pack.
@@ -351,11 +744,17 @@ fn embedded(id: &str, file: &str) -> Option<&'static str> {
 pub fn apply_tokens(template: &str, tokens: &Value, layout: &str) -> Result<String> {
     let mut out = apply_palette(template, tokens, layout)?;
     let typography = tokens.get("typography");
-    if let Some(body) = typography
-        .and_then(|value| value.get("body"))
-        .and_then(Value::as_str)
-    {
-        out = out.replace("\"Noto Serif\"", &format!("\"{}\"", body.replace('\"', "")));
+    for (key, original) in [
+        ("body", "\"Noto Serif\""),
+        ("heading", "\"Inter\""),
+        ("mono", "\"Noto Sans Mono\""),
+    ] {
+        if let Some(family) = typography
+            .and_then(|value| value.get(key))
+            .and_then(Value::as_str)
+        {
+            out = out.replace(original, &format!("\"{}\"", family.replace('"', "")));
+        }
     }
     // Accessible is a modifier of the paper layout: scale every component
     // that is smaller than the body before replacing the 9.5 pt body size.
@@ -582,24 +981,30 @@ pub fn apply_palette(template: &str, tokens: &Value, layout: &str) -> Result<Str
             ("paper", "#FAF6EC"),
             ("ink", "#211E19"),
             ("muted", "#5E574B"),
+            ("soft", "#6B6152"),
+            ("faint", "#75664E"),
             ("accent", "#8A3E2F"),
             ("secondary", "#42594F"),
             ("gold", "#B08A4F"),
             ("rule", "#D8CEBD"),
             ("code_bg", "#F1EADB"),
             ("cover_bg", "#F3EBDD"),
+            ("cream", "#F4ECDE"),
+            ("zebra", "#F7F1E5"),
+            ("headerfill", "#EFE7D8"),
         ],
         "revision" => &[
             ("paper", "#FAF6EC"),
             ("ink", "#211E19"),
             ("muted", "#5E574B"),
+            ("soft", "#6B6152"),
+            ("faint", "#75664E"),
             ("accent", "#8A3E2F"),
             ("secondary", "#42594F"),
             ("gold", "#B08A4F"),
             ("rule", "#D8CEBD"),
             ("code_bg", "#F1EADB"),
             ("cover_bg", "#F3EBDD"),
-            ("faint", "#75664E"),
             ("cream", "#F4ECDE"),
             ("zebra", "#F7F1E5"),
             ("headerfill", "#EFE7D8"),
@@ -608,12 +1013,17 @@ pub fn apply_palette(template: &str, tokens: &Value, layout: &str) -> Result<Str
             ("paper", "#FFFFFF"),
             ("ink", "#111827"),
             ("muted", "#4B5563"),
+            ("soft", "#374151"),
+            ("faint", "#6B7280"),
             ("accent", "#1D4ED8"),
             ("secondary", "#0F766E"),
             ("gold", "#B45309"),
             ("rule", "#D1D5DB"),
             ("code_bg", "#F3F4F6"),
             ("cover_bg", "#FFFFFF"),
+            ("cream", "#EFF6FF"),
+            ("zebra", "#F9FAFB"),
+            ("headerfill", "#E5E7EB"),
         ],
         _ => &[],
     };
@@ -660,6 +1070,18 @@ pub fn validate_profile(pack: &StylePack, profile: &folisift_core::StyleProfile)
     if !pack.supported_voices.contains(&profile.voice) {
         return fail("voice", &profile.voice, &pack.supported_voices);
     }
+    if !profile.palette.is_empty()
+        && !pack.supported_palettes.is_empty()
+        && !pack.supported_palettes.contains(&profile.palette)
+    {
+        return fail("palette", &profile.palette, &pack.supported_palettes);
+    }
+    if !profile.fonts.is_empty()
+        && !pack.supported_fonts.is_empty()
+        && !pack.supported_fonts.contains(&profile.fonts)
+    {
+        return fail("fonts", &profile.fonts, &pack.supported_fonts);
+    }
     Ok(())
 }
 
@@ -667,9 +1089,107 @@ fn default_table() -> String {
     "Tablo".to_string()
 }
 
+fn default_recall() -> String {
+    "HATIRLA".to_string()
+}
+
+fn default_explain() -> String {
+    "AÇIKLA".to_string()
+}
+
+fn default_review_plan() -> String {
+    "TEKRAR PLANI".to_string()
+}
+
+fn default_synthesis() -> String {
+    "TEK SAYFA SENTEZ".to_string()
+}
+
+fn default_answer() -> String {
+    "CEVAP".to_string()
+}
+
+fn default_revision_badge() -> String {
+    "SINAV TEKRARI".to_string()
+}
+
+fn default_organiser_badge() -> String {
+    "BİLGİ ORGANİZATÖRÜ".to_string()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn loads_all_palettes_and_font_pairings() {
+        let palettes = list_palettes(Path::new("")).expect("palettes");
+        assert_eq!(palettes.len(), 12);
+        let fonts = list_fonts(Path::new("")).expect("fonts");
+        assert_eq!(fonts.len(), 2);
+        for palette in palettes {
+            let loaded = load_palette(Path::new(""), &palette.id).expect("contrast");
+            assert_eq!(loaded.id, palette.id);
+        }
+    }
+
+    #[test]
+    fn pack_defaults_resolve_to_the_legacy_colours() {
+        let reader = load(Path::new(""), "reader").expect("reader");
+        assert_eq!(reader.palette.id, "warm-paper");
+        assert_eq!(reader.fonts.id, "editorial");
+        let revision = load(Path::new(""), "revision").expect("revision");
+        assert_eq!(revision.palette.id, "warm-paper");
+        assert_eq!(revision.fonts.id, "technical");
+        let clean = load(Path::new(""), "clean").expect("clean");
+        assert_eq!(clean.palette.id, "cool-slate");
+        assert_eq!(clean.fonts.id, "technical");
+        let accessible = load(Path::new(""), "accessible").expect("accessible");
+        assert_eq!(accessible.palette.id, "high-contrast");
+    }
+
+    #[test]
+    fn palette_and_font_overlays_change_tokens() {
+        let loaded = load_with(
+            Path::new(""),
+            "revision",
+            Some("forest-sage"),
+            Some("technical"),
+        )
+        .expect("overlay");
+        assert_eq!(loaded.palette.id, "forest-sage");
+        assert_eq!(loaded.fonts.id, "technical");
+        assert_eq!(loaded.tokens["palette"]["accent"].as_str(), Some("#2F5D50"));
+        let applied = apply_tokens(
+            include_str!("../../../templates/revision.typ"),
+            &loaded.tokens,
+            "revision",
+        )
+        .expect("apply");
+        assert!(applied.contains("rgb(\"#2F5D50\")"));
+
+        let accessible = load_with(
+            Path::new(""),
+            "accessible",
+            Some("mono-print"),
+            Some("technical"),
+        )
+        .expect("accessible overlay");
+        assert_eq!(accessible.palette.id, "mono-print");
+        assert_eq!(accessible.fonts.body, "Inter");
+        assert_eq!(
+            accessible.tokens["palette"]["accent"].as_str(),
+            Some("#000000")
+        );
+    }
+
+    #[test]
+    fn rejects_unknown_and_unlisted_designs() {
+        assert!(load_palette(Path::new(""), "does-not-exist").is_err());
+        assert!(load_fonts(Path::new(""), "does-not-exist").is_err());
+        assert!(load_with(Path::new(""), "paper", Some("berry"), None).is_err());
+        assert!(load_palette(Path::new(""), "../paper").is_err());
+    }
 
     #[test]
     fn rejects_path_like_pack_ids() {

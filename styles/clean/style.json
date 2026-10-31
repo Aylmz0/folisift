@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "id": "clean",
   "name": "Clean technical reader",
   "status": "experimental",
@@ -37,5 +37,18 @@
   ],
   "engine_min": "0.4.0",
   "page_target": "18-26",
-  "preview": "preview.md"
+  "preview": "preview.md",
+  "palette": "cool-slate",
+  "fonts": "technical",
+  "supported_palettes": [
+    "cool-slate",
+    "cobalt",
+    "graphite",
+    "mono-print",
+    "high-contrast",
+    "ocean-teal"
+  ],
+  "supported_fonts": [
+    "technical"
+  ]
 }

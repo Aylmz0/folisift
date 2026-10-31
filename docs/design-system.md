@@ -7,45 +7,108 @@ The evidence for these choices is in
 [`document-genres-and-layout-systems.md`](document-genres-and-layout-systems.md),
 [`revision-format-research.md`](revision-format-research.md) and
 [`typography-standardization-research.md`](typography-standardization-research.md).
-The 12-palette/5-pairing library and code-size standard are planned in
-[`plans/2026-10-31-typography-standardization-and-font-system.md`](plans/2026-10-31-typography-standardization-and-font-system.md). The default visual language is warm, editorial and print-friendly; palette is
-an independent token layer (see the typography plan). The design system is shared by every guide and
-lives in `templates/paper.typ` and `templates/fonts/`. See
-`docs/adr/0002-paper-design-system.md` and `docs/adr/0007-typst-renderer.md`.
+The 12-palette/2-pairing library, the shared scale and the code-size standard
+are implemented in `styles/palettes/`, `styles/fonts/` and
+[`plans/2026-10-31-typography-standardization-and-font-system.md`](plans/2026-10-31-typography-standardization-and-font-system.md).
+The default visual language is warm, editorial and print-friendly; palette and
+font pairing are independent token layers. The design system is shared by
+every guide and lives in `templates/paper.typ`, `templates/revision.typ` and
+`templates/fonts/`. See `docs/adr/0002-paper-design-system.md`,
+`docs/adr/0007-typst-renderer.md` and `docs/adr/0012-type-scale-and-design-layers.md`.
 
-## Palette
+## Palette library
 
-| Role | Colour | Hex |
-|---|---|---|
-| Paper | warm cream | `#FAF6EC` |
-| Ink | deep sepia-black | `#211E19` |
-| Secondary text | sepia grey | `#5E574B` |
-| Primary accent | brick red | `#8A3E2F` |
-| Secondary accent | sage green | `#42594F` |
-| Tertiary accent | antique gold | `#B08A4F` |
-| Rule | linen | `#D8CEBD` |
-| Code background | sand | `#F1EADB` |
+A palette is a semantic, contrast-tested layer, not a mood. It always defines
+the same 14 roles: `paper`, `ink`, `muted`, `soft`, `faint`, `accent`,
+`secondary`, `gold`, `rule`, `code_bg`, `cover_bg`, `cream`, `zebra` and
+`headerfill`. Text roles (`ink`, `muted`, `soft`, `faint`, `accent`,
+`secondary`) must reach 4.5:1 on `paper`; `ink` must also reach 4.5:1 on every
+surface. The loader rejects a palette that fails either test.
 
-Rules: no gradients, no stock photos, no neon colours, no heavy shadows, no
-rounded “card” interface. Colour marks sections and rules; it never carries
-meaning alone. Source references use `faint` `#75664E` (5.17:1 on paper,
-4.75:1 on cream); the old `#8A7A63` failed 4.5:1 at small sizes.
+| Id | Family | Paper | Ink | Accent | Use |
+|---|---|---|---:|---:|---|
+| `warm-paper` | warm/editorial | `#FAF6EC` | `#211E19` | `#8A3E2F` | default paper, reader, revision |
+| `sepia-archive` | warm/archive | `#F4ECD8` | `#2B2118` | `#7B2D26` | archival or historical sources |
+| `clay` | warm/earthy | `#FAF6F2` | `#2E211C` | `#9C4A2F` | humanities, fieldwork |
+| `berry` | warm/plum | `#FBF7F8` | `#2B1E24` | `#7A2E4A` | literature, language |
+| `cool-slate` | cool/technical | `#FFFFFF` | `#111827` | `#1D4ED8` | clean, brief |
+| `academic-navy` | cool/academic | `#FBF8F1` | `#14213D` | `#1D3557` | journal, formal reports |
+| `cobalt` | cool/strong | `#F8FAFC` | `#0F172A` | `#1E3A8A` | technical reports |
+| `forest-sage` | natural | `#F7F5EF` | `#1F2A24` | `#2F5D50` | biology, environmental science |
+| `ocean-teal` | natural/cool | `#F7FBFC` | `#0B2B33` | `#0F6E7A` | medicine, earth science |
+| `graphite` | neutral | `#FAFAFA` | `#111111` | `#374151` | print-safe neutral |
+| `mono-print` | grayscale | `#FFFFFF` | `#000000` | `#000000` | monochrome printing |
+| `high-contrast` | accessibility | `#FFFFFF` | `#000000` | `#A40000` | large print, low vision |
+
+`gold` is a rule/accent colour, not a text colour: it does not carry meaning
+without a label, and it is not required to pass 4.5:1. Never use red/green as
+the only distinction. A grayscale proof must keep every category distinct; if
+it does not, add a label, rule or pattern.
+
+The old warm palette is unchanged and remains the default for the existing
+guides. A guide selects another palette explicitly:
+
+```json
+"style": {
+  "aesthetic": "reader",
+  "palette": "academic-navy",
+  "fonts": "editorial"
+}
+```
+
+Paper is frozen: it accepts only `warm-paper` with `editorial`, so the v0.9
+parity fixture keeps its exact colours and fonts. Other layouts
+accept the palettes and pairings listed in their `style.json`.
 
 ## Typography
 
-- Body: Noto Serif (embedded), 9.5 pt, Typst leading 0.62 em (≈1.3 line
-  spacing). The old “line-height 1.33” label was ambiguous; Typst `leading` is
-  the extra space between lines, not CSS line-height.
-- Headings: Inter (embedded, Regular/Medium/SemiBold/Bold), semibold.
-- Code: Noto Sans Mono (embedded), 7.4 pt in blocks; DejaVu is only a fallback
-  and requires its own licence if shipped.
-- Captions: serif italic, 7.9–8.4 pt.
-- Labels: Inter, uppercase, letter-spacing 0.12–0.18em.
-- Revision layout: Inter 11 pt body, 9.5 pt tables/captions, 8.4 pt
-  labels/source refs; 30–32 mm side margins. The legacy paper layout keeps its
-  7.9/6.9 pt table components for the v0.9 parity fixture.
+One role vocabulary, one ratio rule; the layout chooses only the body base.
+Body 9.5–12 pt is legal, component floors are absolute. `paper` is a labelled
+legacy fixture and keeps its old 6.9/7.4/7.9 pt components; new styles use the
+improved scale.
 
-Turkish characters and hyphenation must be checked in the final PDF.
+| Role | Ratio to body | Floor | Paper legacy | Reader/PD2* | Revision | Organiser |
+|---|---:|---:|---:|---:|---:|---:|
+| Body | 1.00 | 9.0 | 9.5 | 10.0 | 10.5 | 10.5 |
+| H1 | 2.00 | 8.0 | 19.0 | 19.0* | 21.0 | 21.0 |
+| H2 | 1.40 | 8.0 | 12.0 | 12.0* | 14.7 | 14.7 |
+| H3 | 1.10 | 8.0 | 8.2 | 8.2* | 11.6 | 11.6 |
+| Lead | 1.12 | 8.0 | 10.8 | 10.8* | 11.8 | 11.8 |
+| Table | 0.86 | 9.0 | 7.9 | 7.9* | 9.0 | 9.0 |
+| Caption | 0.86 | 9.0 | 7.8 | 7.8* | 9.0 | 9.0 |
+| Label/source | 0.78 | 8.0 | 6.9 | 6.9* | 8.2 | 8.2 |
+| Code block | 0.92 | 9.0 | 7.4 | 9.2 | 9.7 | 9.7 |
+| Inline code | 0.95 | 9.0 | 8.4 | 9.5 | 10.0 | 10.0 |
+| TOC title | 0.95 | 8.0 | 9.6 | 9.6 | 10.0 | 10.0 |
+| TOC sub | 0.88 | 8.0 | 8.9 | 8.9 | 9.2 | 9.2 |
+| TOC page | 0.82 | 8.0 | 8.2 | 8.2 | 8.6 | 8.6 |
+
+`*` Reader/PD2 still uses the paper headings, table and label components until
+the full paper-component migration lands; only its body and code roles are
+retuned. This is the documented legacy gap, not a second scale. Revision and
+organiser use the shared role scale end to end.
+
+- Body: Noto Serif in editorial/paper layouts, Inter in `technical` layouts.
+- Headings: Inter (Regular/Medium/SemiBold/Bold), semibold.
+- Code: Noto Sans Mono; DejaVu is only a fallback and requires its own licence
+  if shipped.
+- Captions: serif italic in editorial layouts; sans in technical layouts.
+- Labels: uppercase, letter-spacing 0.12–0.18em.
+- Turkish characters and hyphenation must be checked in the final PDF.
+- Reader code/body ratio is 0.92–0.95; revision is 0.92–0.95. Accessible is a
+  large-print modifier and keeps its component scaling. A new style below
+  0.90 is a regression.
+
+### Font pairings
+
+| Id | Body | Heading | Mono | Status |
+|---|---|---|---|---|
+| `editorial` | Noto Serif | Inter | Noto Sans Mono | embedded, verified |
+| `technical` | Inter | Inter | Noto Sans Mono | embedded, verified |
+
+Only embedded families are allowed. `academic`, `accessible` and `plex` remain
+candidates until they pass licence, Turkish glyph, embedding and x-height
+tests; they are not selectable in this release.
 
 ## Page layout
 
@@ -63,8 +126,9 @@ Turkish characters and hyphenation must be checked in the final PDF.
 
 `reader` is the spacious paper variant for new long-form guides. It keeps the
 paper layout and palette but uses a 10.0 pt Noto Serif body, 0.70 em leading,
-17 mm margins, 2.6 mm paragraph spacing and a 4.0 mm list rhythm. TOC rows are
-slightly tighter so a 20-section guide still fits on one contents page.
+17 mm margins, 2.6 mm paragraph spacing and a 4.0 mm list rhythm, 9.2 pt code
+blocks and 9.5 pt inline code. TOC rows are slightly tighter so a 20-section
+guide still fits on one contents page.
 
 It is selected with `aesthetic: "reader"`; `paper` remains the stable
 old-PDF parity style. Reader is experimental until its cross-style and
@@ -75,9 +139,9 @@ auto-selects it; revision/organiser structures default to `revision` and report
 
 ## Revision style
 
-`revision` is the exam-revision layout: A4 portrait, 11 pt Inter, 30–32 mm
-side margins, left-aligned, 0.72 em leading, 9.5 pt tables/captions, 8.4 pt
-labels/source refs. It implements `revision-sheet` (multi-page) and
+`revision` is the exam-revision layout: A4 portrait, 10.5 pt Inter, 30–32 mm
+side margins, left-aligned, 0.72 em leading, 9.0 pt tables/captions, 8.2 pt
+labels/source refs, 9.7 pt code blocks and 10.0 pt inline code. It implements `revision-sheet` (multi-page) and
 `knowledge-organiser` (one page per unit). It is not a shortened reader:
 the grammar is map → must-know → comparison → worked example → traps →
 recall/answer key → one-page synthesis → review plan. See
@@ -101,8 +165,11 @@ pass. `paper` remains the default and the old-PDF parity standard.
 
 - `journal` is a `paper` preset (10.5 pt, 18 mm) for IMRAD/literature reviews.
 - `brief` is a `clean` preset (10.5 pt, 17 mm) for executive briefs.
-- `accessible` is a **large-print modifier**; its `component_scale` (1.3)
-  scales body, headings, tables, captions, labels and TOC, not only prose.
+- `accessible` is a **large-print modifier**; its default palette is
+  `high-contrast` and its 12 pt body scales the paper components through the
+  documented legacy `component_scale`. The scale is a paper-family
+  compatibility path, not a general escape hatch; revision/organiser use the
+  shared role scale.
 
 They are experimental until their snapshots pass.
 
@@ -121,8 +188,10 @@ They are experimental until their snapshots pass.
 
 ## Figures and tables
 
-The D2 capability expansion (sequence, UML class, ERD, edge arrowheads, shape
-allowlist and safety rules) is planned in
+D2 now supports concept/flow, tree, sequence, UML class and SQL/ERD payloads,
+edge arrowheads and solid/dashed lines, a small shape allowlist, deterministic
+TALA layout and a scrubbed environment. Icons, links, imports, layers,
+scenarios, animations and remote assets are rejected. See
 [`plans/2026-10-31-d2-capability-and-codebase-hardening.md`](plans/2026-10-31-d2-capability-and-codebase-hardening.md).
 
 

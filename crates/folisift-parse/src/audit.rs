@@ -28,6 +28,52 @@ pub struct UnderfilledPage {
     pub ratio: f64,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct AuditOptions {
+    pub margin_x_pt: f64,
+    pub margin_top_pt: f64,
+    pub margin_bottom_pt: f64,
+    pub min_font_pt: f64,
+}
+
+impl Default for AuditOptions {
+    fn default() -> Self {
+        Self {
+            margin_x_pt: 46.0,
+            margin_top_pt: 52.0,
+            margin_bottom_pt: 45.0,
+            min_font_pt: 6.0,
+        }
+    }
+}
+
+impl AuditOptions {
+    /// Derive the content box from a style pack's resolved tokens. The
+    /// absolute 6 pt floor remains until the table/label migration lands.
+    pub fn from_tokens(tokens: &serde_json::Value) -> Self {
+        let mm = |key: &str, default: f64| {
+            tokens
+                .get("layout")
+                .and_then(|value| value.get(key))
+                .and_then(serde_json::Value::as_f64)
+                .unwrap_or(default)
+                * 72.0
+                / 25.4
+        };
+        let min_font_pt = tokens
+            .get("audit")
+            .and_then(|value| value.get("min_font_pt"))
+            .and_then(serde_json::Value::as_f64)
+            .unwrap_or(6.0);
+        Self {
+            margin_x_pt: mm("margin_side_mm", 16.2),
+            margin_top_pt: mm("margin_top_mm", 18.3),
+            margin_bottom_pt: mm("margin_bottom_mm", 15.9),
+            min_font_pt,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct LayoutAudit {
     pub pdf: String,
@@ -54,6 +100,14 @@ pub struct LayoutAudit {
 
 /// Audit a rendered PDF for empty pages, outside-page text and missing glyphs.
 pub fn audit_pdf(path: &Path, expected_pages: Option<usize>) -> Result<LayoutAudit> {
+    audit_pdf_with(path, expected_pages, AuditOptions::default())
+}
+
+pub fn audit_pdf_with(
+    path: &Path,
+    expected_pages: Option<usize>,
+    options: AuditOptions,
+) -> Result<LayoutAudit> {
     pdfium::init(None)?;
     let path_text = path.to_str().ok_or_else(|| Error::Parse {
         path: path.to_path_buf(),
@@ -197,8 +251,8 @@ pub fn audit_pdf(path: &Path, expected_pages: Option<usize>) -> Result<LayoutAud
                 bottom = bottom.max(y2);
                 // Ignore header/footer bands; check the body against the
                 // paper margins (16.5 mm sides, 16 mm top, 14 mm bottom).
-                let in_body = y1 > 52.0 && y2 < height - 45.0;
-                let margin_x = 46.0;
+                let in_body = y1 > options.margin_top_pt && y2 < height - options.margin_bottom_pt;
+                let margin_x = options.margin_x_pt;
                 if in_body && (x1 < margin_x - 4.0 || x2 > width - margin_x + 4.0) {
                     content_overflow = true;
                     if std::env::var("FOLISIFT_AUDIT_DEBUG").is_ok() {
@@ -224,7 +278,9 @@ pub fn audit_pdf(path: &Path, expected_pages: Option<usize>) -> Result<LayoutAud
                                         line_size,
                                         line_text.trim().to_string(),
                                     ));
-                                } else if line_y > 45.0 && line_y < height - 45.0 {
+                                } else if line_y > options.margin_top_pt
+                                    && line_y < height - options.margin_bottom_pt
+                                {
                                     body_line_ys.push(line_y);
                                 }
                             }
@@ -247,7 +303,7 @@ pub fn audit_pdf(path: &Path, expected_pages: Option<usize>) -> Result<LayoutAud
         if let Some((line_y, line_size, text, _)) = current_line.take() {
             if line_size > body_font_size + 1.0 && text.trim().chars().count() > 2 {
                 heading_lines.push((line_y, line_size, text.trim().to_string()));
-            } else if line_y > 45.0 && line_y < height - 45.0 {
+            } else if line_y > options.margin_top_pt && line_y < height - options.margin_bottom_pt {
                 body_line_ys.push(line_y);
             }
         }
@@ -352,8 +408,11 @@ pub fn audit_pdf(path: &Path, expected_pages: Option<usize>) -> Result<LayoutAud
     if bookmarks == 0 {
         issues.push("PDF has no bookmarks".to_string());
     }
-    if min_font_size != f64::MAX && min_font_size < 6.0 {
-        issues.push(format!("text below 6 pt: {min_font_size:.1} pt"));
+    if min_font_size != f64::MAX && min_font_size < options.min_font_pt {
+        issues.push(format!(
+            "text below {:.1} pt: {min_font_size:.1} pt",
+            options.min_font_pt
+        ));
     }
     let passed = issues.is_empty();
 
@@ -452,6 +511,23 @@ fn has_orphan_heading(heading_lines: &[(f64, f64, String)], body_line_ys: &[f64]
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn derives_style_aware_audit_margins() {
+        let tokens = serde_json::json!({
+            "layout": {
+                "margin_top_mm": 18,
+                "margin_bottom_mm": 16,
+                "margin_side_mm": 32
+            },
+            "audit": {"min_font_pt": 7.0}
+        });
+        let options = AuditOptions::from_tokens(&tokens);
+        assert!((options.margin_x_pt - 90.7).abs() < 0.2);
+        assert!((options.margin_top_pt - 51.0).abs() < 0.2);
+        assert!((options.margin_bottom_pt - 45.4).abs() < 0.2);
+        assert!((options.min_font_pt - 7.0).abs() < 0.01);
+    }
 
     #[test]
     fn detects_a_heading_with_no_body_below_it() {

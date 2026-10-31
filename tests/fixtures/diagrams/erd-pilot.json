@@ -1,0 +1,32 @@
+{
+  "schema_version": 3,
+  "id": "erd-pilot",
+  "kind": "erd",
+  "title": "Customers and orders",
+  "caption": "One customer can own many orders through the customer_id foreign key.",
+  "alt": "Customers have a primary key id; orders reference it as a foreign key.",
+  "source": "PD6, s. 8",
+  "direction": "right",
+  "layout": "tala",
+  "tables": [
+    {
+      "id": "customers",
+      "label": "customers",
+      "columns": [
+        {"name": "id", "type": "int", "constraint": "PK"},
+        {"name": "email", "type": "text", "constraint": "UNQ"}
+      ]
+    },
+    {
+      "id": "orders",
+      "label": "orders",
+      "columns": [
+        {"name": "id", "type": "int", "constraint": "PK"},
+        {"name": "customer_id", "type": "int", "constraint": "FK"}
+      ]
+    }
+  ],
+  "edges": [
+    {"from": "orders.customer_id", "to": "customers.id", "label": "many-to-one", "arrowhead": "cf-many"}
+  ]
+}

@@ -82,7 +82,8 @@ Rules:
   directory.
 - `sources` are read-only inputs and must stay under `sources/`.
 - No absolute paths. A guide must work after the repository is moved.
-- `schema_version` 1 is legacy and is no longer used by a live guide.
+- `schema_version` 1 is rejected; guides must use schema 2 (Markdown) or 3
+  (style profile).
 
 ## Content format
 

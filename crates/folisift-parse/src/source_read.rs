@@ -20,6 +20,8 @@ pub struct ReadSourceResult {
     pub max_chars: usize,
     pub truncated: bool,
     pub next_pages: Option<String>,
+    /// Character offset to resume a page that exceeded `max_chars`.
+    pub next_offset: Option<usize>,
     pub cache_hit: bool,
     pub hint: Option<String>,
 }
@@ -53,14 +55,33 @@ pub async fn read_source(
     pages: Option<&str>,
     max_chars: Option<usize>,
 ) -> Result<ReadSourceResult> {
+    read_source_at(cache, source, pages, max_chars, None).await
+}
+
+pub async fn read_source_at(
+    cache: &SourceCache,
+    source: &std::path::Path,
+    pages: Option<&str>,
+    max_chars: Option<usize>,
+    offset: Option<usize>,
+) -> Result<ReadSourceResult> {
     let source_text = cache.load(source, false).await?;
-    read_from_source(&source_text, pages, max_chars)
+    read_from_source_at(&source_text, pages, max_chars, offset)
 }
 
 pub fn read_from_source(
     source: &SourceText,
     pages: Option<&str>,
     max_chars: Option<usize>,
+) -> Result<ReadSourceResult> {
+    read_from_source_at(source, pages, max_chars, None)
+}
+
+pub fn read_from_source_at(
+    source: &SourceText,
+    pages: Option<&str>,
+    max_chars: Option<usize>,
+    offset: Option<usize>,
 ) -> Result<ReadSourceResult> {
     let explicit = pages.is_some();
     let selection = pages.unwrap_or(DEFAULT_READ_PAGES);
@@ -86,6 +107,8 @@ pub fn read_from_source(
     let mut used = 0;
     let mut truncated = false;
     let mut next_pages = None;
+    let mut next_offset = None;
+    let mut start_offset = offset.unwrap_or(0);
 
     for page_number in requested {
         let Some(page) = source
@@ -96,18 +119,25 @@ pub fn read_from_source(
             continue;
         };
         let overhead = format!("### Page {}\\n", page.page).len();
+        let page_length = page.text.chars().count();
+        let skip = start_offset.min(page_length);
+        start_offset = 0;
+        let remainder = skip_chars(&page.text, skip);
         let remaining = max_chars.saturating_sub(used + overhead);
         if remaining < 200 && !selected.is_empty() {
             truncated = true;
             next_pages = Some(format!("{page_number}"));
+            next_offset = Some(skip);
             break;
         }
-        let text = if page.text.chars().count() > remaining {
+        let text = if remainder.chars().count() > remaining {
             truncated = true;
             next_pages = Some(format!("{page_number}"));
-            truncate_chars(&page.text, remaining.saturating_sub(1).max(1))
+            let kept = truncate_chars(&remainder, remaining.saturating_sub(1).max(1));
+            next_offset = Some(skip + kept.chars().count());
+            kept
         } else {
-            page.text.clone()
+            remainder
         };
         let chars = text
             .chars()
@@ -124,9 +154,10 @@ pub fn read_from_source(
         }
     }
 
-    let hint = next_pages
-        .as_ref()
-        .map(|next| format!("Call read_source with pages={next}."));
+    let hint = next_pages.as_ref().map(|next| match next_offset {
+        Some(offset) => format!("Call read_source with pages={next}, offset={offset}."),
+        None => format!("Call read_source with pages={next}."),
+    });
     Ok(ReadSourceResult {
         source: source.source.clone(),
         returned_pages: selected.len(),
@@ -135,6 +166,7 @@ pub fn read_from_source(
         max_chars,
         truncated,
         next_pages,
+        next_offset,
         cache_hit: source.cache_hit,
         hint,
     })
@@ -273,6 +305,10 @@ fn snippet(text: &str, terms: &[&str], context_chars: usize) -> String {
     snippet
 }
 
+fn skip_chars(value: &str, count: usize) -> String {
+    value.chars().skip(count).collect()
+}
+
 fn truncate_chars(text: &str, limit: usize) -> String {
     let mut out = text.chars().take(limit).collect::<String>();
     if out.chars().count() < text.chars().count() {
@@ -288,7 +324,7 @@ mod tests {
     fn source() -> SourceText {
         SourceText {
             source: "PD0.pdf".to_string(),
-            sha256: "hash".to_string(),
+            blake3: "hash".to_string(),
             pages: vec![
                 PageText {
                     page: 1,
@@ -332,6 +368,22 @@ mod tests {
         let result = read_from_source(&source, Some("1"), Some(1_000)).expect("read");
         assert!(result.truncated);
         assert!(result.chars <= 1_000);
+    }
+
+    #[test]
+    fn large_page_returns_a_resume_offset() {
+        let mut source = source();
+        source.pages[0].text = "ğ".repeat(1_200);
+        let first = read_from_source(&source, Some("1"), Some(1_000)).expect("first");
+        assert!(first.truncated);
+        assert_eq!(first.next_pages.as_deref(), Some("1"));
+        let offset = first.next_offset.expect("offset");
+        assert!(offset > 0);
+        let second =
+            read_from_source_at(&source, Some("1"), Some(1_000), Some(offset)).expect("second");
+        assert!(!second.pages[0].text.is_empty());
+        assert_ne!(first.pages[0].text, second.pages[0].text);
+        assert!(!second.truncated);
     }
 
     #[test]

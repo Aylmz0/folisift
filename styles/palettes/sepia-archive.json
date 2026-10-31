@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "id": "sepia-archive",
+  "name": "Sepia archive",
+  "family": "warm",
+  "palette": {
+    "paper": "#F4ECD8",
+    "ink": "#2B2118",
+    "muted": "#5C4A38",
+    "soft": "#6B5844",
+    "faint": "#7A6650",
+    "accent": "#7B2D26",
+    "secondary": "#3F5548",
+    "gold": "#9A7838",
+    "rule": "#D6C6A8",
+    "code_bg": "#EDE2C7",
+    "cover_bg": "#EFE4CC",
+    "cream": "#F0E5CD",
+    "zebra": "#F1E7D1",
+    "headerfill": "#E8DBBE"
+  }
+}

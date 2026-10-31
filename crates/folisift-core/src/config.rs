@@ -8,7 +8,7 @@ use serde_json::Value;
 use crate::error::{Error, Result, io};
 use crate::paths::{Workspace, validate_slug};
 
-pub const SUPPORTED_SCHEMA_VERSIONS: [u32; 3] = [1, 2, 3];
+pub const SUPPORTED_SCHEMA_VERSIONS: [u32; 2] = [2, 3];
 
 pub const AESTHETICS: &[&str] = &[
     "paper",
@@ -58,6 +58,12 @@ pub const CITATIONS: &[&str] = &["page-ref"];
 pub struct StyleProfile {
     #[serde(default = "default_aesthetic")]
     pub aesthetic: String,
+    /// Palette library id; empty means the layout/pack default.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub palette: String,
+    /// Font pairing library id; empty means the layout/pack default.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub fonts: String,
     #[serde(default = "default_structure")]
     pub structure: String,
     #[serde(default = "default_language")]
@@ -78,6 +84,8 @@ impl Default for StyleProfile {
     fn default() -> Self {
         Self {
             aesthetic: default_aesthetic(),
+            palette: String::new(),
+            fonts: String::new(),
             structure: default_structure(),
             language: default_language(),
             source_language: default_source_language(),
@@ -104,6 +112,13 @@ impl StyleProfile {
             if !allowed.contains(&value) {
                 return Err(format!(
                     "style.{name} = {value:?} is not supported; expected one of {allowed:?}"
+                ));
+            }
+        }
+        for (name, value) in [("palette", &self.palette), ("fonts", &self.fonts)] {
+            if !value.is_empty() && !is_design_id(value) {
+                return Err(format!(
+                    "style.{name} = {value:?} must be a lowercase palette/font id or empty"
                 ));
             }
         }
@@ -251,11 +266,30 @@ impl Guide {
         style
             .validate()
             .map_err(|message| config_error(&config_path, message))?;
+        if config.schema_version >= 3 && config.style.is_some() && config.theme != style.aesthetic {
+            return Err(config_error(
+                &config_path,
+                "theme must match style.aesthetic",
+            ));
+        }
         if config.schema_version >= 3 && config.style.is_some() && style.language != config.language
         {
             return Err(config_error(
                 &config_path,
                 "style.language must match the flat language field",
+            ));
+        }
+        if config.schema_version >= 3
+            && config.style.is_some()
+            && config
+                .style_rationale
+                .as_deref()
+                .map(str::trim)
+                .is_none_or(str::is_empty)
+        {
+            return Err(config_error(
+                &config_path,
+                "style_rationale is required for schema 3 guides with an explicit style",
             ));
         }
         if config.sources.is_empty() {
@@ -451,11 +485,8 @@ fn require_extension(config: &Path, path: &Path, expected: &str) -> Result<()> {
     }
 }
 
-fn expected_content_extension(schema_version: u32) -> &'static str {
-    match schema_version {
-        2 | 3 => "md",
-        _ => "html",
-    }
+fn expected_content_extension(_schema_version: u32) -> &'static str {
+    "md"
 }
 
 fn validate_target_pages(range: &str) -> Result<()> {
@@ -516,6 +547,14 @@ fn default_schema_version() -> u32 {
 
 fn default_language() -> String {
     "tr".to_string()
+}
+
+fn is_design_id(value: &str) -> bool {
+    !value.is_empty()
+        && value.len() <= 64
+        && value.bytes().all(|byte| {
+            byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-' || byte == b'_'
+        })
 }
 
 fn default_aesthetic() -> String {

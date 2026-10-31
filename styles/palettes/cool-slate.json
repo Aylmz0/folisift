@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "id": "cool-slate",
+  "name": "Cool slate",
+  "family": "cool",
+  "palette": {
+    "paper": "#FFFFFF",
+    "ink": "#111827",
+    "muted": "#4B5563",
+    "soft": "#374151",
+    "faint": "#6B7280",
+    "accent": "#1D4ED8",
+    "secondary": "#0F766E",
+    "gold": "#B45309",
+    "rule": "#D1D5DB",
+    "code_bg": "#F3F4F6",
+    "cover_bg": "#FFFFFF",
+    "cream": "#EFF6FF",
+    "zebra": "#F9FAFB",
+    "headerfill": "#E5E7EB"
+  }
+}

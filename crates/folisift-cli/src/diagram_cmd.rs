@@ -148,8 +148,16 @@ fn selected_specs(guide: &Guide, id: Option<&str>, all: bool) -> CliResult<Vec<D
 
 fn theme(workspace: &Workspace, guide: &Guide) -> CliResult<DiagramTheme> {
     let style = guide.style();
-    let loaded = styles::load(workspace.root(), &style.aesthetic)?;
-    Ok(DiagramTheme::from_tokens(&loaded.tokens, "Inter"))
+    let loaded = styles::load_with(
+        workspace.root(),
+        &style.aesthetic,
+        Some(style.palette.as_str()),
+        Some(style.fonts.as_str()),
+    )?;
+    Ok(DiagramTheme::from_tokens(
+        &loaded.tokens,
+        &loaded.fonts.heading,
+    ))
 }
 
 fn build_one(

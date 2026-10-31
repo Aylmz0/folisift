@@ -284,7 +284,7 @@
   #body
 ]
 
-#let synthesis_page(title: "TEK SAYFA SENTEZ", body) = {
+#let synthesis_page(title: "TEK SAYFA SENTEZ", badge: "SINAV TEKRARI", body) = {
   set text(size: body-size, fill: ink)
   set par(justify: false, leading: leading, spacing: par-spacing)
   block(
@@ -293,7 +293,7 @@
     stroke: 1pt + brick,
     inset: (x: 6mm, y: 5mm),
   )[
-    #text(font: "Inter", size: 9pt, tracking: 0.18em, fill: brick)[#ui_upper_str("FOLISIFT · SINAV TEKRARI")]
+    #text(font: "Inter", size: 9pt, tracking: 0.18em, fill: brick)[#ui_upper_str(badge)]
     #v(1.4mm)
     #text(font: "Inter", size: h1-size, weight: "semibold", tracking: -0.01em)[#title]
     #v(2mm)
@@ -303,10 +303,10 @@
   ]
 }
 
-#let organiser_page(title: "", source: none, body) = page(header: none)[
+#let organiser_page(title: "", source: none, badge: "BİLGİ ORGANİZATÖRÜ", body) = page(header: none)[
   #set text(size: body-size, fill: ink)
   #set par(justify: false, leading: leading, spacing: par-spacing)
-  #text(font: "Inter", size: 8.5pt, tracking: 0.18em, fill: brick)[#ui_upper_str("BİLGİ ORGANİZATÖRÜ")]
+  #text(font: "Inter", size: 8.5pt, tracking: 0.18em, fill: brick)[#ui_upper_str(badge)]
   #v(1mm)
   #text(font: "Inter", size: h1-size, weight: "semibold", tracking: -0.01em)[#title]
   #v(1.4mm)

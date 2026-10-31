@@ -2,5 +2,12 @@
   "toc": "CONTENTS",
   "figure": "Figure",
   "page": "Page",
-  "table": "Table"
+  "table": "Table",
+  "recall": "RECALL",
+  "explain": "EXPLAIN",
+  "review_plan": "REVIEW PLAN",
+  "synthesis": "ONE-PAGE SYNTHESIS",
+  "answer": "ANSWER",
+  "revision_badge": "EXAM REVISION",
+  "organiser_badge": "KNOWLEDGE ORGANISER"
 }

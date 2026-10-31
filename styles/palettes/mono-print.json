@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "id": "mono-print",
+  "name": "Mono print",
+  "family": "grayscale",
+  "palette": {
+    "paper": "#FFFFFF",
+    "ink": "#000000",
+    "muted": "#444444",
+    "soft": "#4A4A4A",
+    "faint": "#555555",
+    "accent": "#000000",
+    "secondary": "#333333",
+    "gold": "#666666",
+    "rule": "#CCCCCC",
+    "code_bg": "#F2F2F2",
+    "cover_bg": "#FFFFFF",
+    "cream": "#F7F7F7",
+    "zebra": "#FAFAFA",
+    "headerfill": "#EFEFEF"
+  }
+}

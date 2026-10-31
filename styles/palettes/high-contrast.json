@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "id": "high-contrast",
+  "name": "High contrast",
+  "family": "accessibility",
+  "palette": {
+    "paper": "#FFFFFF",
+    "ink": "#000000",
+    "muted": "#333333",
+    "soft": "#3D3D3D",
+    "faint": "#4D4D4D",
+    "accent": "#A40000",
+    "secondary": "#004080",
+    "gold": "#6B4E00",
+    "rule": "#B3B3B3",
+    "code_bg": "#F2F2F2",
+    "cover_bg": "#FFFFFF",
+    "cream": "#F7F7F7",
+    "zebra": "#FAFAFA",
+    "headerfill": "#EDEDED"
+  }
+}

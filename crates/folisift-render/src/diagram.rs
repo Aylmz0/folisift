@@ -1244,9 +1244,52 @@ pub fn read_specs(guide_root: &Path) -> Result<Vec<DiagramSpec>> {
 }
 
 pub fn load_assets(guide_root: &Path) -> Result<HashMap<String, DiagramAsset>> {
+    load_assets_filtered(guide_root, None)
+}
+
+/// Load only diagrams referenced by a Markdown body. Drafts with a spec but no
+/// manifest therefore do not block an unrelated build.
+pub fn load_assets_for(guide_root: &Path, markdown: &str) -> Result<HashMap<String, DiagramAsset>> {
+    let ids = referenced_ids(markdown);
+    load_assets_filtered(guide_root, Some(&ids))
+}
+
+pub fn referenced_ids(markdown: &str) -> HashSet<String> {
+    let mut ids = HashSet::new();
+    for line in markdown.lines() {
+        let trimmed = line.trim();
+        let Some(rest) = trimmed.strip_prefix(":::") else {
+            continue;
+        };
+        let rest = rest.trim_start();
+        let Some(rest) = rest.strip_prefix("diagram") else {
+            continue;
+        };
+        if !rest.starts_with(char::is_whitespace) {
+            continue;
+        }
+        for token in rest.split_whitespace() {
+            if let Some(value) = token.strip_prefix("id=") {
+                let value = value.trim_matches(['"', '\'']);
+                if !value.is_empty() {
+                    ids.insert(value.to_string());
+                }
+            }
+        }
+    }
+    ids
+}
+
+fn load_assets_filtered(
+    guide_root: &Path,
+    wanted: Option<&HashSet<String>>,
+) -> Result<HashMap<String, DiagramAsset>> {
     let slug = guide_slug(guide_root);
     let mut assets = HashMap::new();
     for spec in read_specs(guide_root)? {
+        if wanted.is_some_and(|ids| !ids.contains(&spec.id)) {
+            continue;
+        }
         let manifest = read_manifest(guide_root, &spec.id)?.ok_or_else(|| {
             Error::Diagram(format!(
                 "diagram {:?} has no manifest; run `folisift diagram build --guide {slug} --id {}`",
@@ -1614,6 +1657,15 @@ mod tests {
             classes: Vec::new(),
             tables: Vec::new(),
         }
+    }
+
+    #[test]
+    fn referenced_diagrams_ignore_unrelated_drafts() {
+        let markdown =
+            "::: diagram id=\"pipeline\" caption=\"x\"\n:::\n\n::: note\nid=other\n:::\n";
+        let ids = referenced_ids(markdown);
+        assert!(ids.contains("pipeline"));
+        assert!(!ids.contains("other"));
     }
 
     #[test]

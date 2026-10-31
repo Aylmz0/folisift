@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "id": "berry",
+  "name": "Berry",
+  "family": "warm",
+  "palette": {
+    "paper": "#FBF7F8",
+    "ink": "#2B1E24",
+    "muted": "#5E4B53",
+    "soft": "#6B565E",
+    "faint": "#78656E",
+    "accent": "#7A2E4A",
+    "secondary": "#3F5A56",
+    "gold": "#A87B4E",
+    "rule": "#DDCDD3",
+    "code_bg": "#F2E6EA",
+    "cover_bg": "#F5EBEE",
+    "cream": "#F7EDF0",
+    "zebra": "#F8F0F2",
+    "headerfill": "#EFDFE4"
+  }
+}

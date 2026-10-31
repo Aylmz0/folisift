@@ -14,7 +14,7 @@ pub struct ScaffoldOptions {
     pub style: StyleProfile,
 }
 
-/// Create a new schema-2 guide bundle and return its validated config.
+/// Create a new schema-3 guide bundle and return its validated config.
 pub fn scaffold(workspace: &Workspace, options: &ScaffoldOptions) -> Result<Guide> {
     validate_slug(&options.slug)?;
     if options.title.trim().is_empty() {
@@ -79,7 +79,10 @@ pub fn scaffold(workspace: &Workspace, options: &ScaffoldOptions) -> Result<Guid
         target_pages: None,
         theme: options.style.aesthetic.clone(),
         style: Some(options.style.clone()),
-        style_rationale: None,
+        style_rationale: Some(format!(
+            "Scaffold default for {}; the host must refine or confirm this rationale.",
+            options.style.aesthetic
+        )),
         style_source: Some("scaffold".to_string()),
         extra: Default::default(),
     };

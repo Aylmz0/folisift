@@ -293,6 +293,36 @@ The full audit file adds source-cache, packaging, licence, schema-1, heading
 scan, source-read loop, image parsing and diagnostic-line findings; each high
 finding gets a regression test before the fix.
 
+## Implementation status — 2026-10-31
+
+Implemented in the working tree:
+
+- D2 schema v3: sequence actors/messages/notes, UML class, SQL/ERD, edge
+  arrowheads and solid/dashed lines, shape allowlist; v2 remains accepted;
+- deterministic spec hashing that preserves v2 hashes;
+- generated-source allowlist and scrubbed D2 environment with no implicit
+  `PATH` lookup;
+- shared CLI/MCP genre, page-count, coverage and top-level gates;
+- atomic staged PDF output and referenced-only diagram loading;
+- source digests and stale-inventory re-analysis; verified source cache
+  headers and page sequences; resumable large-page reads;
+- style/domain ID sandboxing and bundle-path checks;
+- packaging fails without PDFium unless explicitly overridden; PDFium and font
+  notices are shipped;
+- schema 1 guide configs are rejected with a clear unsupported-schema error;
+- raw HTML is rejected instead of dropped; Markdown code fences are lint-safe;
+- `style_rationale` is enforced for schema 3 guides;
+- EN revision/organiser labels and stronger TOC/production smoke checks;
+- D2 v3 fixtures compile and postprocess when `FOLISIFT_D2` is set.
+
+Still open:
+
+- style-aware audit margins/minimum font and visual-page underfill policy;
+- revision/organiser source-coverage model;
+- duplicate top-level section numbers and remaining coverage edge cases;
+- per-kind PDF visual baselines and pinned TALA seeds;
+- macOS/Windows archives and release signing.
+
 ## 6. Implementation phases
 
 ### Phase 0 — Audit baseline

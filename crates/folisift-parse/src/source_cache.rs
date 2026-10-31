@@ -20,7 +20,7 @@ pub struct PageText {
 #[derive(Debug, Clone, Serialize)]
 pub struct SourceText {
     pub source: String,
-    pub sha256: String,
+    pub blake3: String,
     pub pages: Vec<PageText>,
     pub cache_path: PathBuf,
     pub cache_hit: bool,
@@ -51,17 +51,15 @@ impl SourceCache {
         if !force
             && path.is_file()
             && let Ok(text) = std::fs::read_to_string(&path)
+            && let Some(pages) = parse_cached(&text)
         {
-            let pages = parse_cached(&text);
-            if !pages.is_empty() {
-                return Ok(SourceText {
-                    source: source.display().to_string(),
-                    sha256: hash,
-                    pages,
-                    cache_path: path,
-                    cache_hit: true,
-                });
-            }
+            return Ok(SourceText {
+                source: source.display().to_string(),
+                blake3: hash,
+                pages,
+                cache_path: path,
+                cache_hit: true,
+            });
         }
 
         let pages = parse_pages(source).await?;
@@ -69,7 +67,7 @@ impl SourceCache {
         std::fs::write(&path, render_cached(source, &pages)).map_err(|error| io(&path, error))?;
         Ok(SourceText {
             source: source.display().to_string(),
-            sha256: hash,
+            blake3: hash,
             pages,
             cache_path: path,
             cache_hit: false,
@@ -124,12 +122,17 @@ fn render_cached(source: &Path, pages: &[PageText]) -> String {
     out
 }
 
-fn parse_cached(text: &str) -> Vec<PageText> {
-    text.split(PAGE_MARKER)
+fn parse_cached(text: &str) -> Option<Vec<PageText>> {
+    let declared = text
+        .lines()
+        .find_map(|line| line.strip_prefix("# pages: "))
+        .and_then(|value| value.trim().parse::<usize>().ok())?;
+    let pages = text
+        .split(PAGE_MARKER)
         .skip(1)
-        .filter_map(|chunk| {
+        .map(|chunk| {
             let (number, body) = chunk.split_once(" =====")?;
-            let page = number.trim().parse().ok()?;
+            let page = number.trim().parse::<usize>().ok()?;
             let text = body.trim().to_string();
             Some(PageText {
                 page,
@@ -137,7 +140,18 @@ fn parse_cached(text: &str) -> Vec<PageText> {
                 text,
             })
         })
-        .collect()
+        .collect::<Option<Vec<_>>>()?;
+    if pages.len() != declared || pages.is_empty() {
+        return None;
+    }
+    if pages
+        .iter()
+        .enumerate()
+        .any(|(index, page)| page.page != index + 1)
+    {
+        return None;
+    }
+    Some(pages)
 }
 
 #[cfg(test)]
@@ -159,9 +173,17 @@ mod tests {
             },
         ];
         let text = render_cached(Path::new("PD0.pdf"), &pages);
-        let parsed = parse_cached(&text);
+        let parsed = parse_cached(&text).expect("cache");
         assert_eq!(parsed.len(), 2);
         assert_eq!(parsed[0].page, 1);
         assert_eq!(parsed[1].text, "de");
+    }
+
+    #[test]
+    fn rejects_partial_or_misnumbered_caches() {
+        let text = "# PD0.pdf\n# pages: 3\n\n===== PAGE 1 =====\na\n\n===== PAGE 2 =====\nb\n";
+        assert!(parse_cached(text).is_none());
+        let text = "# PD0.pdf\n# pages: 2\n\n===== PAGE 1 =====\na\n\n===== PAGE 3 =====\nb\n";
+        assert!(parse_cached(text).is_none());
     }
 }

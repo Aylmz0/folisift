@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "id": "revision",
   "name": "Revision — visual study sheet",
   "status": "experimental",
@@ -41,5 +41,24 @@
   ],
   "engine_min": "0.9.0",
   "page_target": "dynamic",
-  "preview": "preview.md"
+  "preview": "preview.md",
+  "palette": "warm-paper",
+  "fonts": "technical",
+  "supported_palettes": [
+    "warm-paper",
+    "sepia-archive",
+    "clay",
+    "berry",
+    "cool-slate",
+    "academic-navy",
+    "cobalt",
+    "forest-sage",
+    "ocean-teal",
+    "graphite",
+    "mono-print",
+    "high-contrast"
+  ],
+  "supported_fonts": [
+    "technical"
+  ]
 }

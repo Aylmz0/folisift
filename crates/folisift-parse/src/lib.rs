@@ -17,7 +17,7 @@ pub mod text;
 pub mod visual;
 pub mod visual_audit;
 
-pub use audit::{LayoutAudit, PageAudit, audit_pdf};
+pub use audit::{AuditOptions, LayoutAudit, PageAudit, audit_pdf, audit_pdf_with};
 pub use coverage::{
     CoverageReport, DEFAULT_THRESHOLD, MIN_SECTION_CHARS, check_coverage, guide_body_chars,
 };
@@ -29,7 +29,7 @@ pub use render::CropBox;
 pub use render::{PageImage, render_pages};
 pub use source_cache::{PageText, SourceCache, SourceText};
 pub use source_read::{
-    ReadSourceResult, SearchHit, SearchSourceResult, read_source, search_source,
+    ReadSourceResult, SearchHit, SearchSourceResult, read_source, read_source_at, search_source,
 };
 pub use table::{BBox, ExtractedTable, extract_tables};
 pub use text::LOW_TEXT_THRESHOLD;

@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "id": "paper",
   "name": "Paper exam reader",
   "status": "stable",
@@ -37,5 +37,13 @@
   ],
   "engine_min": "0.4.0",
   "page_target": "22",
-  "preview": "preview.md"
+  "preview": "preview.md",
+  "palette": "warm-paper",
+  "fonts": "editorial",
+  "supported_palettes": [
+    "warm-paper"
+  ],
+  "supported_fonts": [
+    "editorial"
+  ]
 }

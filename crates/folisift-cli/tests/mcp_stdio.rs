@@ -26,7 +26,8 @@ fn mcp_stdio_lists_tools() {
             "study_mode": "exam",
             "domain": "cs",
             "citation": "page-ref"
-          }
+          },
+          "style_rationale": "Test fixture for the paper layout."
         }"#,
     )
     .expect("config");

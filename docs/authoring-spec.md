@@ -264,8 +264,8 @@ lines. Adjust for source density, not for how tired the writer is.
 - Equations, grammar rules, regexes, ranges, units, symbols, dates, names,
   statistics, classifications, conditions and exceptions.
 - For each formula: variables, units, applicability, assumptions.
-- Use `<pre><code>` for BNF/EBNF/regex; do not fake math with plain text if
-  notation matters.
+- Use a fenced code block for BNF/EBNF/regex; do not fake math with plain
+  text if notation matters. Raw HTML and math delimiters are rejected.
 - Add a “Kaynak içi tutarsızlıklar” subsection only when needed: ranking or
   percentage conflicts, terminology conflicts, typos, etc.
 
@@ -460,7 +460,7 @@ tables, figures, formulas and examples still require manual review in G.
 - Extract text **once**; reuse the JSON.
 - Render **only** low-text pages; do not render 1,184 slides.
 - Write chapter files separately; build at milestones.
-- Fix content in the HTML fragment and rebuild; do not rewrite the whole guide.
+- Fix the failing Markdown section and rebuild; do not rewrite the whole guide.
 - Do not hand-count pages, headings or low-text slides; use the scripts.
 - Do not ask the user for decisions already fixed in CONFIG.
 - If a build fails, read the first error; do not regenerate everything.

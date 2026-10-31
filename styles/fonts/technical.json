@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "id": "technical",
+  "name": "Technical",
+  "status": "embedded",
+  "body": "Inter",
+  "heading": "Inter",
+  "mono": "Noto Sans Mono",
+  "use": "Dense technical layouts where body and headings share a sans family."
+}

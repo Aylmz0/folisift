@@ -17,7 +17,7 @@ cp target/release/folisift "$STAGE/"
 cp -R styles domains "$STAGE/"
 mkdir -p "$STAGE/templates"
 cp -R templates/fonts "$STAGE/templates/"
-cp THIRD_PARTY_NOTICES.md "$STAGE/"
+cp THIRD_PARTY_NOTICES.md PDFIUM-LICENSE.txt "$STAGE/"
 
 D2="${FOLISIFT_D2:-}"
 if [ -z "${D2}" ] && [ -x "target/package/d2-v0.9.0/bin/d2" ]; then
@@ -45,8 +45,11 @@ fi
 PDFIUM="${FOLISIFT_PDFIUM_DIR:-target/release/deps}"
 if [ -f "${PDFIUM}/libpdfium.so" ]; then
   cp "${PDFIUM}/libpdfium.so" "$STAGE/"
+elif [ "${ALLOW_NO_PDFIUM:-0}" = "1" ]; then
+  echo "warning: libpdfium.so not found in ${PDFIUM}; archive has no sidecar (ALLOW_NO_PDFIUM=1)" >&2
 else
-  echo "warning: libpdfium.so not found in ${PDFIUM}; archive has no sidecar" >&2
+  echo "error: libpdfium.so is required for a runnable archive; set FOLISIFT_PDFIUM_DIR or ALLOW_NO_PDFIUM=1 for a dev-only archive" >&2
+  exit 1
 fi
 
 tar -C target/package -czf "target/package/${NAME}.tar.gz" "$NAME"

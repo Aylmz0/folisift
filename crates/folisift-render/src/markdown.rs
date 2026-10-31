@@ -75,6 +75,13 @@ struct RenderConfig {
     figure_label: String,
     toc_label: String,
     table_label: String,
+    recall_label: String,
+    explain_label: String,
+    review_plan_label: String,
+    synthesis_label: String,
+    answer_label: String,
+    revision_badge: String,
+    organiser_badge: String,
     diagram_assets: HashMap<String, DiagramAsset>,
 }
 
@@ -89,6 +96,13 @@ impl Default for RenderConfig {
             figure_label: "Şekil".to_string(),
             toc_label: "İÇİNDEKİLER".to_string(),
             table_label: "Tablo".to_string(),
+            recall_label: "HATIRLA".to_string(),
+            explain_label: "AÇIKLA".to_string(),
+            review_plan_label: "TEKRAR PLANI".to_string(),
+            synthesis_label: "TEK SAYFA SENTEZ".to_string(),
+            answer_label: "CEVAP".to_string(),
+            revision_badge: "SINAV TEKRARI".to_string(),
+            organiser_badge: "BİLGİ ORGANİZATÖRÜ".to_string(),
             diagram_assets: HashMap::new(),
         }
     }
@@ -138,6 +152,33 @@ pub fn markdown_to_typst_styled_with_diagrams(
             figure_label: figure_label.to_string(),
             toc_label: toc_label.to_string(),
             table_label: table_label.to_string(),
+            diagram_assets,
+            ..RenderConfig::default()
+        },
+    )
+}
+
+/// Convert Markdown with every style-owned label, including revision and
+/// organiser component labels.
+pub fn markdown_to_typst_styled_with_strings(
+    markdown: &str,
+    strings: &crate::styles::StyleStrings,
+    diagram_assets: HashMap<String, DiagramAsset>,
+) -> Result<String> {
+    lint_markdown(markdown)?;
+    markdown_to_typst_with(
+        markdown,
+        &RenderConfig {
+            figure_label: strings.figure.clone(),
+            toc_label: strings.toc.clone(),
+            table_label: strings.table.clone(),
+            recall_label: strings.recall.clone(),
+            explain_label: strings.explain.clone(),
+            review_plan_label: strings.review_plan.clone(),
+            synthesis_label: strings.synthesis.clone(),
+            answer_label: strings.answer.clone(),
+            revision_badge: strings.revision_badge.clone(),
+            organiser_badge: strings.organiser_badge.clone(),
             diagram_assets,
             ..RenderConfig::default()
         },
@@ -233,9 +274,9 @@ fn markdown_to_typst_with(markdown: &str, config: &RenderConfig) -> Result<Strin
                 "recall" | "explain" | "review-plan" => {
                     let inner_typst = markdown_to_typst_with(&inner_markdown, config)?;
                     let (function, default_label) = match kind {
-                        "recall" => ("recall", "HATIRLA"),
-                        "explain" => ("explain", "AÇIKLA"),
-                        _ => ("review_plan", "TEKRAR PLANI"),
+                        "recall" => ("recall", config.recall_label.as_str()),
+                        "explain" => ("explain", config.explain_label.as_str()),
+                        _ => ("review_plan", config.review_plan_label.as_str()),
                     };
                     let label = attr(&attrs, "label").unwrap_or(default_label);
                     out.push_str(&format!(
@@ -250,23 +291,25 @@ fn markdown_to_typst_with(markdown: &str, config: &RenderConfig) -> Result<Strin
                 "synthesis" => {
                     let inner_typst = markdown_to_typst_with(&inner_markdown, config)?;
                     out.push_str(&format!(
-                        "#synthesis_page(title: {})[{inner_typst}]\n\n",
-                        typst_string(attr(&attrs, "title").unwrap_or("TEK SAYFA SENTEZ"))
+                        "#synthesis_page(title: {}, badge: {})[{inner_typst}]\n\n",
+                        typst_string(attr(&attrs, "title").unwrap_or(&config.synthesis_label)),
+                        typst_string(&config.revision_badge)
                     ));
                 }
                 "answer" => {
                     let inner_typst = markdown_to_typst_with(&inner_markdown, config)?;
                     out.push_str(&format!(
                         "#answer(label: {})[{inner_typst}]\n\n",
-                        typst_string(attr(&attrs, "label").unwrap_or("CEVAP"))
+                        typst_string(attr(&attrs, "label").unwrap_or(&config.answer_label))
                     ));
                 }
                 "organiser" => {
                     let inner_typst = markdown_to_typst_with(&inner_markdown, config)?;
                     out.push_str(&format!(
-                        "#organiser_page(title: {}, source: {})[{inner_typst}]\n\n",
+                        "#organiser_page(title: {}, source: {}, badge: {})[{inner_typst}]\n\n",
                         typst_string(attr(&attrs, "title").unwrap_or("")),
-                        optional_attr(&attrs, "source")
+                        optional_attr(&attrs, "source"),
+                        typst_string(&config.organiser_badge)
                     ));
                 }
                 "chapter" => {
@@ -838,12 +881,29 @@ impl Renderer {
             Event::SoftBreak => self.push(" "),
             Event::HardBreak => self.push(" #linebreak() "),
             Event::Rule => self.push("\n\n#line(length: 100%, stroke: 0.5pt)\n\n"),
-            Event::Html(_)
-            | Event::InlineHtml(_)
-            | Event::FootnoteReference(_)
-            | Event::TaskListMarker(_)
-            | Event::InlineMath(_)
-            | Event::DisplayMath(_) => {}
+            Event::Html(raw) | Event::InlineHtml(raw) => {
+                if !raw.trim_start().starts_with("<!--") {
+                    return Err(Error::Markdown {
+                        line: 0,
+                        message:
+                            "raw HTML is not supported; use Markdown, a code fence or a directive"
+                                .to_string(),
+                    });
+                }
+            }
+            Event::InlineMath(_) | Event::DisplayMath(_) => {
+                return Err(Error::Markdown {
+                    line: 0,
+                    message: "math delimiters are not supported; use inline code or a code fence"
+                        .to_string(),
+                });
+            }
+            Event::FootnoteReference(_) | Event::TaskListMarker(_) => {
+                return Err(Error::Markdown {
+                    line: 0,
+                    message: "footnotes and task-list markers are not supported".to_string(),
+                });
+            }
             Event::Start(_) | Event::End(_) => {}
         }
         Ok(())
@@ -1166,6 +1226,27 @@ mod tests {
         assert!(typst.contains("#explain("));
         assert!(typst.contains("NEDEN"));
         assert!(typst.contains("#review_plan("));
+    }
+
+    #[test]
+    fn english_revision_labels_are_not_turkish() {
+        let strings =
+            crate::styles::strings(std::path::Path::new(""), "revision", "en").expect("en strings");
+        let markdown = "::: recall\nQ\n:::\n\n::: synthesis\n- A\n:::\n\n::: organiser title=\"Unit\" source=\"PD0, s. 1\"\n## Topic\nText.\n:::\n";
+        let typst = markdown_to_typst_styled_with_strings(markdown, &strings, HashMap::new())
+            .expect("convert");
+        assert!(typst.contains("RECALL"), "{typst}");
+        assert!(typst.contains("EXAM REVISION"), "{typst}");
+        assert!(typst.contains("KNOWLEDGE ORGANISER"), "{typst}");
+        assert!(!typst.contains("HATIRLA"), "{typst}");
+        assert!(!typst.contains("SINAV TEKRARI"), "{typst}");
+        assert!(!typst.contains("BİLGİ ORGANİZATÖRÜ"), "{typst}");
+    }
+
+    #[test]
+    fn rejects_raw_html_but_allows_comments() {
+        assert!(markdown_to_typst("A <span>lost</span> word.").is_err());
+        assert!(markdown_to_typst("<!-- covers: PD0:1.1 -->\n\nText.").is_ok());
     }
 
     #[test]

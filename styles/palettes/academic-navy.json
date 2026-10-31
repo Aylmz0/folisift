@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "id": "academic-navy",
+  "name": "Academic navy",
+  "family": "cool",
+  "palette": {
+    "paper": "#FBF8F1",
+    "ink": "#14213D",
+    "muted": "#4A5568",
+    "soft": "#3A465C",
+    "faint": "#6B7280",
+    "accent": "#1D3557",
+    "secondary": "#2F5D50",
+    "gold": "#9A7B3F",
+    "rule": "#D9D2C3",
+    "code_bg": "#F1ECE1",
+    "cover_bg": "#F4EFE4",
+    "cream": "#F5F0E6",
+    "zebra": "#F7F3EA",
+    "headerfill": "#EDE7DA"
+  }
+}

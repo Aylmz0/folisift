@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "id": "accessible",
   "name": "Accessible — large print",
   "status": "experimental",
@@ -41,5 +41,15 @@
   ],
   "engine_min": "0.8.0",
   "page_target": "dynamic",
-  "preview": "preview.md"
+  "preview": "preview.md",
+  "palette": "high-contrast",
+  "fonts": "editorial",
+  "supported_palettes": [
+    "high-contrast",
+    "mono-print"
+  ],
+  "supported_fonts": [
+    "editorial",
+    "technical"
+  ]
 }

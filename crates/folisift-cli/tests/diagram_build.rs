@@ -24,7 +24,8 @@ fn setup(root: &Path) {
             "study_mode": "exam",
             "domain": "cs",
             "citation": "page-ref"
-          }
+          },
+          "style_rationale": "Diagram build fixture."
         }"#,
     )
     .expect("config");

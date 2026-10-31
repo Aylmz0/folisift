@@ -50,58 +50,105 @@ def main() -> int:
     )
     recv()
     send({"jsonrpc": "2.0", "method": "notifications/initialized"})
-    send(
+    guides = [
         {
-            "jsonrpc": "2.0",
-            "id": 2,
-            "method": "tools/call",
-            "params": {
-                "name": "prepare_guide",
-                "arguments": {
-                    "slug": "pd2",
-                    "title": "Programlama Dilleri — Bölüm 2",
-                    "course": "BMÜ325",
-                    "sources": ["sources/PD2.pdf"],
-                    "domain": "cs",
-                    "language": "tr",
-                },
-            },
-        }
-    )
-    prepared = recv()["result"]["structuredContent"]
-    required_prepare = ["profiles", "prompt_fragment", "style_source", "visual_audit"]
-    missing = [key for key in required_prepare if key not in prepared]
-    if missing:
-        print(f"prepare_guide missing: {missing}", file=sys.stderr)
-        return 1
-    send(
+            "slug": "pd2",
+            "structure": "a-g",
+            "style": "reader",
+            "voice": "academic",
+        },
         {
-            "jsonrpc": "2.0",
-            "id": 3,
-            "method": "tools/call",
-            "params": {"name": "build_guide", "arguments": {"slug": "pd2", "check": True}},
-        }
-    )
-    built = recv()["result"]["structuredContent"]
-    required_build = ["coverage", "visual", "stats", "pages", "style_rationale"]
-    missing = [key for key in required_build if key not in built]
-    if missing:
-        print(f"build_guide missing: {missing}", file=sys.stderr)
-        return 1
-    print(
-        json.dumps(
+            "slug": "pd2-rev",
+            "structure": "revision-sheet",
+            "style": "revision",
+            "voice": "plain",
+        },
+        {
+            "slug": "pd2-ko",
+            "structure": "knowledge-organiser",
+            "style": "revision",
+            "voice": "plain",
+        },
+    ]
+    reports = []
+    for index, guide in enumerate(guides, start=2):
+        send(
             {
+                "jsonrpc": "2.0",
+                "id": index,
+                "method": "tools/call",
+                "params": {
+                    "name": "prepare_guide",
+                    "arguments": {
+                        "slug": guide["slug"],
+                        "title": "Programlama Dilleri — Bölüm 2",
+                        "course": "BMÜ325",
+                        "sources": ["sources/PD2.pdf"],
+                        "domain": "cs",
+                        "language": "tr",
+                        "structure": guide["structure"],
+                        "style": guide["style"],
+                        "voice": guide["voice"],
+                    },
+                },
+            }
+        )
+        prepared = recv()
+        if prepared.get("result", {}).get("isError"):
+            print(f"prepare_guide {guide['slug']} failed: {prepared}", file=sys.stderr)
+            return 1
+        prepared = prepared["result"]["structuredContent"]
+        required_prepare = ["profiles", "prompt_fragment", "style_source", "visual_audit"]
+        missing = [key for key in required_prepare if key not in prepared]
+        if missing:
+            print(f"prepare_guide {guide['slug']} missing: {missing}", file=sys.stderr)
+            return 1
+        send(
+            {
+                "jsonrpc": "2.0",
+                "id": index + 100,
+                "method": "tools/call",
+                "params": {
+                    "name": "build_guide",
+                    "arguments": {"slug": guide["slug"], "check": True},
+                },
+            }
+        )
+        built = recv()
+        if built.get("result", {}).get("isError"):
+            print(f"build_guide {guide['slug']} failed: {built}", file=sys.stderr)
+            return 1
+        built = built["result"]["structuredContent"]
+        required_build = [
+            "coverage",
+            "visual",
+            "stats",
+            "pages",
+            "style_rationale",
+            "passed",
+        ]
+        missing = [key for key in required_build if key not in built]
+        if missing:
+            print(f"build_guide {guide['slug']} missing: {missing}", file=sys.stderr)
+            return 1
+        if not built["passed"]:
+            print(f"build_guide {guide['slug']} did not pass its gates", file=sys.stderr)
+            return 1
+        if not str(built.get("style_rationale") or "").strip():
+            print(f"build_guide {guide['slug']} has no style_rationale", file=sys.stderr)
+            return 1
+        reports.append(
+            {
+                "slug": guide["slug"],
                 "coverage": built["coverage"],
                 "visual": built["visual"],
                 "stats": built["stats"],
                 "pages": built["pages"],
                 "style": built["style"],
                 "style_rationale": built["style_rationale"],
-            },
-            ensure_ascii=False,
-            indent=2,
+            }
         )
-    )
+    print(json.dumps(reports, ensure_ascii=False, indent=2))
     proc.stdin.close()
     proc.wait(timeout=60)
     return proc.returncode

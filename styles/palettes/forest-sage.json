@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "id": "forest-sage",
+  "name": "Forest sage",
+  "family": "natural",
+  "palette": {
+    "paper": "#F7F5EF",
+    "ink": "#1F2A24",
+    "muted": "#49594F",
+    "soft": "#556558",
+    "faint": "#5F7265",
+    "accent": "#2F5D50",
+    "secondary": "#7A4A3A",
+    "gold": "#9A7B3F",
+    "rule": "#D3D8CC",
+    "code_bg": "#EBEFE6",
+    "cover_bg": "#EEF1E9",
+    "cream": "#F0F2EA",
+    "zebra": "#F2F4ED",
+    "headerfill": "#E5EAE0"
+  }
+}

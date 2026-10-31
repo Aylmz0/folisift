@@ -74,7 +74,7 @@ pub fn packs() -> Vec<StructurePack> {
         IMRAD, IRAC, SOAP, FORMULA, LITERATURE, LECTURE, BRIEF, REVISION, ORGANISER,
     ]
     .iter()
-    .filter_map(|text| serde_json::from_str(text).ok())
+    .map(|text| serde_json::from_str(text).expect("built-in structure pack must be valid JSON"))
     .collect()
 }
 
@@ -87,8 +87,13 @@ pub fn get(id: &str) -> Option<StructurePack> {
 /// `a-g` has no structure pack and therefore no required headings; the audit
 /// section is a separate, always-on gate.
 pub fn validate(id: &str, language: &str, markdown: &str) -> Result<(), String> {
-    let Some(pack) = get(id) else {
+    if id == "a-g" {
         return Ok(());
+    }
+    let Some(pack) = get(id) else {
+        return Err(format!(
+            "unknown structure {id:?}; use a-g or a built-in pack"
+        ));
     };
     let headings = headings(markdown);
     let missing = pack
@@ -156,7 +161,7 @@ fn headings(markdown: &str) -> Vec<String> {
             fenced = !fenced;
             continue;
         }
-        if fenced || !trimmed.starts_with('#') {
+        if fenced || !trimmed.starts_with("## ") {
             continue;
         }
         let text = trimmed.trim_start_matches('#').trim();
@@ -205,6 +210,20 @@ pub fn summary() -> HashMap<String, usize> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn unknown_structures_fail_instead_of_disabling_the_gate() {
+        assert!(validate("not-a-pack", "en", "## Anything").is_err());
+        assert!(validate("a-g", "en", "").is_ok());
+    }
+
+    #[test]
+    fn nested_headings_do_not_satisfy_a_structure() {
+        let markdown = "### Introduction\n\n### Methods\n\n### Results\n\n### Discussion\n";
+        assert!(validate("imrad", "en", markdown).is_err());
+        let markdown = "## Introduction\n\n## Methods\n\n## Results\n\n## Discussion\n";
+        assert!(validate("imrad", "en", markdown).is_ok());
+    }
 
     #[test]
     fn every_pack_has_unique_section_ids() {

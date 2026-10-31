@@ -168,6 +168,11 @@ fn canonical_sections(pages: &[(usize, &str)], prefix: Option<&str>) -> Vec<Cano
     let mut sections = Vec::new();
     let mut seen = HashSet::new();
     let mut last_major = 0usize;
+    let chapter_local = prefix.is_some_and(|prefix| {
+        pages.iter().any(|(_, text)| {
+            text.contains(&format!("Bölüm {prefix}")) || text.contains(&format!("Chapter {prefix}"))
+        })
+    });
 
     for (_page_number, text) in pages {
         let looks_like_toc = ["Konular", "Contents", "İçindekiler", "Chapter ", "Bölüm "]
@@ -205,7 +210,9 @@ fn canonical_sections(pages: &[(usize, &str)], prefix: Option<&str>) -> Vec<Cano
             let number = match minor {
                 Some(minor) => format!("{major}.{minor}"),
                 None => match prefix {
-                    Some(prefix) if !prefix.is_empty() => format!("{prefix}.{major}"),
+                    Some(prefix) if chapter_local && !prefix.is_empty() => {
+                        format!("{prefix}.{major}")
+                    }
                     _ => major.to_string(),
                 },
             };
@@ -330,6 +337,19 @@ mod tests {
                 .map(|section| section.number.as_str())
                 .collect::<Vec<_>>(),
             vec!["2.1", "2.2", "2.3", "2.8", "2.9", "2.10"]
+        );
+    }
+
+    #[test]
+    fn preserves_major_numbers_without_a_chapter_marker() {
+        let toc = "Contents\n1. Introduction\n2. Methods\n3. Results\n";
+        let sections = canonical_sections(&[(2, toc)], Some("1"));
+        assert_eq!(
+            sections
+                .iter()
+                .map(|section| section.number.as_str())
+                .collect::<Vec<_>>(),
+            vec!["1", "2", "3"]
         );
     }
 }

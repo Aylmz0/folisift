@@ -21,8 +21,8 @@ course-specific material is the guide bundle under `guides/<slug>/`.
 | **Low-text page** | A page with little/no text layer; usually a figure, code screenshot or table. |
 | **Coverage report** | Comparison of source sections against the guide content. |
 | **Engine** | Domain-agnostic Rust code under `crates/`. |
-| **Template** | Reusable A–G paper design in `templates/paper.typ`. |
-| **Design system** | Paper palette, typography and layout rules in `templates/paper.typ`. |
+| **Template** | Shared paper and revision layouts in `templates/`. |
+| **Design system** | Layout, role scale, contrast-tested palettes and embedded font pairings in `templates/` and `styles/{palettes,fonts}/`. |
 | **Output** | A generated PDF under `output/`; not a source of truth. |
 
 ## Invariants
@@ -37,7 +37,8 @@ course-specific material is the guide bundle under `guides/<slug>/`.
 
 ```
 crates/                 Rust workspace: core, parse, render, mcp, cli
-templates/              paper.typ + embedded fonts
+templates/              paper.typ, revision.typ + embedded fonts
+styles/                 packs, 12 palettes, 2 font pairings, labels
 guides/<slug>/          one course/material guide (guide.md in v2)
 sources/                local PDF inputs (gitignored)
 output/                 generated PDFs

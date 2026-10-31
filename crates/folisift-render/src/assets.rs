@@ -19,7 +19,16 @@ const STOCK_HOSTS: &[&str] = &[
 ];
 
 pub fn lint_assets(markdown: &str, guide_root: &Path) -> Result<()> {
+    let mut fence = false;
     for (index, line) in markdown.lines().enumerate() {
+        let trimmed = line.trim();
+        if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
+            fence = !fence;
+            continue;
+        }
+        if fence {
+            continue;
+        }
         for (alt, dest) in images(line) {
             let line_number = index + 1;
             if alt.trim().is_empty() {
@@ -228,6 +237,13 @@ mod tests {
         assert!(sanitize_svg(external, path).is_err());
         let handler = r#"<svg viewBox="0 0 10 10" onload="x()"></svg>"#;
         assert!(sanitize_svg(handler, path).is_err());
+    }
+
+    #[test]
+    fn ignores_image_syntax_inside_code_fences() {
+        let root = tempfile::tempdir().expect("tempdir");
+        let markdown = "```text\n![not an asset](missing.svg)\n```\n";
+        assert!(lint_assets(markdown, root.path()).is_ok());
     }
 
     #[test]

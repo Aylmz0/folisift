@@ -307,6 +307,29 @@ uses body 12 and the same ratios/floors.
 - every text role ≥ 4.5:1;
 - no code line overflow; audit reports code font size and ratio.
 
+## Implementation status — 2026-10-31
+
+Implemented in the working tree:
+
+- shared role placeholders and code roles (`code_block`, `code_inline`);
+- revision 10.5 pt body, 9.7/10.0 pt code, 9.0 pt tables, 8.2 pt labels;
+- reader/PD2 9.2/9.5 pt code and accessible high-contrast default;
+- 12 contrast-tested palettes and `editorial`/`technical` pairings, selectable
+  through `style.palette` and `style.fonts`;
+- style-pack schema 2 with allowed palette/font lists; paper is frozen;
+- heading/mono font wiring and all palette roles;
+- CLI `styles palettes`, `styles fonts`, `styles info/preview --palette --fonts`;
+- full text-role contrast validation and an EN revision/organiser label test.
+
+Still open:
+
+- paper/reader table and label placeholders (the documented legacy gap);
+- removing `component_scale` after the paper table migration;
+- measured line-length p90 and histogram gates;
+- candidate font families (`academic`, `accessible`, `plex`) pending licence,
+  glyph, embedding and x-height tests;
+- package/clean-install rerun for the release candidate.
+
 ## 5. Implementation phases
 
 ### Phase 0 — Baseline and fixtures

@@ -46,6 +46,37 @@ fn paper_and_clean_share_the_content_hash() {
 }
 
 #[test]
+fn palette_and_font_choices_are_independent_layers() {
+    let base = StyleProfile {
+        aesthetic: "revision".to_string(),
+        structure: "a-g".to_string(),
+        language: "en".to_string(),
+        source_language: "en".to_string(),
+        fonts: "technical".to_string(),
+        ..StyleProfile::default()
+    };
+    let warm = render(SAMPLE, &options(&base)).expect("warm render");
+    let sage = StyleProfile {
+        palette: "forest-sage".to_string(),
+        ..base.clone()
+    };
+    let sage = render(SAMPLE, &options(&sage)).expect("sage render");
+    assert!(warm.pdf.starts_with(b"%PDF-"));
+    assert!(sage.pdf.starts_with(b"%PDF-"));
+    assert_ne!(warm.pdf, sage.pdf);
+    assert_eq!(warm.pages, sage.pages);
+
+    let unsupported = StyleProfile {
+        aesthetic: "paper".to_string(),
+        palette: "berry".to_string(),
+        language: "en".to_string(),
+        source_language: "en".to_string(),
+        ..StyleProfile::default()
+    };
+    assert!(render(SAMPLE, &options(&unsupported)).is_err());
+}
+
+#[test]
 fn renders_a_captioned_table() {
     let root = tempfile::tempdir().expect("tempdir");
     let content = r#"---

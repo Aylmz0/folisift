@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "id": "cobalt",
+  "name": "Cobalt",
+  "family": "cool",
+  "palette": {
+    "paper": "#F8FAFC",
+    "ink": "#0F172A",
+    "muted": "#475569",
+    "soft": "#334155",
+    "faint": "#64748B",
+    "accent": "#1E3A8A",
+    "secondary": "#0F766E",
+    "gold": "#A16207",
+    "rule": "#CBD5E1",
+    "code_bg": "#EEF2F7",
+    "cover_bg": "#F1F5F9",
+    "cream": "#EFF6FF",
+    "zebra": "#F5F8FC",
+    "headerfill": "#E2E8F0"
+  }
+}

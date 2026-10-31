@@ -50,10 +50,16 @@ search it with `search_source`; the host LLM writes the prose.
 
 ## Choose a style
 
-Styles are engine-owned packs under `styles/`. `paper` is the stable parity
-layout; `reader` is the spacious density variant; `clean` is the technical
-layout; `journal` and `brief` are presets; `accessible` is a large-print
-modifier. None of these is a genre on its own.
+Styles are engine-owned packs under `styles/`. `paper` is the frozen parity
+layout and is not the default for new guides; `reader` is the spacious density
+variant; `clean` is the technical layout; `journal` and `brief` are presets;
+`accessible` is a large-print modifier with a high-contrast palette. None of
+these is a genre on its own.
+
+Palette and font pairing are separate layers. A style pack declares which
+palettes and pairings it accepts; the guide selects them explicitly. The
+12-palette and 2-pairing libraries are in `styles/palettes/` and
+`styles/fonts/`, and every palette is contrast-tested at load time.
 
 `revision` is the exam-revision layout. It implements two structures:
 
@@ -72,6 +78,9 @@ cargo run -p folisift-cli -- styles list
 cargo run -p folisift-cli -- styles info reader --language tr
 cargo run -p folisift-cli -- styles preview reader --language tr
 cargo run -p folisift-cli -- styles preview revision --language tr
+cargo run -p folisift-cli -- styles palettes
+cargo run -p folisift-cli -- styles fonts
+cargo run -p folisift-cli -- styles preview revision --palette high-contrast --fonts technical
 ```
 
 The MCP `style` tool also has a `recommend` action. It returns only packs
@@ -95,7 +104,9 @@ A schema-3 guide config carries the independent axes:
   "output": "../../output/PD0-PD1_Calisma_Ozeti.pdf",
   "sources": ["../../sources/PD0.pdf", "../../sources/PD1.pdf"],
   "style": {
-    "aesthetic": "paper",
+    "aesthetic": "reader",
+    "palette": "academic-navy",
+    "fonts": "editorial",
     "structure": "a-g",
     "language": "tr",
     "source_language": "tr",
@@ -153,7 +164,7 @@ Every low-text page needs exactly one decision in
 
 ```json
 {
-  "schema_version": 1,
+  "schema_version": 3,
   "source_pages": [
     {
       "source": "PD2",
@@ -374,7 +385,8 @@ pixels changed, not that the new pixels are better.
 ```bash
 cargo run -p folisift-cli -- scaffold \
   --slug pd2 --title "Bölüm 2" --course "BMÜ325" \
-  --style paper --structure a-g --language tr --domain cs \
+  --style reader --structure a-g --language tr --domain cs \
+  --palette warm-paper --fonts editorial \
   --source sources/PD2.pdf
 ```
 
@@ -383,9 +395,10 @@ headings from the source inventory.
 
 ## Design changes
 
-Change `templates/paper.typ` for the shared design. A guide-specific visual
-change belongs in the guide only when it carries meaning; otherwise it is a
-design-system change and needs an ADR (ADR-0002, ADR-0007).
+Change `templates/paper.typ` or `templates/revision.typ` for shared geometry;
+change a palette or font pairing only in its library file. A guide-specific
+visual change belongs in the guide only when it carries meaning; otherwise it
+is a design-system change and needs an ADR (ADR-0002, ADR-0007, ADR-0012).
 
 ## Checklist
 

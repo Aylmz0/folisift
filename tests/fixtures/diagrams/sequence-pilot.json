@@ -1,0 +1,22 @@
+{
+  "schema_version": 3,
+  "id": "sequence-pilot",
+  "kind": "sequence",
+  "title": "TCP handshake",
+  "caption": "Connection setup uses three messages before data flows.",
+  "alt": "Client and server exchange SYN, SYN-ACK and ACK before the connection opens.",
+  "source": "PD0, s. 4",
+  "layout": "tala",
+  "actors": [
+    {"id": "client", "label": "Client"},
+    {"id": "server", "label": "Server"}
+  ],
+  "messages": [
+    {"from": "client", "to": "server", "label": "SYN"},
+    {"from": "server", "to": "client", "label": "SYN-ACK"},
+    {"from": "client", "to": "server", "label": "ACK"}
+  ],
+  "notes": [
+    {"actor": "client", "label": "seq = x"}
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "id": "editorial",
+  "name": "Editorial",
+  "status": "embedded",
+  "body": "Noto Serif",
+  "heading": "Inter",
+  "mono": "Noto Sans Mono",
+  "use": "Long-form reading with sans headings and mono code."
+}

@@ -11,37 +11,74 @@ from pathlib import Path
 import fitz
 
 
+def toc_pages(doc: fitz.Document) -> list[tuple[int, list[dict]]]:
+    found = []
+    for index, page in enumerate(doc):
+        links = [link for link in page.get_links() if link.get("page") is not None]
+        if len(links) < 2:
+            continue
+        words = page.get_text("words")
+        numeric = 0
+        for link in links:
+            rect = link["from"]
+            y = (rect.y0 + rect.y1) / 2
+            nearby = [
+                word[4]
+                for word in words
+                if abs((word[1] + word[3]) / 2 - y) < 5 and word[0] > 500
+            ]
+            if nearby and nearby[-1].isdigit():
+                numeric += 1
+        if numeric >= 2:
+            found.append((index, links))
+    return found
+
+
 def check(path: Path) -> int:
     doc = fitz.open(path)
     if doc.page_count < 3:
         print(f"{path}: too few pages", file=sys.stderr)
         return 1
-    page = doc[2]
-    links = page.get_links()
-    words = page.get_text("words")
+    pages = toc_pages(doc)
+    if not pages:
+        print(f"{path}: no TOC page with numeric internal links", file=sys.stderr)
+        return 1
     errors = []
-    for link in links:
-        target = link.get("page")
-        if target is None:
-            continue
-        rect = link["from"]
-        y = (rect.y0 + rect.y1) / 2
-        nearby = [
-            word[4]
-            for word in words
-            if abs((word[1] + word[3]) / 2 - y) < 5 and word[0] > 500
-        ]
-        if not nearby:
-            continue
-        printed = nearby[-1]
-        if not printed.isdigit():
-            continue
-        if int(printed) != target + 1:
-            errors.append((printed, target + 1))
+    total_links = 0
+    for index, links in pages:
+        total_links += len(links)
+        words = doc[index].get_text("words")
+        for link in links:
+            target = link.get("page")
+            if target is None:
+                continue
+            if not (0 <= target < doc.page_count):
+                errors.append(("out-of-range", target))
+                continue
+            rect = link["from"]
+            y = (rect.y0 + rect.y1) / 2
+            nearby = [
+                word[4]
+                for word in words
+                if abs((word[1] + word[3]) / 2 - y) < 5 and word[0] > 500
+            ]
+            if not nearby:
+                continue
+            printed = nearby[-1]
+            if not printed.isdigit():
+                continue
+            if int(printed) != target + 1:
+                errors.append((printed, target + 1))
+    if total_links < 3:
+        print(f"{path}: only {total_links} TOC links", file=sys.stderr)
+        return 1
     if errors:
         print(f"{path}: TOC page-number mismatches: {errors[:5]}", file=sys.stderr)
         return 1
-    print(f"{path}: {doc.page_count} pages, {len(links)} TOC links, page numbers match")
+    print(
+        f"{path}: {doc.page_count} pages, {len(pages)} TOC page(s), "
+        f"{total_links} links, page numbers match"
+    )
     return 0
 
 

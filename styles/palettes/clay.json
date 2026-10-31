@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "id": "clay",
+  "name": "Clay",
+  "family": "warm",
+  "palette": {
+    "paper": "#FAF6F2",
+    "ink": "#2E211C",
+    "muted": "#635049",
+    "soft": "#6F5B53",
+    "faint": "#7A655B",
+    "accent": "#9C4A2F",
+    "secondary": "#455C55",
+    "gold": "#B08048",
+    "rule": "#DCCEC5",
+    "code_bg": "#F1E7DF",
+    "cover_bg": "#F3EAE2",
+    "cream": "#F4EAE1",
+    "zebra": "#F6EDE6",
+    "headerfill": "#EEE1D7"
+  }
+}

@@ -20,7 +20,8 @@ use typst_layout::PagedDocument;
 pub use error::{Error, Result};
 pub use markdown::{
     Frontmatter, markdown_to_typst, markdown_to_typst_styled,
-    markdown_to_typst_styled_with_diagrams, markdown_to_typst_styled_with_table, parse_document,
+    markdown_to_typst_styled_with_diagrams, markdown_to_typst_styled_with_strings,
+    markdown_to_typst_styled_with_table, parse_document,
 };
 pub use styles::{LoadedStyle, StylePack, StyleStrings};
 
@@ -82,11 +83,16 @@ pub fn render(content: &str, options: &RenderOptions<'_>) -> Result<Rendered> {
         .map_err(Error::Structure)?;
     localization::lint(&body, &profile.language)?;
     let styles_root = options.styles_root.unwrap_or(Path::new(""));
-    let loaded = styles::load(styles_root, &profile.aesthetic)?;
+    let loaded = styles::load_with(
+        styles_root,
+        &profile.aesthetic,
+        Some(profile.palette.as_str()),
+        Some(profile.fonts.as_str()),
+    )?;
     styles::validate_profile(&loaded.pack, &profile)?;
     let strings = styles::strings(styles_root, &loaded.pack.id, &profile.language)?;
     diagram::ensure_no_inline_diagrams(&body)?;
-    let diagram_assets = diagram::load_assets(options.guide_root)?;
+    let diagram_assets = diagram::load_assets_for(options.guide_root, &body)?;
     assets::lint_assets(&body, options.guide_root)?;
     let cache_key = build_cache_key(
         content,
@@ -102,13 +108,7 @@ pub fn render(content: &str, options: &RenderOptions<'_>) -> Result<Rendered> {
     {
         return Ok(cached);
     }
-    let body = markdown_to_typst_styled_with_diagrams(
-        &body,
-        &strings.figure,
-        &strings.toc,
-        &strings.table,
-        diagram_assets,
-    )?;
+    let body = markdown_to_typst_styled_with_strings(&body, &strings, diagram_assets)?;
     let (template, document_function) = match loaded.pack.layout.as_str() {
         "paper" => (PAPER_TEMPLATE, "paper"),
         "clean" => (CLEAN_TEMPLATE, "paper"),

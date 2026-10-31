@@ -11,14 +11,15 @@ fn fixture() -> tempfile::TempDir {
     fs::create_dir_all(root.path().join("output")).expect("output");
     fs::create_dir_all(root.path().join("guides/demo")).expect("guide");
     fs::write(root.path().join("sources/PD0.pdf"), b"%PDF-1.7\n").expect("source");
-    fs::write(root.path().join("guides/demo/guide.html"), "<html></html>").expect("content");
+    fs::write(root.path().join("guides/demo/guide.md"), "# Demo").expect("content");
     fs::write(
         root.path().join("guides/demo/config.json"),
         r#"{
+          "schema_version": 3,
           "slug": "demo",
           "title": "Demo Guide",
           "language": "tr",
-          "content": "guide.html",
+          "content": "guide.md",
           "output": "../../output/demo.pdf",
           "sources": ["../../sources/PD0.pdf"],
           "target_pages": "18-22"
@@ -39,9 +40,9 @@ fn loads_a_valid_guide() {
 
     assert_eq!(guide.slug, "demo");
     assert_eq!(guide.config.title, "Demo Guide");
-    assert_eq!(guide.config.schema_version, 1);
+    assert_eq!(guide.config.schema_version, 3);
     assert_eq!(guide.sources.len(), 1);
-    assert!(guide.content.ends_with("guide.html"));
+    assert!(guide.content.ends_with("guide.md"));
     assert!(guide.output.ends_with("output/demo.pdf"));
 }
 
@@ -102,6 +103,7 @@ fn rejects_traversal_inside_a_config_path() {
     fs::write(
         root.path().join("guides/demo/config.json"),
         r#"{
+          "schema_version": 3,
           "slug": "demo",
           "title": "Demo",
           "content": "../../sources/PD0.pdf",
@@ -233,6 +235,39 @@ fn scaffolds_structure_sections_in_the_requested_language() {
 }
 
 #[test]
+fn rejects_schema_three_style_without_rationale() {
+    let root = fixture();
+    fs::create_dir_all(root.path().join("guides/unrationaled")).expect("guide");
+    fs::write(
+        root.path().join("guides/unrationaled/config.json"),
+        r#"{
+          "schema_version": 3,
+          "slug": "unrationaled",
+          "title": "No rationale",
+          "language": "en",
+          "theme": "reader",
+          "content": "guide.md",
+          "output": "../../output/no.pdf",
+          "sources": ["../../sources/PD0.pdf"],
+          "style": {
+            "aesthetic": "reader",
+            "structure": "a-g",
+            "language": "en",
+            "source_language": "en",
+            "voice": "academic",
+            "study_mode": "exam",
+            "domain": "cs",
+            "citation": "page-ref"
+          }
+        }"#,
+    )
+    .expect("config");
+    fs::write(root.path().join("guides/unrationaled/guide.md"), "# Demo").expect("content");
+    let error = Guide::load(&workspace(root.path()), "unrationaled").expect_err("rationale");
+    assert!(error.to_string().contains("style_rationale"), "{error}");
+}
+
+#[test]
 fn loads_a_schema_three_style_profile() {
     let root = fixture();
     fs::create_dir_all(root.path().join("guides/styled")).expect("guide");
@@ -243,11 +278,14 @@ fn loads_a_schema_three_style_profile() {
           "slug": "styled",
           "title": "Styled",
           "language": "en",
+          "theme": "clean",
           "content": "guide.md",
           "output": "../../output/styled.pdf",
           "sources": ["../../sources/PD0.pdf"],
           "style": {
             "aesthetic": "clean",
+            "palette": "cobalt",
+            "fonts": "technical",
             "structure": "imrad",
             "language": "en",
             "source_language": "tr",
@@ -255,7 +293,8 @@ fn loads_a_schema_three_style_profile() {
             "study_mode": "exam",
             "domain": "cs",
             "citation": "page-ref"
-          }
+          },
+          "style_rationale": "Technical layout for an IMRAD report."
         }"#,
     )
     .expect("config");
@@ -264,6 +303,8 @@ fn loads_a_schema_three_style_profile() {
     let guide = Guide::load(&workspace(root.path()), "styled").expect("guide");
     assert_eq!(guide.config.schema_version, 3);
     assert_eq!(guide.style().aesthetic, "clean");
+    assert_eq!(guide.style().palette, "cobalt");
+    assert_eq!(guide.style().fonts, "technical");
     assert_eq!(guide.style().structure, "imrad");
 }
 
@@ -314,9 +355,10 @@ fn rejects_invalid_target_pages() {
     fs::write(
         root.path().join("guides/demo/config.json"),
         r#"{
+          "schema_version": 3,
           "slug": "demo",
           "title": "Demo",
-          "content": "guide.html",
+          "content": "guide.md",
           "output": "../../output/demo.pdf",
           "sources": ["../../sources/PD0.pdf"],
           "target_pages": "22-18"
