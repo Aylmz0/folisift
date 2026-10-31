@@ -541,19 +541,19 @@ plan is in
 
 ## 7.1 Remediation status — 2026-10-31
 
-Closed with code and tests: A1–A3, A6, A7, A12 (heading/mono/palette roles),
-A14, B1–B6, B7, B8, B9, B12–B20, B22, B24, B25, B26.
+Closed with code and tests: A1–A12 (A4/A5 through schema v3, theme sizes and
+per-kind SVG baselines), A14, B1–B26 except the process items listed below.
 
-Partially closed: A8 (genre coverage still undefined), A9 (margins and an
-optional minimum font are style-aware via `audit --guide`; the 6 pt absolute
-floor remains), A10/A11 (underfill is still prose-shaped and caption counting
-is approximate), A13/A17 (paper is labelled legacy; exact parity remains by
-choice), B10/B11 (structure heading gate is stricter; duplicate canonical
-numbers still need a report field), B21 (TOC/production checks strengthened),
-B23 (major-only TOC fixed when no chapter marker is present).
+Paper is the only documented legacy exemption: A13/A17 keep exact parity and
+are labelled as a frozen fixture rather than the standard. A16 (`styles
+preview` uses a generic `a-g` sample) remains a product limitation, not a
+correctness gate. Per-kind **PDF** baselines remain open; processed SVG
+baselines cover the D2 engine output.
 
-Open: A4/A5 residual diagram typography/per-kind baselines, A16 preview uses
-a generic structure, B18/B19 follow-up limits, and the full style-aware audit.
+Verification at this status: workspace tests, clippy, fmt, `make parity`
+(22 pages), `make visual`, `make revision`, `make type-check`,
+`make palette-check`, TOC links 42/54/24, three-guide production report,
+package checksum and clean-directory `doctor`.
 
 ## 8. Expanded priority backlog
 

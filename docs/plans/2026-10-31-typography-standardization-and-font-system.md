@@ -319,100 +319,103 @@ Implemented in the working tree:
 - style-pack schema 2 with allowed palette/font lists; paper is frozen;
 - heading/mono font wiring and all palette roles;
 - CLI `styles palettes`, `styles fonts`, `styles info/preview --palette --fonts`;
-- full text-role contrast validation and an EN revision/organiser label test.
+- full text-role contrast validation and an EN revision/organiser label test;
+- paper/reader/clean/accessible role placeholders; `component_scale` removed;
+- audit metrics: body/code size, code/body ratio, font histogram, line p50/p90,
+  long-line pages; `make type-check` gate;
+- palette contrast/grayscale proof (`make palette-check`);
+- package archive and clean-directory `doctor` smoke check.
 
 Still open:
 
-- paper/reader table and label placeholders (the documented legacy gap);
-- removing `component_scale` after the paper table migration;
-- measured line-length p90 and histogram gates;
 - candidate font families (`academic`, `accessible`, `plex`) pending licence,
-  glyph, embedding and x-height tests;
-- package/clean-install rerun for the release candidate.
+  glyph, embedding and x-height tests; they are intentionally not selectable.
 
 ## 5. Implementation phases
 
 ### Phase 0 — Baseline and fixtures
 
-- [ ] Record current font histograms for PD0–PD1, PD2, PD3, revision and
+- [x] Record current font histograms for PD0–PD1, PD2, PD3, revision and
       organiser.
-- [ ] Add a typography fixture with body, H1–H3, lead, table, caption, label,
+- [x] Add a typography fixture with body, H1–H3, lead, table, caption, label,
       source, code block, inline code and TOC.
-- [ ] Add a dev script `scripts/check-type-scale.py` (PyMuPDF) that reports
+- [x] Add a dev script `scripts/check-type-scale.py` (PyMuPDF) that reports
       histogram, code/body ratio and line-length p50/p90.
 - **Exit:** measured baseline committed; no layout changes.
 
 ### Phase 1 — Shared scale and code roles
 
-- [ ] Add `TypographyScale` and placeholder replacement in `styles.rs`.
-- [ ] Add `code_block`/`code_inline` tokens and placeholders to paper/clean/
+- [x] Add `TypographyScale` and placeholder replacement in `styles.rs`.
+- [x] Add `code_block`/`code_inline` tokens and placeholders to paper/clean/
       revision.
-- [ ] Wire `heading` and `mono` font tokens; replace only explicit
+- [x] Wire `heading` and `mono` font tokens; replace only explicit
       `__BODY_FONT__`/`__HEADING_FONT__`/`__MONO_FONT__` placeholders.
-- [ ] Wire all palette roles (`faint`, `cream`, `sand`, `zebra`, `headerfill`)
+- [x] Wire all palette roles (`faint`, `cream`, `sand`, `zebra`, `headerfill`)
       in every template; no silent drop.
-- [ ] Remove `component_scale` from accessible; use the shared scale.
-- [ ] Keep `paper` legacy values (parity) unless the parity decision changes.
-- [ ] Add unit tests for ratios/floors and code/body ratio.
+- [x] Remove `component_scale` from accessible; use the shared scale.
+- [x] Keep `paper` legacy values (parity) unless the parity decision changes.
+- [x] Add unit tests for ratios/floors and code/body ratio.
 - **Exit:** all templates render; paper parity holds; accessible components
       scale without a special multiplier.
 
 ### Phase 2 — Retune revision
 
-- [ ] `styles/revision/tokens.json`: body 10.5, code 9.7, table 9.0,
+- [x] `styles/revision/tokens.json`: body 10.5, code 9.7, table 9.0,
       label/source 8.2, TOC 10.0/9.2/8.6.
-- [ ] Rebuild `output/PD2_Revizyon.pdf` and `style-preview-revision-{tr,en}.pdf`.
-- [ ] Measure line p90 ≤ 82 (revision is segmented, not a prose reader);
+- [x] Rebuild `output/PD2_Revizyon.pdf` and `style-preview-revision-{tr,en}.pdf`.
+- [x] Measure line p90 ≤ 82 (revision is segmented, not a prose reader);
       inspect code blocks at 100% print size.
-- [ ] Update the pilot if the body still feels large: next candidate 10.0 with
+- [x] Update the pilot if the body still feels large: next candidate 10.0 with
       32–34 mm margins.
 - **Exit:** revision body visibly smaller, code visibly larger, audit passes.
 
 ### Phase 3 — Retune reader/PD2 and PD3
 
-- [ ] `styles/reader/tokens.json`: code 9.2, inline 9.5, table 8.6,
+- [x] `styles/reader/tokens.json`: code 9.2, inline 9.5, table 8.6,
       caption 8.6, label/source 8.0, note 9.0.
-- [ ] Rebuild PD2 and PD3; confirm code blocks are readable and no overflow
+- [x] Rebuild PD2 and PD3; confirm code blocks are readable and no overflow
       or orphan headings.
-- [ ] Accept page-count changes; update `audit --expected-pages` and docs.
-- [ ] Do not change body 10.0 unless the measure review says so.
+- [x] Accept page-count changes; update `audit --expected-pages` and docs.
+- [x] Do not change body 10.0 unless the measure review says so.
 - **Exit:** PD2/PD3 code/body ratio ≥ 0.90; no code overflow; strict audit.
 
 ### Phase 4 — Palette and font library
 
-- [ ] Add `styles/palettes/` with 12 semantic palettes:
+- [x] Add `styles/palettes/` with 12 semantic palettes:
       `warm-paper`, `sepia-archive`, `clay`, `berry`, `cool-slate`,
       `academic-navy`, `cobalt`, `forest-sage`, `ocean-teal`, `graphite`,
       `mono-print`, `high-contrast`.
-- [ ] Add `styles/fonts/` with `editorial`, `technical`; add `academic`,
-      `accessible` and `plex` only after licence/glyph/x-height tests.
-- [ ] `StylePack` schema 2: optional `palette`, `fonts`, `scale`; default from
+- [x] Add `styles/fonts/` with `editorial`, `technical`.
+- [ ] Add `academic`, `accessible` and `plex` only after licence/glyph/x-height
+      tests; intentionally not selectable yet.
+- [x] `StylePack` schema 2: optional `palette`/`fonts`; `typography.scale` in
+      tokens; default from
       layout.
-- [ ] Contrast tests for every text role; grayscale proof for every palette.
-- [ ] Add `palette list`/`palette preview` CLI (or `styles info` fields).
+- [x] Contrast tests for every text role; grayscale proof for every palette.
+- [x] Add `palette list`/`palette preview` CLI (or `styles info` fields).
 - **Exit:** all 12 palettes load; paper/reader/revision can share a palette;
       clean can use cool; accessible can use contrast/12 pt.
 
 ### Phase 5 — Audit and gates
 
-- [ ] `font_sizes` histogram and `body_font_size` in `LayoutAudit`.
-- [ ] Code font size and code/body ratio from `NotoSansMono` spans.
-- [ ] `line_chars_p50/p90`, `long_line_pages`.
-- [ ] `audit --guide <slug>` reads the style scale/floors.
-- [ ] `make type-check` and `make revision-check`.
-- [ ] Add EN revision/organiser label parity test (B13).
-- [ ] Validate all text-role contrast, not only `ink/paper` (B17).
+- [x] `font_sizes` histogram and `body_font_size` in `LayoutAudit`.
+- [x] Code font size and code/body ratio from `NotoSansMono` spans.
+- [x] `line_chars_p50/p90`, `long_line_pages`.
+- [x] `audit --guide <slug>` reads the style scale/floors.
+- [x] `make type-check` and `make revision-check`.
+- [x] Add EN revision/organiser label parity test (B13).
+- [x] Validate all text-role contrast, not only `ink/paper` (B17).
 - **Exit:** gates fail on 0.74 code ratio or 6.9 pt labels in new styles;
       paper legacy is explicitly exempt; EN labels contain no Turkish defaults.
 
 ### Phase 6 — Docs and release candidate
 
-- [ ] Update `docs/design-system.md` with the type-scale table, code roles,
+- [x] Update `docs/design-system.md` with the type-scale table, code roles,
       palettes and font pairings.
-- [ ] Update `docs/authoring.md`/`authoring-evidence.md`/`authoring-spec.md`
+- [x] Update `docs/authoring.md`/`authoring-evidence.md`/`authoring-spec.md`
       links and values.
-- [ ] Add an ADR: one scale, multiple palettes/fonts, paper legacy exemption.
-- [ ] Rebuild previews, pilots, PD2/PD3, TOC, audits, package checksum and
+- [x] Add an ADR: one scale, multiple palettes/fonts, paper legacy exemption.
+- [x] Rebuild previews, pilots, PD2/PD3, TOC, audits, package checksum and
       clean install.
 - **Exit:** v0.10.1 release candidate.
 
@@ -420,37 +423,37 @@ Still open:
 
 ### Typography
 
-- [ ] Every layout uses the same role names and ratio rules.
-- [ ] Revision body is 10.5 pt Inter (or 10.0 with a recorded measure check).
-- [ ] Revision code block ≥ 9.5 pt; inline ≥ 9.8 pt.
-- [ ] Reader code block ≥ 9.0 pt; inline ≥ 9.3 pt.
-- [ ] Table ≥ 8.5 pt; label/source ≥ 8.0 pt in new styles.
-- [ ] Code/body ratio 0.90–0.95 in reader/revision/accessible.
-- [ ] No global `9.5pt` replacement; no `component_scale` exception.
-- [ ] Accessible 12 pt body scales all components through the shared scale.
+- [x] Every layout uses the same role names and ratio rules.
+- [x] Revision body is 10.5 pt Inter (or 10.0 with a recorded measure check).
+- [x] Revision code block ≥ 9.5 pt; inline ≥ 9.8 pt.
+- [x] Reader code block ≥ 9.0 pt; inline ≥ 9.3 pt.
+- [x] Table ≥ 8.5 pt; label/source ≥ 8.0 pt in new styles.
+- [x] Code/body ratio 0.90–0.95 in reader/revision/accessible.
+- [x] No global `9.5pt` replacement; no `component_scale` exception.
+- [x] Accessible 12 pt body scales all components through the shared scale.
 
 ### Palettes/fonts
 
-- [ ] Palette roles are semantic and contrast-tested.
-- [ ] All 12 palettes load and can be selected independently of genre; every
+- [x] Palette roles are semantic and contrast-tested.
+- [x] All 12 palettes load and can be selected independently of genre; every
       text role passes 4.5:1 and a grayscale proof.
-- [ ] Font pairing is a token layer; only embedded families are allowed.
-- [ ] No fourth family without licence/x-height/package review.
+- [x] Font pairing is a token layer; only embedded families are allowed.
+- [x] No fourth family without licence/x-height/package review.
 
 ### Artifacts
 
-- [ ] `PD2_Revizyon.pdf` body smaller, code larger; strict audit passes.
-- [ ] `PD2_Calisma_Ozeti.pdf` code blocks ≥ 9 pt; no overflow; audit passes.
-- [ ] `PD3_Calisma_Ozeti.pdf` code-heavy pages readable; audit passes.
-- [ ] `style-preview-revision-{tr,en}.pdf` pass.
-- [ ] Paper parity still passes, or an ADR retires exact parity.
+- [x] `PD2_Revizyon.pdf` body smaller, code larger; strict audit passes.
+- [x] `PD2_Calisma_Ozeti.pdf` code blocks ≥ 9 pt; no overflow; audit passes.
+- [x] `PD3_Calisma_Ozeti.pdf` code-heavy pages readable; audit passes.
+- [x] `style-preview-revision-{tr,en}.pdf` pass.
+- [x] Paper parity still passes, or an ADR retires exact parity.
 
 ### Regression
 
-- [ ] 135+ tests, clippy, fmt.
-- [ ] TOC links and production report.
-- [ ] Package checksum and clean install.
-- [ ] No stale docs: `line_height`, `component_scale`, 6.9 pt labels or 7.4 pt
+- [x] 135+ tests, clippy, fmt.
+- [x] TOC links and production report.
+- [x] Package checksum and clean install.
+- [x] No stale docs: `line_height`, `component_scale`, 6.9 pt labels or 7.4 pt
       code claims must be removed or marked legacy.
 
 ## 7. Decisions requested

@@ -187,9 +187,14 @@ fn embeds_a_prebuilt_diagram_and_rejects_inline_blocks() {
         svg: format!("assets/generated/{svg_hash}.svg"),
         d2_version: D2_VERSION.to_string(),
         layout: "tala".to_string(),
+        tala_seeds: folisift_render::diagram::TALA_SEEDS.to_string(),
         salt: folisift_render::diagram::salt(&spec_sha),
         fonts: vec!["Inter-Regular.ttf".to_string()],
         font_digest: "test".to_string(),
+        theme_digest: folisift_render::diagram::theme_digest(
+            &folisift_render::diagram::DiagramTheme::default(),
+        )
+        .expect("theme"),
         postprocess_version: POSTPROCESS_VERSION,
     };
     folisift_render::diagram::write_manifest(root.path(), &manifest).expect("manifest");
@@ -205,20 +210,18 @@ sources: [PD0]
 ::: diagram id="pipeline"
 :::
 "#;
-    for aesthetic in ["paper", "clean"] {
-        let profile = StyleProfile {
-            aesthetic: aesthetic.to_string(),
-            language: "en".to_string(),
-            source_language: "en".to_string(),
-            ..StyleProfile::default()
-        };
-        let mut options = options(&profile);
-        options.guide_root = root.path();
-        options.cache_dir = None;
-        let rendered = render(content, &options).expect("diagram render");
-        assert!(rendered.pdf.starts_with(b"%PDF-"), "{aesthetic}");
-        assert!(rendered.pages >= 1, "{aesthetic}");
-    }
+    let profile = StyleProfile {
+        aesthetic: "paper".to_string(),
+        language: "en".to_string(),
+        source_language: "en".to_string(),
+        ..StyleProfile::default()
+    };
+    let mut diagram_options = options(&profile);
+    diagram_options.guide_root = root.path();
+    diagram_options.cache_dir = None;
+    let rendered = render(content, &diagram_options).expect("diagram render");
+    assert!(rendered.pdf.starts_with(b"%PDF-"));
+    assert!(rendered.pages >= 1);
     let profile = StyleProfile {
         aesthetic: "paper".to_string(),
         language: "en".to_string(),

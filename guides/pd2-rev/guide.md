@@ -4,6 +4,7 @@ subtitle: "Sınav öncesi kısa tekrar"
 course: "BMÜ325 Programlama Dilleri"
 language: tr
 sources: [PD2]
+source_scope: "PD2:26-29"
 running: "LISP Revizyon Sayfası"
 cover_notes: ["Kaynak: PD2, s. 26–29", "Folisift revizyon biçimi"]
 ---

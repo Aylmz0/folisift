@@ -15,6 +15,7 @@ pub const D2_VERSION: &str = "v0.9.0";
 pub const SPEC_SCHEMA_VERSION: u32 = 3;
 pub const SUPPORTED_SPEC_SCHEMA_VERSIONS: &[u32] = &[2, 3];
 pub const POSTPROCESS_VERSION: u32 = 1;
+pub const TALA_SEEDS: &str = "1,2,3";
 pub const MAX_NODES: usize = 12;
 pub const MAX_EDGES: usize = 20;
 pub const MAX_DEPTH: usize = 4;
@@ -146,7 +147,7 @@ pub struct Group {
     pub nodes: Vec<String>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct DiagramTheme {
     pub ink: String,
     pub muted: String,
@@ -154,6 +155,8 @@ pub struct DiagramTheme {
     pub paper: String,
     pub rule: String,
     pub font: String,
+    pub label_size: f64,
+    pub edge_size: f64,
 }
 
 impl Default for DiagramTheme {
@@ -165,6 +168,8 @@ impl Default for DiagramTheme {
             paper: "#FAF6EC".to_string(),
             rule: "#D8CEBD".to_string(),
             font: "Inter".to_string(),
+            label_size: 28.0,
+            edge_size: 22.0,
         }
     }
 }
@@ -179,6 +184,14 @@ impl DiagramTheme {
                 .unwrap_or(fallback)
                 .to_string()
         };
+        let size = |key: &str, fallback: f64| {
+            tokens
+                .get("diagram")
+                .and_then(|value| value.get(key))
+                .and_then(serde_json::Value::as_f64)
+                .unwrap_or(fallback)
+                .clamp(14.0, 48.0)
+        };
         Self {
             ink: get("ink", "#211E19"),
             muted: get("muted", "#5E574B"),
@@ -186,6 +199,8 @@ impl DiagramTheme {
             paper: get("paper", "#FAF6EC"),
             rule: get("rule", "#D8CEBD"),
             font: font.to_string(),
+            label_size: size("label_size", 28.0),
+            edge_size: size("edge_size", 22.0),
         }
     }
 }
@@ -204,10 +219,14 @@ pub struct DiagramManifest {
     pub svg: String,
     pub d2_version: String,
     pub layout: String,
+    #[serde(default)]
+    pub tala_seeds: String,
     pub salt: String,
     pub fonts: Vec<String>,
     #[serde(default)]
     pub font_digest: String,
+    #[serde(default)]
+    pub theme_digest: String,
     pub postprocess_version: u32,
 }
 
@@ -248,6 +267,12 @@ pub fn default_schema() -> u32 {
 
 pub fn default_layout() -> String {
     DEFAULT_LAYOUT.to_string()
+}
+
+pub fn theme_digest(theme: &DiagramTheme) -> Result<String> {
+    let bytes = serde_json::to_vec(theme)
+        .map_err(|error| Error::Diagram(format!("diagram theme serialise: {error}")))?;
+    Ok(blake3::hash(&bytes).to_hex().to_string())
 }
 
 pub fn spec_path(guide_root: &Path, id: &str) -> PathBuf {
@@ -1034,13 +1059,13 @@ fn apply_graph_style(spec: &DiagramSpec, theme: &DiagramTheme, out: &mut String)
     out.push_str(&format!("  fill: {}\n", d2_quote(&theme.paper)));
     out.push_str(&format!("  stroke: {}\n", d2_quote(&theme.accent)));
     out.push_str(&format!("  font-color: {}\n", d2_quote(&theme.ink)));
-    out.push_str("  font-size: 28\n");
+    out.push_str(&format!("  font-size: {:.0}\n", theme.label_size));
     out.push_str("  border-radius: 3\n");
     out.push_str("}\n");
     out.push_str("(* -> *)[*].style: {\n");
     out.push_str(&format!("  stroke: {}\n", d2_quote(&theme.accent)));
     out.push_str(&format!("  font-color: {}\n", d2_quote(&theme.muted)));
-    out.push_str("  font-size: 22\n");
+    out.push_str(&format!("  font-size: {:.0}\n", theme.edge_size));
     out.push_str("}\n");
 }
 
@@ -1244,14 +1269,23 @@ pub fn read_specs(guide_root: &Path) -> Result<Vec<DiagramSpec>> {
 }
 
 pub fn load_assets(guide_root: &Path) -> Result<HashMap<String, DiagramAsset>> {
-    load_assets_filtered(guide_root, None)
+    load_assets_filtered(guide_root, None, None)
 }
 
 /// Load only diagrams referenced by a Markdown body. Drafts with a spec but no
 /// manifest therefore do not block an unrelated build.
 pub fn load_assets_for(guide_root: &Path, markdown: &str) -> Result<HashMap<String, DiagramAsset>> {
+    load_assets_with_theme(guide_root, markdown, None)
+}
+
+/// Load referenced diagrams and reject a manifest built with another theme.
+pub fn load_assets_with_theme(
+    guide_root: &Path,
+    markdown: &str,
+    theme_digest: Option<&str>,
+) -> Result<HashMap<String, DiagramAsset>> {
     let ids = referenced_ids(markdown);
-    load_assets_filtered(guide_root, Some(&ids))
+    load_assets_filtered(guide_root, Some(&ids), theme_digest)
 }
 
 pub fn referenced_ids(markdown: &str) -> HashSet<String> {
@@ -1283,6 +1317,7 @@ pub fn referenced_ids(markdown: &str) -> HashSet<String> {
 fn load_assets_filtered(
     guide_root: &Path,
     wanted: Option<&HashSet<String>>,
+    expected_theme: Option<&str>,
 ) -> Result<HashMap<String, DiagramAsset>> {
     let slug = guide_slug(guide_root);
     let mut assets = HashMap::new();
@@ -1303,10 +1338,19 @@ fn load_assets_filtered(
                 spec.id, spec.id
             )));
         }
-        if manifest.d2_version != D2_VERSION || manifest.postprocess_version != POSTPROCESS_VERSION
+        if manifest.d2_version != D2_VERSION
+            || manifest.postprocess_version != POSTPROCESS_VERSION
+            || manifest.tala_seeds != TALA_SEEDS
+            || manifest.theme_digest.is_empty()
         {
             return Err(Error::Diagram(format!(
                 "diagram {:?} was built with a different engine/post-processor; rebuild it with `folisift diagram build --guide {slug} --id {}`",
+                spec.id, spec.id
+            )));
+        }
+        if expected_theme.is_some_and(|digest| manifest.theme_digest != digest) {
+            return Err(Error::Diagram(format!(
+                "diagram {:?} was built with a different palette/font theme; rebuild it with `folisift diagram build --guide {slug} --id {}`",
                 spec.id, spec.id
             )));
         }
@@ -1485,7 +1529,11 @@ fn status_for_spec(
             message: Some("spec or hash is stale".to_string()),
         });
     }
-    if manifest.d2_version != D2_VERSION || manifest.postprocess_version != POSTPROCESS_VERSION {
+    if manifest.d2_version != D2_VERSION
+        || manifest.postprocess_version != POSTPROCESS_VERSION
+        || manifest.tala_seeds != TALA_SEEDS
+        || manifest.theme_digest.is_empty()
+    {
         return Ok(DiagramStatus {
             id: spec.id.clone(),
             state: DiagramState::EngineMismatch,

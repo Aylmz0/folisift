@@ -37,7 +37,7 @@
 
 #let source_ref(body) = box(text(
   font: "Inter",
-  size: 6.9pt,
+  size: __LABEL_SIZE__,
   style: "normal",
   fill: faint,
   tracking: 0.02em,
@@ -56,7 +56,7 @@
 
 #let fig_label(number, word: "Şekil") = text(
   font: "Inter",
-  size: 6.8pt,
+  size: __FIG_LABEL_SIZE__,
   tracking: 0.12em,
   fill: brick,
 )[#upper(word + " " + number)]
@@ -77,7 +77,7 @@
 ]
 
 #let running_header(left_text, right_text) = {
-  set text(font: "Inter", size: 7pt, fill: rgb("#4B5563"), tracking: 0.14em)
+  set text(font: "Inter", size: __RUNNING_SIZE__, fill: rgb("#4B5563"), tracking: 0.14em)
   grid(
     columns: (1fr, auto),
     align(start)[#ui_upper_str(left_text)],
@@ -94,15 +94,15 @@
     #context {
       counter("table").step()
       block(above: 0pt, below: 1.5mm)[
-        #text(font: "Inter", size: 7.8pt, weight: "semibold", fill: ink)[#label #counter("table").display()]
-        #text(font: "Inter", size: 7.8pt, fill: ink)[ #caption]
+        #text(font: "Inter", size: __CAPTION_SIZE__, weight: "semibold", fill: ink)[#label #counter("table").display()]
+        #text(font: "Inter", size: __CAPTION_SIZE__, fill: ink)[ #caption]
       ]
     }
   ]
   #body
   #if source != none [
     #v(1mm)
-    #text(font: "Inter", size: 6.9pt, fill: faint)[#source]
+    #text(font: "Inter", size: __LABEL_SIZE__, fill: faint)[#source]
   ]
 ]
 
@@ -113,7 +113,7 @@
   let cells = if header.len() > 0 {
     (table.header(..header.map(cell => text(
       font: "Inter",
-      size: 6.9pt,
+      size: __LABEL_SIZE__,
       weight: "semibold",
       tracking: 0.09em,
     )[#ui_upper(cell)])), ..body)
@@ -121,7 +121,7 @@
     body
   }
   block(breakable: false, above: 3mm, below: 4mm)[
-    #set text(size: 7.9pt)
+    #set text(size: __TABLE_SIZE__)
     #set par(leading: 0.58em, spacing: 0pt, justify: false)
     #table(
       columns: cols,
@@ -146,7 +146,7 @@
 }
 
 #let facts_table(rows) = block(breakable: false, above: 4mm, below: 5mm)[
-  #set text(size: 9.4pt)
+  #set text(size: __BOX_SIZE__)
   #table(
     columns: (34mm, 1fr),
     stroke: (x, y) => if y < rows.len() { (top: 0.5pt + linen) } else { none },
@@ -155,7 +155,7 @@
       .map(row => (
         text(
           font: "Inter",
-          size: 7.4pt,
+          size: __SMALL_SIZE__,
           tracking: 0.1em,
           fill: brick,
         )[#ui_upper(row.at(0))],
@@ -185,7 +185,7 @@
   #if label != none [
     #text(
       font: "Inter",
-      size: 6.9pt,
+      size: __LABEL_SIZE__,
       weight: "semibold",
       tracking: 0.16em,
       fill: brick,
@@ -227,12 +227,12 @@
   width: 100%,
   breakable: false,
 )[
-  #set text(size: 8.9pt, fill: muted)
+  #set text(size: __NOTE_SIZE__, fill: muted)
   #set par(spacing: 1.5mm)
   #if label != none [
     #text(
       font: "Inter",
-      size: 6.9pt,
+      size: __LABEL_SIZE__,
       weight: "semibold",
       tracking: 0.16em,
       fill: brick,
@@ -249,19 +249,19 @@
 
 // ---- front matter and TOC ----------------------------------------------
 #let front(kicker: "", title: "", lead: none, body) = page(header: none)[
-  #set text(font: "Inter", size: 9.5pt, fill: ink)
+  #set text(font: "Inter", size: __BODY_SIZE__, fill: ink)
   #set par(justify: true, leading: 0.67em, spacing: 1.8mm, linebreaks: "optimized")
   #text(
     font: "Inter",
-    size: 7.2pt,
+    size: __MICRO_SIZE__,
     tracking: 0.2em,
     fill: brick,
   )[#ui_upper_str(kicker)]
   #v(2mm)
-  #text(font: "Inter", size: 19pt, weight: "semibold", tracking: -0.01em)[#title]
+  #text(font: "Inter", size: __H1_SIZE__, weight: "semibold", tracking: -0.01em)[#title]
   #v(3mm)
   #if lead != none [
-    #text(size: 11.2pt, fill: rgb("#1F2937"))[#lead]
+    #text(size: __LEAD_LARGE_SIZE__, fill: rgb("#1F2937"))[#lead]
     #v(5mm)
   ]
   #body
@@ -279,17 +279,17 @@
   columns: (1fr, 15mm),
   stroke: none,
   inset: (top: 4mm, bottom: 1.9mm),
-  text(font: "Inter", size: 7.2pt, tracking: 0.16em, fill: brick)[#ui_upper(body)],
+  text(font: "Inter", size: __MICRO_SIZE__, tracking: 0.16em, fill: brick)[#ui_upper(body)],
   [],
 )
 
 #let toc_page(title: "", note: "", label: "İÇİNDEKİLER") = page(header: none)[
-  #set text(font: "Inter", size: 9.5pt, fill: ink)
-  #text(font: "Inter", size: 7.2pt, tracking: 0.2em, fill: brick)[#label]
+  #set text(font: "Inter", size: __BODY_SIZE__, fill: ink)
+  #text(font: "Inter", size: __MICRO_SIZE__, tracking: 0.2em, fill: brick)[#label]
   #v(2mm)
-  #text(font: "Inter", size: 19pt, weight: "semibold")[#title]
+  #text(font: "Inter", size: __H1_SIZE__, weight: "semibold")[#title]
   #v(1.8mm)
-  #text(size: 8.6pt, fill: muted)[#note]
+  #text(size: __NOTE_SMALL_SIZE__, fill: muted)[#note]
   #v(7mm)
   #context {
     let entries = query(<toc-entry>)
@@ -344,15 +344,15 @@
     #v(4mm)
     #grid(
       columns: (1fr, auto),
-      text(font: "Inter", size: 7pt, tracking: 0.08em, fill: rgb("#4B5563"))[#ui_upper_str(part)],
-      align(right)[#text(font: "Inter", size: 7pt, tracking: 0.08em, fill: rgb("#4B5563"))[#ui_upper_str(side)]],
+      text(font: "Inter", size: __RUNNING_SIZE__, tracking: 0.08em, fill: rgb("#4B5563"))[#ui_upper_str(part)],
+      align(right)[#text(font: "Inter", size: __RUNNING_SIZE__, tracking: 0.08em, fill: rgb("#4B5563"))[#ui_upper_str(side)]],
     )
     #v(3mm)
-    #text(font: "Inter", size: 8pt, tracking: 0.22em, fill: brick)[#ui_upper_str(kicker)]
+    #text(font: "Inter", size: __UI_SIZE__, tracking: 0.22em, fill: brick)[#ui_upper_str(kicker)]
     #v(2mm)
     #show heading.where(level: 1): it => text(
       font: "Inter",
-      size: if flow or compact { 19pt } else { 21pt },
+      size: if flow or compact { __H1_SIZE__ } else { __H1_LARGE_SIZE__ },
       weight: "semibold",
       tracking: -0.02em,
       fill: ink,
@@ -361,11 +361,11 @@
     #heading(level: 1, outlined: true, bookmarked: true)[#title]
     #if lead != none [
       #v(2.5mm)
-      #block(width: 150mm, text(size: 10.8pt, fill: rgb("#1F2937"))[#lead])
+      #block(width: 150mm, text(size: __LEAD_SIZE__, fill: rgb("#1F2937"))[#lead])
     ]
     #if range != none [
       #v(3mm)
-      #text(font: "Inter", size: 7.4pt, tracking: 0.04em, fill: soft)[#range]
+      #text(font: "Inter", size: __SMALL_SIZE__, tracking: 0.04em, fill: soft)[#range]
     ]
   ]
 }
@@ -376,7 +376,7 @@
   #show heading.where(level: 3): it => block(above: 2.4mm, below: 0.9mm)[
     #text(
       font: "Inter",
-      size: 7.4pt,
+      size: __SMALL_SIZE__,
       weight: "semibold",
       tracking: 0.12em,
       fill: sage,
@@ -421,13 +421,13 @@
       pad(top: 6mm, running_header(left, sheet_title.get()))
     },
     footer: context {
-      set text(font: "Inter", size: 8pt, weight: "medium", fill: brick)
+      set text(font: "Inter", size: __UI_SIZE__, weight: "medium", fill: brick)
       align(center)[#counter(page).display("1")]
     },
   )
   set text(
     font: "Inter",
-    size: 9.5pt,
+    size: __BODY_SIZE__,
     fill: ink,
     lang: language,
     hyphenate: false,
@@ -461,7 +461,7 @@
     stroke: (top: 0.35pt + linen),
     inset: (top: 1.4mm),
   )[
-    #set text(size: 7.9pt, style: "italic", fill: muted)
+    #set text(size: __TABLE_SIZE__, style: "italic", fill: muted)
     #if it.numbering != none [
       #it.supplement
       #context it.counter.display(it.numbering)
@@ -492,7 +492,7 @@
     block(above: 7.7mm, below: 2.2mm, sticky: true)[
       #text(
         font: "Inter",
-        size: 12pt,
+        size: __H2_SIZE__,
         weight: "semibold",
         tracking: -0.005em,
         fill: ink,
@@ -505,7 +505,7 @@
   show heading.where(level: 3): it => block(above: 5.4mm, below: 4.2mm, sticky: true)[
     #text(
       font: "Inter",
-      size: 8.2pt,
+      size: __H3_SIZE__,
       weight: "semibold",
       tracking: 0.12em,
       fill: sage,
@@ -514,7 +514,7 @@
 
   // Cover ---------------------------------------------------------------
   page(margin: 0pt, header: none, footer: none, fill: rgb("#FFFFFF"))[
-    #set text(font: "Inter", size: 9.5pt, fill: ink, lang: language)
+    #set text(font: "Inter", size: __BODY_SIZE__, fill: ink, lang: language)
     #pad(left: 20mm, right: 20mm, top: 18mm, bottom: 15mm)[
       #rect(width: 100%, height: 264mm, stroke: 0.6pt + linen)[
         #place(center + top, dy: 16mm)[
@@ -522,7 +522,7 @@
             #align(center)[
               #text(
                 font: "Inter",
-                size: 8pt,
+                size: __UI_SIZE__,
                 tracking: 0.22em,
                 fill: brick,
               )[#ui_upper_str(if cover_kicker == none { course } else { cover_kicker })]
@@ -531,7 +531,7 @@
               #v(28mm)
               #text(
                 font: "Inter",
-                size: 33pt,
+                size: __COVER_TITLE_SIZE__,
                 weight: "regular",
                 tracking: -0.015em,
                 hyphenate: false,
@@ -540,7 +540,7 @@
               #text(font: "Inter", size: 15pt, style: "italic", fill: muted)[#subtitle]
               #if deck != none [
                 #v(9mm)
-                #text(font: "Inter", size: 9.5pt, tracking: 0.04em, fill: muted)[#deck]
+                #text(font: "Inter", size: __BODY_SIZE__, tracking: 0.04em, fill: muted)[#deck]
               ]
               #if pilot != none [
                 #v(7mm)
@@ -549,7 +549,7 @@
                   inset: (x: 4mm, y: 1.6mm),
                   text(
                     font: "Inter",
-                    size: 7pt,
+                    size: __RUNNING_SIZE__,
                     tracking: 0.18em,
                     fill: brick,
                   )[#ui_upper_str(pilot)],
@@ -567,7 +567,7 @@
             #for (index, item) in cover_notes.enumerate() {
               text(
                 font: "Inter",
-                size: if index == 0 { 7.4pt } else { 6.6pt },
+                size: if index == 0 { __SMALL_SIZE__ } else { __TINY_SIZE__ },
                 tracking: 0.05em,
                 fill: if index == 0 { soft } else { faint },
               )[#item]

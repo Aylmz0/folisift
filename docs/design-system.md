@@ -67,26 +67,25 @@ Body 9.5–12 pt is legal, component floors are absolute. `paper` is a labelled
 legacy fixture and keeps its old 6.9/7.4/7.9 pt components; new styles use the
 improved scale.
 
-| Role | Ratio to body | Floor | Paper legacy | Reader/PD2* | Revision | Organiser |
-|---|---:|---:|---:|---:|---:|---:|
-| Body | 1.00 | 9.0 | 9.5 | 10.0 | 10.5 | 10.5 |
-| H1 | 2.00 | 8.0 | 19.0 | 19.0* | 21.0 | 21.0 |
-| H2 | 1.40 | 8.0 | 12.0 | 12.0* | 14.7 | 14.7 |
-| H3 | 1.10 | 8.0 | 8.2 | 8.2* | 11.6 | 11.6 |
-| Lead | 1.12 | 8.0 | 10.8 | 10.8* | 11.8 | 11.8 |
-| Table | 0.86 | 9.0 | 7.9 | 7.9* | 9.0 | 9.0 |
-| Caption | 0.86 | 9.0 | 7.8 | 7.8* | 9.0 | 9.0 |
-| Label/source | 0.78 | 8.0 | 6.9 | 6.9* | 8.2 | 8.2 |
-| Code block | 0.92 | 9.0 | 7.4 | 9.2 | 9.7 | 9.7 |
-| Inline code | 0.95 | 9.0 | 8.4 | 9.5 | 10.0 | 10.0 |
-| TOC title | 0.95 | 8.0 | 9.6 | 9.6 | 10.0 | 10.0 |
-| TOC sub | 0.88 | 8.0 | 8.9 | 8.9 | 9.2 | 9.2 |
-| TOC page | 0.82 | 8.0 | 8.2 | 8.2 | 8.6 | 8.6 |
+| Role | Ratio to body | Floor | Paper legacy | Reader/PD2 | Clean/brief | Revision | Organiser |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Body | 1.00 | 9.0 | 9.5 | 10.0 | 9.5 / 10.5 | 10.5 | 10.5 |
+| H1 | 2.00 | 8.0 | 19.0 | 20.0 | 19.0 / 21.0 | 21.0 | 21.0 |
+| H2 | 1.40 | 8.0 | 12.0 | 14.0 | 14.0 / 14.7 | 14.7 | 14.7 |
+| H3 | 1.10 | 8.0 | 8.2 | 11.0 | 11.0 / 11.6 | 11.6 | 11.6 |
+| Lead | 1.12 | 8.0 | 10.8 | 11.2 | 11.2 / 11.8 | 11.8 | 11.8 |
+| Table | 0.86 | 8.5 | 7.9 | 8.6 | 8.5 / 9.0 | 9.0 | 9.0 |
+| Caption | 0.86 | 8.5 | 7.8 | 8.6 | 8.5 / 9.0 | 9.0 | 9.0 |
+| Label/source | 0.78 | 8.0 | 6.9 | 8.0 | 8.0 / 8.4 | 8.2 | 8.2 |
+| Code block | 0.92 | 9.0 | 7.4 | 9.2 | 9.2 | 9.7 | 9.7 |
+| Inline code | 0.95 | 9.0 | 8.4 | 9.5 | 9.5 | 10.0 | 10.0 |
+| TOC title | 0.95 | 8.0 | 9.6 | 9.6 | 9.6 | 10.0 | 10.0 |
+| TOC sub | 0.88 | 8.0 | 8.9 | 8.9 | 8.9 | 9.2 | 9.2 |
+| TOC page | 0.82 | 8.0 | 8.2 | 8.2 | 8.2 | 8.6 | 8.6 |
 
-`*` Reader/PD2 still uses the paper headings, table and label components until
-the full paper-component migration lands; only its body and code roles are
-retuned. This is the documented legacy gap, not a second scale. Revision and
-organiser use the shared role scale end to end.
+Paper is the only frozen legacy column. Reader, clean, brief, accessible,
+revision and organiser now use the same role names; paper keeps its old
+components for the parity fixture and is not the target scale.
 
 - Body: Noto Serif in editorial/paper layouts, Inter in `technical` layouts.
 - Headings: Inter (Regular/Medium/SemiBold/Bold), semibold.
@@ -166,10 +165,9 @@ pass. `paper` remains the default and the old-PDF parity standard.
 - `journal` is a `paper` preset (10.5 pt, 18 mm) for IMRAD/literature reviews.
 - `brief` is a `clean` preset (10.5 pt, 17 mm) for executive briefs.
 - `accessible` is a **large-print modifier**; its default palette is
-  `high-contrast` and its 12 pt body scales the paper components through the
-  documented legacy `component_scale`. The scale is a paper-family
-  compatibility path, not a general escape hatch; revision/organiser use the
-  shared role scale.
+  `high-contrast`, its 12 pt body drives the shared role scale, and its
+  component floors are raised (9.0 pt text, 10.0 pt tables). It does not use a
+  separate multiplier.
 
 They are experimental until their snapshots pass.
 

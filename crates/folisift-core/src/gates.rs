@@ -10,6 +10,11 @@ pub fn uses_course_coverage(structure: &str) -> bool {
     !matches!(structure, "revision-sheet" | "knowledge-organiser")
 }
 
+/// Revision/organiser coverage is a declared source page scope, not A–G.
+pub fn uses_revision_coverage(structure: &str) -> bool {
+    matches!(structure, "revision-sheet" | "knowledge-organiser")
+}
+
 /// Genre-specific Markdown checks that do not depend on PDF inspection.
 pub fn genre_issues(structure: &str, markdown: &str) -> Vec<String> {
     match structure {
@@ -49,6 +54,13 @@ mod tests {
         assert!(!uses_course_coverage("knowledge-organiser"));
         assert!(uses_course_coverage("a-g"));
         assert!(uses_course_coverage("imrad"));
+    }
+
+    #[test]
+    fn revision_and_organiser_use_source_scope_coverage() {
+        assert!(uses_revision_coverage("revision-sheet"));
+        assert!(uses_revision_coverage("knowledge-organiser"));
+        assert!(!uses_revision_coverage("a-g"));
     }
 
     #[test]

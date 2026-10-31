@@ -318,10 +318,25 @@ in a note. Explain what the checkmarks/values mean.
 
 ### Figures and diagrams
 
-Redraw with a typed D2 spec (`diagrams/<id>.json`) and the paper palette.
-Label axes, nodes and flows. Use a manually supplied SVG only for an annotated
-source figure that cannot be expressed as nodes/edges. Raw HTML/CSS is never
-allowed. If a figure is decorative, say so and skip it. If a figure is
+Redraw with a typed D2 spec (`diagrams/<id>.json`) and the selected palette.
+Keep TALA layout; generated SVG is embedded at guide-build time. Choose the
+kind by the question, not by the shape:
+
+| Question | `kind` | Required payload |
+|---|---|---|
+| What is the order/flow? | `flow` | `nodes`, `edges` |
+| What relates to what? | `concept` | `nodes`, `edges` |
+| What is the hierarchy? | `tree` | `nodes`, one parent per node |
+| Who sends what, in order? | `sequence` | `actors`, `messages`, optional `notes` |
+| What is the type structure? | `class` | `classes`, `edges` |
+| What are the records and keys? | `erd` | `tables`, `edges` as `table.column` |
+
+Every diagram needs a takeaway caption, non-boilerplate `alt` text and a real
+source reference. Edge labels are required for flow; concept/tree edges may be
+unlabelled when the hierarchy is self-evident. Use arrowheads (`triangle`,
+`cf-one`, `cf-many`) only when the relation has a direction or cardinality.
+Icons, links, imports, layers, scenarios, animations, remote assets and raw
+HTML/CSS are rejected. If a figure is decorative, say so and skip it. If it is
 unreadable, list it in G.
 
 ### Code

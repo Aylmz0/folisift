@@ -20,12 +20,13 @@ itself never runs a shell, D2 or a network request.
 4. read_source / search_source in 10–20 page chunks
 5. for every low-text page, record one decision in visual-audit.json
 6. write guide.md with covers, audit and source refs
+   (revision/organiser: declare source_scope and cite every scoped page)
 7. for each meaningful mechanism or high-priority target:
      diagram validate → diagram save
 8. shell: folisift diagram build --guide <slug> --all
 9. diagram status
 10. build_guide check=true
-11. folisift audit --pdf <output> --expected-pages <n> --strict
+11. folisift audit --pdf <output> --guide <slug> --expected-pages <n> --strict
 12. make visual (when a baseline exists)
 13. human review: accuracy, G audit, table drafts, visual quality
 14. release only after approval
@@ -36,9 +37,11 @@ Do not skip the build/audit gates. Do not lower a threshold to make a run pass.
 ## Diagram rules
 
 - Use a diagram for a process, hierarchy, relationship map or message flow.
+  Choose `flow`, `concept`, `tree`, `sequence`, `class` or `erd` by the question.
 - Do not use a diagram for a single fact, unrelated list or decoration.
 - 0–3 diagrams per chapter; one idea per diagram.
-- 1–12 nodes, max 20 edges, tree depth max 4.
+- 1–12 nodes, max 20 edges, tree depth max 4; sequence 2–6 actors;
+  class/ERD 1–6 types.
 - The host writes `diagrams/<id>.json`; it never writes D2, SVG or Typst.
 - Every spec needs `title`, `caption`, `alt`, `source`.
 - Reference the spec in `guide.md` as:
@@ -60,7 +63,8 @@ folisift diagram build --guide <slug> --id <id>
 folisift diagram build --guide <slug> --all
 folisift diagram status --guide <slug>
 folisift build --guide <slug> --check
-folisift audit --pdf <output> --expected-pages <n> --strict
+folisift audit --pdf <output> --guide <slug> --expected-pages <n> --strict
+make type-check
 make visual
 ```
 

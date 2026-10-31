@@ -36,9 +36,9 @@ vocabulary, a small palette library and only embedded font families.
 6. **No silent fallback.** Unknown palettes/fonts, unembedded families and
    unsupported combinations fail validation. Low-contrast palettes fail the
    loader, not the reviewer.
-7. **`component_scale` is a paper-family compatibility path only.** It remains
-   for the accessible modifier until the paper table/label migration lands; it
-   is not a general style mechanism and must not be used in new layouts.
+7. **No multiplier exception.** The paper table/label migration is complete;
+   every layout, including accessible, uses role sizes or explicit pinned
+   sizes. `component_scale` was removed.
 
 ## Consequences
 
@@ -47,7 +47,7 @@ vocabulary, a small palette library and only embedded font families.
 - A palette or pairing change invalidates the build cache through the resolved
   tokens.
 - Paper parity remains measurable and intentional.
-- The reader/PD2 table and label sizes remain the one known legacy gap; the
-  design system documents it rather than pretending it is the target scale.
+- Paper remains a labelled legacy fixture; reader/clean/revision/accessible
+  use the shared role scale.
 - Adding a new family requires a licence, Turkish glyph, embedding and
   x-height test before it enters `styles/fonts/`.

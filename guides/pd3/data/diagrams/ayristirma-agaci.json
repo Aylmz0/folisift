@@ -11,6 +11,7 @@
   "svg": "assets/generated/e81e675027d0a7097ac5ca08e4fd27bfbe353690c02c6a07d5b9f38d4d8dd411.svg",
   "d2_version": "v0.9.0",
   "layout": "tala",
+  "tala_seeds": "1,2,3",
   "salt": "fsl-8854082d5a03",
   "fonts": [
     "Inter-Regular.ttf",
@@ -20,5 +21,6 @@
     "NotoSansMono-Regular.ttf"
   ],
   "font_digest": "ab541b4d979d13ee9864050de613792ebeeae5fdcd705b6b2045ab17d359dab6",
+  "theme_digest": "a654c930f08051073854cb130cb8efb6ca0ece6b2c22959b0d7ea2e697bb9af0",
   "postprocess_version": 1
 }

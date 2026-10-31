@@ -756,53 +756,6 @@ pub fn apply_tokens(template: &str, tokens: &Value, layout: &str) -> Result<Stri
             out = out.replace(original, &format!("\"{}\"", family.replace('"', "")));
         }
     }
-    // Accessible is a modifier of the paper layout: scale every component
-    // that is smaller than the body before replacing the 9.5 pt body size.
-    // This keeps paper/reader byte-for-byte stable while making the large-print
-    // pack scale tables, captions, labels, notes and TOC rows too.
-    if let Some(scale) = tokens.get("component_scale").and_then(Value::as_f64)
-        && (1.0..=1.6).contains(&scale)
-    {
-        let sizes = [
-            ("6.6pt", 6.6),
-            ("6.8pt", 6.8),
-            ("6.9pt", 6.9),
-            ("7.0pt", 7.0),
-            ("7.2pt", 7.2),
-            ("7.4pt", 7.4),
-            ("7.8pt", 7.8),
-            ("7.9pt", 7.9),
-            ("8.0pt", 8.0),
-            ("8.2pt", 8.2),
-            ("8.4pt", 8.4),
-            ("8.6pt", 8.6),
-            ("8.9pt", 8.9),
-            ("9.4pt", 9.4),
-            ("9.6pt", 9.6),
-            ("10.8pt", 10.8),
-            ("11.2pt", 11.2),
-            ("12pt", 12.0),
-            ("8.25pt", 8.25),
-        ];
-        // Two-phase replacement avoids cascading matches such as 6.8 -> 8.8
-        // being read again as 8pt.
-        for (index, (old, _)) in sizes.iter().enumerate() {
-            out = out.replace(old, &format!("@@FOLISIFT_SIZE_{index}@@"));
-        }
-        for (index, (_, value)) in sizes.iter().enumerate() {
-            out = out.replace(
-                &format!("@@FOLISIFT_SIZE_{index}@@"),
-                &format!("{:.1}pt", value * scale),
-            );
-        }
-    }
-    if let Some(size) = typography
-        .and_then(|value| value.get("body_size"))
-        .and_then(Value::as_f64)
-        && (6.0..=18.0).contains(&size)
-    {
-        out = out.replace("9.5pt", &format!("{size}pt"));
-    }
     if matches!(layout, "paper" | "clean") {
         let code_block = typography
             .and_then(|value| value.get("code_block_size"))
@@ -863,9 +816,9 @@ pub fn apply_tokens(template: &str, tokens: &Value, layout: &str) -> Result<Stri
     Ok(out)
 }
 
-/// Replace the explicit revision-layout placeholders with a deterministic
-/// type scale. The paper/clean templates keep their legacy sizes until the
-/// parity decision; the revision template is always token-driven.
+/// Replace explicit role placeholders with the resolved type scale. Every
+/// layout uses the same role names; a pack may pin legacy or accessibility
+/// sizes through `typography.sizes` without a separate multiplier.
 fn apply_type_placeholders(mut out: String, tokens: &Value) -> String {
     let typography = tokens.get("typography");
     let body = typography
@@ -889,41 +842,72 @@ fn apply_type_placeholders(mut out: String, tokens: &Value) -> String {
     };
     let component = floor("component_pt", 8.0);
     let table_floor = floor("table_pt", 9.0);
-    let size = |ratio: f64, floor: f64| (body * ratio).max(floor);
-    let pt = |value: f64| format!("{value:.1}pt");
+    let explicit = |key: &str| {
+        typography
+            .and_then(|value| value.get("sizes"))
+            .and_then(|value| value.get(key))
+            .and_then(Value::as_f64)
+    };
+    let format_size = |value: f64, precise: bool| {
+        let rounded = if precise {
+            (value * 100.0).round() / 100.0
+        } else {
+            (value * 10.0).round() / 10.0
+        };
+        if precise && (rounded * 10.0).fract().abs() > 0.001 {
+            format!("{rounded:.2}pt")
+        } else {
+            format!("{rounded:.1}pt")
+        }
+    };
+    let role = |key: &str, default_ratio: f64, floor: f64| {
+        explicit(key).map_or_else(
+            || format_size((body * ratio(key, default_ratio)).max(floor), false),
+            |value| format_size(value, true),
+        )
+    };
+    let body_size = format_size(body, false);
 
     for (placeholder, value) in [
-        ("__BODY_SIZE__", body),
-        ("__H1_SIZE__", size(ratio("h1", 2.0), component)),
-        ("__H2_SIZE__", size(ratio("h2", 1.4), component)),
-        ("__H3_SIZE__", size(ratio("h3", 1.1), component)),
-        ("__LEAD_SIZE__", size(ratio("lead", 1.12), component)),
-        ("__TABLE_SIZE__", size(ratio("table", 0.86), table_floor)),
+        ("__BODY_SIZE__", body_size),
+        ("__FIG_LABEL_SIZE__", role("fig_label", 0.716, component)),
+        ("__RUNNING_SIZE__", role("running", 0.737, component)),
+        ("__TABLE_SIZE__", role("table", 0.86, table_floor)),
+        ("__CAPTION_SIZE__", role("caption", 0.86, table_floor)),
+        ("__LABEL_SIZE__", role("label", 0.78, component)),
+        ("__SOURCE_SIZE__", role("source", 0.78, component)),
+        ("__MICRO_SIZE__", role("micro", 0.758, component)),
+        ("__SMALL_SIZE__", role("small", 0.779, component)),
+        ("__UI_SIZE__", role("ui", 0.842, component)),
+        ("__H3_SIZE__", role("h3", 1.1, component)),
+        ("__NOTE_SIZE__", role("note", 0.937, component)),
+        ("__NOTE_SMALL_SIZE__", role("note_small", 0.905, component)),
+        ("__BOX_SIZE__", role("box", 0.989, component)),
+        ("__TWO_COL_SIZE__", role("two_col", 0.868, component)),
+        ("__LEAD_SIZE__", role("lead", 1.12, component)),
+        ("__LEAD_LARGE_SIZE__", role("lead_large", 1.179, component)),
+        ("__H2_SIZE__", role("h2", 1.4, component)),
+        ("__H1_SIZE__", role("h1", 2.0, component)),
+        ("__H1_LARGE_SIZE__", role("h1_large", 2.211, component)),
+        ("__TINY_SIZE__", role("tiny", 0.695, component)),
         (
-            "__CAPTION_SIZE__",
-            size(ratio("caption", 0.86), table_floor),
+            "__COVER_TITLE_SIZE__",
+            role("cover_title", 3.474, component),
         ),
-        ("__LABEL_SIZE__", size(ratio("label", 0.78), component)),
-        ("__SOURCE_SIZE__", size(ratio("source", 0.78), component)),
         (
-            "__CODE_SIZE__",
-            size(ratio("code_block", 0.92), table_floor),
+            "__COVER_SUBTITLE_SIZE__",
+            role("cover_subtitle", 1.789, component),
         ),
+        ("__CODE_SIZE__", role("code_block", 0.92, table_floor)),
         (
             "__CODE_INLINE_SIZE__",
-            size(ratio("code_inline", 0.95), table_floor),
+            role("code_inline", 0.95, table_floor),
         ),
-        (
-            "__TOC_TITLE_SIZE__",
-            size(ratio("toc_title", 0.95), component),
-        ),
-        ("__TOC_SUB_SIZE__", size(ratio("toc_sub", 0.88), component)),
-        (
-            "__TOC_PAGE_SIZE__",
-            size(ratio("toc_page", 0.82), component),
-        ),
+        ("__TOC_TITLE_SIZE__", role("toc_title", 0.95, component)),
+        ("__TOC_SUB_SIZE__", role("toc_sub", 0.88, component)),
+        ("__TOC_PAGE_SIZE__", role("toc_page", 0.82, component)),
     ] {
-        out = out.replace(placeholder, &pt(value));
+        out = out.replace(placeholder, &value);
     }
 
     let leading = typography
@@ -1248,19 +1232,47 @@ mod tests {
     }
 
     #[test]
-    fn scales_accessible_components_before_body_replacement() {
-        let tokens = serde_json::json!({
-            "palette": {},
-            "component_scale": 1.3,
-            "typography": {"body_size": 12.0}
-        });
-        let template = "6.9pt 7.9pt 8.9pt 12pt 9.5pt";
-        let applied = apply_tokens(template, &tokens, "paper").expect("scale");
-        assert!(applied.contains("9.0pt"));
-        assert!(applied.contains("10.3pt"));
-        assert!(applied.contains("11.6pt"));
-        assert!(applied.contains("15.6pt"));
-        assert!(applied.contains("12pt"));
+    fn paper_pins_legacy_sizes_and_reader_retunes_components() {
+        let paper = load(Path::new(""), "paper").expect("paper");
+        let paper_tpl = apply_tokens(
+            include_str!("../../../templates/paper.typ"),
+            &paper.tokens,
+            "paper",
+        )
+        .expect("paper");
+        for expected in ["size: 19.0pt", "size: 7.9pt", "size: 7.8pt", "size: 6.9pt"] {
+            assert!(paper_tpl.contains(expected), "missing {expected}");
+        }
+        let reader = load(Path::new(""), "reader").expect("reader");
+        let reader_tpl = apply_tokens(
+            include_str!("../../../templates/paper.typ"),
+            &reader.tokens,
+            "paper",
+        )
+        .expect("reader");
+        for expected in ["size: 20.0pt", "size: 8.6pt", "size: 8.0pt", "size: 9.5pt"] {
+            assert!(reader_tpl.contains(expected), "missing {expected}");
+        }
+    }
+
+    #[test]
+    fn accessible_sizes_scale_without_a_multiplier() {
+        let accessible = load(Path::new(""), "accessible").expect("accessible");
+        assert!(accessible.tokens.get("component_scale").is_none());
+        let applied = apply_tokens(
+            include_str!("../../../templates/paper.typ"),
+            &accessible.tokens,
+            "paper",
+        )
+        .expect("accessible");
+        for expected in [
+            "size: 24.0pt",
+            "size: 10.3pt",
+            "size: 9.6pt",
+            "size: 11.0pt",
+        ] {
+            assert!(applied.contains(expected), "missing {expected}");
+        }
     }
 
     #[test]
@@ -1271,7 +1283,7 @@ mod tests {
             "layout": {"margin_top_mm": 18, "margin_bottom_mm": 16, "margin_side_mm": 18},
             "spacing": {"par_mm": 2.4, "list_mm": 3.8}
         });
-        let template = "size 9.5pt; leading: 0.62em; margin: (top: 16mm, bottom: 14mm, left: 16.5mm, right: 16.5mm); spacing: 1.8mm; spacing: 3.2mm;";
+        let template = "size: __BODY_SIZE__; leading: 0.62em; margin: (top: 16mm, bottom: 14mm, left: 16.5mm, right: 16.5mm); spacing: 1.8mm; spacing: 3.2mm;";
         let applied = apply_tokens(template, &tokens, "paper").expect("rhythm");
         assert!(applied.contains("10.2pt"));
         assert!(applied.contains("leading: 0.72em"));

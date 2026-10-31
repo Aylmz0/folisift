@@ -618,7 +618,7 @@ These are specified now but not part of the v0.10 release.
 | Source-reference contrast | done | `faint` changed to `#75664E`; 5.17:1 on paper |
 | Audit body-font/orphan detection | done | style-aware body size in `audit.rs` |
 | v0.11 guided notes/workbook/reference | planned | see `docs/document-genres-and-layout-systems.md` §4 |
-| Paper/reader full type-scale migration | deferred | paper parity; accessible now scales its components via `component_scale` |
+| Paper/reader full type-scale migration | done in v0.11 | paper is a pinned legacy exception; reader/clean/revision/accessible use shared role sizes |
 | `role`/`preset_of` genre metadata | deferred | the old `aesthetic` field remains the pack id; docs now describe the real roles |
 
 The v0.10 gate is `cargo test`, clippy, fmt, the revision pilot build and

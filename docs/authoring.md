@@ -133,6 +133,20 @@ the heading:
 The coverage gate reads `covers` first and falls back to `## <number> <title>`
 headings. Every source subsection must be claimed exactly once.
 
+Revision sheets and knowledge organisers use a page-scope gate instead. Declare
+the source range in frontmatter and cite every page in it at least once:
+
+```yaml
+source_scope: "PD2:26-29"
+```
+
+```markdown
+- **Kod = veri:** program kodu ile veri aynı temsili paylaşır. [PD2, s. 27]
+```
+
+A reference outside `source_scope`, an unknown source or an uncited page fails
+the build. This is selective coverage by design, not A–G heading coverage.
+
 Low-text pages need a visual pass. Cropping a source figure (normalized
 fractions `left,top,width,height`) keeps the extract small and focused:
 

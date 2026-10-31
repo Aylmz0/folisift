@@ -92,7 +92,10 @@ pub fn render(content: &str, options: &RenderOptions<'_>) -> Result<Rendered> {
     styles::validate_profile(&loaded.pack, &profile)?;
     let strings = styles::strings(styles_root, &loaded.pack.id, &profile.language)?;
     diagram::ensure_no_inline_diagrams(&body)?;
-    let diagram_assets = diagram::load_assets_for(options.guide_root, &body)?;
+    let diagram_theme = diagram::DiagramTheme::from_tokens(&loaded.tokens, &loaded.fonts.heading);
+    let diagram_theme_digest = diagram::theme_digest(&diagram_theme)?;
+    let diagram_assets =
+        diagram::load_assets_with_theme(options.guide_root, &body, Some(&diagram_theme_digest))?;
     assets::lint_assets(&body, options.guide_root)?;
     let cache_key = build_cache_key(
         content,

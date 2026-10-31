@@ -1074,49 +1074,64 @@ impl FolisiftServer {
             if !page_issues.is_empty() {
                 return Err(page_issues.join("\n"));
             }
-            if folisift_core::gates::uses_course_coverage(&style.structure) {
+            if folisift_core::gates::uses_course_coverage(&style.structure)
+                || folisift_core::gates::uses_revision_coverage(&style.structure)
+            {
                 let inventory = self.load_or_analyze_inventory(&guide).await?;
-                let audit_path = guide.visual_audit();
-                if inventory.totals.low_text_pages > 0 {
-                    let report =
-                        VisualAudit::load_and_validate(&audit_path, &inventory, &guide.dir)
-                            .map_err(|error| error.to_string())?;
-                    visual_passed = Some(report.passed);
-                    if !report.passed {
+                if folisift_core::gates::uses_revision_coverage(&style.structure) {
+                    let issues = folisift_parse::revision_coverage_issues(&inventory, &markdown);
+                    if !issues.is_empty() {
                         return Err(format!(
-                            "visual audit failed: {} missing, {} unresolved",
-                            report.missing.len(),
-                            report.unresolved.len()
+                            "revision source coverage failed:\n- {}",
+                            issues.join("\n- ")
                         ));
                     }
-                    visual = Some(serde_json::to_value(report).map_err(|error| error.to_string())?);
+                    coverage = Some(json!({"kind": "source-scope", "passed": true}));
+                } else {
+                    let audit_path = guide.visual_audit();
+                    if inventory.totals.low_text_pages > 0 {
+                        let report =
+                            VisualAudit::load_and_validate(&audit_path, &inventory, &guide.dir)
+                                .map_err(|error| error.to_string())?;
+                        visual_passed = Some(report.passed);
+                        if !report.passed {
+                            return Err(format!(
+                                "visual audit failed: {} missing, {} unresolved",
+                                report.missing.len(),
+                                report.unresolved.len()
+                            ));
+                        }
+                        visual =
+                            Some(serde_json::to_value(report).map_err(|error| error.to_string())?);
+                    }
+                    let report =
+                        coverage_report(&inventory, &markdown, folisift_parse::DEFAULT_THRESHOLD);
+                    if let Some(path) = &guide.coverage {
+                        report
+                            .write_markdown(path)
+                            .map_err(|error| error.to_string())?;
+                    }
+                    if !report.passed {
+                        return Err(format!(
+                            "coverage gate failed: {}/{} headings missing, {} empty sections",
+                            report.missing,
+                            report.total,
+                            report.empty_sections.len()
+                        ));
+                    }
+                    coverage = Some(json!({
+                        "passed": report.passed,
+                        "total": report.total,
+                        "canonical_total": report.canonical_total,
+                        "claimed": report.claimed,
+                        "gate_total": report.gate_total,
+                        "missing": report.missing,
+                        "missing_from_gate": report.missing_from_gate,
+                        "empty_sections": report.empty_sections.len(),
+                        "weak_sections": report.weak_sections.len(),
+                        "duplicate_sections": report.duplicate_sections,
+                    }));
                 }
-                let report =
-                    coverage_report(&inventory, &markdown, folisift_parse::DEFAULT_THRESHOLD);
-                if let Some(path) = &guide.coverage {
-                    report
-                        .write_markdown(path)
-                        .map_err(|error| error.to_string())?;
-                }
-                if !report.passed {
-                    return Err(format!(
-                        "coverage gate failed: {}/{} headings missing, {} empty sections",
-                        report.missing,
-                        report.total,
-                        report.empty_sections.len()
-                    ));
-                }
-                coverage = Some(json!({
-                    "passed": report.passed,
-                    "total": report.total,
-                    "canonical_total": report.canonical_total,
-                    "claimed": report.claimed,
-                    "gate_total": report.gate_total,
-                    "missing": report.missing,
-                    "missing_from_gate": report.missing_from_gate,
-                    "empty_sections": report.empty_sections.len(),
-                    "weak_sections": report.weak_sections.len(),
-                }));
             }
         }
         let passed = folisift_core::gates::top_level_passed(

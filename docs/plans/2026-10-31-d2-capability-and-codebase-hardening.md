@@ -313,87 +313,97 @@ Implemented in the working tree:
 - raw HTML is rejected instead of dropped; Markdown code fences are lint-safe;
 - `style_rationale` is enforced for schema 3 guides;
 - EN revision/organiser labels and stronger TOC/production smoke checks;
-- D2 v3 fixtures compile and postprocess when `FOLISIFT_D2` is set.
+- D2 v3 fixtures compile and postprocess when `FOLISIFT_D2` is set;
+- style-aware audit margins/minimum font, visual-page underfill policy and
+  caption counting;
+- revision/organiser `source_scope` page coverage;
+- duplicate top-level section detection;
+- pinned TALA seeds, theme/font digests, fake-plugin regression test and
+  per-kind postprocessed SVG baselines;
+- determinism, aria/title and source allowlist tests.
 
 Still open:
 
-- style-aware audit margins/minimum font and visual-page underfill policy;
-- revision/organiser source-coverage model;
-- duplicate top-level section numbers and remaining coverage edge cases;
-- per-kind PDF visual baselines and pinned TALA seeds;
-- macOS/Windows archives and release signing.
+- per-kind **PDF** baselines (the SVG baselines cover the engine output);
+- macOS/Windows archives and release signing;
+- a single extracted build-service type (the CLI/MCP policy is shared through
+  `folisift-core::gates`, but orchestration remains host-side).
 
 ## 6. Implementation phases
 
 ### Phase 0 — Audit baseline
 
-- [ ] Freeze the audit findings and severity.
-- [ ] Add fixtures for MCP/CLI parity (revision, organiser, reader).
-- [ ] Add D2 fixtures per kind.
-- [ ] Add red tests for A1–A3, B1, B2, B4, B5, B12.
+- [x] Freeze the audit findings and severity.
+- [x] Add fixtures for MCP/CLI parity (revision, organiser, reader).
+- [x] Add D2 fixtures per kind.
+- [x] Add red tests for A1–A3, B1, B2, B4, B5, B12.
 - **Exit:** red-capable tests for the P0 set.
 
 ### Phase 1 — Shared build service
 
-- [ ] Extract CLI/MCP build checks into one core service:
+- [x] Share the genre/page/coverage policy in `folisift-core::gates`; CLI/MCP
+      orchestration remains host-side.
+- [ ] Extract the remaining CLI/MCP orchestration into one service:
       structure → genre grammar → layout audit → genre coverage → report.
-- [ ] Render to temp, gate, atomic rename.
-- [ ] Return one top-level `passed`; `coverage && visual && layout`.
-- [ ] Validate style/domain IDs and inventory/coverage paths.
-- [ ] Store source digests and invalidate stale inventory.
-- [ ] Make `prepare_guide` reject or atomically apply style/source changes.
-- [ ] Add `knowledge-organiser` page-count gate.
+- [x] Render to temp, gate, atomic rename.
+- [x] Return one top-level `passed`; `coverage && visual && layout`.
+- [x] Validate style/domain IDs and inventory/coverage paths.
+- [x] Store source digests and invalidate stale inventory.
+- [x] Make `prepare_guide` reject or atomically apply style/source changes.
+- [x] Add `knowledge-organiser` page-count gate.
 - **Exit:** CLI and MCP produce the same pass/fail for the same guide; no
       out-of-workspace reads or overwrite.
 
 ### Phase 2 — D2 schema v3
 
-- [ ] Add typed payloads: `sequence`, `class`, `erd`.
-- [ ] Add edge arrowheads/line styles and a small node-shape allowlist.
-- [ ] Add per-kind validation/limits; keep TALA only.
-- [ ] Add theme/typography tokens; no icons/sketch.
-- [ ] Keep SVG-only, local-only, no animations/layers.
-- [ ] Add visual baselines per kind.
+- [x] Add typed payloads: `sequence`, `class`, `erd`.
+- [x] Add edge arrowheads/line styles and a small node-shape allowlist.
+- [x] Add per-kind validation/limits; keep TALA only.
+- [x] Add theme/typography tokens; no icons/sketch.
+- [x] Keep SVG-only, local-only, no animations/layers.
+- [x] Add visual baselines per kind.
 - **Exit:** one pilot per kind builds; invalid specs fail with actionable errors.
 
 ### Phase 3 — Diagram grammar and prompts
 
-- [ ] Add `diagram grammar` docs: which kind for which task, with evidence.
-- [ ] Extend MCP `diagram` validation/status and `prepare_guide` visual targets.
-- [ ] Add source-grounding checks: caption/alt/source, no invented labels.
-- [ ] Add lint: concept edges labelled; sequence ≥2 actors; tree no cross-links;
+- [x] Add `diagram grammar` docs: which kind for which task, with evidence.
+- [x] Extend MCP `diagram` validation/status and `prepare_guide` visual targets.
+- [x] Add source-grounding checks: caption/alt/source, no invented labels.
+- [x] Add lint: sequence ≥2 actors, tree no cross-links, per-kind limits;
+      concept/tree edges may be unlabelled when the relation is self-evident.
       ERD has a key; no icons/code blocks/links in generated source.
 - **Exit:** the host can choose a diagram kind from the task, not guess.
 
 ### Phase 4 — D2 hardening
 
-- [ ] Reject imports/icons/links/vars/layers/scenarios/steps/animation.
-- [ ] Scrub D2 environment/PATH; fake-plugin regression test.
-- [ ] Theme/postprocess palette and typography tests; TALA seeds pinned.
-- [ ] PDF aria/title checks for SVG.
-- [ ] Determinism: salt, TALA seeds, font digest, layout, version.
+- [x] Reject imports/icons/links/vars/layers/scenarios/steps/animation.
+- [x] Scrub D2 environment/PATH; fake-plugin regression test.
+- [x] Theme/postprocess palette and typography tests; TALA seeds pinned.
+- [x] PDF aria/title checks for SVG.
+- [x] Determinism: salt, TALA seeds, font digest, layout, version.
 - **Exit:** no network in MCP; builds reproducible.
 
 ### Phase 5 — Full audit remediation
 
-- [ ] Fix all high/medium findings from `docs/codebase-audit-2026-10-31.md`.
-- [ ] Add regression tests and gates.
-- [ ] Re-run tests, clippy, fmt, parity, visual, revision/organiser, TOC,
+- [x] Fix all high/medium findings from `docs/codebase-audit-2026-10-31.md`
+      (paper remains the labelled legacy exemption; A16 is low).
+- [x] Add regression tests and gates.
+- [x] Re-run tests, clippy, fmt, parity, visual, revision/organiser, TOC,
       package and clean install.
 - **Exit:** no open high-severity finding.
 
 ## 7. Acceptance criteria
 
-- [ ] D2 supports concept/flow, tree, sequence, class and ERD with typed specs;
+- [x] D2 supports concept/flow, tree, sequence, class and ERD with typed specs;
       grid/annotated remain rejected.
-- [ ] Layout allow-list works; no unrestricted engine string.
-- [ ] Theme/typography tokens are validated; icons are rejected.
-- [ ] SVG-only, local-only, static-only; no animations/layers/remote URLs.
-- [ ] CLI and MCP use the same build gates.
-- [ ] Organiser is exactly one page or fails.
-- [ ] Revision grammar cannot be bypassed through MCP.
-- [ ] All high/medium audit findings closed with regression tests.
-- [ ] Visual baselines per kind/engine; no clipping/overflow.
+- [x] Layout allow-list works; no unrestricted engine string.
+- [x] Theme/typography tokens are validated; icons are rejected.
+- [x] SVG-only, local-only, static-only; no animations/layers/remote URLs.
+- [x] CLI and MCP use the same build gates.
+- [x] Organiser is exactly one page or fails.
+- [x] Revision grammar cannot be bypassed through MCP.
+- [x] All high/medium audit findings closed with regression tests.
+- [x] Visual baselines per kind/engine; no clipping/overflow.
 
 ## 8. Decisions requested
 

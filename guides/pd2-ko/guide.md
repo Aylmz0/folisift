@@ -4,6 +4,7 @@ subtitle: "Tek sayfa"
 course: "BMÜ325 Programlama Dilleri"
 language: tr
 sources: [PD2]
+source_scope: "PD2:26-29"
 running: "LISP Bilgi Organizatörü"
 ---
 

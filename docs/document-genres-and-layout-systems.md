@@ -315,7 +315,7 @@ convention, not a learning effect.
 **Implementation status (v0.10):** the reader layout, revision-sheet genre and
 one-page knowledge organiser are implemented. Guided notes, workbook and
 reference sheet are specified for v0.11. `accessible` is a modifier with a
-`component_scale` that now scales the paper components; `paper` remains the
+shared role sizes that now scale the paper components; `paper` remains the
 legacy parity layout.
 
 1. **Stop calling typographic presets genres.** `paper`, `reader`, `clean`,

@@ -819,7 +819,7 @@ PD3’ün ortak ekseni **tanımlama düzeyidir**: sözdizimi “hangi biçim”,
 
 <!-- audit -->
 
-::: chapter part="C–G · ORTAK BÖLÜMLER" side="BÖLÜM DENETİMİ" kicker="G" title="Kapsam denetimi" toc="G. Kapsam denetimi" running="G · Kapsam denetimi" subs=false compact=true lead="Bu bölüm, PD3’ün hangi sayfalarının kapsandığını, hangi düşük metinli slaytların görsel olarak incelendiğini ve neyin bilinçli olarak dışarıda bırakıldığını raporlar."
+::: chapter flow=true part="C–G · ORTAK BÖLÜMLER" side="BÖLÜM DENETİMİ" kicker="G" title="Kapsam denetimi" toc="G. Kapsam denetimi" running="G · Kapsam denetimi" subs=false compact=true lead="Bu bölüm, PD3’ün hangi sayfalarının kapsandığını, hangi düşük metinli slaytların görsel olarak incelendiğini ve neyin bilinçli olarak dışarıda bırakıldığını raporlar."
 :::
 
 ## G.1 Kaynak bazında kapsam

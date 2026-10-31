@@ -877,6 +877,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 .map_or(output_path.as_path(), StagedPdf::path);
 
             let mut coverage = None;
+            let mut revision_coverage = None;
             let mut visual_passed = None;
             let mut layout_passed = true;
             let genre_ok = true;
@@ -904,8 +905,10 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                     return Err(page_issues.join("\n").into());
                 }
                 // A–G coverage is a course-guide gate. Revision/organiser
-                // genres have their own grammar and source model.
-                if folisift_core::gates::uses_course_coverage(&style.structure) {
+                // genres use a declared source page scope instead.
+                if folisift_core::gates::uses_course_coverage(&style.structure)
+                    || folisift_core::gates::uses_revision_coverage(&style.structure)
+                {
                     let inventory = match &guide.inventory {
                         Some(path) if path.exists() => {
                             let bytes = std::fs::read(path)?;
@@ -918,27 +921,40 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                         }
                         _ => analyze_sources(&guide.sources, 120).await?,
                     };
-                    if inventory.totals.low_text_pages > 0 {
-                        let report = VisualAudit::load_and_validate(
-                            &guide.visual_audit(),
-                            &inventory,
-                            &guide.dir,
-                        )?;
-                        visual_passed = Some(report.passed);
-                        if !report.passed {
+                    if folisift_core::gates::uses_revision_coverage(&style.structure) {
+                        let issues =
+                            folisift_parse::revision_coverage_issues(&inventory, &markdown);
+                        if !issues.is_empty() {
                             return Err(format!(
-                                "visual audit failed: {} missing, {} unresolved",
-                                report.missing.len(),
-                                report.unresolved.len()
+                                "revision source coverage failed:\n- {}",
+                                issues.join("\n- ")
                             )
                             .into());
                         }
+                        revision_coverage = Some(true);
+                    } else {
+                        if inventory.totals.low_text_pages > 0 {
+                            let report = VisualAudit::load_and_validate(
+                                &guide.visual_audit(),
+                                &inventory,
+                                &guide.dir,
+                            )?;
+                            visual_passed = Some(report.passed);
+                            if !report.passed {
+                                return Err(format!(
+                                    "visual audit failed: {} missing, {} unresolved",
+                                    report.missing.len(),
+                                    report.unresolved.len()
+                                )
+                                .into());
+                            }
+                        }
+                        let report = check_coverage(&inventory, &markdown, 0.55);
+                        if let Some(path) = &guide.coverage {
+                            report.write_markdown(path)?;
+                        }
+                        coverage = Some(report);
                     }
-                    let report = check_coverage(&inventory, &markdown, 0.55);
-                    if let Some(path) = &guide.coverage {
-                        report.write_markdown(path)?;
-                    }
-                    coverage = Some(report);
                 }
             }
             if let Some(report) = &coverage
@@ -955,7 +971,10 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
             let passed = folisift_core::gates::top_level_passed(
                 layout_passed,
                 genre_ok,
-                coverage.as_ref().map(|report| report.passed),
+                coverage
+                    .as_ref()
+                    .map(|report| report.passed)
+                    .or(revision_coverage),
                 visual_passed,
             );
             if let Some(staged) = staged {
@@ -972,6 +991,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                     "cache_hit": rendered.cache_hit,
                     "style": style,
                     "warnings": rendered.warnings.len(),
+                    "revision_coverage": revision_coverage,
                     "coverage": coverage.as_ref().map(|report| json!({
                         "passed": report.passed,
                         "total": report.total,
@@ -982,6 +1002,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                         "missing_from_gate": report.missing_from_gate,
                         "empty_sections": report.empty_sections.len(),
                         "weak_sections": report.weak_sections.len(),
+                        "duplicate_sections": report.duplicate_sections,
                     })),
                 }))?
             );

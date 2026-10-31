@@ -14,6 +14,7 @@ pub struct PageAudit {
     pub chars: usize,
     pub empty: bool,
     pub overflow: bool,
+    pub visual: bool,
     pub text_left: f64,
     pub text_top: f64,
     pub text_right: f64,
@@ -34,6 +35,7 @@ pub struct AuditOptions {
     pub margin_top_pt: f64,
     pub margin_bottom_pt: f64,
     pub min_font_pt: f64,
+    pub max_line_chars: usize,
 }
 
 impl Default for AuditOptions {
@@ -43,6 +45,7 @@ impl Default for AuditOptions {
             margin_top_pt: 52.0,
             margin_bottom_pt: 45.0,
             min_font_pt: 6.0,
+            max_line_chars: 0,
         }
     }
 }
@@ -60,18 +63,29 @@ impl AuditOptions {
                 * 72.0
                 / 25.4
         };
-        let min_font_pt = tokens
-            .get("audit")
+        let audit = tokens.get("audit");
+        let min_font_pt = audit
             .and_then(|value| value.get("min_font_pt"))
             .and_then(serde_json::Value::as_f64)
             .unwrap_or(6.0);
+        let max_line_chars = audit
+            .and_then(|value| value.get("max_line_chars"))
+            .and_then(serde_json::Value::as_u64)
+            .map_or(0, |value| value as usize);
         Self {
             margin_x_pt: mm("margin_side_mm", 16.2),
             margin_top_pt: mm("margin_top_mm", 18.3),
             margin_bottom_pt: mm("margin_bottom_mm", 15.9),
             min_font_pt,
+            max_line_chars,
         }
     }
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct FontSizeCount {
+    pub size: f64,
+    pub chars: usize,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -94,6 +108,13 @@ pub struct LayoutAudit {
     pub tagged: bool,
     pub bookmarks: usize,
     pub min_font_size: f64,
+    pub body_font_size: f64,
+    pub code_font_size: Option<f64>,
+    pub code_body_ratio: Option<f64>,
+    pub font_sizes: Vec<FontSizeCount>,
+    pub line_chars_p50: usize,
+    pub line_chars_p90: usize,
+    pub long_line_pages: Vec<usize>,
     pub passed: bool,
     pub issues: Vec<String>,
 }
@@ -144,6 +165,9 @@ pub fn audit_pdf_with(
     // This keeps heading/orphan detection style-aware: revision bodies are
     // 11 pt, accessible bodies 12 pt, paper bodies 9.5 pt.
     let mut font_counts: BTreeMap<u32, usize> = BTreeMap::new();
+    let mut code_font_counts: BTreeMap<u32, usize> = BTreeMap::new();
+    let mut line_lengths: Vec<usize> = Vec::new();
+    let mut long_line_pages = Vec::new();
     for index in 0..pages {
         let page = document.page(index as i32).map_err(|error| Error::Parse {
             path: path.to_path_buf(),
@@ -159,6 +183,12 @@ pub fn audit_pdf_with(
                 if size > 0.0 {
                     let key = (size * 10.0).round() as u32;
                     *font_counts.entry(key).or_default() += 1;
+                    if character
+                        .font_name()
+                        .is_some_and(|name| name.to_lowercase().contains("mono"))
+                    {
+                        *code_font_counts.entry(key).or_default() += 1;
+                    }
                 }
             }
         }
@@ -169,9 +199,9 @@ pub fn audit_pdf_with(
         9.5
     } else {
         font_counts
-            .into_iter()
+            .iter()
             .max_by_key(|(_, count)| *count)
-            .map(|(size, _)| f64::from(size) / 10.0)
+            .map(|(size, _)| f64::from(*size) / 10.0)
             .unwrap_or(9.5)
     };
 
@@ -208,6 +238,7 @@ pub fn audit_pdf_with(
         let mut heading_lines: Vec<(f64, f64, String)> = Vec::new();
         let mut body_line_ys: Vec<f64> = Vec::new();
         let mut current_line: Option<(f64, f64, String, f64)> = None;
+        let mut page_line_lengths: Vec<usize> = Vec::new();
         let (mut left, mut top, mut right, mut bottom) = (f64::MAX, f64::MAX, f64::MIN, f64::MIN);
         for index in 0..text.char_count() {
             let Some(character) = text.char_at(index) else {
@@ -270,6 +301,9 @@ pub fn audit_pdf_with(
                         }
                         _ => {
                             if let Some((line_y, line_size, line_text, _)) = current_line.take() {
+                                if (line_size - body_font_size).abs() <= 0.6 {
+                                    page_line_lengths.push(line_text.trim().chars().count());
+                                }
                                 if line_size > body_font_size + 1.0
                                     && line_text.trim().chars().count() > 2
                                 {
@@ -301,6 +335,9 @@ pub fn audit_pdf_with(
         let overflow =
             touched && (left < -1.0 || top < -1.0 || right > width + 1.0 || bottom > height + 1.0);
         if let Some((line_y, line_size, text, _)) = current_line.take() {
+            if (line_size - body_font_size).abs() <= 0.6 {
+                page_line_lengths.push(text.trim().chars().count());
+            }
             if line_size > body_font_size + 1.0 && text.trim().chars().count() > 2 {
                 heading_lines.push((line_y, line_size, text.trim().to_string()));
             } else if line_y > options.margin_top_pt && line_y < height - options.margin_bottom_pt {
@@ -324,15 +361,39 @@ pub fn audit_pdf_with(
             chars,
             empty: chars < 5,
             overflow,
+            visual: !images.is_empty() || captions > 0,
             text_left: if touched { left } else { 0.0 },
             text_top: if touched { top } else { 0.0 },
             text_right: if touched { right } else { 0.0 },
             text_bottom: if touched { bottom } else { 0.0 },
         });
+        if page_line_lengths
+            .iter()
+            .any(|count| options.max_line_chars > 0 && *count > options.max_line_chars)
+        {
+            long_line_pages.push(page_number);
+        }
+        line_lengths.extend(page_line_lengths);
     }
 
     let underfilled_pages = detect_underfilled(&page_reports);
     let page_count_ok = expected_pages.is_none_or(|expected| expected == pages);
+    let mut sorted_lines = line_lengths;
+    sorted_lines.sort_unstable();
+    let line_chars_p50 = percentile(&sorted_lines, 0.50);
+    let line_chars_p90 = percentile(&sorted_lines, 0.90);
+    let font_sizes = font_counts
+        .iter()
+        .map(|(size, chars)| FontSizeCount {
+            size: f64::from(*size) / 10.0,
+            chars: *chars,
+        })
+        .collect::<Vec<_>>();
+    let code_font_size = code_font_counts
+        .iter()
+        .max_by_key(|(_, chars)| *chars)
+        .map(|(size, _)| f64::from(*size) / 10.0);
+    let code_body_ratio = code_font_size.map(|size| size / body_font_size);
     let mut issues = Vec::new();
     if !page_count_ok {
         issues.push(format!(
@@ -414,6 +475,12 @@ pub fn audit_pdf_with(
             options.min_font_pt
         ));
     }
+    if !long_line_pages.is_empty() {
+        issues.push(format!(
+            "lines above {} characters: {long_line_pages:?}",
+            options.max_line_chars
+        ));
+    }
     let passed = issues.is_empty();
 
     Ok(LayoutAudit {
@@ -439,13 +506,32 @@ pub fn audit_pdf_with(
         } else {
             min_font_size
         },
+        body_font_size,
+        code_font_size,
+        code_body_ratio,
+        font_sizes,
+        line_chars_p50,
+        line_chars_p90,
+        long_line_pages,
         passed,
         issues,
     })
 }
 
+fn percentile(sorted: &[usize], fraction: f64) -> usize {
+    if sorted.is_empty() {
+        return 0;
+    }
+    let index = ((sorted.len() - 1) as f64 * fraction).round() as usize;
+    sorted[index.min(sorted.len() - 1)]
+}
+
+static FIGURE_CAPTION_RE: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
+    regex::Regex::new(r#"(?i)(şekil|figure)[”"\x27]?\s*\d+"#).expect("valid figure caption regex")
+});
+
 fn count_figure_captions(page_text: &str) -> usize {
-    page_text.matches("Şekil").count() + page_text.matches("Figure").count()
+    FIGURE_CAPTION_RE.find_iter(page_text).count()
 }
 
 /// Flag pages whose body text is far below the normal body density.
@@ -457,7 +543,7 @@ fn count_figure_captions(page_text: &str) -> usize {
 fn detect_underfilled(pages: &[PageAudit]) -> Vec<UnderfilledPage> {
     let mut counts = pages
         .iter()
-        .filter(|page| page.chars >= 100)
+        .filter(|page| !page.visual && page.chars >= 100)
         .map(|page| page.chars)
         .collect::<Vec<_>>();
     counts.sort_unstable();
@@ -468,7 +554,7 @@ fn detect_underfilled(pages: &[PageAudit]) -> Vec<UnderfilledPage> {
     pages
         .iter()
         .skip(3)
-        .filter(|page| page.chars >= 5 && (page.chars as f64) < threshold)
+        .filter(|page| !page.visual && page.chars >= 5 && (page.chars as f64) < threshold)
         .map(|page| UnderfilledPage {
             page: page.page,
             chars: page.chars,
@@ -564,6 +650,7 @@ mod tests {
             chars,
             empty: chars < 5,
             overflow: false,
+            visual: false,
             text_left: 0.0,
             text_top: 0.0,
             text_right: 0.0,
@@ -582,5 +669,30 @@ mod tests {
         assert_eq!(underfilled.len(), 1, "{underfilled:?}");
         assert_eq!(underfilled[0].page, 6);
         assert!(underfilled[0].ratio < 0.35);
+    }
+
+    #[test]
+    fn visual_pages_are_not_underfilled() {
+        let page = |page: usize, chars: usize, visual: bool| PageAudit {
+            page,
+            chars,
+            empty: chars < 5,
+            overflow: false,
+            visual,
+            text_left: 0.0,
+            text_top: 0.0,
+            text_right: 0.0,
+            text_bottom: 0.0,
+        };
+        let pages = vec![
+            page(1, 300, false),
+            page(2, 1800, false),
+            page(3, 1000, false),
+            page(4, 3000, false),
+            page(5, 2900, false),
+            page(6, 200, true),
+            page(7, 2800, false),
+        ];
+        assert!(detect_underfilled(&pages).is_empty());
     }
 }

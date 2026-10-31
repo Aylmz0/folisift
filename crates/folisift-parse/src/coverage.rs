@@ -30,6 +30,7 @@ pub struct CoverageReport {
     pub weak_sections: Vec<String>,
     pub unknown_claims: Vec<String>,
     pub duplicate_claims: Vec<String>,
+    pub duplicate_sections: Vec<String>,
     pub audit_missing: bool,
     pub sources: Vec<SourceCoverage>,
 }
@@ -97,6 +98,7 @@ pub fn check_coverage(
 ) -> CoverageReport {
     let lines = guide_lines(guide_markdown);
     let sections_by_number = guide_section_chars(guide_markdown);
+    let duplicate_sections = guide_duplicate_sections(guide_markdown);
     let claims = scan_claims(guide_markdown);
     let claim_chars = &claims.chars;
     let audit_missing = !has_audit_section(guide_markdown);
@@ -180,6 +182,7 @@ pub fn check_coverage(
             && empty_sections.is_empty()
             && unknown_claims.is_empty()
             && claims.duplicates.is_empty()
+            && duplicate_sections.is_empty()
             && !audit_missing,
         threshold,
         total,
@@ -192,6 +195,7 @@ pub fn check_coverage(
         weak_sections,
         unknown_claims,
         duplicate_claims: claims.duplicates,
+        duplicate_sections,
         audit_missing,
         sources,
     }
@@ -267,6 +271,13 @@ impl CoverageReport {
             self.unknown_claims.len()
         );
         let _ = writeln!(out, "- Zayıf bölüm: **{}**", self.weak_sections.len());
+        if !self.duplicate_sections.is_empty() {
+            let _ = writeln!(
+                out,
+                "- Yinelenen üst düzey bölüm: **{}**",
+                self.duplicate_sections.join(", ")
+            );
+        }
         let _ = writeln!(
             out,
             "- Sonuç: **{}**\n",
@@ -427,6 +438,36 @@ fn guide_section_chars(markdown: &str) -> std::collections::HashMap<String, usiz
     }
     finalize_section(&mut sections, current);
     sections
+}
+
+fn guide_duplicate_sections(markdown: &str) -> Vec<String> {
+    let markdown = strip_frontmatter(markdown);
+    let mut seen = std::collections::HashSet::new();
+    let mut duplicates = Vec::new();
+    let mut fenced = false;
+    for line in markdown.lines() {
+        let trimmed = line.trim();
+        if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
+            fenced = !fenced;
+            continue;
+        }
+        if fenced {
+            continue;
+        }
+        let Some(heading) = trimmed.strip_prefix("## ") else {
+            continue;
+        };
+        let Some(captures) = SECTION_RE.captures(heading) else {
+            continue;
+        };
+        let number = captures[1].to_string();
+        if !seen.insert(number.clone()) {
+            duplicates.push(number);
+        }
+    }
+    duplicates.sort();
+    duplicates.dedup();
+    duplicates
 }
 
 fn finalize_section(
@@ -698,6 +739,14 @@ mod tests {
         let report = check_coverage(&inventory(), markdown, DEFAULT_THRESHOLD);
         assert!(!report.passed);
         assert!(report.audit_missing);
+    }
+
+    #[test]
+    fn flags_duplicate_top_level_section_numbers() {
+        let markdown = "## 1.1 First\nText.\n\n## 1.1 Second\nMore text.\n";
+        assert_eq!(guide_duplicate_sections(markdown), vec!["1.1"]);
+        let markdown = "## 1.1 First\nText.\n\n### 1.1 Nested\nMore text.\n";
+        assert!(guide_duplicate_sections(markdown).is_empty());
     }
 
     #[test]

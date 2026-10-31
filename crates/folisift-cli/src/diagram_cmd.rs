@@ -9,7 +9,7 @@ use std::process::{Command, Stdio};
 use folisift_core::{Guide, Workspace};
 use folisift_render::diagram::{
     self, D2_VERSION, DiagramManifest, DiagramSpec, DiagramState, DiagramTheme,
-    POSTPROCESS_VERSION, SPEC_SCHEMA_VERSION,
+    POSTPROCESS_VERSION, SPEC_SCHEMA_VERSION, TALA_SEEDS,
 };
 use folisift_render::styles;
 use serde_json::{Value, json};
@@ -170,6 +170,7 @@ fn build_one(
 ) -> CliResult<Value> {
     let fonts = font_dir(workspace)?;
     let font_digest = font_digest(&fonts)?;
+    let theme_digest = diagram::theme_digest(theme)?;
     let spec_sha = diagram::spec_hash(spec)?;
     let manifest_path = diagram::manifest_path(&guide.dir, &spec.id);
     if !force && let Some(manifest) = diagram::read_manifest(&guide.dir, &spec.id)? {
@@ -178,6 +179,8 @@ fn build_one(
         let valid = d2_source_exists
             && manifest.spec_sha256 == spec_sha
             && manifest.d2_version == D2_VERSION
+            && manifest.tala_seeds == TALA_SEEDS
+            && manifest.theme_digest == theme_digest
             && manifest.font_digest == font_digest
             && manifest.postprocess_version == POSTPROCESS_VERSION
             && std::fs::read(&svg_path)
@@ -209,6 +212,7 @@ fn build_one(
         .env("HOME", &d2_home)
         .env("TMPDIR", &d2_home)
         .arg(format!("--layout={}", spec.layout))
+        .arg(format!("--tala-seeds={TALA_SEEDS}"))
         .arg(format!("--salt={}", diagram::salt(&spec_sha)))
         .arg("--pad=20")
         .arg("--theme=0")
@@ -278,6 +282,7 @@ fn build_one(
         svg: relative.clone(),
         d2_version: D2_VERSION.to_string(),
         layout: spec.layout.clone(),
+        tala_seeds: TALA_SEEDS.to_string(),
         salt: diagram::salt(&spec_sha),
         fonts: vec![
             "Inter-Regular.ttf".to_string(),
@@ -287,6 +292,7 @@ fn build_one(
             "NotoSansMono-Regular.ttf".to_string(),
         ],
         font_digest: font_digest.clone(),
+        theme_digest,
         postprocess_version: POSTPROCESS_VERSION,
     };
     let manifest_path = diagram::write_manifest(&guide.dir, &manifest)?;
@@ -333,7 +339,13 @@ fn font_dir(workspace: &Workspace) -> CliResult<PathBuf> {
 }
 
 fn check_d2_version(d2: &Path) -> CliResult<()> {
+    let home = std::env::temp_dir().join("folisift-d2-version");
+    std::fs::create_dir_all(&home)?;
     let output = Command::new(d2)
+        .env_clear()
+        .env("PATH", "")
+        .env("HOME", &home)
+        .env("TMPDIR", &home)
         .arg("--version")
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())

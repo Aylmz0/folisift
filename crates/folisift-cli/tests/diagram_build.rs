@@ -62,6 +62,57 @@ fn setup(root: &Path) {
     .expect("spec");
 }
 
+#[cfg(unix)]
+#[test]
+fn d2_does_not_run_plugins_from_path() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let Ok(d2) = std::env::var("FOLISIFT_D2") else {
+        eprintln!("skipping: set FOLISIFT_D2 to a d2 v0.9.0 binary");
+        return;
+    };
+    let root = tempfile::tempdir().expect("tempdir");
+    setup(root.path());
+    let bin = root.path().join("fake-bin");
+    std::fs::create_dir_all(&bin).expect("bin");
+    let marker = root.path().join("plugin-ran");
+    let plugin = bin.join("d2plugin-evil");
+    std::fs::write(
+        &plugin,
+        format!("#!/bin/sh\ntouch '{}'\nexit 0\n", marker.display()),
+    )
+    .expect("plugin");
+    let mut permissions = std::fs::metadata(&plugin).expect("metadata").permissions();
+    permissions.set_mode(0o755);
+    std::fs::set_permissions(&plugin, permissions).expect("chmod");
+    let path = format!(
+        "{}:{}",
+        bin.display(),
+        std::env::var("PATH").unwrap_or_default()
+    );
+    let output = Command::new(env!("CARGO_BIN_EXE_folisift"))
+        .args([
+            "diagram", "build", "--guide", "demo", "--id", "pipeline", "--force",
+        ])
+        .env("FOLISIFT_D2", &d2)
+        .env("PATH", path)
+        .current_dir(root.path())
+        .output()
+        .expect("diagram build");
+    assert!(
+        output.status.success(),
+        "diagram build failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(!marker.exists(), "D2 executed a PATH plugin");
+    let value: serde_json::Value = serde_json::from_slice(&output.stdout).expect("build JSON");
+    let manifest = value["items"][0]["manifest"].as_str().expect("manifest");
+    let manifest: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(manifest).expect("manifest"))
+            .expect("manifest JSON");
+    assert_eq!(manifest["tala_seeds"], "1,2,3");
+}
+
 #[test]
 fn builds_and_embeds_a_d2_diagram_without_d2_at_build_time() {
     let Ok(d2) = std::env::var("FOLISIFT_D2") else {

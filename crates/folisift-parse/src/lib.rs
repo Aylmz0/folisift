@@ -10,6 +10,7 @@ pub mod inventory;
 pub mod parser;
 pub mod pdfium;
 pub mod render;
+pub mod revision_coverage;
 pub mod source_cache;
 pub mod source_read;
 pub mod table;
@@ -27,6 +28,7 @@ pub use parser::{LiteparseParser, SourceParser, analyze_source, analyze_sources,
 pub use pdfium::{PDFIUM_DIR_ENV, init as init_pdfium};
 pub use render::CropBox;
 pub use render::{PageImage, render_pages};
+pub use revision_coverage::revision_coverage_issues;
 pub use source_cache::{PageText, SourceCache, SourceText};
 pub use source_read::{
     ReadSourceResult, SearchHit, SearchSourceResult, read_source, read_source_at, search_source,
