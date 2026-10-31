@@ -29,7 +29,7 @@ processable data. [PD0, p. 12]
 - **Trap:** `quote` and `eval` are not the same operation. [PD0, p. 16]
 :::
 
-## 3. Comparison
+## 3. Comparisons
 
 ::: table caption="Data and code readings" source="PD0, p. 14"
 | Reading | Input | Result |
@@ -38,7 +38,13 @@ processable data. [PD0, p. 12]
 | Code | `(A B C)` | Function `A` applied to `B` and `C` |
 :::
 
-## 4. Recall
+## 4. Exam traps
+
+::: critical label="EXAM TRAP"
+Do not treat the shared representation as a claim that evaluation is also shared. [PD0, p. 14]
+:::
+
+## 5. Recall
 
 ::: recall
 How is `(A B C)` read as data and as code?
@@ -51,7 +57,7 @@ As data it is a three-element list; as code it applies function `A` to arguments
 
 ::: pagebreak
 
-## 5. One-page synthesis
+## 6. One-page synthesis
 
 ::: synthesis title="One-page synthesis"
 - Code and data share one representation.
@@ -59,4 +65,10 @@ As data it is a three-element list; as code it applies function `A` to arguments
 - A list contains atoms and sublists.
 - Function application starts with the operator on the left.
 - In an exam, separate the data reading from the code reading first.
+:::
+
+## 7. Review plan
+
+::: review-plan
+Re-read the recall answers, redraw the map, then solve one faded example without looking at the answer key. [PD0, p. 14]
 :::

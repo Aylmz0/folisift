@@ -61,6 +61,10 @@ palettes and pairings it accepts; the guide selects them explicitly. The
 12-palette and 2-pairing libraries are in `styles/palettes/` and
 `styles/fonts/`, and every palette is contrast-tested at load time.
 
+`notes`, `workbook` and `reference` are full genre layouts for guided notes,
+practice sets and formula/reference lookup. They use the `lecture-notes`,
+`workbook` and `formula-sheet` structures respectively.
+
 `revision` is the exam-revision layout. It implements two structures:
 
 - `revision-sheet`: map, must-know, comparisons, worked examples, traps,

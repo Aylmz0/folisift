@@ -14,6 +14,7 @@ folisift-parse                liteparse inventory, coverage, screenshots
     │
     ▼
 folisift-render               Markdown + directives → Typst → PDF
+folisift-build                shared CLI/MCP build orchestration and gates
     │
     ▼
 guides/<slug>/                guide.md + config.json + visual-audit.json +
@@ -28,6 +29,7 @@ folisift-cli / mcp            CLI and stdio MCP tools
 | Core | `crates/folisift-core/` | Config/schema, workspace sandbox, scaffold, version. |
 | Parse | `crates/folisift-parse/` | liteparse adapter, inventory, coverage, screenshots. |
 | Render | `crates/folisift-render/` | Markdown/directives, style registry, Typst world, PDF. |
+| Build | `crates/folisift-build/` | Shared build orchestration and gates for CLI/MCP. |
 | MCP | `crates/folisift-mcp/` | stdio tools, resources and prompt. |
 | CLI | `crates/folisift-cli/` | `folisift` binary. |
 | Templates | `templates/paper.typ`, `clean.typ`, `revision.typ` | Engine-owned layouts; paper is the legacy parity layout, revision is the exam-revision/organiser layout. |

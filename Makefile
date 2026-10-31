@@ -11,7 +11,7 @@ VISUAL_BASELINE ?= tests/baselines/pd0-pd1.pdf
 CLEAN_BASELINE ?= tests/baselines/clean-preview.pdf
 VISUAL_PAGES ?= 1,4,8,12,18,22
 
-.PHONY: help build check verify audit toc-check production-report revision revision-check type-check palette-check package-check doctor parity parity-capture visual visual-capture diagram diagram-status package test fmt clippy analyze pages scaffold
+.PHONY: help build check verify audit toc-check production-report revision revision-check type-check palette-check genre-check genre-visual genre-capture package-check doctor parity parity-capture visual visual-capture diagram diagram-status package test fmt clippy analyze pages scaffold
 
 help:
 	@echo "make build      # guide PDF"
@@ -23,6 +23,7 @@ help:
 	@echo "make type-check # body/code/line typography gate"
 	@echo "make revision-check # revision + organiser build gates"
 	@echo "make palette-check # palette contrast + grayscale proof"
+	@echo "make genre-check # notes/workbook/reference preview + baselines"
 	@echo "make package-check # package + clean-directory doctor"
 	@echo "make revision   # revision sheet + one-page organiser pilots"
 	@echo "make doctor     # PDFium/cache/guides/fonts checks"
@@ -70,6 +71,27 @@ type-check:
 
 palette-check:
 	python3 scripts/check-palettes.py
+
+genre-check: genre-visual
+
+genre-visual:
+	cargo build -q -p folisift-cli
+	./target/debug/folisift styles preview notes --language en --out output/style-preview-notes-en.pdf
+	./target/debug/folisift visual compare --reference tests/baselines/genres/notes.pdf --current output/style-preview-notes-en.pdf --pages 1,2,3,4 --out data/visual/genres/notes --threshold 1.0 --ratio-threshold 0.001 --fail-on-diff
+	./target/debug/folisift styles preview workbook --language en --out output/style-preview-workbook-en.pdf
+	./target/debug/folisift visual compare --reference tests/baselines/genres/workbook.pdf --current output/style-preview-workbook-en.pdf --pages 1,2,3,4,5 --out data/visual/genres/workbook --threshold 1.0 --ratio-threshold 0.001 --fail-on-diff
+	./target/debug/folisift styles preview reference --language en --out output/style-preview-reference-en.pdf
+	./target/debug/folisift visual compare --reference tests/baselines/genres/reference.pdf --current output/style-preview-reference-en.pdf --pages 1,2,3,4 --out data/visual/genres/reference --threshold 1.0 --ratio-threshold 0.001 --fail-on-diff
+
+genre-capture:
+	cargo build -q -p folisift-cli
+	mkdir -p tests/baselines/genres
+	./target/debug/folisift styles preview notes --language en --out output/style-preview-notes-en.pdf
+	cp output/style-preview-notes-en.pdf tests/baselines/genres/notes.pdf
+	./target/debug/folisift styles preview workbook --language en --out output/style-preview-workbook-en.pdf
+	cp output/style-preview-workbook-en.pdf tests/baselines/genres/workbook.pdf
+	./target/debug/folisift styles preview reference --language en --out output/style-preview-reference-en.pdf
+	cp output/style-preview-reference-en.pdf tests/baselines/genres/reference.pdf
 
 package-check: package
 	./scripts/check-package.sh

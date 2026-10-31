@@ -312,6 +312,47 @@ fn markdown_to_typst_with(markdown: &str, config: &RenderConfig) -> Result<Strin
                         typst_string(&config.organiser_badge)
                     ));
                 }
+                "cue" => {
+                    let inner_typst = markdown_to_typst_with(&inner_markdown, config)?;
+                    out.push_str(&format!(
+                        "#cue_block(label: {})[{inner_typst}]\n\n",
+                        optional_attr(&attrs, "label")
+                    ));
+                }
+                "summary" => {
+                    let inner_typst = markdown_to_typst_with(&inner_markdown, config)?;
+                    out.push_str(&format!("#summary_block[{inner_typst}]\n\n"));
+                }
+                "problem" => {
+                    let inner_typst = markdown_to_typst_with(&inner_markdown, config)?;
+                    out.push_str(&format!(
+                        "#problem_block(title: {})[{inner_typst}]\n\n",
+                        optional_attr(&attrs, "title")
+                    ));
+                }
+                "workspace" => {
+                    let inner_typst = markdown_to_typst_with(&inner_markdown, config)?;
+                    let lines = attr(&attrs, "lines")
+                        .and_then(|value| value.parse::<usize>().ok())
+                        .unwrap_or(4)
+                        .clamp(1, 20);
+                    out.push_str(&format!(
+                        "#workspace_block(label: {}, lines: {lines})[{inner_typst}]\n\n",
+                        optional_attr(&attrs, "label")
+                    ));
+                }
+                "answer-key" => {
+                    let inner_typst = markdown_to_typst_with(&inner_markdown, config)?;
+                    out.push_str(&format!("#answer_key[{inner_typst}]\n\n"));
+                }
+                "formula" => {
+                    let inner_typst = markdown_to_typst_with(&inner_markdown, config)?;
+                    out.push_str(&format!(
+                        "#formula_card(title: {}, source: {})[{inner_typst}]\n\n",
+                        optional_attr(&attrs, "title"),
+                        optional_attr(&attrs, "source")
+                    ));
+                }
                 "chapter" => {
                     if !inner_markdown.trim().is_empty() {
                         return Err(Error::Markdown {

@@ -29,7 +29,7 @@ veri olur. [PD0, s. 12]
 - **Tuzak:** `quote` ile `eval` aynı şey değildir. [PD0, s. 16]
 :::
 
-## 3. Karşılaştırma
+## 3. Karşılaştırmalar
 
 ::: table caption="Veri ve kod yorumu" source="PD0, s. 14"
 | Bakış | Girdi | Sonuç |
@@ -38,7 +38,13 @@ veri olur. [PD0, s. 12]
 | Kod | `(A B C)` | `A` fonksiyonu, `B C` argümanları |
 :::
 
-## 4. Hatırlama
+## 4. Sınav tuzakları
+
+::: critical label="SINAV TUZAĞI"
+Ortak temsili, değerlendirmenin de ortak olduğu sanma. [PD0, s. 14]
+:::
+
+## 5. Hatırlama
 
 ::: recall
 `(A B C)` ifadesi veri olarak ve kod olarak nasıl yorumlanır?
@@ -51,7 +57,7 @@ argümanlarına uygulanmasıdır. [PD0, s. 14]
 
 ::: pagebreak
 
-## 5. Tek sayfa sentez
+## 6. Tek sayfa sentez
 
 ::: synthesis title="Tek sayfa sentez"
 - Kod ve veri aynı temsili paylaşır.
@@ -59,4 +65,10 @@ argümanlarına uygulanmasıdır. [PD0, s. 14]
 - Liste, atom ve alt listelerden oluşur.
 - Fonksiyon uygulaması soldaki operatörle başlar.
 - Sınavda önce veri/kod yorumunu ayır.
+:::
+
+## 7. Tekrar planı
+
+::: review-plan
+Hatırlama cevaplarını tekrar oku, haritayı yeniden çiz, sonra cevap anahtarına bakmadan bir örneği çöz. [PD0, s. 14]
 :::

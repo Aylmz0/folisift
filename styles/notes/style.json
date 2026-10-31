@@ -1,0 +1,59 @@
+{
+  "schema_version": 2,
+  "id": "notes",
+  "name": "Notes",
+  "status": "experimental",
+  "layout": "notes",
+  "aesthetic": "notes",
+  "supported_structures": [
+    "lecture-notes",
+    "a-g"
+  ],
+  "supported_languages": [
+    "tr",
+    "en"
+  ],
+  "supported_domains": [
+    "general",
+    "cs",
+    "math",
+    "medicine",
+    "law",
+    "business",
+    "humanities",
+    "language"
+  ],
+  "supported_voices": [
+    "academic",
+    "technical",
+    "plain",
+    "legal",
+    "clinical",
+    "business"
+  ],
+  "palette": "warm-paper",
+  "fonts": "editorial",
+  "supported_palettes": [
+    "warm-paper",
+    "forest-sage",
+    "ocean-teal",
+    "graphite",
+    "mono-print",
+    "high-contrast",
+    "cool-slate",
+    "academic-navy",
+    "cobalt"
+  ],
+  "supported_fonts": [
+    "editorial",
+    "technical"
+  ],
+  "tokens": "tokens.json",
+  "strings": [
+    "tr",
+    "en"
+  ],
+  "engine_min": "0.11.0",
+  "page_target": "dynamic",
+  "preview": "preview.md"
+}

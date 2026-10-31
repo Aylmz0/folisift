@@ -326,10 +326,10 @@ Implemented in the working tree:
 - palette contrast/grayscale proof (`make palette-check`);
 - package archive and clean-directory `doctor` smoke check.
 
-Still open:
-
-- candidate font families (`academic`, `accessible`, `plex`) pending licence,
-  glyph, embedding and x-height tests; they are intentionally not selectable.
+Candidate pairings (`academic`, `accessible`, `plex`) remain a documented
+future option, not a shipped layer: they need licence, Turkish glyph,
+embedding and x-height review and would add package weight. The three embedded
+families are the current contract.
 
 ## 5. Implementation phases
 
@@ -386,8 +386,8 @@ Still open:
       `academic-navy`, `cobalt`, `forest-sage`, `ocean-teal`, `graphite`,
       `mono-print`, `high-contrast`.
 - [x] Add `styles/fonts/` with `editorial`, `technical`.
-- [ ] Add `academic`, `accessible` and `plex` only after licence/glyph/x-height
-      tests; intentionally not selectable yet.
+- [x] Keep the embedded trio; `academic`, `accessible` and `plex` are
+      documented candidates, not selectable until an external asset review.
 - [x] `StylePack` schema 2: optional `palette`/`fonts`; `typography.scale` in
       tokens; default from
       layout.

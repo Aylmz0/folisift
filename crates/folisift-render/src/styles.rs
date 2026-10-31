@@ -44,6 +44,21 @@ const CLEAN_TOKENS: &str = include_str!("../../../styles/clean/tokens.json");
 const CLEAN_TR: &str = include_str!("../../../styles/clean/strings/tr.json");
 const CLEAN_EN: &str = include_str!("../../../styles/clean/strings/en.json");
 
+const NOTES_STYLE: &str = include_str!("../../../styles/notes/style.json");
+const NOTES_TOKENS: &str = include_str!("../../../styles/notes/tokens.json");
+const NOTES_TR: &str = include_str!("../../../styles/notes/strings/tr.json");
+const NOTES_EN: &str = include_str!("../../../styles/notes/strings/en.json");
+
+const WORKBOOK_STYLE: &str = include_str!("../../../styles/workbook/style.json");
+const WORKBOOK_TOKENS: &str = include_str!("../../../styles/workbook/tokens.json");
+const WORKBOOK_TR: &str = include_str!("../../../styles/workbook/strings/tr.json");
+const WORKBOOK_EN: &str = include_str!("../../../styles/workbook/strings/en.json");
+
+const REFERENCE_STYLE: &str = include_str!("../../../styles/reference/style.json");
+const REFERENCE_TOKENS: &str = include_str!("../../../styles/reference/tokens.json");
+const REFERENCE_TR: &str = include_str!("../../../styles/reference/strings/tr.json");
+const REFERENCE_EN: &str = include_str!("../../../styles/reference/strings/en.json");
+
 const PALETTES: &[(&str, &str)] = &[
     (
         "warm-paper",
@@ -203,6 +218,9 @@ pub fn builtin_ids() -> &'static [&'static str] {
         "brief",
         "accessible",
         "revision",
+        "notes",
+        "workbook",
+        "reference",
     ]
 }
 
@@ -727,6 +745,28 @@ fn embedded(id: &str, file: &str) -> Option<&'static str> {
         ("revision", "preview.en.md") => {
             Some(include_str!("../../../styles/revision/preview.en.md"))
         }
+        ("notes", "style.json") => Some(NOTES_STYLE),
+        ("notes", "tokens.json") => Some(NOTES_TOKENS),
+        ("notes", "strings/tr.json") => Some(NOTES_TR),
+        ("notes", "strings/en.json") => Some(NOTES_EN),
+        ("notes", "preview.md") => Some(include_str!("../../../styles/notes/preview.md")),
+        ("notes", "preview.en.md") => Some(include_str!("../../../styles/notes/preview.en.md")),
+        ("workbook", "style.json") => Some(WORKBOOK_STYLE),
+        ("workbook", "tokens.json") => Some(WORKBOOK_TOKENS),
+        ("workbook", "strings/tr.json") => Some(WORKBOOK_TR),
+        ("workbook", "strings/en.json") => Some(WORKBOOK_EN),
+        ("workbook", "preview.md") => Some(include_str!("../../../styles/workbook/preview.md")),
+        ("workbook", "preview.en.md") => {
+            Some(include_str!("../../../styles/workbook/preview.en.md"))
+        }
+        ("reference", "style.json") => Some(REFERENCE_STYLE),
+        ("reference", "tokens.json") => Some(REFERENCE_TOKENS),
+        ("reference", "strings/tr.json") => Some(REFERENCE_TR),
+        ("reference", "strings/en.json") => Some(REFERENCE_EN),
+        ("reference", "preview.md") => Some(include_str!("../../../styles/reference/preview.md")),
+        ("reference", "preview.en.md") => {
+            Some(include_str!("../../../styles/reference/preview.en.md"))
+        }
         ("clean", "style.json") => Some(CLEAN_STYLE),
         ("clean", "tokens.json") => Some(CLEAN_TOKENS),
         ("clean", "strings/tr.json") => Some(CLEAN_TR),
@@ -756,7 +796,10 @@ pub fn apply_tokens(template: &str, tokens: &Value, layout: &str) -> Result<Stri
             out = out.replace(original, &format!("\"{}\"", family.replace('"', "")));
         }
     }
-    if matches!(layout, "paper" | "clean") {
+    if matches!(
+        layout,
+        "paper" | "clean" | "notes" | "workbook" | "reference"
+    ) {
         let code_block = typography
             .and_then(|value| value.get("code_block_size"))
             .and_then(Value::as_f64)
@@ -961,7 +1004,7 @@ pub fn apply_palette(template: &str, tokens: &Value, layout: &str) -> Result<Str
             message: "tokens.palette is required".to_string(),
         })?;
     let defaults: &[(&str, &str)] = match layout {
-        "paper" => &[
+        "paper" | "notes" => &[
             ("paper", "#FAF6EC"),
             ("ink", "#211E19"),
             ("muted", "#5E574B"),
@@ -993,7 +1036,7 @@ pub fn apply_palette(template: &str, tokens: &Value, layout: &str) -> Result<Str
             ("zebra", "#F7F1E5"),
             ("headerfill", "#EFE7D8"),
         ],
-        "clean" => &[
+        "clean" | "workbook" | "reference" => &[
             ("paper", "#FFFFFF"),
             ("ink", "#111827"),
             ("muted", "#4B5563"),

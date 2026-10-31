@@ -9,7 +9,7 @@ use serde::Deserialize;
 use crate::inventory::Inventory;
 
 static PAGE_REF_RE: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
-    regex::Regex::new(r"(?i)\b([A-Z]{2}\d*)\s*,\s*s\.\s*(\d+)(?:\s*[–-]\s*(\d+))?")
+    regex::Regex::new(r"(?i)\b([A-Z]{2}\d*)\s*,\s*(?:s|p)\.\s*(\d+)(?:\s*[–-]\s*(\d+))?")
         .expect("valid page reference regex")
 });
 
@@ -129,10 +129,9 @@ fn parse_scopes(value: &str) -> Result<Vec<Scope>, String> {
                 "invalid source_scope entry {part:?}; use SOURCE:START-END"
             ));
         };
-        let Some((start, end)) = range.split_once('-') else {
-            return Err(format!(
-                "invalid source_scope range {range:?}; use START-END"
-            ));
+        let (start, end) = match range.split_once('-') {
+            Some((start, end)) => (start, end),
+            None => (range, range),
         };
         let start = start
             .trim()
@@ -193,6 +192,12 @@ mod tests {
     #[test]
     fn accepts_a_fully_cited_scope() {
         let markdown = guide("PD2:26-29", "A [PD2, s. 26–29] and B [PD2, s. 27].");
+        assert!(revision_coverage_issues(&inventory(), &markdown).is_empty());
+    }
+
+    #[test]
+    fn accepts_a_single_page_scope() {
+        let markdown = guide("PD2:26", "Only [PD2, s. 26].");
         assert!(revision_coverage_issues(&inventory(), &markdown).is_empty());
     }
 

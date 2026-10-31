@@ -1142,11 +1142,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "77ce24cb58228fbb8aa041425bb1050850ac19177686ea6e0f41a70416f56fdb"
 
 [[package]]
+name = "folisift-build"
+version = "0.11.0"
+dependencies = [
+ "folisift-core",
+ "folisift-parse",
+ "folisift-render",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
 name = "folisift-cli"
 version = "0.11.0"
 dependencies = [
  "blake3",
  "clap",
+ "folisift-build",
  "folisift-core",
  "folisift-mcp",
  "folisift-parse",
@@ -1173,6 +1187,7 @@ name = "folisift-mcp"
 version = "0.11.0"
 dependencies = [
  "axum",
+ "folisift-build",
  "folisift-core",
  "folisift-parse",
  "folisift-render",

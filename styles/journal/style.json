@@ -8,8 +8,7 @@
   "supported_structures": [
     "imrad",
     "literature-matrix",
-    "a-g",
-    "lecture-notes"
+    "a-g"
   ],
   "supported_languages": [
     "tr",

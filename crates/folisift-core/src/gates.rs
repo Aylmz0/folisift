@@ -7,18 +7,27 @@ use crate::genre;
 
 /// A–G coverage is a course-guide gate, not a revision/organiser gate.
 pub fn uses_course_coverage(structure: &str) -> bool {
-    !matches!(structure, "revision-sheet" | "knowledge-organiser")
+    matches!(
+        structure,
+        "a-g" | "imrad" | "irac" | "soap" | "literature-matrix" | "executive-brief"
+    )
 }
 
 /// Revision/organiser coverage is a declared source page scope, not A–G.
 pub fn uses_revision_coverage(structure: &str) -> bool {
-    matches!(structure, "revision-sheet" | "knowledge-organiser")
+    matches!(
+        structure,
+        "revision-sheet" | "knowledge-organiser" | "lecture-notes" | "workbook" | "formula-sheet"
+    )
 }
 
 /// Genre-specific Markdown checks that do not depend on PDF inspection.
 pub fn genre_issues(structure: &str, markdown: &str) -> Vec<String> {
     match structure {
         "revision-sheet" => genre::revision_issues(markdown),
+        "lecture-notes" => genre::notes_issues(markdown),
+        "workbook" => genre::workbook_issues(markdown),
+        "formula-sheet" => genre::reference_issues(markdown),
         _ => Vec::new(),
     }
 }
@@ -54,6 +63,9 @@ mod tests {
         assert!(!uses_course_coverage("knowledge-organiser"));
         assert!(uses_course_coverage("a-g"));
         assert!(uses_course_coverage("imrad"));
+        assert!(!uses_course_coverage("lecture-notes"));
+        assert!(!uses_course_coverage("workbook"));
+        assert!(!uses_course_coverage("formula-sheet"));
     }
 
     #[test]

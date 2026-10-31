@@ -1,0 +1,10 @@
+{
+  "id": "workbook",
+  "title": "Practice workbook",
+  "sections": [
+    { "id": "problems", "tr": "Sorular", "en": "Problems", "hint": "Kısa, bağımsız problemler; her biri tek bir hedefi ölçer." },
+    { "id": "worked-example", "tr": "Çözümlü örnek", "en": "Worked example", "hint": "Tam çözüm, sonra kademeli (faded) örnek." },
+    { "id": "practice", "tr": "Alıştırma", "en": "Practice", "hint": "Öğrencinin kendi başına çözeceği problemler; cevap verilmez." },
+    { "id": "answer-key", "tr": "Cevap anahtarı", "en": "Answer key", "hint": "Kısa cevaplar ve çözüm ipuçları; ayrı bölümde." }
+  ]
+}

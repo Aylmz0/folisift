@@ -1,0 +1,59 @@
+{
+  "schema_version": 2,
+  "id": "reference",
+  "name": "Reference",
+  "status": "experimental",
+  "layout": "reference",
+  "aesthetic": "reference",
+  "supported_structures": [
+    "formula-sheet",
+    "a-g"
+  ],
+  "supported_languages": [
+    "tr",
+    "en"
+  ],
+  "supported_domains": [
+    "general",
+    "cs",
+    "math",
+    "medicine",
+    "law",
+    "business",
+    "humanities",
+    "language"
+  ],
+  "supported_voices": [
+    "academic",
+    "technical",
+    "plain",
+    "legal",
+    "clinical",
+    "business"
+  ],
+  "palette": "academic-navy",
+  "fonts": "technical",
+  "supported_palettes": [
+    "warm-paper",
+    "forest-sage",
+    "ocean-teal",
+    "graphite",
+    "mono-print",
+    "high-contrast",
+    "cool-slate",
+    "academic-navy",
+    "cobalt"
+  ],
+  "supported_fonts": [
+    "editorial",
+    "technical"
+  ],
+  "tokens": "tokens.json",
+  "strings": [
+    "tr",
+    "en"
+  ],
+  "engine_min": "0.11.0",
+  "page_target": "dynamic",
+  "preview": "preview.md"
+}

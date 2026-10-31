@@ -55,6 +55,7 @@ extraction.
   - `folisift-core` — config/schema, workspace path safety, scaffold, version.
   - `folisift-parse` — liteparse adapter, inventory, coverage, screenshots.
   - `folisift-render` — Markdown/directives to Typst PDF.
+  - `folisift-build` — shared CLI/MCP build orchestration and gates.
   - `folisift-mcp` — stdio tools, resources and prompts.
   - `folisift-cli` — the `folisift` binary.
 - `guides/<slug>/` — one self-contained course/material bundle:

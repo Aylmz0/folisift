@@ -235,6 +235,40 @@ sources: [PD0]
     assert!(render(inline, &options).is_err());
 }
 #[test]
+fn new_genre_previews_pass_structure_and_grammar_gates() {
+    let root = tempfile::tempdir().expect("tempdir");
+    for id in ["notes", "workbook", "reference"] {
+        let loaded = styles::load(Path::new(""), id).expect("pack");
+        let structure = loaded
+            .pack
+            .supported_structures
+            .first()
+            .cloned()
+            .expect("structure");
+        let content = styles::preview(Path::new(""), id, "en").expect("preview");
+        folisift_core::structures::validate(&structure, "en", &content).expect("structure");
+        let issues = folisift_core::gates::genre_issues(&structure, &content);
+        assert!(issues.is_empty(), "{id}: {issues:?}");
+        let profile = StyleProfile {
+            aesthetic: loaded.pack.aesthetic.clone(),
+            palette: loaded.palette.id.clone(),
+            fonts: loaded.fonts.id.clone(),
+            structure,
+            language: "en".to_string(),
+            source_language: "en".to_string(),
+            domain: "cs".to_string(),
+            ..StyleProfile::default()
+        };
+        let mut options = options(&profile);
+        options.guide_root = root.path();
+        options.cache_dir = None;
+        let rendered = render(&content, &options).unwrap_or_else(|error| panic!("{id}: {error}"));
+        assert!(rendered.pdf.starts_with(b"%PDF-"), "{id}");
+        assert!(rendered.pages >= 1, "{id}");
+    }
+}
+
+#[test]
 fn every_structure_pack_renders_in_both_languages() {
     for pack in folisift_core::structures::packs() {
         for language in ["en", "tr"] {
@@ -252,11 +286,12 @@ fn every_structure_pack_renders_in_both_languages() {
             let content = format!(
                 "---\ntitle: \"Structure\"\nlanguage: {language}\nsources: [PD0]\n---\n\n::: chapter part=\"B\" title=\"Body\" toc=\"Body\"\n:::\n\n{headings}\n<!-- audit -->\n"
             );
-            let aesthetic = if matches!(pack.id.as_str(), "revision-sheet" | "knowledge-organiser")
-            {
-                "revision"
-            } else {
-                "paper"
+            let aesthetic = match pack.id.as_str() {
+                "revision-sheet" | "knowledge-organiser" => "revision",
+                "lecture-notes" => "notes",
+                "workbook" => "workbook",
+                "formula-sheet" => "reference",
+                _ => "paper",
             };
             let profile = StyleProfile {
                 aesthetic: aesthetic.to_string(),

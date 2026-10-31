@@ -6,11 +6,9 @@
   "layout": "revision",
   "aesthetic": "revision",
   "supported_structures": [
-    "a-g",
     "revision-sheet",
     "knowledge-organiser",
-    "lecture-notes",
-    "formula-sheet"
+    "a-g"
   ],
   "supported_languages": [
     "tr",

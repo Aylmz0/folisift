@@ -3,6 +3,7 @@ members = [
     "crates/folisift-core",
     "crates/folisift-parse",
     "crates/folisift-render",
+    "crates/folisift-build",
     "crates/folisift-mcp",
     "crates/folisift-cli",
 ]

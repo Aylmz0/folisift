@@ -18,6 +18,9 @@ pub const AESTHETICS: &[&str] = &[
     "brief",
     "accessible",
     "revision",
+    "notes",
+    "workbook",
+    "reference",
 ];
 pub const STRUCTURES: &[&str] = &[
     "a-g",
@@ -30,6 +33,7 @@ pub const STRUCTURES: &[&str] = &[
     "executive-brief",
     "revision-sheet",
     "knowledge-organiser",
+    "workbook",
 ];
 pub const LANGUAGES: &[&str] = &["tr", "en"];
 pub const VOICES: &[&str] = &[

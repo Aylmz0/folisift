@@ -326,8 +326,7 @@ Still open:
 
 - per-kind **PDF** baselines (the SVG baselines cover the engine output);
 - macOS/Windows archives and release signing;
-- a single extracted build-service type (the CLI/MCP policy is shared through
-  `folisift-core::gates`, but orchestration remains host-side).
+- per-kind PDF baselines (SVG baselines cover the engine output).
 
 ## 6. Implementation phases
 
@@ -341,9 +340,7 @@ Still open:
 
 ### Phase 1 — Shared build service
 
-- [x] Share the genre/page/coverage policy in `folisift-core::gates`; CLI/MCP
-      orchestration remains host-side.
-- [ ] Extract the remaining CLI/MCP orchestration into one service:
+- [x] Extract the remaining CLI/MCP orchestration into `folisift-build`:
       structure → genre grammar → layout audit → genre coverage → report.
 - [x] Render to temp, gate, atomic rename.
 - [x] Return one top-level `passed`; `coverage && visual && layout`.

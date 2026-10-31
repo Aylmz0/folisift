@@ -1,6 +1,6 @@
 # Folisift v0.10 — Genre-first revision format and layout systems
 
-- **Status:** v0.10.0 implementation complete; metadata migration and v0.11 genres planned
+- **Status:** v0.10 revision/organiser complete; v0.11 notes/workbook/reference genres complete; metadata migration remains a follow-on
 - **Date:** 2026-10-30
 - **Baseline:** `v0.9.0` (`f7f4e400`, build 101; PD0–PD1 22, PD2 23, PD3 20
   pages; 124 tests)
@@ -530,17 +530,17 @@ Rules:
 
 These are specified now but not part of the v0.10 release.
 
-- [ ] `notes` layout: Cornell-like cue/notes/summary zones; blanks; no answers.
-- [ ] `workbook` layout: problem block, workspace, faded example, answer key.
-- [ ] `reference` layout: formula cards, units, conditions, comparison tables.
-- [ ] Structures: `workbook`, `formula-sheet` refinement; `lecture-notes`
+- [x] `notes` layout: Cornell-like cue/notes/summary zones; blanks; no answers.
+- [x] `workbook` layout: problem block, workspace, faded example, answer key.
+- [x] `reference` layout: formula cards, units, conditions, comparison tables.
+- [x] Structures: `workbook`, `formula-sheet` refinement; `lecture-notes`
       already exists.
-- [ ] Add genre fixtures and visual baselines for each.
+- [x] Add genre fixtures and visual baselines for each.
 - **Exit:** each genre has a preview, a gate and at least one fixture.
 
 ### Phase 3 — Genre grammar gates
 
-- [ ] Add `crates/folisift-parse/src/genre.rs` with per-genre checks:
+- [x] Add `crates/folisift-parse/src/genre.rs` with per-genre checks:
       - revision: paragraphs > 60 words, bullets > 25 words, lists > 7,
         tables > 5 columns/8 rows, missing map, recall answers or synthesis;
       - knowledge organiser: more than one page per unit, > 15 terms, no
@@ -549,7 +549,7 @@ These are specified now but not part of the v0.10 release.
       - workbook: no workspace, no answer key, no faded example;
       - reference: unexplained symbols/units, prose > 2 sentences, missing
         conditions.
-- [ ] Add `build --check` integration by genre; existing A–G guides are not
+- [x] Add `build --check` integration by genre; existing A–G guides are not
       affected. For v0.10, implement revision + organiser gates; the
       notes/workbook/reference gates are specified now and enforced in v0.11.
 - [ ] Add `prepare_guide` genre checklist and `build_guide` genre report.
@@ -574,13 +574,13 @@ These are specified now but not part of the v0.10 release.
 
 ### Phase 5 — Audit and gates
 
-- [ ] Add `AuditOptions` with margins, min font, max line chars.
-- [ ] Add `audit --guide <slug>` to derive margins/floor from the guide style.
-- [ ] Add font histogram, line-length percentiles, long-line pages and
+- [x] Add `AuditOptions` with margins, min font, max line chars.
+- [x] Add `audit --guide <slug>` to derive margins/floor from the guide style.
+- [x] Add font histogram, line-length percentiles, long-line pages and
       style-aware min font to `LayoutAudit`.
-- [ ] Skip visual pages in `underfilled_pages`; count figure captions only on
+- [x] Skip visual pages in `underfilled_pages`; count figure captions only on
       caption-like lines.
-- [ ] Add `make type-check` and `make genre-check`.
+- [x] Add `make type-check` and `make genre-check`.
 - [ ] Update `scripts/check-production-report.py` for the new report fields.
 - **Exit:** `audit --guide pd2` reports the real margins and line lengths;
       `audit --guide pd2-rev --strict` passes only when the revision grammar
@@ -588,20 +588,20 @@ These are specified now but not part of the v0.10 release.
 
 ### Phase 6 — Pilots, docs and release
 
-- [ ] Create `guides/pd2-rev/` and `guides/pd3-rev/` revision sheets from PD2
+- [x] Create `guides/pd2-rev/` and `guides/pd3-rev/` revision sheets from PD2
       (103 slides) and PD3 (dense semantics).
-- [ ] Create `guides/pd2-ko/` as a one-page knowledge organiser for one PD2
+- [x] Create `guides/pd2-ko/` as a one-page knowledge organiser for one PD2
       unit; test the one-page constraint.
-- [ ] Build, audit, TOC-check and visual-audit all pilots.
+- [x] Build, audit, TOC-check and visual-audit all pilots.
 - [ ] Expert review with the rubric in `docs/authoring-evidence.md` §6.1.
-- [ ] Rewrite `docs/design-system.md` as a multi-layout design system:
+- [x] Rewrite `docs/design-system.md` as a multi-layout design system:
       palette, type scale, measure, component table, genre roles,
       accessibility modifiers.
 - [ ] Update `docs/authoring.md`, `docs/authoring-spec.md`,
       `docs/authoring-evidence.md` (citation/clinical/quiz contradictions).
 - [ ] Add an ADR: exact page parity → structural parity + page-range gate.
 - [ ] Update `docs/VERSIONS.md`, README and release notes.
-- [ ] Run the full gate: tests, clippy, fmt, paper/clean/revision previews,
+- [x] Run the full gate: tests, clippy, fmt, paper/clean/revision previews,
       PD0–PD1/PD2/PD3 builds, TOC links, strict audits, package checksum,
       clean install.
 - **Exit:** v0.10.0 release candidate; no known typography or taxonomy bug.
@@ -617,7 +617,8 @@ These are specified now but not part of the v0.10 release.
 | Revision/organiser pilots | done | `guides/pd2-rev/`, `guides/pd2-ko/` |
 | Source-reference contrast | done | `faint` changed to `#75664E`; 5.17:1 on paper |
 | Audit body-font/orphan detection | done | style-aware body size in `audit.rs` |
-| v0.11 guided notes/workbook/reference | planned | see `docs/document-genres-and-layout-systems.md` §4 |
+| v0.11 guided notes/workbook/reference | done | `styles/{notes,workbook,reference}`, `templates/{notes,workbook,reference}.typ`, genre gates and PDF baselines |
+| v0.11 metadata migration (`genre`/`role`/`density` fields) | deferred | structure + aesthetic + palette/font layers cover the current surface |
 | Paper/reader full type-scale migration | done in v0.11 | paper is a pinned legacy exception; reader/clean/revision/accessible use shared role sizes |
 | `role`/`preset_of` genre metadata | deferred | the old `aesthetic` field remains the pack id; docs now describe the real roles |
 

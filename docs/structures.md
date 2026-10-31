@@ -36,6 +36,9 @@ dotted/dotless `i`, so `## 1. Giriş`, `## GİRİŞ` and `## Giris` are equivale
 | `literature-matrix` | Research question, Sources, Synthesis, Gaps |
 | `lecture-notes` | Learning goals, Key concepts, Examples, Summary |
 | `executive-brief` | Summary, Key findings, Recommendations, Risks |
+| `revision-sheet` | Scope/map, Must-know, Comparisons, Exam traps, Recall, Synthesis, Review plan |
+| `knowledge-organiser` | Big questions, Key terms, Timeline, Map, Critical distinctions |
+| `workbook` | Problems, Worked example, Practice, Answer key |
 
 `a-g` has no required sections because the coverage gate already maps every
 numbered source subsection to a guide heading. The audit section is required

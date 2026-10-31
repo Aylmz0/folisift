@@ -313,8 +313,8 @@ convention, not a learning effect.
 ## 7. What this means for Folisift
 
 **Implementation status (v0.10):** the reader layout, revision-sheet genre and
-one-page knowledge organiser are implemented. Guided notes, workbook and
-reference sheet are specified for v0.11. `accessible` is a modifier with a
+one-page knowledge organiser, guided notes, workbook and reference sheet are
+implemented in v0.11. `accessible` is a modifier with a
 shared role sizes that now scale the paper components; `paper` remains the
 legacy parity layout.
 

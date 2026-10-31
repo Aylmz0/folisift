@@ -48,6 +48,18 @@ const REVISION_TEMPLATE: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/../../templates/revision.typ"
 ));
+const NOTES_TEMPLATE: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../templates/notes.typ"
+));
+const WORKBOOK_TEMPLATE: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../templates/workbook.typ"
+));
+const REFERENCE_TEMPLATE: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../templates/reference.typ"
+));
 
 pub struct RenderOptions<'a> {
     /// Directory containing `assets/` and the generated Typst source.
@@ -123,6 +135,9 @@ pub fn render(content: &str, options: &RenderOptions<'_>) -> Result<Rendered> {
                 "revision_sheet"
             },
         ),
+        "notes" => (NOTES_TEMPLATE, "notes_sheet"),
+        "workbook" => (WORKBOOK_TEMPLATE, "workbook_sheet"),
+        "reference" => (REFERENCE_TEMPLATE, "reference_sheet"),
         other => {
             return Err(Error::Style {
                 id: loaded.pack.id.clone(),
@@ -223,6 +238,13 @@ fn build_cache_key(
         "paper" => blake3::hash(PAPER_TEMPLATE.as_bytes()).to_hex().to_string(),
         "clean" => blake3::hash(CLEAN_TEMPLATE.as_bytes()).to_hex().to_string(),
         "revision" => blake3::hash(REVISION_TEMPLATE.as_bytes())
+            .to_hex()
+            .to_string(),
+        "notes" => blake3::hash(NOTES_TEMPLATE.as_bytes()).to_hex().to_string(),
+        "workbook" => blake3::hash(WORKBOOK_TEMPLATE.as_bytes())
+            .to_hex()
+            .to_string(),
+        "reference" => blake3::hash(REFERENCE_TEMPLATE.as_bytes())
             .to_hex()
             .to_string(),
         _ => String::new(),

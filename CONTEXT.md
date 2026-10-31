@@ -36,7 +36,7 @@ course-specific material is the guide bundle under `guides/<slug>/`.
 ## Layout
 
 ```
-crates/                 Rust workspace: core, parse, render, mcp, cli
+crates/                 Rust workspace: core, parse, render, build, mcp, cli
 templates/              paper.typ, revision.typ + embedded fonts
 styles/                 packs, 12 palettes, 2 font pairings, labels
 guides/<slug>/          one course/material guide (guide.md in v2)

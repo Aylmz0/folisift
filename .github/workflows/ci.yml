@@ -41,4 +41,9 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: cargo run -p folisift-cli -- styles preview paper --language tr
       - run: cargo run -p folisift-cli -- styles preview clean --language en
+      - run: cargo run -p folisift-cli -- styles preview revision --language en
+      - run: cargo run -p folisift-cli -- styles preview notes --language en
+      - run: cargo run -p folisift-cli -- styles preview workbook --language en
+      - run: cargo run -p folisift-cli -- styles preview reference --language en
       - run: cargo test -p folisift-render --test style
+      - run: cargo test -p folisift-core genre

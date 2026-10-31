@@ -484,10 +484,12 @@ impl FolisiftServer {
                     aesthetic: loaded.pack.aesthetic.clone(),
                     palette: loaded.palette.id.clone(),
                     fonts: loaded.fonts.id.clone(),
-                    // The preview is a layout sample, not a structure sample;
-                    // keep it on the course-shaped default so every pack can
-                    // preview the same content.
-                    structure: "a-g".to_string(),
+                    structure: loaded
+                        .pack
+                        .supported_structures
+                        .first()
+                        .cloned()
+                        .unwrap_or_else(|| "a-g".to_string()),
                     language: language.clone(),
                     source_language: language.clone(),
                     voice: loaded
@@ -505,6 +507,20 @@ impl FolisiftServer {
                         .unwrap_or_else(|| "general".to_string()),
                     citation: "page-ref".to_string(),
                 };
+                folisift_core::structures::validate(&profile.structure, &language, &content)
+                    .map_err(|error| error.to_string())?;
+                if matches!(
+                    profile.structure.as_str(),
+                    "lecture-notes" | "workbook" | "formula-sheet"
+                ) {
+                    let issues = folisift_core::gates::genre_issues(&profile.structure, &content);
+                    if !issues.is_empty() {
+                        return Err(format!(
+                            "style preview genre gate failed:\n- {}",
+                            issues.join("\n- ")
+                        ));
+                    }
+                }
                 let output = match params.output {
                     Some(path) => self
                         .workspace
@@ -978,186 +994,39 @@ impl FolisiftServer {
         &self,
         Parameters(params): Parameters<BuildGuideParams>,
     ) -> Result<Json<Value>, String> {
-        let guide =
-            Guide::load(&self.workspace, &params.slug).map_err(|error| error.to_string())?;
-        let content_path = match params.content {
-            Some(path) => self
-                .workspace
-                .resolve_read(path)
-                .map_err(|error| error.to_string())?,
-            None => guide.content.clone(),
-        };
-        if content_path.extension().and_then(|value| value.to_str()) != Some("md") {
-            return Err(format!(
-                "{} is not Markdown; pass content=guides/<slug>/guide.md",
-                content_path.display()
-            ));
-        }
-        let output_path = match params.output {
-            Some(path) => self
-                .workspace
-                .resolve_write(path)
-                .map_err(|error| error.to_string())?,
-            None => guide.output.clone(),
-        };
-        let markdown = std::fs::read_to_string(&content_path).map_err(|error| error.to_string())?;
-        diagram::load_assets_for(&guide.dir, &markdown).map_err(|error| error.to_string())?;
-        let style = guide.style();
-        let source_names = guide
-            .config
-            .sources
-            .iter()
-            .filter_map(|source| {
-                Path::new(source)
-                    .file_stem()
-                    .and_then(|stem| stem.to_str())
-                    .map(ToString::to_string)
-            })
-            .collect::<Vec<_>>();
-        let rendered = render_guide(
-            &markdown,
-            &RenderOptions {
-                guide_root: &guide.dir,
-                title: &guide.config.title,
-                subtitle: "",
-                course: "",
-                language: &guide.config.language,
-                sources: &source_names,
-                style: Some(&style),
-                styles_root: Some(self.workspace.root()),
-                cache_dir: Some(&self.workspace.root().join("data/cache/build")),
+        let outcome = folisift_build::build(
+            &self.workspace,
+            folisift_build::BuildRequest {
+                slug: params.slug,
+                content: params.content.map(std::path::PathBuf::from),
+                output: params.output.map(std::path::PathBuf::from),
+                check: params.check.unwrap_or(true),
             },
         )
+        .await
         .map_err(|error| error.to_string())?;
-        let check = params.check.unwrap_or(true);
-        let staged = if check {
-            Some(
-                StagedPdf::create(&output_path, &rendered.pdf)
-                    .map_err(|error| error.to_string())?,
-            )
-        } else {
-            write_pdf(&output_path, &rendered.pdf).map_err(|error| error.to_string())?;
-            None
-        };
-        let audit_path = staged
+        let coverage = outcome
+            .coverage
             .as_ref()
-            .map_or(output_path.as_path(), StagedPdf::path);
-
-        let mut coverage = None;
-        let mut visual = None;
-        let mut layout_passed = true;
-        let genre_ok = true;
-        let mut visual_passed = None;
-        if check {
-            let issues = folisift_core::gates::genre_issues(&style.structure, &markdown);
-            if !issues.is_empty() {
-                return Err(format!(
-                    "revision grammar failed:\n- {}",
-                    issues.join("\n- ")
-                ));
-            }
-            let audit_options =
-                audit_options_for(&self.workspace, &style).map_err(|error| error.to_string())?;
-            let layout = folisift_parse::audit_pdf_with(audit_path, None, audit_options)
-                .map_err(|error| error.to_string())?;
-            layout_passed = layout.passed;
-            if !layout.underfilled_pages.is_empty() {
-                let pages = layout
-                    .underfilled_pages
-                    .iter()
-                    .map(|page| page.page)
-                    .collect::<Vec<_>>();
-                return Err(format!("underfilled body pages: {pages:?}"));
-            }
-            let page_issues =
-                folisift_core::gates::page_count_issues(&style.structure, layout.pages);
-            if !page_issues.is_empty() {
-                return Err(page_issues.join("\n"));
-            }
-            if folisift_core::gates::uses_course_coverage(&style.structure)
-                || folisift_core::gates::uses_revision_coverage(&style.structure)
-            {
-                let inventory = self.load_or_analyze_inventory(&guide).await?;
-                if folisift_core::gates::uses_revision_coverage(&style.structure) {
-                    let issues = folisift_parse::revision_coverage_issues(&inventory, &markdown);
-                    if !issues.is_empty() {
-                        return Err(format!(
-                            "revision source coverage failed:\n- {}",
-                            issues.join("\n- ")
-                        ));
-                    }
-                    coverage = Some(json!({"kind": "source-scope", "passed": true}));
-                } else {
-                    let audit_path = guide.visual_audit();
-                    if inventory.totals.low_text_pages > 0 {
-                        let report =
-                            VisualAudit::load_and_validate(&audit_path, &inventory, &guide.dir)
-                                .map_err(|error| error.to_string())?;
-                        visual_passed = Some(report.passed);
-                        if !report.passed {
-                            return Err(format!(
-                                "visual audit failed: {} missing, {} unresolved",
-                                report.missing.len(),
-                                report.unresolved.len()
-                            ));
-                        }
-                        visual =
-                            Some(serde_json::to_value(report).map_err(|error| error.to_string())?);
-                    }
-                    let report =
-                        coverage_report(&inventory, &markdown, folisift_parse::DEFAULT_THRESHOLD);
-                    if let Some(path) = &guide.coverage {
-                        report
-                            .write_markdown(path)
-                            .map_err(|error| error.to_string())?;
-                    }
-                    if !report.passed {
-                        return Err(format!(
-                            "coverage gate failed: {}/{} headings missing, {} empty sections",
-                            report.missing,
-                            report.total,
-                            report.empty_sections.len()
-                        ));
-                    }
-                    coverage = Some(json!({
-                        "passed": report.passed,
-                        "total": report.total,
-                        "canonical_total": report.canonical_total,
-                        "claimed": report.claimed,
-                        "gate_total": report.gate_total,
-                        "missing": report.missing,
-                        "missing_from_gate": report.missing_from_gate,
-                        "empty_sections": report.empty_sections.len(),
-                        "weak_sections": report.weak_sections.len(),
-                        "duplicate_sections": report.duplicate_sections,
-                    }));
-                }
-            }
-        }
-        let passed = folisift_core::gates::top_level_passed(
-            layout_passed,
-            genre_ok,
-            coverage
-                .as_ref()
-                .and_then(|value| value.get("passed"))
-                .and_then(serde_json::Value::as_bool),
-            visual_passed,
-        );
-        if let Some(staged) = staged {
-            staged.commit().map_err(|error| error.to_string())?;
-        }
+            .map(|report| serde_json::to_value(report).unwrap_or(Value::Null));
+        let visual = outcome
+            .visual
+            .as_ref()
+            .map(|report| serde_json::to_value(report).unwrap_or(Value::Null));
+        let layout_passed = outcome.layout.as_ref().is_none_or(|report| report.passed);
         Ok(Json(json!({
-            "output": output_path.display().to_string(),
-            "passed": passed,
+            "output": outcome.output.display().to_string(),
+            "passed": outcome.passed.unwrap_or(true),
             "layout_passed": layout_passed,
-            "genre_passed": genre_ok,
-            "pages": rendered.pages,
-            "content_hash": rendered.content_hash,
-            "cache_hit": rendered.cache_hit,
-            "style": style,
-            "style_rationale": guide.config.style_rationale,
-            "warnings": rendered.warnings.len(),
-            "stats": content_stats(&markdown),
+            "genre_passed": outcome.genre_passed,
+            "revision_coverage": outcome.revision_coverage.then_some(true),
+            "pages": outcome.rendered.pages,
+            "content_hash": outcome.rendered.content_hash,
+            "cache_hit": outcome.rendered.cache_hit,
+            "style": outcome.style,
+            "style_rationale": outcome.style_rationale,
+            "warnings": outcome.rendered.warnings.len(),
+            "stats": content_stats(&outcome.markdown),
             "coverage": coverage,
             "visual": visual,
         })))
@@ -1597,10 +1466,12 @@ struct StyleRequest {
 fn build_style(request: StyleRequest) -> Result<folisift_core::StyleProfile, String> {
     let language = request.language.unwrap_or_else(|| "tr".to_string());
     let structure = request.structure.unwrap_or_else(|| "a-g".to_string());
-    let default_layout = if matches!(structure.as_str(), "revision-sheet" | "knowledge-organiser") {
-        "revision"
-    } else {
-        "reader"
+    let default_layout = match structure.as_str() {
+        "revision-sheet" | "knowledge-organiser" => "revision",
+        "lecture-notes" => "notes",
+        "workbook" => "workbook",
+        "formula-sheet" => "reference",
+        _ => "reader",
     };
     let style = folisift_core::StyleProfile {
         aesthetic: request
@@ -1711,19 +1582,6 @@ pub async fn serve(root: impl AsRef<Path>) -> Result<(), Box<dyn std::error::Err
     Ok(())
 }
 
-fn audit_options_for(
-    workspace: &folisift_core::Workspace,
-    style: &folisift_core::StyleProfile,
-) -> Result<folisift_parse::AuditOptions, folisift_render::Error> {
-    let loaded = styles::load_with(
-        workspace.root(),
-        &style.aesthetic,
-        Some(style.palette.as_str()),
-        Some(style.fonts.as_str()),
-    )?;
-    Ok(folisift_parse::AuditOptions::from_tokens(&loaded.tokens))
-}
-
 fn write_pdf(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
     let parent = path.parent().unwrap_or_else(|| Path::new("."));
     std::fs::create_dir_all(parent)?;
@@ -1734,48 +1592,6 @@ fn write_pdf(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
     let temporary = parent.join(format!(".{name}.{}.tmp", std::process::id()));
     std::fs::write(&temporary, bytes)?;
     std::fs::rename(&temporary, path)
-}
-
-struct StagedPdf {
-    path: std::path::PathBuf,
-    output: std::path::PathBuf,
-    committed: bool,
-}
-
-impl StagedPdf {
-    fn create(output: &Path, bytes: &[u8]) -> std::io::Result<Self> {
-        let parent = output.parent().unwrap_or_else(|| Path::new("."));
-        std::fs::create_dir_all(parent)?;
-        let name = output
-            .file_name()
-            .and_then(|value| value.to_str())
-            .unwrap_or("output.pdf");
-        let path = parent.join(format!(".{name}.{}.staging.pdf", std::process::id()));
-        std::fs::write(&path, bytes)?;
-        Ok(Self {
-            path,
-            output: output.to_path_buf(),
-            committed: false,
-        })
-    }
-
-    fn path(&self) -> &Path {
-        &self.path
-    }
-
-    fn commit(mut self) -> std::io::Result<()> {
-        std::fs::rename(&self.path, &self.output)?;
-        self.committed = true;
-        Ok(())
-    }
-}
-
-impl Drop for StagedPdf {
-    fn drop(&mut self) {
-        if !self.committed {
-            let _ = std::fs::remove_file(&self.path);
-        }
-    }
 }
 
 fn is_loopback(address: &str) -> bool {

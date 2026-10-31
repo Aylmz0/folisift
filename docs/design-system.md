@@ -158,6 +158,22 @@ rule, denser tables and square technical boxes. It is selected by the style
 pack `clean`; it is experimental until its snapshots and cross-style gates
 pass. `paper` remains the default and the old-PDF parity standard.
 
+## Notes, workbook and reference
+
+These are full genres, not density variants:
+
+- **notes** (`lecture-notes`): cue/notes rows, a dedicated notes workspace and
+  a summary band. Cues are on the left, notes on the right; the summary closes
+  the page. No pre-filled answer key.
+- **workbook** (`workbook`): numbered problem blocks, ruled workspace, a
+  worked/faded example, practice and a separate answer key.
+- **reference** (`formula-sheet`): formula cards with source lines, symbol and
+  unit tables, and a pitfalls block. Prose is lookup-sized, not chapter prose.
+
+All three use the shared role scale, palette/font libraries, source_scope
+coverage and preview gates. `styles preview notes|workbook|reference` renders a
+complete fixture; `make genre-visual` checks their PDF baselines.
+
 ## Presets and accessibility modifiers
 
 `journal`, `brief` and `accessible` are **not genres**:

@@ -157,6 +157,93 @@ fn strip_frontmatter(markdown: &str) -> &str {
     }
 }
 
+/// Guided notes: cues, a summary and no pre-filled answer key.
+pub fn notes_issues(markdown: &str) -> Vec<String> {
+    let body = strip_frontmatter(markdown);
+    let mut issues = Vec::new();
+    if !body.contains("::: cue") {
+        issues.push("guided notes need at least one cue block (::: cue)".to_string());
+    }
+    if !body.contains("::: summary") {
+        issues.push("guided notes need a summary block (::: summary)".to_string());
+    }
+    if body.contains("::: answer-key") {
+        issues.push("guided notes must not contain a pre-filled answer key".to_string());
+    }
+    for (index, line) in body.lines().enumerate() {
+        if line.trim().starts_with("- ") && line.split_whitespace().count() > 22 {
+            issues.push(format!(
+                "guided-note bullet at line {} is longer than 22 words",
+                index + 1
+            ));
+        }
+    }
+    issues
+}
+
+/// Workbook: problems, workspace, a worked example and an answer key.
+pub fn workbook_issues(markdown: &str) -> Vec<String> {
+    let body = strip_frontmatter(markdown);
+    let mut issues = Vec::new();
+    for (needle, label, minimum) in [
+        ("::: problem", "problem block", 2usize),
+        ("::: workspace", "workspace block", 1usize),
+        ("::: example", "worked/faded example", 1usize),
+        ("::: answer-key", "answer key", 1usize),
+    ] {
+        if body.matches(needle).count() < minimum {
+            issues.push(format!(
+                "workbook needs at least {minimum} {label} ({needle})"
+            ));
+        }
+    }
+    let answer = body.find("::: answer-key");
+    let practice = body
+        .find("## Practice")
+        .or_else(|| body.find("## Alıştırma"));
+    if let (Some(answer), Some(practice)) = (answer, practice)
+        && answer < practice
+    {
+        issues.push("workbook answer key must come after the practice section".to_string());
+    }
+    issues
+}
+
+/// Reference sheet: formula cards, at least one table and a pitfall block.
+pub fn reference_issues(markdown: &str) -> Vec<String> {
+    let body = strip_frontmatter(markdown);
+    let mut issues = Vec::new();
+    if !body.contains("::: formula") {
+        issues.push("reference sheet needs at least one formula card (::: formula)".to_string());
+    }
+    if !body.contains("| ") {
+        issues.push("reference sheet needs at least one symbol/unit table".to_string());
+    }
+    if !body.contains("::: critical") {
+        issues.push("reference sheet needs a pitfalls block (::: critical)".to_string());
+    }
+    for (index, line) in body.lines().enumerate() {
+        let trimmed = line.trim();
+        if trimmed.is_empty()
+            || trimmed.starts_with('#')
+            || trimmed.starts_with(":::")
+            || trimmed.starts_with('|')
+            || trimmed.starts_with('-')
+            || trimmed.starts_with("```")
+            || trimmed.starts_with("~~~")
+        {
+            continue;
+        }
+        if trimmed.split_whitespace().count() > 40 {
+            issues.push(format!(
+                "reference prose at line {} is longer than 40 words",
+                index + 1
+            ));
+        }
+    }
+    issues
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -237,6 +324,24 @@ X is Y. [PD0, p. 1]
         assert!(
             !issues.iter().any(|issue| issue.contains("data rows")),
             "{issues:?}"
+        );
+    }
+
+    #[test]
+    fn previews_pass_their_genre_grammar() {
+        let notes = include_str!("../../../styles/notes/preview.en.md");
+        assert!(notes_issues(notes).is_empty(), "{:?}", notes_issues(notes));
+        let workbook = include_str!("../../../styles/workbook/preview.en.md");
+        assert!(
+            workbook_issues(workbook).is_empty(),
+            "{:?}",
+            workbook_issues(workbook)
+        );
+        let reference = include_str!("../../../styles/reference/preview.en.md");
+        assert!(
+            reference_issues(reference).is_empty(),
+            "{:?}",
+            reference_issues(reference)
         );
     }
 
