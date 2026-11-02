@@ -382,9 +382,9 @@ cost. Until then, the only code we should own is the adapter and validator.
    diagram edges.
 5. **Measure:** useful connections found, false edges, pages that had to be
    re-read, time saved, and whether the guide's coverage/claims changed.
-6. **Promote to a product feature only if the experiment wins.** The first
-   useful output is likely a `data/document-graph.md` or JSON sidecar, not a
-   new MCP tool.
+6. **Promote to a product feature only if the experiment wins.** The selected
+   similarity layer is planned as a release `links` CLI/MCP surface over a JSON
+   sidecar; typed semantic edges remain a separate experiment.
 
 The user's idea is sound at the **authoring intelligence** layer. The mistake
 would be treating a generic graph extractor as the source of truth. The

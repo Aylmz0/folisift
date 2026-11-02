@@ -70,8 +70,8 @@ Why it fits:
 Costs:
 
 - The multilingual f32 checkpoint is ~512 MB; the tokenizer is ~18 MB. Int8
-  in-memory embeddings are roughly 128 MB. This is an optional download, not a
-  binary bundle.
+  in-memory embeddings are roughly 128 MB. The release ships an int8 model in
+  the normal archive; it is not a git-tracked asset and not a Python install.
 - The Rust crate is young (0.4.0, ~225 stars). It needs a pilot and a pinned
   version.
 - Static embeddings are less accurate than full transformer embeddings.
@@ -202,8 +202,9 @@ These are practitioner anecdotes, not controlled benchmarks.
 
 ## 10. Recommendation
 
-**Decision: use model2vec-rs for a small optional helper, not a semantic
-platform.** The implementation plan is
+**Decision: use model2vec-rs for a small local helper, shipped in the normal
+release and exposed through CLI/MCP, not a semantic platform.** The
+implementation plan is
 [`plans/2026-11-03-semantic-link-helper.md`](plans/2026-11-03-semantic-link-helper.md).
 
 Proposed stack:
@@ -238,8 +239,10 @@ proves the value.
 - [ ] Turkish terms and cross-source definitions are retrieved correctly.
 - [ ] False-link rate low enough that an author can review in a few minutes.
 - [ ] Works offline after model download.
-- [ ] No model/network dependency in the MCP server or normal build.
-- [ ] Helper can be removed without changing guide output.
+- [ ] No network, LLM or shell dependency in the MCP server; local model
+      inference only for the explicit `links` action.
+- [ ] Disabling `links` does not change guide output.
+- [ ] Model and licence are in the release archive and verified by `doctor`.
 
 ## 12. Sources
 

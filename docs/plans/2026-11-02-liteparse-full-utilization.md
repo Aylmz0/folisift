@@ -347,10 +347,12 @@ term -> defined_on page
 citation -> source page
 ```
 
-Semantic edges are a separate decision. They must not be added to the MCP
-server or the build gate. The selected semantic helper is planned in
-[`2026-11-03-semantic-link-helper.md`](2026-11-03-semantic-link-helper.md).
-See
+Typed semantic edges are a separate decision. The selected similarity helper
+is planned in
+[`2026-11-03-semantic-link-helper.md`](2026-11-03-semantic-link-helper.md);
+it is released with the product and exposes a `links` CLI/MCP surface, but it
+uses local embedding inference only (no LLM, network or shell) and never gates
+a guide build. See
 [`document-graph-tooling-review-2026-11-02.md`](../document-graph-tooling-review-2026-11-02.md)
 and the lightweight helper evaluation in
 [`lightweight-semantic-linking-research-2026-11-03.md`](../lightweight-semantic-linking-research-2026-11-03.md).

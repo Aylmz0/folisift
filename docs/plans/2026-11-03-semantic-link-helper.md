@@ -2,14 +2,15 @@
 
 - **Status:** Proposed; implementation not started
 - **Decision:** use **model2vec-rs** for local semantic similarity
-- **Scope:** optional `folisift-links` helper, block-level section links
+- **Scope:** `folisift-links` library, `folisift links` CLI, MCP `links` tool,
+  release model asset
 - **Depends on:** [LiteParse full-utilization plan](2026-11-02-liteparse-full-utilization.md)
 - **Blocking gate:** do not start until `data/blocks/<source>.json` exists and
-  is stable for the pilot corpus (LiteParse plan phases 0–3).
-- **Non-goals:** typed fact extraction, graph database, LLM inside MCP,
-  changing guide prose or build gates
-- **Constraint:** helper is removable; default `folisift` build and release
-  archive do not require it
+  is stable for the pilot corpus (LiteParse plan phases 0–3)
+- **Release contract:** the model and helper ship in the normal archive; a
+  single install gives the user the CLI and MCP surface
+- **Runtime contract:** local CPU inference only; no LLM, network or shell in
+  the MCP server
 
 ## 1. What this helper is
 
@@ -28,8 +29,14 @@ The output is a review aid. It answers "read these two sections together",
 not "A causes B" or "A is a prerequisite of B". Similarity is a proposal, not
 a verified relation.
 
-The helper is a separate binary, not an MCP tool. The MCP server may later read
-the precomputed JSON, but it never loads a model or performs inference.
+It is part of the installed product:
+
+- `folisift links ...` in the CLI;
+- `links` in the MCP server;
+- the model asset in the release archive.
+
+It is not part of the guide build gate. A normal `folisift build` does not
+require the model or the link index.
 
 ## 2. Why model2vec-rs
 
@@ -40,17 +47,18 @@ Selected because it is the smallest credible local semantic layer:
 - Rust implementation, no Python service.
 - No ONNX Runtime; uses `safetensors` + `tokenizers`.
 - `potion-multilingual-128M` supports 101 languages including Turkish.
-- Static embeddings are fast on CPU; int8 quantization keeps memory around
-  ~128 MB for embeddings.
-- Works offline after the model cache is populated.
-- Small enough to keep as an optional helper binary.
+- Static embeddings are fast on CPU; int8 quantization reduces the embedding
+  memory footprint substantially.
+- Works offline from a bundled or locally verified model directory.
+- Small enough to include in the release without a Python/uv install step.
 
 Trade-offs:
 
 - Static embeddings are less accurate than full transformer embeddings.
 - The crate is young (0.4.0, ~225 stars); pin it and run a quality pilot.
-- The multilingual f32 checkpoint is ~512 MB and tokenizer ~18 MB. The model
-  is not bundled; it is downloaded once into `data/models/` or a user cache.
+- The multilingual f32 checkpoint is ~512 MB; the tokenizer is ~18 MB. The
+  release must ship an int8 model, not the f32 checkpoint.
+- The model is a release asset, not a git-tracked file.
 
 `fastembed-rs` is the fallback if model2vec quality fails: Apache-2.0, more
 mature (~1.1k stars), more model choices, but it adds ONNX Runtime.
@@ -61,7 +69,7 @@ page-provenance contract. They remain later options for typed graphs.
 
 ## 3. Module seam
 
-Create an optional workspace crate:
+Create a workspace library crate:
 
 ```text
 crates/folisift-links/
@@ -69,8 +77,11 @@ crates/folisift-links/
   src/model.rs
   src/section.rs
   src/link.rs
-  src/main.rs
+  src/store.rs
 ```
+
+No separate `folisift-links` binary. `folisift-cli` and `folisift-mcp` both
+depend on the library, so the CLI and MCP cannot drift.
 
 The deep module is the link builder. It should be pure and testable without a
 model download:
@@ -100,15 +111,32 @@ impl LinkIndex {
 
 - `Section` is built from LiteParse blocks; it carries `source`, `page_start`,
   `page_end`, `block_ids`, `heading` and `text`.
-- `Embedder` is the only external seam. Production uses model2vec-rs; tests
-  use a deterministic fake.
+- `Embedder` is the only model seam. Production uses model2vec-rs; tests use a
+  deterministic fake.
 - `LinkIndex::build` returns data. It does not read files, download models or
   write artifacts.
-- The CLI layer reads `data/blocks/*.json`, calls the builder and writes the
+- The CLI/MCP layer reads `data/blocks/*.json`, calls the builder and writes the
   report.
+- `Model2VecEmbedder` is loaded lazily and called from a blocking worker; the
+  async MCP handler must not block the runtime on model inference.
 
-Deletion test: removing `folisift-links` must not change any guide PDF, MCP
-tool or coverage result.
+Deletion test: disabling the `links` tool must not change any guide PDF, MCP
+tool result for another action, or coverage result.
+
+## 3.1 Governance and invariants
+
+This changes the MCP surface, not the generation pipeline. Record an ADR before
+implementation:
+
+- model2vec is a **local static embedding model**, not a generative LLM;
+- `links` may run local CPU inference, but it performs no network, shell or LLM
+  call;
+- the model is installed with the release and verified by `doctor`;
+- `build_guide` and coverage/claims/page-budget gates do not depend on links;
+- the `links` action can be disabled without rebuilding or changing guides.
+
+The existing MCP policy remains: no outbound network, no shell execution, no
+generative model call. The ADR must make the embedding exception explicit.
 
 ## 4. Inputs and outputs
 
@@ -195,8 +223,8 @@ surface:
 - If a page has no heading, use a page-level section.
 - Tables contribute header + rows; figures contribute their caption/alt text
   when available, otherwise only a reference marker.
-- Repeated headers/footers are already suppressed by LiteParse's block
-  classifier where possible.
+- Repeated headers/footers are suppressed by the LiteParse block classifier
+  where possible.
 
 ### 5.2 Lexical candidates
 
@@ -212,7 +240,7 @@ Use the `bm25` crate:
 
 - Encode each section as `heading + "\n" + body`.
 - Normalize vectors.
-- `model2vec-rs` loads the local model and uses `quantize_int8()`.
+- `model2vec-rs` loads the bundled int8 model.
 - Compute cosine similarity for candidate pairs.
 - Use brute force; ~750 sections is trivial. No vector database.
 
@@ -236,64 +264,98 @@ Rules:
 The thresholds are initial values. Phase 0 must tune them on the three-PDF
 corpus. Do not hard-code a "magic" threshold without evidence.
 
-## 6. Model management
+## 6. Model packaging and release
 
-- Pin `model2vec-rs = "=0.4.0"` in `folisift-links`.
-- Default model: `minishlab/potion-multilingual-128M`.
-- Store models under `data/models/<model>/` or `FOLISIFT_MODEL_DIR`.
-- Add the model directory to `.gitignore`; never commit weights.
-- Provide:
+The release archive must be single-install:
 
-```bash
-folisift-links model fetch
-folisift-links model verify
-folisift-links build --guide pd2 --offline
+```text
+folisift-v<version>-linux-<arch>/
+  folisift
+  libpdfium.so
+  d2
+  models/
+    potion-multilingual-128M-int8/
+      config.json
+      tokenizer.json
+      model.safetensors
+      manifest.json
+      LICENSE
+  styles/
+  domains/
+  templates/fonts/
 ```
 
-`model fetch`:
+Rules:
 
-1. downloads the model files from Hugging Face;
-2. writes a manifest with model id, file sizes and SHA-256;
-3. prints the licence and cache path.
+- Package an **int8** model, not the 512 MB f32 checkpoint. The maintainer
+  preparation step uses the Python `model2vec` tool with `quantize_to="int8"`;
+  runtime uses `model2vec-rs`.
+- The model is not committed. `scripts/package.sh` requires a prepared model
+  directory and fails without it, like D2 and PDFium.
+- `scripts/install.sh` already extracts the whole archive; no Python/uv step
+  on the user machine.
+- Resolve the model from, in order:
+  1. `FOLISIFT_MODEL_DIR`;
+  2. `<binary-dir>/models/potion-multilingual-128M-int8`;
+  3. `<workspace>/data/models/potion-multilingual-128M-int8` for development.
+- `folisift doctor` checks model presence, file hashes and the model2vec-rs
+  load path.
+- The MCP server never downloads a model. If files are missing, `links`
+  returns an actionable error naming the install path.
+- Add the model licence to `THIRD_PARTY_NOTICES.md` and the archive.
 
-`model verify` checks hashes before `build`.
+## 7. CLI and MCP surface
 
-No network is used by `build` when `--offline` is set. A missing model is an
-actionable error, not a silent fallback.
-
-## 7. CLI
+CLI:
 
 ```bash
 # Build links for one guide
-folisift-links build --guide pd2 --top-k 5 --min-cosine 0.75
-folisift-links build --guide pd2 --no-model   # BM25-only report
+folisift links build --guide pd2 --top-k 5 --min-cosine 0.75
 
-# Rebuild the Markdown review only
-folisift-links report --guide pd2
+# BM25-only mode; no model required
+folisift links build --guide pd2 --no-model
 
-# Explain one section and its neighbours
-folisift-links explain --guide pd2 --section PD2:p26:s1
+# Review / inspect
+folisift links read --guide pd2 --section PD2:p26:s1
+folisift links status --guide pd2
 ```
 
-`build` writes both JSON and Markdown atomically.
+MCP tool `links`:
 
-The helper does not get a `folisift` subcommand and is not part of the MCP
-server. If the host needs links, it reads the JSON path returned by
-`prepare_guide` or a small resource later.
+```json
+{
+  "action": "status | build | read",
+  "guide": "pd2",
+  "section": "PD2:p26:s1",
+  "top_k": 5,
+  "min_cosine": 0.75,
+  "force": false
+}
+```
+
+- `status`: model found, blocks found, links current/stale, counts.
+- `build`: builds/refreshes JSON and Markdown; returns counts and paths.
+- `read`: returns a bounded set of links; never the whole graph by default.
+- `build` runs model inference in `spawn_blocking`, not on the async runtime.
+- Tool annotations: `open_world_hint = false`; `build` is not read-only.
+- `prepare_guide` returns the links status and artifact path; `next` includes
+  "run links build when blocks are ready".
+- `build_guide` does not auto-run links and does not fail without a model.
+- Bump `MCP_TOOL_SCHEMA_VERSION` to **6**; tool count becomes **16**.
+- Update MCP stdio tests to call `links status` and assert model/blocks state.
 
 ## 8. Phases
 
 ### Phase 0 — model and quality spike
 
-- Download `potion-multilingual-128M` into a temp cache.
-- Encode 20 Turkish sections from the three PDFs (or a representative local
-  corpus).
-- Measure load time, encode time, memory and model size.
+- Prepare an int8 model directory from `potion-multilingual-128M`.
+- Verify `model2vec-rs` loads it offline.
+- Encode 20 Turkish sections; measure load time, encode time, memory and size.
 - Hand-check 20 related pairs; record useful / false / missed.
 - Compare with a BM25-only baseline.
 
-**Done when:** the pilot has a measured quality and latency table, and the
-team decides whether static embeddings are good enough.
+**Done when:** the pilot has a measured quality and latency table, and the team
+decides whether static embeddings are good enough.
 
 ### Phase 1 — sections from blocks
 
@@ -310,19 +372,21 @@ section crosses a source identity.
 - Add the `bm25` crate.
 - Build deterministic candidate pairs.
 - Add Turkish tokenization tests; document stemming limitations.
-- Add a BM25-only report so the helper is useful without a model.
+- Add a BM25-only report so the tool is useful without a model.
 
-**Done when:** `build --no-model` produces a valid JSON/Markdown report with
-no network or model.
+**Done when:** `links build --no-model` produces a valid JSON/Markdown report
+with no network or model.
 
 ### Phase 3 — model2vec adapter
 
 - Implement `Model2VecEmbedder`.
-- Add `model fetch`, `verify`, `--offline`.
+- Load the bundled model; support `FOLISIFT_MODEL_DIR` and binary-sidecar
+  resolution.
 - Add a fake embedder for unit tests.
 - Add model hash and version to the report.
+- Use `spawn_blocking` for MCP calls.
 
-**Done when:** `build` works offline with a verified local model, and unit
+**Done when:** `links build` works offline with the packaged model, and unit
 tests never download a model.
 
 ### Phase 4 — link builder
@@ -330,22 +394,43 @@ tests never download a model.
 - Implement scoring, thresholds, degree cap and deterministic ordering.
 - Add page/source provenance to every edge.
 - Write JSON and Markdown.
-- Add a `--dry-run`/`--no-write` path for tests.
+- Add `--dry-run`/`no-write` for tests.
 
-**Done when:** the output is byte-identical across repeated runs with the same
+**Done when:** output is byte-identical across repeated runs with the same
 model and inputs; every edge has page provenance.
 
-### Phase 5 — host review
+### Phase 5 — CLI and MCP integration
+
+- Add `folisift links` subcommands.
+- Add the MCP `links` tool with `status`, `build`, `read`.
+- Update `prepare_guide`, `doctor`, schema version and `mcp_stdio` tests.
+- Keep `build_guide` independent of links.
+
+**Done when:** a user can build and read links from both CLI and MCP without
+any model download, and `build_guide` behavior is unchanged.
+
+### Phase 6 — release packaging
+
+- Add the int8 model to `scripts/package.sh`.
+- Add model checks to `scripts/check-package.sh` and `doctor`.
+- Add licence/notice entries.
+- Verify a clean archive install exposes `folisift links` and MCP `links`.
+- Record the archive size and enforce a size budget in `check-package.sh`.
+
+**Done when:** `make package-check` passes from a clean directory with the
+model present; the archive contains the model and licence.
+
+### Phase 7 — host review
 
 - Run on the three-PDF course.
 - Produce a Markdown review and 20 hand-checked pairs.
 - Add the report path to the authoring workflow.
 - Do not auto-insert links into guide prose.
 
-**Done when:** an author can review the links in a few minutes and the helper
-can be deleted without changing the guide.
+**Done when:** an author can review the links in a few minutes and the guide
+output is unchanged.
 
-### Phase 6 — optional typed graph
+### Phase 8 — optional typed graph
 
 Only if needed later:
 
@@ -353,7 +438,7 @@ Only if needed later:
 - require `source`, `page`, `quote` and confidence on every typed edge;
 - keep it a separate artifact and a separate experiment.
 
-This phase is not part of the first helper.
+This phase is not part of the first release.
 
 ## 9. Tests and gates
 
@@ -365,7 +450,7 @@ Unit:
 - threshold/degree-cap behavior;
 - every edge has source/page;
 - JSON round-trip;
-- model manifest verification;
+- model path resolution and manifest verification;
 - no model/network in unit tests.
 
 Integration:
@@ -373,8 +458,10 @@ Integration:
 - build on a small fixture with a fake embedder;
 - build on PD2 with the real model (ignored unless cache is present);
 - repeated runs produce identical output;
-- `folisift` build and exam hashes unchanged;
-- helper not present in release archive by default.
+- MCP `links status` and `links read` over stdio;
+- `doctor` passes in a clean package with the model;
+- `folisift build` and exam PDF hashes unchanged;
+- package archive contains the model and licence.
 
 Commands:
 
@@ -382,8 +469,8 @@ Commands:
 cargo test --workspace
 cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo fmt --all -- --check
-cargo run -p folisift-links -- build --guide pd2 --offline
 make exam-check
+make package-check
 ```
 
 ## 10. Risks
@@ -391,14 +478,16 @@ make exam-check
 | Risk | Mitigation |
 |---|---|
 | Static embeddings miss Turkish nuance | Phase 0 hand-check; fallback to fastembed-rs |
-| Model is large | Optional download, int8, cache outside repo |
+| Model is large | Int8 release asset; compressed archive; documented size |
 | Model/crate is young | Pin exact versions; record hashes; legal review |
 | Similarity is mistaken for fact | `SIMILARITY` confidence; review-only; no typed claims |
 | Threshold produces hub nodes | Degree cap; mutual/top-k; tune on pilot |
-| Stale links after edits | Include source digest; rebuild on block/inventory change |
-| Helper becomes a platform | Separate crate, no MCP/model calls, deletion test |
+| Stale links after edits | Source/block digest; `links status` marks stale |
+| MCP blocks on inference | Lazy load; `spawn_blocking`; build is explicit |
+| Model missing after install | `doctor`; actionable `links` error; no network fallback |
+| Helper becomes a platform | Feature-scoped library; typed graph separate |
+| Release archive bloat | Int8 model; size budget; test package size |
 | Model licence/model drift | Manifest, licence file, hash verification |
-| Turkish tokenization/BM25 weakness | Keep exact terms; test; embeddings carry the semantic part |
 
 ## 11. Acceptance checklist
 
@@ -406,12 +495,16 @@ make exam-check
 - [ ] Blocks are the only source of section text; no PDF re-parse.
 - [ ] Every link has source/page/block provenance.
 - [ ] BM25-only mode works without a model.
-- [ ] Model2Vec mode works offline after cache verification.
+- [ ] Model2Vec mode works offline from the installed model.
+- [ ] `folisift links` CLI works after a clean archive install.
+- [ ] MCP `links status/build/read` works after a clean archive install.
+- [ ] `doctor` checks model files and hashes.
 - [ ] Output is deterministic.
-- [ ] No model, network or LLM in MCP.
-- [ ] Helper is excluded from the default release archive.
-- [ ] Removing the helper leaves guide builds unchanged.
+- [ ] No model, network or LLM in MCP's other tools; links uses local inference only.
+- [ ] `build_guide` and exam PDF hashes are unchanged.
 - [ ] 20 hand-checked pairs reviewed; false-link rate documented.
+- [ ] Model and licence are in the release archive.
+- [ ] ADR records local embeddings in MCP and the model asset contract.
 
 ## 12. References
 
