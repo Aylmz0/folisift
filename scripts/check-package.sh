@@ -13,5 +13,9 @@ tar -tzf "$ARCHIVE" | grep '/models/potion-multilingual-128M-int8/model.safetens
   echo "package check failed: semantic model missing" >&2
   exit 1
 }
+tar -tzf "$ARCHIVE" | grep '/LICENSE$' >/dev/null || {
+  echo "package check failed: LICENSE missing" >&2
+  exit 1
+}
 "$BIN" doctor >/dev/null
 echo "package check passed: $ARCHIVE"

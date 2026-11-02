@@ -19,6 +19,7 @@ folisift              # CLI and MCP server
 libpdfium.so          # source PDF/text extraction
 d2                    # pinned v0.9.0, authoring only
 models/               # int8 model2vec model for local semantic links
+LICENSE
 D2-LICENSE.txt
 THIRD_PARTY_NOTICES.md
 styles/               # built-in style packs
@@ -34,8 +35,8 @@ inference only and the MCP server makes no network call.
 Manual archive verification:
 
 ```bash
-tar -xzf folisift-v0.9.0-linux-x86_64.tar.gz
-sha256sum -c folisift-v0.9.0-linux-x86_64.tar.gz.sha256
+tar -xzf folisift-v0.12.0-linux-x86_64.tar.gz
+sha256sum -c folisift-v0.12.0-linux-x86_64.tar.gz.sha256
 ./folisift doctor
 ```
 

@@ -17,7 +17,7 @@ cp target/release/folisift "$STAGE/"
 cp -R styles domains "$STAGE/"
 mkdir -p "$STAGE/templates"
 cp -R templates/fonts "$STAGE/templates/"
-cp THIRD_PARTY_NOTICES.md PDFIUM-LICENSE.txt "$STAGE/"
+cp LICENSE THIRD_PARTY_NOTICES.md PDFIUM-LICENSE.txt "$STAGE/"
 
 MODEL_DIR="${FOLISIFT_MODEL_DIR:-models/potion-multilingual-128M-int8}"
 if [ -d "${MODEL_DIR}" ]; then

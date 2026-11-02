@@ -103,6 +103,7 @@ surface is in `docs/authoring.md`.
 | `guides/<slug>/data/source.json` | `folisift analyze` | yes; reviewable |
 | `guides/<slug>/data/source.md` | same | yes; checklist |
 | `guides/<slug>/data/blocks/<source>.json` | `folisift analyze` / `prepare_guide` | no; generated layout cache |
+| `guides/<slug>/data/document-graph.json` | `folisift graph build` | no; generated review graph |
 | `guides/<slug>/data/coverage.md` | `folisift build --check` | yes; audit trail |
 | `guides/<slug>/visual-audit.json` | host author | yes; low-text page decisions |
 | `data/cache/` | `folisift analyze` / `read_source` | no; source text cache |

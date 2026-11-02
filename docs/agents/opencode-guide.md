@@ -28,6 +28,7 @@ itself never runs a shell, D2 or a network request.
 10. build_guide check=true
 11. claims for the citation spot-check; cards for recall/answer export;
     links status/build when cross-document section links are needed
+    graph build after analyze when a structural review graph is needed
 12. folisift audit --pdf <output> --guide <slug> --expected-pages <n> --strict
 13. make visual (when a baseline exists)
 14. human review: accuracy, G audit, table drafts, visual quality
@@ -111,6 +112,7 @@ The following are never auto-approved:
 | `cards` | export recall/answer pairs as Anki-compatible CSV |
 | `read_blocks` | page-bounded view of stored layout blocks |
 | `links` | status/build/read local semantic section links |
+| `graph` | build/status/read the deterministic document graph |
 | `check_coverage` | canonical coverage + visual-audit gate |
 | `diagram` `validate` | validate a spec before saving |
 | `diagram` `save` | write spec + generated D2 source |

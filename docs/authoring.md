@@ -158,13 +158,17 @@ the source range in frontmatter and cite every page in it at least once:
 
 ```yaml
 source_scope: "PD2:26-29"
+# or a numbered section, resolved from the inventory headings
+source_scope: "PD2:section:3.4"
 ```
 
 ```markdown
 - **Kod = veri:** program kodu ile veri aynı temsili paylaşır. [PD2, s. 27]
 ```
 
-A reference outside `source_scope`, an unknown source or an uncited page fails
+A `section:` entry expands to that heading's page through the page before the
+next non-descendant heading, or to the source end. A reference outside
+`source_scope`, an unknown source, an unknown section or an uncited page fails
 the build. This is selective coverage by design, not A–G heading coverage.
 
 Low-text pages need a visual pass. Cropping a source figure (normalized
@@ -477,9 +481,13 @@ folisift links build --guide my-course              # model2vec if installed
 folisift links build --guide my-course --explore    # lower thresholds, wider net
 folisift links read --guide my-course --section source:p26:s1
 folisift links status --guide my-course
+folisift graph build --guide my-course
+folisift graph status --guide my-course
 ```
 
-The default preset is precision-first (`0.75 / 0.55`, top-k 5); `--explore`
+`graph` writes `data/document-graph.json` with source, page, block, table-cell,
+figure and citation nodes plus structural edges. It is deterministic, ignores
+unknown citation pages and never gates a build. The default preset is precision-first (`0.75 / 0.55`, top-k 5); `--explore`
 uses `0.65 / 0.45`, top-k 8. The builder skips repeated slide titles, adjacent
 slides, page-pair duplicates and shared bibliography/boilerplate blocks.
 The output is `data/document-links.json` and is review-only. It records source

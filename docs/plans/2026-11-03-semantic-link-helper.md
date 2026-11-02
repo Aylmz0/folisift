@@ -526,7 +526,7 @@ make package-check
 - 2026-11-03: first implementation slice landed.
   - Added `crates/folisift-links` with page-aware sectioning, BM25 Turkish
     candidates, model2vec-rs embeddings and JSON report read/write.
-  - Added `folisift links status|build|read` and MCP `links` (schema 7, 17
+  - Added `folisift links status|build|read` and MCP `links` (schema 8, 18
     tools).
   - Added `read_blocks` for bounded layout access.
   - Prepared `models/potion-multilingual-128M-int8` (123 MB model, 18 MB

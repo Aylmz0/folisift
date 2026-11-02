@@ -181,7 +181,7 @@ Evidence and limits are recorded in
 - `folisift cards --guide <slug>` pairs recall/answer blocks in document order
   and writes `data/cards.csv` with `front,back,tags,source`. `review_intervals`
   in `config.json` adds `review-<days>d` tags.
-- MCP exposes `claims`, `cards`, `read_blocks` and `links`; the tool schema is now **7**.
+- MCP exposes `claims`, `cards`, `read_blocks`, `links` and `graph`; the tool schema is now **8**.
 - `make d2-pdf-check` renders sequence/class/ERD diagrams through the PDF and
   compares them with `tests/baselines/d2/pdf-pilot.pdf`.
 - `make dep-audit` and the CI `audit` job fail on RustSec vulnerabilities.
@@ -243,8 +243,9 @@ Evidence and limits are recorded in
 - [x] Candidate font review with licence, Turkish glyph, x-height and package
   weight evidence; decision: keep the embedded trio
   ([review](../font-candidate-review-2026-11-02.md)).
-- [ ] Section-level source scope in addition to page ranges. Page-level scope
-  is the current contract; add section scope only when a real guide needs it.
+- [x] Section-level source scope in addition to page ranges:
+  `source_scope: "PD2:section:3.4"` resolves the heading range from the
+  inventory; page ranges remain the default.
 
 **Exit:** measured learning-workflow improvements, not feature count.
 

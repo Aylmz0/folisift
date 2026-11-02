@@ -489,13 +489,16 @@ frontmatter:
 
 ```yaml
 source_scope: "PD2:26-29"
+# or a numbered section, resolved from the inventory
+source_scope: "PD2:section:3.4"
 ```
 
 Every page in the scope must be cited at least once with `[PD2, s. 27]` or
 `[PD2, s. 26–29]`. English decks may use `p.`; Turkish decks use `s.`. A
-reference outside the scope, an unknown source or an uncited page fails the
-build. This is page-level coverage, not a claim that every claim in a sentence
-is verified.
+`section:` entry expands to the heading's page through the page before the next
+non-descendant heading, or to the source end. A reference outside the scope, an
+unknown source, an unknown section or an uncited page fails the build. This is
+page-level coverage, not a claim that every claim in a sentence is verified.
 
 ## 10. QUALITY GATE CHECKLIST
 

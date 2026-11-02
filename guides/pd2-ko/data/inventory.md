@@ -1,6 +1,6 @@
 # Kaynak Envanteri
 
-Üretim: 2026-11-02T16:49:48+00:00
+Üretim: 2026-11-02T23:22:46+00:00
 
 | PDF | Sayfa | Kelime | Düşük metinli sayfa |
 |---|---:|---:|---:|
@@ -13,24 +13,29 @@
 - Sayfa: **103**
 - Kelime: **6448**
 - Düşük metinli sayfalar: **1, 5, 19, 21, 29, 33, 45, 53, 101**
+- Yerleşim: **747** blok, **119** başlık, **6** tablo, **33** figür (101 sayfa)
 
 ### Başlıklar
 
 | Sayfa | Başlık |
 |---:|---|
-| 1 | Bölüm 2: Önemli Programlama Dillerinin |
+| 1 | Bölüm 2: Önemli Programlama Dillerinin Gelişimi |
 | 2 | Bölüm 2 Konular |
 | 3 | Bölüm 2 Konular (devamı) |
 | 7 | 2.1 Zuse'nin Plankalkül'ü |
+| 11 | 2.2 Minimum Donanım Programlama: |
 | 15 | 2.3 IBM 704 ve Fortran |
 | 26 | 2.4 Fonksiyonel Programlama: LISP |
-| 49 | 000200 PROGRAM-ID. HELLOWORLD.                         * Note: In this version of COBOL pressing the Carriage Return (CR) |
+| 34 | 2.5 Sofistikeliğe doğru ilk adım: |
 | 50 | 2.7 Zaman Paylaşımının (Timesharing) |
 | 55 | 2.8 Herkes için Herşey: PL/I |
-| 58 | 3 X 3 Committee tarafından beş ayda |
+| 61 | 2.9 İlk İki Dinamik Dil: APL ve SNOBOL |
 | 64 | 2.10 Veri Soyutlama (Data Abstraction) |
+| 66 | 2.11 Ortogonal(Orthogonal) Dizayn: ALGOL 68 |
 | 68 | 2.12 ALGOL'lerin ilk torunlarından bazıları |
+| 73 | 2.13 Mantık(Logic) temelli programlama: |
 | 75 | 2.14 Tarihin en büyük tasarım çabası: Ada |
+| 80 | 2.15 Nesneye-dayalı Programlama: |
 | 82 | 2.16 Zorunlu (Imperative) ve nesneye dayalı |
 | 86 | 2.17 Bir Zorunlu nesneye-dayalı dil |
 | 92 | 2.18 Ağ (Web) için Betik Diller (Scripting |

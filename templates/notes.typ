@@ -468,8 +468,10 @@
       pad(top: 6mm, running_header(left, sheet_title.get()))
     },
     footer: context {
-      set text(font: "Inter", size: __UI_SIZE__, weight: "medium", fill: brick)
-      align(center)[#counter(page).display("1")]
+      set text(font: "Inter", size: __UI_SIZE__, weight: "medium", fill: faint)
+      align(center)[
+        #text[Folisift] #h(3mm) #counter(page).display("1")
+      ]
     },
   )
   set text(
@@ -620,6 +622,15 @@
               )[#item]
               linebreak()
             }
+            #v(2mm)
+            #link("https://github.com/Aylmz0/folisift")[
+              #text(
+                font: "Inter",
+                size: __TINY_SIZE__,
+                tracking: 0.05em,
+                fill: faint,
+              )[Folisift · github.com/Aylmz0/folisift]
+            ]
           ]
         ]
       ]

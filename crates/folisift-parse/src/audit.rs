@@ -304,7 +304,10 @@ pub fn audit_pdf_with(
                                 if (line_size - body_font_size).abs() <= 0.6 {
                                     page_line_lengths.push(line_text.trim().chars().count());
                                 }
-                                if line_size > body_font_size + 1.0
+                                let in_body_band = line_y > options.margin_top_pt
+                                    && line_y < height - options.margin_bottom_pt;
+                                if in_body_band
+                                    && line_size > body_font_size + 1.0
                                     && line_text.trim().chars().count() > 2
                                 {
                                     heading_lines.push((
@@ -312,9 +315,7 @@ pub fn audit_pdf_with(
                                         line_size,
                                         line_text.trim().to_string(),
                                     ));
-                                } else if line_y > options.margin_top_pt
-                                    && line_y < height - options.margin_bottom_pt
-                                {
+                                } else if in_body_band {
                                     body_line_ys.push(line_y);
                                 }
                             }
@@ -338,9 +339,11 @@ pub fn audit_pdf_with(
             if (line_size - body_font_size).abs() <= 0.6 {
                 page_line_lengths.push(text.trim().chars().count());
             }
-            if line_size > body_font_size + 1.0 && text.trim().chars().count() > 2 {
+            let in_body_band =
+                line_y > options.margin_top_pt && line_y < height - options.margin_bottom_pt;
+            if in_body_band && line_size > body_font_size + 1.0 && text.trim().chars().count() > 2 {
                 heading_lines.push((line_y, line_size, text.trim().to_string()));
-            } else if line_y > options.margin_top_pt && line_y < height - options.margin_bottom_pt {
+            } else if in_body_band {
                 body_line_ys.push(line_y);
             }
         }

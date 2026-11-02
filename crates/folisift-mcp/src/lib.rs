@@ -8,9 +8,9 @@ use folisift_links::{
     write_report,
 };
 use folisift_parse::{
-    Inventory, SourceCache, VisualAudit, analyze_sources, analyze_sources_with_layout,
-    check_coverage as coverage_report, parse_page_list, read_block_view,
-    read_source_at as read_source_pages, render_pages as render_page_images,
+    DocumentGraph, Inventory, SourceCache, VisualAudit, analyze_sources,
+    analyze_sources_with_layout, check_coverage as coverage_report, parse_page_list,
+    read_block_view, read_source_at as read_source_pages, render_pages as render_page_images,
     search_source as search_source_text, write_layouts,
 };
 use folisift_render::diagram::{self, DiagramSpec, DiagramTheme};
@@ -76,6 +76,18 @@ pub struct LinksParams {
     pub explore: Option<bool>,
     /// Build with BM25 only; no model is loaded.
     pub no_model: Option<bool>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct GraphParams {
+    /// build, status or read
+    pub action: String,
+    /// Guide slug.
+    pub guide: String,
+    /// Maximum nodes returned by read; default 100.
+    pub node_limit: Option<usize>,
+    /// Maximum edges returned by read; default 100.
+    pub edge_limit: Option<usize>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -519,6 +531,74 @@ impl FolisiftServer {
             }
             other => Err(format!(
                 "unknown links action {other:?}; use status, build or read"
+            )),
+        }
+    }
+
+    #[tool(
+        description = "Build, inspect or read the deterministic document graph",
+        annotations(
+            title = "Document graph",
+            read_only_hint = false,
+            open_world_hint = false
+        )
+    )]
+    async fn graph(
+        &self,
+        Parameters(params): Parameters<GraphParams>,
+    ) -> Result<Json<Value>, String> {
+        let guide =
+            Guide::load(&self.workspace, &params.guide).map_err(|error| error.to_string())?;
+        let path = guide.dir.join("data/document-graph.json");
+        match params.action.as_str() {
+            "build" => {
+                let layouts = read_layouts(&guide.dir.join("data/blocks"))
+                    .map_err(|error| error.to_string())?;
+                if layouts.is_empty() {
+                    return Err(
+                        "no layout blocks found; run analyze or prepare_guide first".to_string()
+                    );
+                }
+                let mut graph = DocumentGraph::build(&layouts);
+                if let Ok(markdown) = std::fs::read_to_string(&guide.content) {
+                    graph.add_citations(&markdown);
+                }
+                graph.write_json(&path).map_err(|error| error.to_string())?;
+                Ok(Json(json!({
+                    "guide": guide.slug,
+                    "output": path.display().to_string(),
+                    "sources": layouts.len(),
+                    "nodes": graph.nodes.len(),
+                    "edges": graph.edges.len(),
+                    "node_kinds": graph.counts(),
+                })))
+            }
+            "status" => {
+                let graph = DocumentGraph::read_json(&path).map_err(|error| error.to_string())?;
+                Ok(Json(json!({
+                    "guide": guide.slug,
+                    "output": path.display().to_string(),
+                    "nodes": graph.nodes.len(),
+                    "edges": graph.edges.len(),
+                    "node_kinds": graph.counts(),
+                })))
+            }
+            "read" => {
+                let graph = DocumentGraph::read_json(&path).map_err(|error| error.to_string())?;
+                let node_limit = params.node_limit.unwrap_or(100);
+                let edge_limit = params.edge_limit.unwrap_or(100);
+                Ok(Json(json!({
+                    "guide": guide.slug,
+                    "output": path.display().to_string(),
+                    "nodes": graph.nodes.iter().take(node_limit).collect::<Vec<_>>(),
+                    "edges": graph.edges.iter().take(edge_limit).collect::<Vec<_>>(),
+                    "total_nodes": graph.nodes.len(),
+                    "total_edges": graph.edges.len(),
+                    "node_kinds": graph.counts(),
+                })))
+            }
+            other => Err(format!(
+                "unknown graph action {other:?}; use build, status or read"
             )),
         }
     }

@@ -1,6 +1,6 @@
 # Kaynak Envanteri
 
-Üretim: 2026-10-29T21:39:05+00:00
+Üretim: 2026-11-02T23:22:47+00:00
 
 | PDF | Sayfa | Kelime | Düşük metinli sayfa |
 |---|---:|---:|---:|
@@ -13,6 +13,7 @@
 - Sayfa: **136**
 - Kelime: **6574**
 - Düşük metinli sayfalar: **1, 5, 19, 26, 39, 42, 46, 60, 73, 74, 76, 77, 80, 89, 111, 128, 129, 130**
+- Yerleşim: **5271** blok, **204** başlık, **13** tablo, **4358** figür (136 sayfa)
 
 ### Başlıklar
 
@@ -21,15 +22,10 @@
 | 1 | Bölüm 3: Sentaks ve Semantiği |
 | 2 | Bölüm 3 Konuları |
 | 3 | 3.1 Giriş |
-| 20 | Bölüm 4'te daha detaylı anlatılacak |
+| 11 | 3.2 Genel Sentaks tanımlama problemi : |
 | 22 | 3.3 Sentaks tanımlamanın biçimsel |
-| 32 | 1 Terminal Sembolleri (Atomik uç birimler- |
-| 33 | 1 Terminal Semboller: Bir dilde geçerli olan |
-| 34 | 3 Kurallar : Bir terminal olmayan sembolün |
 | 63 | 3.4 Özellik (Attribute) Gramerleri |
-| 71 | 1 Sentaks kuralı: <assign>  <var> = <expr> |
 | 78 | 3.5 Semantik |
-| 135 | 1 BNF ve EBNF hakkında detaylı bilgi toplayınız |
 
 ### Kanonik Bölümler
 

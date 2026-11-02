@@ -1,6 +1,6 @@
 # Kaynak Envanteri
 
-Üretim: 2026-10-29T21:39:07+00:00
+Üretim: 2026-11-02T23:22:45+00:00
 
 | PDF | Sayfa | Kelime | Düşük metinli sayfa |
 |---|---:|---:|---:|
@@ -14,19 +14,18 @@
 - Sayfa: **123**
 - Kelime: **5386**
 - Düşük metinli sayfalar: **1, 7, 9, 16, 17, 21, 23, 26, 27, 32, 35, 49, 60, 61, 62, 63, 64, 65, 68, 69, 74, 77, 78, 80, 81, 82, 83, 84, 85, 86, 87, 89, 109, 111, 116, 117, 118, 119, 120, 121**
+- Yerleşim: **761** blok, **161** başlık, **13** tablo, **72** figür (123 sayfa)
 
 ### Başlıklar
 
 | Sayfa | Başlık |
 |---:|---|
-| 2 | 1 Giriş ve Amaçlar |
 | 3 | 0.1 Giriş ve Amaçlar |
 | 10 | 0.2 Programlama Dili Nedir? |
-| 21 | 0.3 Programlama Dillerini Düzeylere |
+| 21 | 0.3 Programlama Dillerini Düzeylere Ayırmak |
 | 22 | 0.4 Dil Çevrimi |
-| 42 | 1 Bir düzenli ifade özel bir token tipinin tüm durumlarını |
-| 51 | 1 Terminal semboller (a, b) |
-| 115 | 0.5 Programlama Dillerinin Yazılım |
+| 23 | 0.4 Dil Çevrimi Otomatik Çeviri Paradigması |
+| 115 | 0.5 Programlama Dillerinin Yazılım Yaşam Döngüsündeki Yeri |
 
 ### Sayfa Haritası
 
@@ -161,6 +160,7 @@
 - Sayfa: **137**
 - Kelime: **6852**
 - Düşük metinli sayfalar: **1, 29, 31, 40, 72, 79, 89, 91, 93, 95, 97, 98, 99, 113, 121**
+- Yerleşim: **758** blok, **142** başlık, **5** tablo, **52** figür (137 sayfa)
 
 ### Başlıklar
 
@@ -172,10 +172,9 @@
 | 15 | 1.2 Programlama Alanları |
 | 17 | 1.3 Dil Değerlendirme Kriterleri |
 | 59 | 1.4 Dil Tasarımını Etkileyen Faktörler |
-| 72 | 1.5 Dil Kategorileri |
+| 72 | 1.5 Dil Kategorileri Programlama Paradigmaları |
 | 105 | 1.6 Dil Tasarımında Verilen Ödünler |
 | 108 | 1.7 İmplementasyon Metotları |
-| 115 | 1 Lexical analizör |
 | 132 | 1.8 Programlama Platformları |
 
 ### Kanonik Bölümler

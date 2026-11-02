@@ -481,8 +481,14 @@
       pad(top: 5mm, running_header(left, sheet_title.get()))
     },
     footer: context {
-      set text(font: "Inter", size: 8pt, weight: "medium", fill: brick)
-      align(center)[#counter(page).display("1")]
+      set text(font: "Inter", size: 8pt, weight: "medium", fill: faint)
+      align(center)[
+        #text[Folisift] #h(3mm)
+        #if here().page() == 1 [
+          #link("https://github.com/Aylmz0/folisift")[github.com/Aylmz0/folisift] #h(3mm)
+        ]
+        #counter(page).display("1")
+      ]
     },
   )
   set text(font: "Inter", size: body-size, fill: ink, lang: language, hyphenate: false)
@@ -561,8 +567,14 @@
     fill: paper_bg,
     header: none,
     footer: context {
-      set text(font: "Inter", size: 8pt, weight: "medium", fill: brick)
-      align(center)[#counter(page).display("1")]
+      set text(font: "Inter", size: 8pt, weight: "medium", fill: faint)
+      align(center)[
+        #text[Folisift] #h(3mm)
+        #if here().page() == 1 [
+          #link("https://github.com/Aylmz0/folisift")[github.com/Aylmz0/folisift] #h(3mm)
+        ]
+        #counter(page).display("1")
+      ]
     },
   )
   set text(font: "Inter", size: body-size, fill: ink, lang: language, hyphenate: false)

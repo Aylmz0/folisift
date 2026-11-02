@@ -8,6 +8,7 @@ sources/**/*.pdf
 guides/*/data/blocks/
 guides/*/data/document-links.json
 guides/*/data/document-links.md
+guides/*/data/document-graph.json
 data/blocks/
 guides/*/data/cache/
 data/pages/
@@ -24,6 +25,10 @@ data/visual/
 
 # Rust build output.
 /target/
+
+# Generated guide PDFs are local artifacts, not repository content.
+output/*.pdf
+output/**/*.pdf
 
 # Generated style previews are not release outputs.
 output/style-preview-*.pdf

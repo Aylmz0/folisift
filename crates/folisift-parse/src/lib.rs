@@ -6,6 +6,7 @@
 pub mod audit;
 pub mod coverage;
 pub mod error;
+pub mod graph;
 pub mod inventory;
 pub mod layout;
 pub mod parser;
@@ -24,6 +25,7 @@ pub use coverage::{
     CoverageReport, DEFAULT_THRESHOLD, MIN_SECTION_CHARS, check_coverage, guide_body_chars,
 };
 pub use error::{Error, Result};
+pub use graph::{DocumentGraph, GRAPH_SCHEMA_VERSION, GraphEdge, GraphNode};
 pub use inventory::{CanonicalSection, Heading, Inventory, PageRow, SourceInventory, Totals};
 pub use layout::{
     BlockView, LAYOUT_SCHEMA_VERSION, LayoutBlock, LayoutBlockKind, LayoutCell, LayoutSummary,

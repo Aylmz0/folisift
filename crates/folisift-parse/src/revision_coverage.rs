@@ -53,10 +53,15 @@ impl RevisionCoverageReport {
 }
 
 #[derive(Debug, Clone)]
+enum ScopeSelector {
+    Pages { start: usize, end: usize },
+    Section(String),
+}
+
+#[derive(Debug, Clone)]
 struct Scope {
     source: String,
-    start: usize,
-    end: usize,
+    selector: ScopeSelector,
 }
 
 pub fn revision_coverage_report(inventory: &Inventory, markdown: &str) -> RevisionCoverageReport {
@@ -91,24 +96,38 @@ pub fn revision_coverage_issues(inventory: &Inventory, markdown: &str) -> Vec<St
         known.push((
             source.filename.trim_end_matches(".pdf").to_string(),
             source.pages,
+            &source.headings,
         ));
     }
     for scope in &scopes {
-        let Some((_, pages)) = known.iter().find(|(id, _)| id == &scope.source) else {
+        let Some((_, pages, headings)) = known.iter().find(|(id, _, _)| id == &scope.source) else {
             issues.push(format!(
                 "source_scope references unknown source {:?}",
                 scope.source
             ));
             continue;
         };
-        if scope.start == 0 || scope.end < scope.start || scope.end > *pages {
+        let (start, end) = match &scope.selector {
+            ScopeSelector::Pages { start, end } => (*start, *end),
+            ScopeSelector::Section(section) => match resolve_section(*pages, headings, section) {
+                Some(range) => range,
+                None => {
+                    issues.push(format!(
+                        "source_scope section {section:?} was not found in source {:?}",
+                        scope.source
+                    ));
+                    continue;
+                }
+            },
+        };
+        if start == 0 || end < start || end > *pages {
             issues.push(format!(
                 "source_scope {}:{}-{} is outside the source page range 1-{pages}",
-                scope.source, scope.start, scope.end
+                scope.source, start, end
             ));
             continue;
         }
-        let mut cited = vec![false; scope.end - scope.start + 1];
+        let mut cited = vec![false; end - start + 1];
         let mut saw_reference = false;
         for capture in PAGE_REF_RE.captures_iter(markdown) {
             let source = capture[1].trim().to_string();
@@ -116,20 +135,20 @@ pub fn revision_coverage_issues(inventory: &Inventory, markdown: &str) -> Vec<St
                 continue;
             }
             saw_reference = true;
-            let start = capture[2].parse::<usize>().unwrap_or(0);
-            let end = capture
+            let reference_start = capture[2].parse::<usize>().unwrap_or(0);
+            let reference_end = capture
                 .get(3)
                 .and_then(|value| value.as_str().parse::<usize>().ok())
-                .unwrap_or(start);
-            if start < scope.start || end > scope.end || end < start {
+                .unwrap_or(reference_start);
+            if reference_start < start || reference_end > end || reference_end < reference_start {
                 issues.push(format!(
                     "reference {}:{}-{} falls outside source_scope {}:{}-{}",
-                    source, start, end, scope.source, scope.start, scope.end
+                    source, reference_start, reference_end, scope.source, start, end
                 ));
                 continue;
             }
-            for page in start..=end {
-                cited[page - scope.start] = true;
+            for page in reference_start..=reference_end {
+                cited[page - start] = true;
             }
         }
         if !saw_reference {
@@ -142,16 +161,57 @@ pub fn revision_coverage_issues(inventory: &Inventory, markdown: &str) -> Vec<St
         let missing = cited
             .iter()
             .enumerate()
-            .filter_map(|(index, seen)| (!seen).then_some(scope.start + index))
+            .filter_map(|(index, seen)| (!seen).then_some(start + index))
             .collect::<Vec<_>>();
         if !missing.is_empty() {
             issues.push(format!(
                 "source_scope {}:{}-{} has uncited pages: {missing:?}",
-                scope.source, scope.start, scope.end
+                scope.source, start, end
             ));
         }
     }
     issues
+}
+
+fn resolve_section(
+    pages: usize,
+    headings: &[crate::inventory::Heading],
+    section: &str,
+) -> Option<(usize, usize)> {
+    let section = section.trim().trim_end_matches('.');
+    if section.is_empty() {
+        return None;
+    }
+    let mut ordered = headings
+        .iter()
+        .filter_map(|heading| {
+            let number = heading_number(&heading.heading)?;
+            Some((heading.page, number))
+        })
+        .collect::<Vec<_>>();
+    ordered.sort_by_key(|(page, _)| *page);
+    let start = ordered
+        .iter()
+        .find(|(_, number)| *number == section)
+        .map(|(page, _)| *page)?;
+    let end = ordered
+        .iter()
+        .filter(|(page, number)| {
+            *page > start && *number != section && !number.starts_with(&format!("{section}."))
+        })
+        .map(|(page, _)| page.saturating_sub(1))
+        .min()
+        .unwrap_or(pages);
+    Some((start, end))
+}
+
+fn heading_number(heading: &str) -> Option<&str> {
+    let first = heading.split_whitespace().next()?.trim_end_matches('.');
+    (!first.is_empty()
+        && first
+            .chars()
+            .all(|character| character.is_ascii_digit() || character == '.'))
+    .then_some(first)
 }
 
 fn frontmatter(markdown: &str) -> Option<ScopeFrontmatter> {
@@ -167,27 +227,35 @@ fn parse_scopes(value: &str) -> Result<Vec<Scope>, String> {
         if part.is_empty() {
             continue;
         }
-        let Some((source, range)) = part.rsplit_once(':') else {
+        let Some((source, range)) = part.split_once(':') else {
             return Err(format!(
-                "invalid source_scope entry {part:?}; use SOURCE:START-END"
+                "invalid source_scope entry {part:?}; use SOURCE:START-END or SOURCE:section:NUMBER"
             ));
         };
-        let (start, end) = match range.split_once('-') {
-            Some((start, end)) => (start, end),
-            None => (range, range),
+        let selector = if let Some(section) = range.trim().strip_prefix("section:") {
+            let section = section.trim();
+            if section.is_empty() {
+                return Err(format!("empty source_scope section in {part:?}"));
+            }
+            ScopeSelector::Section(section.to_string())
+        } else {
+            let (start, end) = match range.split_once('-') {
+                Some((start, end)) => (start, end),
+                None => (range, range),
+            };
+            let start = start
+                .trim()
+                .parse::<usize>()
+                .map_err(|_| format!("invalid source_scope start in {part:?}"))?;
+            let end = end
+                .trim()
+                .parse::<usize>()
+                .map_err(|_| format!("invalid source_scope end in {part:?}"))?;
+            ScopeSelector::Pages { start, end }
         };
-        let start = start
-            .trim()
-            .parse::<usize>()
-            .map_err(|_| format!("invalid source_scope start in {part:?}"))?;
-        let end = end
-            .trim()
-            .parse::<usize>()
-            .map_err(|_| format!("invalid source_scope end in {part:?}"))?;
         scopes.push(Scope {
             source: source.trim().to_string(),
-            start,
-            end,
+            selector,
         });
     }
     if scopes.is_empty() {
@@ -200,7 +268,7 @@ fn parse_scopes(value: &str) -> Result<Vec<Scope>, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::inventory::{SourceInventory, Totals};
+    use crate::inventory::{Heading, SourceInventory, Totals};
 
     fn inventory() -> Inventory {
         Inventory {
@@ -231,6 +299,84 @@ mod tests {
 
     fn guide(scope: &str, refs: &str) -> String {
         format!("---\ntitle: Test\nsource_scope: \"{scope}\"\n---\n\n{refs}\n")
+    }
+
+    fn section_inventory() -> Inventory {
+        let mut inventory = inventory();
+        inventory.sources[0].pages = 40;
+        inventory.sources[0].headings = vec![
+            Heading {
+                heading: "2.17 Önceki konu".to_string(),
+                page: 20,
+                level: Some(1),
+                block_id: None,
+            },
+            Heading {
+                heading: "2.18 Kapsam konusu".to_string(),
+                page: 26,
+                level: Some(1),
+                block_id: None,
+            },
+            Heading {
+                heading: "2.18.1 Alt konu".to_string(),
+                page: 27,
+                level: Some(2),
+                block_id: None,
+            },
+            Heading {
+                heading: "2.19 Sonraki konu".to_string(),
+                page: 30,
+                level: Some(1),
+                block_id: None,
+            },
+            Heading {
+                heading: "2.20 Son konu".to_string(),
+                page: 35,
+                level: Some(1),
+                block_id: None,
+            },
+        ];
+        inventory
+    }
+
+    #[test]
+    fn accepts_a_section_scope() {
+        let markdown = guide("PD2:section:2.18", "A [PD2, s. 26–29].");
+        assert!(
+            revision_coverage_issues(&section_inventory(), &markdown).is_empty(),
+            "{:?}",
+            revision_coverage_issues(&section_inventory(), &markdown)
+        );
+    }
+
+    #[test]
+    fn rejects_uncited_pages_in_a_section_scope() {
+        let markdown = guide("PD2:section:2.18", "Only [PD2, s. 26].");
+        let issues = revision_coverage_issues(&section_inventory(), &markdown);
+        assert!(
+            issues.iter().any(|issue| issue.contains("uncited pages")),
+            "{issues:?}"
+        );
+    }
+
+    #[test]
+    fn rejects_an_unknown_section_scope() {
+        let markdown = guide("PD2:section:9.99", "[PD2, s. 26].");
+        let issues = revision_coverage_issues(&section_inventory(), &markdown);
+        assert!(
+            issues.iter().any(|issue| issue.contains("was not found")),
+            "{issues:?}"
+        );
+    }
+
+    #[test]
+    fn section_scope_extends_to_the_source_end() {
+        let markdown = guide("PD2:section:2.20", "[PD2, s. 35–40].");
+        assert!(
+            revision_coverage_issues(&section_inventory(), &markdown).is_empty(),
+            "{:?}",
+            revision_coverage_issues(&section_inventory(), &markdown)
+        );
     }
 
     #[test]

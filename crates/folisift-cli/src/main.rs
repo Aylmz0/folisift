@@ -10,8 +10,8 @@ use folisift_links::{
     write_report,
 };
 use folisift_parse::{
-    SourceCache, analyze_sources_with_layout, parse_page_list, read_block_view, read_source_at,
-    render_pages, search_source, write_layouts,
+    DocumentGraph, SourceCache, analyze_sources_with_layout, parse_page_list, read_block_view,
+    read_source_at, render_pages, search_source, write_layouts,
 };
 use folisift_render::{RenderOptions, render, styles};
 use serde::Serialize;
@@ -166,6 +166,11 @@ enum Command {
         #[arg(long)]
         check: bool,
     },
+    /// Build or inspect the deterministic document graph.
+    Graph {
+        #[command(subcommand)]
+        command: GraphCommand,
+    },
     /// Validate, build or inspect D2 diagram assets.
     Diagram {
         #[command(subcommand)]
@@ -270,6 +275,20 @@ enum LinksCommand {
         limit: usize,
     },
     /// Report model, blocks and links status without inference.
+    Status {
+        #[arg(long)]
+        guide: String,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+enum GraphCommand {
+    /// Build document-graph.json from stored layout blocks and guide citations.
+    Build {
+        #[arg(long)]
+        guide: String,
+    },
+    /// Report graph counts without rebuilding.
     Status {
         #[arg(long)]
         guide: String,
@@ -1222,6 +1241,49 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
         },
+        Command::Graph { command } => {
+            match command {
+                GraphCommand::Build { guide } => {
+                    let guide = Guide::load(&workspace, &guide)?;
+                    let layouts = read_layouts(&guide.dir.join("data/blocks"))?;
+                    if layouts.is_empty() {
+                        return Err("no layout blocks found; run `folisift analyze` or `prepare_guide` first".into());
+                    }
+                    let mut graph = DocumentGraph::build(&layouts);
+                    if let Ok(markdown) = std::fs::read_to_string(&guide.content) {
+                        graph.add_citations(&markdown);
+                    }
+                    let out = guide.dir.join("data/document-graph.json");
+                    graph.write_json(&out)?;
+                    println!(
+                        "{}",
+                        serde_json::to_string_pretty(&json!({
+                            "guide": guide.slug,
+                            "output": out.display().to_string(),
+                            "sources": layouts.len(),
+                            "nodes": graph.nodes.len(),
+                            "edges": graph.edges.len(),
+                            "node_kinds": graph.counts(),
+                        }))?
+                    );
+                }
+                GraphCommand::Status { guide } => {
+                    let guide = Guide::load(&workspace, &guide)?;
+                    let path = guide.dir.join("data/document-graph.json");
+                    let graph = DocumentGraph::read_json(&path)?;
+                    println!(
+                        "{}",
+                        serde_json::to_string_pretty(&json!({
+                            "guide": guide.slug,
+                            "output": path.display().to_string(),
+                            "nodes": graph.nodes.len(),
+                            "edges": graph.edges.len(),
+                            "node_kinds": graph.counts(),
+                        }))?
+                    );
+                }
+            }
+        }
         Command::Diagram { command } => match command {
             DiagramCommand::Validate { guide, id, all } => {
                 let value = diagram_cmd::validate(&workspace, &guide, id.as_deref(), all)?;
