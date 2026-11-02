@@ -43,6 +43,11 @@ def pages(page: int) -> bytes:
     return f"<< /Type /Pages /Kids [{page} 0 R] /Count 1 >>".encode()
 
 
+def pages_many(kids: list[int]) -> bytes:
+    references = " ".join(f"{kid} 0 R" for kid in kids)
+    return f"<< /Type /Pages /Kids [{references}] /Count {len(kids)} >>".encode()
+
+
 def page(contents: int, resources: bytes) -> bytes:
     return (
         f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {WIDTH} {HEIGHT}] "
@@ -79,6 +84,23 @@ def image_overflow() -> bytes:
     return build([catalog(), pages(3), page(4, resources), stream(content), image])
 
 
+def multipage_overflow() -> bytes:
+    resources = b"<< /Font << /F1 7 0 R >> >>"
+    first = b"BT /F1 12 Tf 72 700 Td (Page one stays inside the content box) Tj ET"
+    second = b"BT /F1 12 Tf 560 400 Td (Page two overflows the content box) Tj ET"
+    return build(
+        [
+            catalog(),
+            pages_many([3, 4]),
+            page(5, resources),
+            page(6, resources),
+            stream(first),
+            stream(second),
+            font(),
+        ]
+    )
+
+
 def bookmark_mismatch() -> bytes:
     content = b"BT /F1 12 Tf 72 700 Td (Actual heading) Tj ET"
     resources = b"<< /Font << /F1 5 0 R >> >>"
@@ -105,6 +127,7 @@ def main() -> None:
         "orphan-heading.pdf": orphan_heading(),
         "box-overflow.pdf": box_overflow(),
         "image-overflow.pdf": image_overflow(),
+        "multipage-overflow.pdf": multipage_overflow(),
         "bookmark-mismatch.pdf": bookmark_mismatch(),
     }
     for name, data in files.items():

@@ -65,13 +65,13 @@ the server analyzes, renders and audits.
 
 ```json
 {
-  "schema_version": 2,
-  "slug": "pd0-pd1",
-  "title": "Programlama Dilleri — Çalışma Kılavuzu",
+  "schema_version": 3,
+  "slug": "my-course",
+  "title": "My Course — Study Guide",
   "language": "tr",
   "content": "guide.md",
-  "output": "../../output/PD0-PD1_Calisma_Ozeti.pdf",
-  "sources": ["../../sources/PD0.pdf", "../../sources/PD1.pdf"],
+  "output": "../../output/my-course.pdf",
+  "sources": ["../../sources/source-a.pdf", "../../sources/source-b.pdf"],
   "inventory": "data/source.json",
   "coverage": "data/coverage.md",
   "target_pages": "18-22"
@@ -91,7 +91,7 @@ Rules:
 
 Markdown + YAML frontmatter plus `front`, `toc`, `chapter`, `definition`,
 `critical`, `example`, `note`, `table`, `columns`, `columnbreak` and
-`pagebreak` directives. Source references use `[PD0, s. 3]`. Figures use
+`pagebreak` directives. Source references use `[SOURCE, s. 3]`. Figures use
 Markdown images; the Typst template owns numbering and captions are kept from
 the source. Raw Typst/CSS in a guide is forbidden. The complete authoring
 surface is in `docs/authoring.md`.

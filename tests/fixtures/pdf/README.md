@@ -12,6 +12,7 @@ python3 tests/fixtures/pdf/generate.py
 | `orphan-heading.pdf` | heading at the bottom with no body below | `orphan_heading_pages = [1]` |
 | `box-overflow.pdf` | text starts outside the content box | `content_box_pages = [1]` |
 | `image-overflow.pdf` | image extends past the page edge | `image_overflow_pages = [1]` |
+| `multipage-overflow.pdf` | page 2 text starts outside the content box | `content_box_pages = [2]` |
 | `bookmark-mismatch.pdf` | bookmark title is absent from its page | `bookmark_mismatches.len() = 1` |
 
 `crates/folisift-parse/tests/audit.rs` asserts each expected field and that the

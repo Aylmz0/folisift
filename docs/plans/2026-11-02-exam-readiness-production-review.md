@@ -205,8 +205,9 @@ Evidence and limits are recorded in
   tests, clippy, fmt, type/palette/genre/parity/visual/revision,
   TOC, production report, package + clean install.
 - [x] Add `make exam-check` for the five guided PDFs and their SHA-256 hashes.
-- [ ] Copy only the five final PDFs to the offline exam folder; ignore
-  `output/style-preview-*` for study use.
+- [x] Copy only the five final PDFs to the offline exam folder; ignore
+  `output/style-preview-*` for study use. `make offline-exam` writes
+  `output/offline-exam/`.
 
 **Exit:** one immutable PDF set + checksums; no build or audit failure.
 
@@ -249,10 +250,15 @@ Evidence and limits are recorded in
 
 ### P3 — Accessibility and long-term polish
 
-- [ ] Screen-reader reading-order test on tagged PDFs.
-- [ ] Component-level contrast checks beyond palette pairs.
-- [ ] Multi-page overflow fixtures for every genre.
-- [ ] Public docs pass: no course-specific examples in generic sections,
+- [x] Screen-reader reading-order test on tagged PDFs: automated structure
+  preflight in `make exam-check`, manual Orca protocol in
+  [`accessibility-review-2026-11-03.md`](../accessibility-review-2026-11-03.md).
+- [x] Component-level contrast checks beyond palette pairs:
+  `scripts/check-component-contrast.py`; PD3 code-token findings recorded.
+- [x] Multi-page overflow coverage for every genre: `make style-audit`
+  renders and audits every preview; `multipage-overflow.pdf` covers the
+  page-2 negative case.
+- [x] Public docs pass: no course-specific examples in generic sections,
   no personal references, accurate release/development versions.
 
 ## 6. Acceptance gates

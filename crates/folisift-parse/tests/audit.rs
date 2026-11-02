@@ -38,6 +38,13 @@ fn seeded_content_box_overflow_fails() {
 }
 
 #[test]
+fn seeded_multipage_overflow_fails_on_second_page() {
+    let audit = audit_pdf(&fixture("multipage-overflow.pdf"), None).expect("audit");
+    assert!(!audit.passed);
+    assert_eq!(audit.content_box_pages, vec![2], "{audit:#?}");
+}
+
+#[test]
 fn seeded_image_overflow_fails() {
     let audit = audit_pdf(&fixture("image-overflow.pdf"), None).expect("audit");
     assert!(!audit.passed);

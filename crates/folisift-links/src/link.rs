@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use bm25::{DefaultTokenizer, Document, Language, SearchEngineBuilder};
 use serde::{Deserialize, Serialize};
@@ -154,6 +154,9 @@ impl LinkIndex {
 
         let mut best: BTreeMap<(usize, usize), Link> = BTreeMap::new();
         let mut degrees = vec![0usize; sections.len()];
+        let mut accepted_pairs: Vec<(usize, usize)> = Vec::new();
+        let mut incident: Vec<Vec<usize>> = vec![Vec::new(); sections.len()];
+        let mut page_pairs: BTreeSet<((String, usize), (String, usize))> = BTreeSet::new();
         let mut ranked = Vec::new();
         for (&(left, right), lexical) in &candidates {
             if sections[left].source == sections[right].source
@@ -161,10 +164,23 @@ impl LinkIndex {
                     || sections[left]
                         .page_start
                         .abs_diff(sections[right].page_start)
-                        <= 2)
+                        <= 2
+                    || (sections[left]
+                        .page_start
+                        .abs_diff(sections[right].page_start)
+                        <= 10
+                        && same_heading_tokens(&sections[left], &sections[right])))
             {
                 // Repeated slide titles and immediate neighbours are serial
                 // navigation, not a cross-topic connection.
+                continue;
+            }
+            if sections[left].source != sections[right].source
+                && same_heading(&sections[left], &sections[right])
+                && token_overlap(&sections[left].text, &sections[right].text) >= 0.80
+            {
+                // A shared bibliography or boilerplate block is duplicated
+                // material, not a new connection.
                 continue;
             }
             let cosine = match &embeddings {
@@ -197,6 +213,32 @@ impl LinkIndex {
             if degrees[left] >= options.top_k || degrees[right] >= options.top_k {
                 continue;
             }
+            let duplicate = incident[left].iter().any(|&index| {
+                let (first, second) = accepted_pairs[index];
+                let other = if first == left { second } else { first };
+                near_duplicate_target(&sections[right], &sections[other])
+            }) || incident[right].iter().any(|&index| {
+                let (first, second) = accepted_pairs[index];
+                let other = if first == right { second } else { first };
+                near_duplicate_target(&sections[left], &sections[other])
+            });
+            if duplicate {
+                // One section should not collect several near-identical
+                // targets; keep the highest-scoring edge only.
+                continue;
+            }
+            let from_page = (sections[left].source.clone(), sections[left].page_start);
+            let to_page = (sections[right].source.clone(), sections[right].page_start);
+            let page_pair = if from_page <= to_page {
+                (from_page, to_page)
+            } else {
+                (to_page, from_page)
+            };
+            if page_pairs.contains(&page_pair) {
+                // Several sections can share a page; one page-to-page edge
+                // is enough for a review proposal.
+                continue;
+            }
             let (from, to) = (left, right);
             let key = (from, to);
             let entry = Link {
@@ -216,6 +258,10 @@ impl LinkIndex {
             if best.insert(key, entry).is_none() {
                 degrees[from] += 1;
                 degrees[to] += 1;
+                incident[from].push(accepted_pairs.len());
+                incident[to].push(accepted_pairs.len());
+                accepted_pairs.push(key);
+                page_pairs.insert(page_pair);
             }
         }
 
@@ -250,6 +296,47 @@ fn same_heading(left: &Section, right: &Section) -> bool {
     let left = normalize(left.heading.as_deref());
     let right = normalize(right.heading.as_deref());
     !left.is_empty() && left == right
+}
+
+/// Ignore slide numbers and punctuation so "Örnek 2: X (9)" and "Örnek: X
+/// (10)" compare as the same series title.
+fn same_heading_tokens(left: &Section, right: &Section) -> bool {
+    let heading_tokens = |section: &Section| {
+        tokens(section.heading.as_deref().unwrap_or_default())
+            .into_iter()
+            .filter(|token| !token.chars().all(|character| character.is_ascii_digit()))
+            .collect::<std::collections::BTreeSet<_>>()
+    };
+    let left = heading_tokens(left);
+    let right = heading_tokens(right);
+    !left.is_empty() && left == right
+}
+
+/// Two adjacent sections that repeat a heading or nearly all of their text are
+/// the same slide variant, not two independent targets.
+fn near_duplicate_target(left: &Section, right: &Section) -> bool {
+    if left.source != right.source || left.page_start.abs_diff(right.page_start) > 2 {
+        return false;
+    }
+    same_heading(left, right) || token_overlap(&left.text, &right.text) >= 0.85
+}
+
+fn token_overlap(left: &str, right: &str) -> f32 {
+    let left = tokens(left);
+    let right = tokens(right);
+    if left.is_empty() || right.is_empty() {
+        return 0.0;
+    }
+    let intersection = left.intersection(&right).count() as f32;
+    let union = left.union(&right).count() as f32;
+    intersection / union
+}
+
+fn tokens(text: &str) -> std::collections::BTreeSet<String> {
+    text.split(|character: char| !character.is_alphanumeric())
+        .filter(|token| !token.is_empty())
+        .map(str::to_lowercase)
+        .collect()
 }
 
 fn cosine(left: &[f32], right: &[f32]) -> f32 {
@@ -315,6 +402,19 @@ mod tests {
         }
     }
 
+    fn headed(source: &str, id: &str, text: &str, page: usize, heading: &str) -> Section {
+        Section {
+            id: id.to_string(),
+            source: source.to_string(),
+            page_start: page,
+            page_end: page,
+            block_ids: vec![],
+            heading: Some(heading.to_string()),
+            text: text.to_string(),
+            chars: text.chars().count(),
+        }
+    }
+
     #[test]
     fn links_similar_sections() {
         let sections = vec![
@@ -336,6 +436,119 @@ mod tests {
                 .any(|link| link.from == "a" && link.to == "b")
         );
         assert!(report.links.iter().all(|link| link.from != link.to));
+    }
+
+    #[test]
+    fn duplicate_targets_keep_one_edge() {
+        let mut sections = vec![
+            section("a", "compiler pipeline stage", 1),
+            section("b", "compiler pipeline stage example one", 10),
+            section("c", "compiler pipeline stage example two", 11),
+        ];
+        sections[1].heading = Some("Ara Kod".to_string());
+        sections[2].heading = Some("Ara Kod".to_string());
+        let report = LinkIndex::build(
+            &sections,
+            Some(&FakeEmbedder),
+            Some("fake".to_string()),
+            &LinkOptions::default(),
+        )
+        .expect("links");
+        let to_b = report
+            .links
+            .iter()
+            .any(|link| link.from == "a" && link.to == "b");
+        let to_c = report
+            .links
+            .iter()
+            .any(|link| link.from == "a" && link.to == "c");
+        assert!(to_b ^ to_c, "expected exactly one duplicate target edge");
+    }
+
+    #[test]
+    fn repeated_shared_material_is_not_a_link() {
+        let text = "Roberto Sebesta Concepts of Programming Languages David Watt \
+                    Programming Language Design Concepts Michael Scott Pragmatics";
+        let sections = vec![
+            headed("PD0", "a", text, 123, "Kaynaklar"),
+            headed("PD1", "b", text, 137, "Kaynaklar"),
+        ];
+        let report = LinkIndex::build(
+            &sections,
+            Some(&FakeEmbedder),
+            Some("fake".to_string()),
+            &LinkOptions::default(),
+        )
+        .expect("links");
+        assert!(
+            report.links.is_empty(),
+            "duplicated bibliography should not produce a link"
+        );
+    }
+
+    #[test]
+    fn repeated_slide_series_is_not_a_link() {
+        let sections = vec![
+            headed(
+                "PD0",
+                "a",
+                "shift reduce parse example int plus int",
+                77,
+                "Örnek 2: Shift-Reduce Ayrıştırma (1)",
+            ),
+            headed(
+                "PD0",
+                "b",
+                "shift reduce parse example int plus int",
+                81,
+                "Örnek: Shift-Reduce Ayrıştırma (10)",
+            ),
+        ];
+        let report = LinkIndex::build(
+            &sections,
+            Some(&FakeEmbedder),
+            Some("fake".to_string()),
+            &LinkOptions::default(),
+        )
+        .expect("links");
+        assert!(
+            report.links.is_empty(),
+            "a repeated slide series should not produce a link"
+        );
+    }
+
+    #[test]
+    fn one_page_pair_keeps_one_edge() {
+        let sections = vec![
+            section("a", "compiler pipeline stage", 1),
+            headed(
+                "PD0",
+                "b",
+                "compiler pipeline stage example one",
+                10,
+                "Örnek A",
+            ),
+            headed(
+                "PD0",
+                "c",
+                "compiler pipeline stage example two",
+                10,
+                "Örnek B",
+            ),
+        ];
+        let report = LinkIndex::build(
+            &sections,
+            Some(&FakeEmbedder),
+            Some("fake".to_string()),
+            &LinkOptions::default(),
+        )
+        .expect("links");
+        let incident = report
+            .links
+            .iter()
+            .filter(|link| link.from == "a" || link.to == "a")
+            .count();
+        assert_eq!(incident, 1, "expected one edge for the page pair");
     }
 
     #[test]

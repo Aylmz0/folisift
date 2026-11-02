@@ -28,5 +28,8 @@ data/visual/
 # Generated style previews are not release outputs.
 output/style-preview-*.pdf
 
+# Local offline exam copy; regenerate with `make offline-exam`.
+output/offline-exam/
+
 # Downloaded semantic model assets; release packaging copies them.
 models/

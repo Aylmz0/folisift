@@ -1,6 +1,7 @@
 # Semantic link helper with model2vec-rs — 2026-11-03
 
-- **Status:** Implemented and piloted; threshold decision recorded
+- **Status:** Implemented and piloted on two corpora; review-only threshold
+  decision recorded
 - **Decision:** use **model2vec-rs** for local semantic similarity
 - **Scope:** `folisift-links` library, `folisift links` CLI, MCP `links` tool,
   release model asset
@@ -502,7 +503,7 @@ make package-check
 - [x] Output is deterministic.
 - [x] No model, network or LLM in MCP's other tools; links uses local inference only.
 - [x] `build_guide` and exam PDF hashes are unchanged.
-- [x] 20 hand-checked pairs reviewed; false-link rate documented.
+- [x] Two 20-pair reviews completed (PD0–PD3 and PD4–PD8); false-link rate documented.
 - [x] Model and licence are in the release archive.
 - [x] ADR records local embeddings in MCP and the model asset contract.
 
@@ -531,11 +532,22 @@ make package-check
   - Prepared `models/potion-multilingual-128M-int8` (123 MB model, 18 MB
     tokenizer) and included it in the local package path; the directory is
     gitignored and copied by `scripts/package.sh`.
-  - `links build --no-model` works on PD2 as a BM25 baseline; model-backed
-    build produces 8 links from 100 sections at the initial thresholds.
+  - `links build --no-model` works on PD2 as a BM25 baseline; the final
+    default produces 2 links from 100 sections, and `--explore` produces 44.
   - Clean-package check passes with the model in the archive, and the installed
     MCP `links status/read` path was exercised successfully.
   - Quality pilot: 20 hand-checked pairs, 15 useful / 3 weak / 2 false (75%
     useful). Default thresholds remain `0.75 / 0.55`; `0.65 / 0.45` is the
     exploratory setting. See [`semantic-link-pilot-2026-11-03.md`](../semantic-link-pilot-2026-11-03.md).
-- Remaining: duplicate-target suppression and a second-corpus pilot.
+  - Added structural filters: repeated headings, adjacent slides, repeated
+    slide series (digit-insensitive headings within 10 pages), shared
+    cross-source boilerplate, near-duplicate targets and one edge per page
+    pair.
+  - Added the `--explore` preset to CLI and MCP.
+  - Added manifest hash verification before model load; `doctor` and
+    `links status` report `model_verified`.
+  - Second corpus PD4–PD8: 11 useful / 2 weak / 7 false (55%). The
+    formula-heavy parsing deck is the failure cluster; keep links review-only
+    and keep the precision-first default.
+- Remaining: improve LiteParse heading acceptance on formula-heavy slides;
+  links do not need to compensate for parser artefacts.

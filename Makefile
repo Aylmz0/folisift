@@ -11,7 +11,7 @@ VISUAL_BASELINE ?= tests/baselines/pd0-pd1.pdf
 CLEAN_BASELINE ?= tests/baselines/clean-preview.pdf
 VISUAL_PAGES ?= 1,4,8,12,18,22
 
-.PHONY: help build check verify audit dep-audit toc-check production-report revision revision-check type-check palette-check style-audit exam-check genre-check genre-visual genre-capture d2-pdf-check d2-pdf-capture package-check doctor parity parity-capture visual visual-capture diagram diagram-status package test fmt clippy analyze pages scaffold
+.PHONY: help build check verify audit dep-audit toc-check reading-order-check component-contrast-check component-contrast-strict production-report revision revision-check type-check palette-check style-audit exam-check genre-check genre-visual genre-capture d2-pdf-check d2-pdf-capture package-check doctor parity parity-capture visual visual-capture diagram diagram-status package test fmt clippy analyze pages scaffold offline-exam
 
 help:
 	@echo "make build      # guide PDF"
@@ -20,6 +20,8 @@ help:
 	@echo "make audit      # layout audit of the built PDF"
 	@echo "make dep-audit  # RustSec dependency audit"
 	@echo "make toc-check  # TOC page-number links (dev: PyMuPDF)"
+	@echo "make reading-order-check # tagged structure and reading order (dev: PyMuPDF)"
+	@echo "make component-contrast-check # rendered component contrast report (dev: PyMuPDF)"
 	@echo "make production-report # MCP prepare/build report smoke"
 	@echo "make type-check # body/code/line typography gate"
 	@echo "make revision-check # revision + organiser build gates"
@@ -28,6 +30,7 @@ help:
 	@echo "make genre-check # notes/workbook/reference preview + baselines"
 	@echo "make d2-pdf-check # per-kind D2 sequence/class/ERD PDF baseline"
 	@echo "make exam-check  # build, audit, TOC and hashes of the five exam PDFs"
+	@echo "make offline-exam # copy only the five final PDFs to output/offline-exam"
 	@echo "make package-check # package + clean-directory doctor"
 	@echo "make revision   # revision sheet + one-page organiser pilots"
 	@echo "make doctor     # PDFium/cache/guides/fonts checks"
@@ -61,6 +64,42 @@ dep-audit:
 
 toc-check:
 	python3 scripts/check-toc-links.py $(OUTPUT)
+
+reading-order-check:
+	python3 scripts/check-reading-order.py \
+	  output/PD0-PD1_Calisma_Ozeti.pdf \
+	  output/PD2_Calisma_Ozeti.pdf \
+	  output/PD3_Calisma_Ozeti.pdf \
+	  output/PD2_Revizyon.pdf \
+	  output/PD2_LISP_Bilgi_Organizatoru.pdf
+
+component-contrast-check:
+	python3 scripts/check-component-contrast.py \
+	  output/PD0-PD1_Calisma_Ozeti.pdf \
+	  output/PD2_Calisma_Ozeti.pdf \
+	  output/PD3_Calisma_Ozeti.pdf \
+	  output/PD2_Revizyon.pdf \
+	  output/PD2_LISP_Bilgi_Organizatoru.pdf
+
+component-contrast-strict:
+	python3 scripts/check-component-contrast.py --strict \
+	  output/PD0-PD1_Calisma_Ozeti.pdf \
+	  output/PD2_Calisma_Ozeti.pdf \
+	  output/PD3_Calisma_Ozeti.pdf \
+	  output/PD2_Revizyon.pdf \
+	  output/PD2_LISP_Bilgi_Organizatoru.pdf
+
+OFFLINE_DIR ?= output/offline-exam
+
+offline-exam:
+	rm -rf $(OFFLINE_DIR)
+	mkdir -p $(OFFLINE_DIR)
+	cp output/PD0-PD1_Calisma_Ozeti.pdf $(OFFLINE_DIR)/
+	cp output/PD2_Calisma_Ozeti.pdf $(OFFLINE_DIR)/
+	cp output/PD3_Calisma_Ozeti.pdf $(OFFLINE_DIR)/
+	cp output/PD2_Revizyon.pdf $(OFFLINE_DIR)/
+	cp output/PD2_LISP_Bilgi_Organizatoru.pdf $(OFFLINE_DIR)/
+	@ls -lh $(OFFLINE_DIR)
 
 production-report:
 	python3 scripts/check-production-report.py

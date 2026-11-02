@@ -474,10 +474,14 @@ connections:
 ```bash
 folisift links build --guide my-course --no-model   # BM25 baseline
 folisift links build --guide my-course              # model2vec if installed
-folisift links read --guide my-course --section PD2:p26:s1
+folisift links build --guide my-course --explore    # lower thresholds, wider net
+folisift links read --guide my-course --section source:p26:s1
 folisift links status --guide my-course
 ```
 
+The default preset is precision-first (`0.75 / 0.55`, top-k 5); `--explore`
+uses `0.65 / 0.45`, top-k 8. The builder skips repeated slide titles, adjacent
+slides, page-pair duplicates and shared bibliography/boilerplate blocks.
 The output is `data/document-links.json` and is review-only. It records source
 pages and block ids; `semantically_similar_to` is a similarity proposal, not a
 verified prerequisite or causal claim. The MCP `links` tool exposes the same

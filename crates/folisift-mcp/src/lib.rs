@@ -72,6 +72,8 @@ pub struct LinksParams {
     pub min_cosine: Option<f32>,
     /// Combined score threshold.
     pub min_score: Option<f32>,
+    /// Use the exploratory preset: top-k 8, min-cosine 0.65, min-score 0.45.
+    pub explore: Option<bool>,
     /// Build with BM25 only; no model is loaded.
     pub no_model: Option<bool>,
 }
@@ -445,10 +447,19 @@ impl FolisiftServer {
                         "no layout blocks found; run analyze or prepare_guide first".to_string()
                     );
                 }
+                let (top_k, min_cosine, min_score) = if params.explore.unwrap_or(false) {
+                    (8, 0.65, 0.45)
+                } else {
+                    (
+                        params.top_k.unwrap_or(5),
+                        params.min_cosine.unwrap_or(0.75),
+                        params.min_score.unwrap_or(0.55),
+                    )
+                };
                 let options = LinkOptions {
-                    top_k: params.top_k.unwrap_or(5),
-                    min_cosine: params.min_cosine.unwrap_or(0.75),
-                    min_score: params.min_score.unwrap_or(0.55),
+                    top_k,
+                    min_cosine,
+                    min_score,
                     ..LinkOptions::default()
                 };
                 let sections = layouts

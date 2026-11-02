@@ -250,6 +250,9 @@ enum LinksCommand {
         min_cosine: f32,
         #[arg(long, default_value_t = 0.55)]
         min_score: f32,
+        /// Use the exploratory preset: top-k 8, min-cosine 0.65, min-score 0.45.
+        #[arg(long, conflicts_with_all = ["top_k", "min_cosine", "min_score"])]
+        explore: bool,
         /// Use BM25 only; no embedding model is loaded.
         #[arg(long)]
         no_model: bool,
@@ -697,6 +700,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                     top_k,
                     min_cosine,
                     min_score,
+                    explore,
                     no_model,
                     model_dir,
                 } => {
@@ -705,6 +709,11 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                     if layouts.is_empty() {
                         return Err("no layout blocks found; run `folisift analyze` or `prepare_guide` first".into());
                     }
+                    let (top_k, min_cosine, min_score) = if explore {
+                        (8, 0.65, 0.45)
+                    } else {
+                        (top_k, min_cosine, min_score)
+                    };
                     let options = LinkOptions {
                         top_k,
                         min_cosine,

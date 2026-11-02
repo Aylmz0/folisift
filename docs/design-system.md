@@ -67,7 +67,7 @@ Body 9.5–12 pt is legal, component floors are absolute. `paper` is a labelled
 legacy fixture and keeps its old 6.9/7.4/7.9 pt components; new styles use the
 improved scale.
 
-| Role | Ratio to body | Floor | Paper legacy | Reader/PD2 | Clean/brief | Revision | Organiser |
+| Role | Ratio to body | Floor | Paper legacy | Reader | Clean/brief | Revision | Organiser |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | Body | 1.00 | 9.0 | 9.5 | 10.0 | 9.5 / 10.5 | 10.5 | 10.5 |
 | H1 | 2.00 | 8.0 | 19.0 | 20.0 | 19.0 / 21.0 | 21.0 | 21.0 |
@@ -235,7 +235,7 @@ They are experimental until their snapshots pass.
 | Data table | Comparisons, criteria, facts | No vertical lines; dark top/bottom; light header |
 | Figure | Diagram | Simple SVG; caption below; figure number |
 | Code block | Code / grammar / regex | Sand background, gold left rule, wrap long lines |
-| Source ref | Traceability | Small caps, `[PD0, s. 3]` |
+| Source ref | Traceability | Small caps, `[SOURCE, s. 3]` |
 
 ## Figures and tables
 
