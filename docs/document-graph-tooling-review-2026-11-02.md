@@ -37,7 +37,45 @@ source of truth.
 The graph should help the agent **find and propose** connections; it must not
 replace citations, `source_scope`, coverage gates or claim spot-checks.
 
-## 2. Ready systems
+## 2. LiteParse: strong parser, not a graph engine
+
+LiteParse is the right foundation for the deterministic layer, and Folisift is
+currently using only a fraction of it.
+
+Current adapter behavior:
+
+- `LiteparseParser` uses `OutputFormat::Text`.
+- It does not set `extract_blocks`.
+- Headings are inferred from the first meaningful text line, not from the
+  layout block classifier.
+- Tables are extracted by a separate Folisift table pass, not from LiteParse's
+  block/cell data.
+
+LiteParse 2.17.0 can provide much more:
+
+| Capability | Output | Use for Folisift |
+|---|---|---|
+| `extract_blocks` | `heading`, `paragraph`, `list_item`, `code`, `table`, `figure`, `rule` blocks in reading order, each with `bbox` | Page/section/block graph |
+| table blocks | `header` and `rows` with per-cell `bbox` | Table → concept/term links; source-grounded table extraction |
+| heading blocks | `level`, `text`, `bbox` | Exact heading hierarchy instead of first-line heuristics |
+| `extract_text_metadata` | font height/weight/color, MCID, rotation | Typography-aware heading/term detection |
+| `extract_structure_tree` | tagged-PDF logical structure | Better reading order for tagged PDFs |
+| `extract_annotations` / links | annotation and link metadata | Cross-reference and URL edges |
+
+LiteParse is explicitly a parser: its own contributing guide says it is less
+interested in LLM integration or agent code. That is not a weakness; it means
+we should use it for **blocks and provenance**, not ask it to infer semantics.
+
+The immediate low-risk win is:
+
+```text
+OutputFormat::Json + extract_blocks
+  → source/page/block/table/figure nodes with bbox and reading order
+```
+
+No new dependency, no LLM, no graph database.
+
+## 3. Ready systems
 
 ### Microsoft GraphRAG
 
@@ -114,6 +152,62 @@ higher layers are LLM-generated summaries of clusters. It is a hierarchy for
 retrieval, not an entity graph. It can help multi-level summarization, but it
 does not produce `A relates_to B` concept edges.
 
+### iText2KG
+
+iText2KG builds a knowledge graph from text sections with an LLM and embeddings.
+It supports incremental graph updates and relationship observation dates. Its
+input contract is a list of section strings, so page provenance must be encoded
+by the caller; it is a semantic-extraction library, not a PDF/page graph.
+
+Fit: plausible for the semantic layer after LiteParse has produced page/block
+sections. It does not solve parsing or page citations by itself.
+
+### txtai
+
+txtai combines embeddings, vector search and graph networks. It can build a
+semantic graph from indexed rows, run openCypher-style graph queries and combine
+`SIMILAR` vector search with graph traversal. Its graph is similarity/row
+oriented; entity/relation extraction is an example pipeline, not a fixed
+document-graph contract.
+
+Fit: good for Obsidian-like "related sections" and backlinks; metadata can carry
+page/source fields, but the page graph is still our schema.
+
+### GraphRAG SDK (FalkorDB)
+
+GraphRAG SDK provides PDF ingestion, entity/relation extraction, citation-aware
+retrieval and incremental `apply_changes` over FalkorDB. It is a complete
+pipeline with a graph database and LLM/embedder dependencies.
+
+Fit: closer to a production system than a library, but heavier than a
+three-PDF course needs.
+
+### WhyHow Knowledge Graph Studio
+
+WhyHow provides self-hosted Docker deployment, PDF ingestion, schema-driven
+entity/relation extraction and graph querying. It is an API platform with
+workspace/S3-style document handling, not a small Rust component.
+
+Fit: worth a separate pilot if the graph becomes a product; too heavy for the
+first experiment.
+
+### InfraNodus
+
+InfraNodus builds text networks, topic clusters and content-gap reports through
+a hosted API. It is strong at "what topics are connected and where are the
+gaps?", but it is not a page-anchored citation graph and the analysis backend is
+external.
+
+Fit: useful as a research/authoring service; not a local deterministic gate.
+
+### RAGFlow
+
+RAGFlow has document understanding and citations, but its standalone GraphRAG
+feature was deprecated/restructured in v0.27.0 in favor of knowledge compilation
+tasks. That makes it a moving target for this use case.
+
+Fit: do not build the Folisift contract on its GraphRAG feature.
+
 ### Docling
 
 Docling is a PDF/document parser, not a graph system. Its useful contribution
@@ -125,7 +219,7 @@ Fit: the best parser-side foundation if we ever build our own page-anchored
 graph. Folisift already uses liteparse, so this would be a replacement or a
 second parser, not a small addition.
 
-## 3. Page-provenance comparison
+## 4. Page-provenance comparison
 
 | System | Graph? | Page provenance | LLM needed? | Fit for Folisift |
 |---|---|---|---|---|
@@ -133,14 +227,21 @@ second parser, not a small addition.
 | **LightRAG** | Yes | File path + chunk content, no page contract | Yes | Incremental graph; page metadata DIY |
 | **Neo4j LLM Graph Builder** | Yes | PDF chunk metadata can carry `page` | Yes | Closest page-aware ready system; Neo4j + LLM |
 | **Graphify** | Yes | `source_file`; `source_location` often null | Yes for PDFs/docs | Quick concept graph; not citation-safe |
+| **iText2KG** | Yes | Section strings; page metadata DIY | Yes + embeddings | Semantic layer after page-aware blocks |
+| **txtai** | Graph/vector | Row metadata; no page contract | Optional/LLM examples | Related-section backlinks; page schema DIY |
+| **GraphRAG SDK** | Yes | PDF loader; citation support; page metadata needs checking | Yes | Complete but FalkorDB-heavy |
+| **WhyHow KG Studio** | Yes | Platform ingestion; page behavior needs pilot | Yes | Self-hosted but heavy |
+| **InfraNodus** | Text network | No page contract; hosted API | Service-side | Topics/gaps, not citation graph |
+| **RAGFlow** | GraphRAG deprecated | Parser has citations; graph feature moving | Yes | Do not target its old GraphRAG |
 | **PaperQA2** | No | Page-level citations | Yes for answers | Research QA, not graph |
 | **RAPTOR** | Tree | Chunk hierarchy, not page graph | Yes for summaries | Multi-level summary, not relations |
 | **Docling** | No | Exact page/bbox/charspan | No (parser) | Best provenance source for a custom graph |
+| **LiteParse** | No | Page, block and table-cell bbox | No | Best structural input; semantic layer is separate |
 
 The pattern is clear: the systems that build semantic graphs do not guarantee
 page-level provenance, and the system with the best provenance is not a graph.
 
-## 4. What a Folisift-native graph could look like
+## 5. What a Folisift-native graph could look like
 
 For three PDFs, a graph database is unnecessary. A JSON artifact plus a small
 Rust validator is enough.
@@ -187,7 +288,7 @@ Rules:
 - The MCP server can read and validate a precomputed graph, but must not run an
   extractor, LLM or network call.
 
-## 5. Build vs buy
+## 6. Build vs buy
 
 **Buy now:** GraphRAG, LightRAG, Neo4j LLM Graph Builder or Graphify would each
 add a Python/LLM/graph stack before we know whether the graph improves the
@@ -203,7 +304,7 @@ structural graph is insufficient, and a page-aware extraction policy is
 defined. At that point Neo4j LLM Graph Builder or GraphRAG with page-level
 chunks is a reasonable experiment.
 
-## 6. Recommendation
+## 7. Recommendation
 
 1. **Do not add a generic GraphRAG/Graphify PDF pipeline as a runtime
    dependency.** It would import LLM nondeterminism, page-provenance loss and a
@@ -227,7 +328,7 @@ would be treating a generic graph extractor as the source of truth. Folisift's
 advantage is page-level auditability; the graph must inherit that, not bypass
 it.
 
-## 7. Sources
+## 8. Sources
 
 - Microsoft GraphRAG indexing methods and outputs:
   <https://github.com/microsoft/graphrag/blob/main/docs/index/methods.md>
@@ -243,6 +344,18 @@ it.
   <https://github.com/future-house/paper-qa>
 - RAPTOR:
   <https://github.com/parthsarthi03/raptor>
+- iText2KG:
+  <https://github.com/auvalab/itext2kg>
+- txtai graph examples:
+  <https://github.com/neuml/txtai>
+- GraphRAG SDK:
+  <https://github.com/falkordb/graphrag-sdk>
+- WhyHow Knowledge Graph Studio:
+  <https://github.com/whyhow-ai/knowledge-graph-studio>
+- InfraNodus Graph View:
+  <https://github.com/infranodus/infranodus-vscode-extension>
+- RAGFlow GraphRAG deprecation:
+  <https://github.com/infiniflow/ragflow/blob/main/docs/references/glossary.mdx>
 - Docling provenance:
   <https://github.com/docling-project/docling/blob/main/docs/concepts/docling_document.md>
   <https://github.com/docling-project/docling/blob/main/models/stages/reading_order/readingorder_model.py>
