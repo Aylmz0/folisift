@@ -17,7 +17,12 @@ pub fn uses_course_coverage(structure: &str) -> bool {
 pub fn uses_revision_coverage(structure: &str) -> bool {
     matches!(
         structure,
-        "revision-sheet" | "knowledge-organiser" | "lecture-notes" | "workbook" | "formula-sheet"
+        "revision-sheet"
+            | "knowledge-organiser"
+            | "lecture-notes"
+            | "workbook"
+            | "formula-sheet"
+            | "concept-summary"
     )
 }
 
@@ -28,7 +33,37 @@ pub fn genre_issues(structure: &str, markdown: &str) -> Vec<String> {
         "lecture-notes" => genre::notes_issues(markdown),
         "workbook" => genre::workbook_issues(markdown),
         "formula-sheet" => genre::reference_issues(markdown),
+        "concept-summary" => genre::concept_summary_issues(markdown),
         _ => Vec::new(),
+    }
+}
+
+/// Validate the rendered page count against the guide's declared budget.
+pub fn page_range_issues(target_pages: Option<&str>, pages: usize) -> Vec<String> {
+    let Some(target) = target_pages
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    else {
+        return Vec::new();
+    };
+    let (min, max) = if let Some((start, end)) = target.split_once('-') {
+        let (Ok(start), Ok(end)) = (start.trim().parse::<usize>(), end.trim().parse::<usize>())
+        else {
+            return vec![format!("invalid page target {target:?}")];
+        };
+        (start, end)
+    } else {
+        let Ok(page) = target.parse::<usize>() else {
+            return vec![format!("invalid page target {target:?}")];
+        };
+        (page, page)
+    };
+    if pages < min || pages > max {
+        vec![format!(
+            "page count is {pages}, expected {min}-{max} (target {target})"
+        )]
+    } else {
+        Vec::new()
     }
 }
 
@@ -73,6 +108,15 @@ mod tests {
         assert!(uses_revision_coverage("revision-sheet"));
         assert!(uses_revision_coverage("knowledge-organiser"));
         assert!(!uses_revision_coverage("a-g"));
+    }
+
+    #[test]
+    fn page_range_matches_exact_and_ranges() {
+        assert!(page_range_issues(Some("5"), 5).is_empty());
+        assert!(page_range_issues(Some("4-6"), 4).is_empty());
+        assert!(page_range_issues(Some("4-6"), 6).is_empty());
+        assert!(!page_range_issues(Some("4-6"), 8).is_empty());
+        assert!(page_range_issues(None, 8).is_empty());
     }
 
     #[test]

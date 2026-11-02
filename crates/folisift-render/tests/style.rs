@@ -291,6 +291,7 @@ fn every_structure_pack_renders_in_both_languages() {
                 "lecture-notes" => "notes",
                 "workbook" => "workbook",
                 "formula-sheet" => "reference",
+                "concept-summary" => "reader",
                 _ => "paper",
             };
             let profile = StyleProfile {

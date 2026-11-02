@@ -6,6 +6,7 @@
 | [Authoring](authoring.md) | Practical runbook for producing a guide |
 | [Authoring specification](authoring-spec.md) | Normative content, coverage and design rules |
 | [Design system](design-system.md) | Paper palette, typography and components |
+| [Learning-science review](learning-science-and-genre-review-2026-11-02.md) | Evidence for exam summaries, concept summaries and readers |
 | [ADRs](adr/) | Architectural decisions and their consequences |
 | [Plans](plans/) | Proposed architecture and migration plans |
 | [Agent configuration](agents/) | Issue tracker, triage labels, domain-doc rules, versioning |

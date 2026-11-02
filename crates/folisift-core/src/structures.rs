@@ -48,6 +48,10 @@ const WORKBOOK: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/../../structures/workbook.json"
 ));
+const CONCEPT_SUMMARY: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../structures/concept-summary.json"
+));
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct StructurePack {
@@ -75,7 +79,17 @@ fn default_required() -> bool {
 
 pub fn packs() -> Vec<StructurePack> {
     [
-        IMRAD, IRAC, SOAP, FORMULA, LITERATURE, LECTURE, BRIEF, REVISION, ORGANISER, WORKBOOK,
+        IMRAD,
+        IRAC,
+        SOAP,
+        FORMULA,
+        LITERATURE,
+        LECTURE,
+        BRIEF,
+        REVISION,
+        ORGANISER,
+        WORKBOOK,
+        CONCEPT_SUMMARY,
     ]
     .iter()
     .map(|text| serde_json::from_str(text).expect("built-in structure pack must be valid JSON"))

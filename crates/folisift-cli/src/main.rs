@@ -92,7 +92,8 @@ enum Command {
         #[arg(long = "style", default_value = "paper")]
         style: String,
         /// Structure profile: a-g, revision-sheet, knowledge-organiser,
-        /// imrad, irac, soap, formula-sheet, lecture-notes, workbook, ...
+        /// concept-summary, imrad, irac, soap, formula-sheet, lecture-notes,
+        /// workbook, ...
         #[arg(long, default_value = "a-g")]
         structure: String,
         /// Output language: tr or en.
@@ -107,6 +108,13 @@ enum Command {
         /// Optional font-pairing id; empty uses the style default.
         #[arg(long)]
         fonts: Option<String>,
+        /// Reader task: exam-summary, concept-summary, study, deep, reference,
+        /// practice or one-page.
+        #[arg(long)]
+        intent: Option<String>,
+        /// Requested page budget, e.g. "3-5" or "12".
+        #[arg(long)]
+        target_pages: Option<String>,
     },
     /// List, inspect or preview engine-owned style packs.
     Styles {
@@ -269,6 +277,16 @@ enum StylesCommand {
     Palettes,
     /// List font pairings.
     Fonts,
+    /// Recommend a style and page budget from a reader task.
+    Recommend {
+        /// exam-summary, exam-revision, concept-summary, study, deep, reference,
+        /// practice or one-page.
+        #[arg(long)]
+        intent: String,
+        /// Optional page budget override, e.g. "5-8".
+        #[arg(long)]
+        target_pages: Option<String>,
+    },
     /// Show one pack, its tokens and labels.
     Info {
         id: String,
@@ -558,11 +576,30 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
             domain,
             palette,
             fonts,
+            intent,
+            target_pages,
         } => {
             let sources = sources
                 .iter()
                 .map(|path| workspace.resolve_read(path))
                 .collect::<Result<Vec<_>, _>>()?;
+            let recommendation = intent.as_deref().and_then(folisift_core::intent::recommend);
+            let style = if style == "paper" && recommendation.is_some() {
+                recommendation
+                    .as_ref()
+                    .map_or("paper", |item| item.style.as_str())
+                    .to_string()
+            } else {
+                style
+            };
+            let structure = if structure == "a-g" && recommendation.is_some() {
+                recommendation
+                    .as_ref()
+                    .map_or("a-g", |item| item.structure.as_str())
+                    .to_string()
+            } else {
+                structure
+            };
             let title_for_content = title.clone();
             let style = folisift_core::StyleProfile {
                 aesthetic: style,
@@ -581,6 +618,12 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 Some(style.fonts.as_str()),
             )?;
             styles::validate_profile(&loaded_style.pack, &style)?;
+            let target_pages = target_pages.or_else(|| {
+                intent
+                    .as_deref()
+                    .and_then(folisift_core::intent::recommend)
+                    .map(|recommendation| recommendation.target_pages)
+            });
             let guide = scaffold(
                 &workspace,
                 &ScaffoldOptions {
@@ -589,6 +632,8 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                     course,
                     sources: sources.clone(),
                     style: style.clone(),
+                    output_intent: intent,
+                    target_pages,
                 },
             )?;
             let inventory = analyze_sources(&sources, folisift_parse::LOW_TEXT_THRESHOLD).await?;
@@ -679,6 +724,23 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
             StylesCommand::Fonts => {
                 let fonts = styles::list_fonts(workspace.root())?;
                 println!("{}", serde_json::to_string_pretty(&fonts)?);
+            }
+            StylesCommand::Recommend {
+                intent,
+                target_pages,
+            } => {
+                let mut recommendation =
+                    folisift_core::intent::recommend(&intent).ok_or_else(|| {
+                        format!(
+                            "unknown output intent {intent:?}; use one of {:?}",
+                            folisift_core::intent::OUTPUT_INTENTS
+                        )
+                    })?;
+                if let Some(target) = target_pages {
+                    folisift_core::config::validate_target_pages(&target)?;
+                    recommendation.target_pages = target;
+                }
+                println!("{}", serde_json::to_string_pretty(&recommendation)?);
             }
             StylesCommand::Info {
                 id,

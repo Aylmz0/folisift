@@ -130,7 +130,11 @@ pub async fn build(workspace: &Workspace, request: BuildRequest) -> Result<Build
                 .collect::<Vec<_>>();
             return Err(Error::Message(format!("underfilled body pages: {pages:?}")));
         }
-        let page_issues = gates::page_count_issues(&style.structure, report.pages);
+        let mut page_issues = gates::page_count_issues(&style.structure, report.pages);
+        page_issues.extend(gates::page_range_issues(
+            guide.config.target_pages.as_deref(),
+            report.pages,
+        ));
         if !page_issues.is_empty() {
             return Err(Error::Message(page_issues.join("\n")));
         }

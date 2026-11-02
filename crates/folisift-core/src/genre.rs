@@ -209,6 +209,36 @@ pub fn workbook_issues(markdown: &str) -> Vec<String> {
     issues
 }
 
+/// Concept summary: explanatory prose plus at least one example and one
+/// table/diagram; not a bullet-only slide dump.
+pub fn concept_summary_issues(markdown: &str) -> Vec<String> {
+    let body = strip_frontmatter(markdown);
+    let mut issues = Vec::new();
+    if !body.contains("::: example") {
+        issues.push("concept summary needs at least one example block (::: example)".to_string());
+    }
+    if !body.contains("::: table") && !body.contains("::: diagram") {
+        issues.push("concept summary needs at least one explanatory table or diagram".to_string());
+    }
+    let prose = body
+        .lines()
+        .map(str::trim)
+        .filter(|line| {
+            !line.is_empty()
+                && !line.starts_with('#')
+                && !line.starts_with(":::")
+                && !line.starts_with('|')
+                && !line.starts_with('-')
+                && !line.starts_with("```")
+                && !line.starts_with("~~~")
+        })
+        .count();
+    if prose < 6 {
+        issues.push("concept summary needs explanatory prose, not only headings/cards".to_string());
+    }
+    issues
+}
+
 /// Reference sheet: formula cards, at least one table and a pitfall block.
 pub fn reference_issues(markdown: &str) -> Vec<String> {
     let body = strip_frontmatter(markdown);
@@ -353,6 +383,22 @@ X is Y. [PD0, p. 1]
             reference_issues("## Formulas\nText.")
                 .iter()
                 .any(|i| i.contains("formula"))
+        );
+    }
+
+    #[test]
+    fn concept_summary_needs_explanation_and_support() {
+        let bare = "## Big picture\nText.\n";
+        assert!(
+            concept_summary_issues(bare)
+                .iter()
+                .any(|i| i.contains("example"))
+        );
+        let only_cards = "## Big picture\nText.\n\n::: example\nX\n:::\n\n::: table\n:::";
+        assert!(
+            concept_summary_issues(only_cards)
+                .iter()
+                .any(|i| i.contains("explanatory prose"))
         );
     }
 

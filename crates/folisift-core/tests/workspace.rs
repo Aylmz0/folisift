@@ -186,6 +186,8 @@ fn scaffolds_a_schema_two_guide() {
             course: "BMÜ325".to_string(),
             sources: vec![root.path().join("sources/PD0.pdf")],
             style: folisift_core::StyleProfile::default(),
+            output_intent: None,
+            target_pages: None,
         },
     )
     .expect("scaffold");
@@ -218,6 +220,8 @@ fn scaffolds_structure_sections_in_the_requested_language() {
             course: String::new(),
             sources: vec![root.path().join("sources/PD0.pdf")],
             style,
+            output_intent: None,
+            target_pages: None,
         },
     )
     .expect("scaffold");

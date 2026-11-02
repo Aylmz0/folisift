@@ -61,6 +61,22 @@ palettes and pairings it accepts; the guide selects them explicitly. The
 12-palette and 2-pairing libraries are in `styles/palettes/` and
 `styles/fonts/`, and every palette is contrast-tested at load time.
 
+If the reader task is known, select an intent instead of guessing a style:
+
+| Request | Intent | Result |
+|---|---|---|
+| “Sınav için kısa özet” | `exam-summary` | 2–4 page revision sheet |
+| “Sınav için tüm konular” | `exam-revision` | 6–10 page revision sheet |
+| “Konuyu anlamak istiyorum” | `concept-summary` | 4–8 page explanation with table/figure |
+| “Uzun uzun çalışacağım” | `deep` | 16–28 page reader |
+| “Formül sayfası” | `reference` | 2–8 page reference |
+| “Pratik yapmak istiyorum” | `practice` | 6–12 page workbook |
+| “Tek sayfa” | `one-page` | one-page organiser |
+
+The agent must ask one clarifying question when the request is ambiguous:
+“Sınav için mi, konuyu anlamak için mi?” Page count is a budget, not a reason
+to shrink type or drop scope.
+
 `notes`, `workbook` and `reference` are full genre layouts for guided notes,
 practice sets and formula/reference lookup. They use the `lecture-notes`,
 `workbook` and `formula-sheet` structures respectively.

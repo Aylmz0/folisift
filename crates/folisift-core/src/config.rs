@@ -34,6 +34,7 @@ pub const STRUCTURES: &[&str] = &[
     "revision-sheet",
     "knowledge-organiser",
     "workbook",
+    "concept-summary",
 ];
 pub const LANGUAGES: &[&str] = &["tr", "en"];
 pub const VOICES: &[&str] = &[
@@ -164,6 +165,9 @@ pub struct GuideConfig {
     pub coverage: Option<String>,
     #[serde(default)]
     pub target_pages: Option<String>,
+    /// Reader task that determined structure and length.
+    #[serde(default)]
+    pub output_intent: Option<String>,
     #[serde(default = "default_theme")]
     pub theme: String,
     #[serde(default)]
@@ -304,6 +308,17 @@ impl Guide {
         }
         if let Some(range) = &config.target_pages {
             validate_target_pages(range)?;
+        }
+        if let Some(intent) = &config.output_intent
+            && !crate::intent::OUTPUT_INTENTS.contains(&intent.as_str())
+        {
+            return Err(config_error(
+                &config_path,
+                format!(
+                    "output_intent {intent:?} is not supported; expected one of {:?}",
+                    crate::intent::OUTPUT_INTENTS
+                ),
+            ));
         }
 
         let content = resolve_guide_path(workspace, &dir, &config.content, PathKind::Read)?;
@@ -493,7 +508,7 @@ fn expected_content_extension(_schema_version: u32) -> &'static str {
     "md"
 }
 
-fn validate_target_pages(range: &str) -> Result<()> {
+pub fn validate_target_pages(range: &str) -> Result<()> {
     let invalid = || Error::InvalidTargetPages {
         range: range.to_string(),
     };

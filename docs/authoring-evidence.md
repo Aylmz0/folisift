@@ -4,7 +4,8 @@
 - **Date:** 2026-10-29
 - **Scope:** learning science, note-taking, summarization, document design,
   accessibility and academic/professional genre conventions
-- **Related:** `docs/plans/2026-10-29-guide-quality-visual-coverage-and-style-selection.md`,
+- **Related:** `docs/learning-science-and-genre-review-2026-11-02.md`,
+  `docs/plans/2026-10-29-guide-quality-visual-coverage-and-style-selection.md`,
   `docs/revision-format-research.md`, `docs/document-genres-and-layout-systems.md`,
   `docs/authoring-spec.md`, `docs/design-system.md`
 

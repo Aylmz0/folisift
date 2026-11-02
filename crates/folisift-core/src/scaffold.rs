@@ -12,6 +12,8 @@ pub struct ScaffoldOptions {
     pub course: String,
     pub sources: Vec<PathBuf>,
     pub style: StyleProfile,
+    pub output_intent: Option<String>,
+    pub target_pages: Option<String>,
 }
 
 /// Create a new schema-3 guide bundle and return its validated config.
@@ -76,7 +78,8 @@ pub fn scaffold(workspace: &Workspace, options: &ScaffoldOptions) -> Result<Guid
         sources: relative_sources,
         inventory: Some("data/inventory.json".to_string()),
         coverage: Some("data/coverage.md".to_string()),
-        target_pages: None,
+        target_pages: options.target_pages.clone(),
+        output_intent: options.output_intent.clone(),
         theme: options.style.aesthetic.clone(),
         style: Some(options.style.clone()),
         style_rationale: Some(format!(

@@ -150,6 +150,29 @@ page-referenced source coverage, revision/recall/answer-key blocks, table and
 formula layouts, and a reproducible engine. The gaps are verification,
 spaced-review metadata, negative fixtures and source organization/reporting.
 
+## 4.1 Output-intent layer — implemented 2026-11-02
+
+The first implementation now separates reader task from layout:
+
+- `exam-summary` → revision / revision-sheet / 2–4 pages
+- `exam-revision` → revision / revision-sheet / 6–10 pages
+- `concept-summary` → reader / concept-summary / 4–8 pages
+- `study` → reader / a–g / 10–18 pages
+- `deep` → reader / a–g / 16–28 pages
+- `reference` → reference / formula-sheet / 2–8 pages
+- `practice` → workbook / workbook / 6–12 pages
+- `one-page` → revision / knowledge-organiser / 1 page
+
+`styles recommend --intent` and MCP `style recommend` return the mapping.
+`prepare_guide` accepts `intent` and `target_pages`, persists them in
+`config.json`, and returns a genre checklist. The build service rejects a PDF
+outside its declared page range. `concept-summary` uses `source_scope`, a
+required explanatory example/table-or-diagram and explanatory prose; it is not
+a bullet-only exam sheet.
+
+Evidence and limits are recorded in
+[`learning-science-and-genre-review-2026-11-02.md`](../learning-science-and-genre-review-2026-11-02.md).
+
 ## 5. Plan
 
 ### P0 — Exam lockdown (today)

@@ -1,0 +1,12 @@
+{
+  "id": "concept-summary",
+  "title": "Concept summary",
+  "sections": [
+    { "id": "big-picture", "tr": "Büyük resim", "en": "Big picture", "hint": "Ana soru, kapsam ve neden önemli olduğu." },
+    { "id": "key-concepts", "tr": "Ana kavramlar", "en": "Key concepts", "hint": "Tanım, karşıtlık ve kaynak referansı; kısa ve açıklayıcı." },
+    { "id": "mechanisms", "tr": "Mekanizmalar", "en": "Mechanisms", "hint": "Nasıl çalıştığı; adım, neden ve sonuç." },
+    { "id": "examples", "tr": "Örnekler ve karşılaştırmalar", "en": "Examples and comparisons", "hint": "Somut örnek, tablo ve sınır durumları." },
+    { "id": "connections", "tr": "Bağlantılar", "en": "Connections", "hint": "Önceki/sonraki konular ve diğer kavramlarla ilişki." },
+    { "id": "self-check", "tr": "Kendini sına", "en": "Self-check", "hint": "3–6 kısa açıklama sorusu; cevap ayrı blokta." }
+  ]
+}

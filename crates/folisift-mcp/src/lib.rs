@@ -83,6 +83,10 @@ pub struct ScaffoldGuideParams {
     pub language: Option<String>,
     /// general, cs, math, medicine, law, ...
     pub domain: Option<String>,
+    /// Reader task: exam-summary, concept-summary, study, deep, reference, practice, one-page.
+    pub intent: Option<String>,
+    /// Requested page budget, e.g. "3-5" or "12".
+    pub target_pages: Option<String>,
     /// Optional palette id (styles palettes).
     pub palette: Option<String>,
     /// Optional font-pairing id (styles fonts).
@@ -112,6 +116,11 @@ pub struct StyleParams {
     pub structure: Option<String>,
     /// Study mode for recommend.
     pub study_mode: Option<String>,
+    /// Reader task for recommend: exam-summary, concept-summary, study, deep,
+    /// reference, practice or one-page.
+    pub intent: Option<String>,
+    /// Requested page budget for recommend, e.g. "3-5".
+    pub target_pages: Option<String>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -128,6 +137,10 @@ pub struct PrepareGuideParams {
     pub language: Option<String>,
     /// general, cs, math, medicine, law, ...
     pub domain: Option<String>,
+    /// Reader task: exam-summary, concept-summary, study, deep, reference, practice, one-page.
+    pub intent: Option<String>,
+    /// Requested page budget, e.g. "3-5" or "12".
+    pub target_pages: Option<String>,
     /// Optional palette id (styles palettes).
     pub palette: Option<String>,
     /// Optional font-pairing id (styles fonts).
@@ -555,6 +568,26 @@ impl FolisiftServer {
                 })))
             }
             "recommend" => {
+                if let Some(intent) = params.intent.as_deref() {
+                    let mut recommendation =
+                        folisift_core::intent::recommend(intent).ok_or_else(|| {
+                            format!(
+                                "unknown output intent {intent:?}; use one of {:?}",
+                                folisift_core::intent::OUTPUT_INTENTS
+                            )
+                        })?;
+                    if let Some(target) = params.target_pages.as_deref() {
+                        folisift_core::config::validate_target_pages(target)
+                            .map_err(|error| error.to_string())?;
+                        recommendation.target_pages = target.to_string();
+                    }
+                    return Ok(Json(json!({
+                        "action": "recommend",
+                        "intent": recommendation.intent,
+                        "recommended": recommendation,
+                        "page_budget": recommendation.target_pages,
+                    })));
+                }
                 let domain = params.domain.unwrap_or_else(|| "general".to_string());
                 let structure = params.structure.unwrap_or_else(|| "a-g".to_string());
                 let language = params.language.unwrap_or_else(|| "tr".to_string());
@@ -780,6 +813,7 @@ impl FolisiftServer {
             voice: params.voice.clone(),
             study_mode: params.study_mode.clone(),
             citation: params.citation.clone(),
+            intent: params.intent.clone(),
         })?;
         let loaded_style = styles::load_with(
             self.workspace.root(),
@@ -820,7 +854,21 @@ impl FolisiftServer {
                         .to_string(),
                 );
             }
+            if params.target_pages.is_some() && params.target_pages != existing.config.target_pages
+            {
+                return Err(
+                    "prepare_guide cannot change target_pages of an existing guide; use a new slug or edit config.json"
+                        .to_string(),
+                );
+            }
+            if params.intent.is_some() && params.intent != existing.config.output_intent {
+                return Err(
+                    "prepare_guide cannot change output_intent of an existing guide; use a new slug or edit config.json"
+                        .to_string(),
+                );
+            }
         }
+        let target_pages = target_pages_for(params.intent.as_deref(), params.target_pages.clone());
         let title = params.title.clone();
         let guide = match existing {
             Some(guide) => guide,
@@ -832,6 +880,8 @@ impl FolisiftServer {
                     course: params.course.unwrap_or_default(),
                     sources: sources.clone(),
                     style: style.clone(),
+                    output_intent: params.intent.clone(),
+                    target_pages: target_pages.clone(),
                 },
             )
             .map_err(|error| error.to_string())?,
@@ -942,6 +992,8 @@ impl FolisiftServer {
                 }
             },
             "style_rationale_required": true,
+            "output_intent": guide.config.output_intent,
+            "target_pages": guide.config.target_pages,
             "domain_profile": folisift_render::domains::load(self.workspace.root(), &style.domain)
                 .ok(),
             "prompt_fragment": style_prompt_fragment(&style),
@@ -980,6 +1032,7 @@ impl FolisiftServer {
             voice: params.voice.clone(),
             study_mode: params.study_mode.clone(),
             citation: params.citation.clone(),
+            intent: params.intent.clone(),
         })?;
         let loaded_style = styles::load_with(
             self.workspace.root(),
@@ -995,6 +1048,7 @@ impl FolisiftServer {
             .map(|path| self.workspace.resolve_read(path))
             .collect::<Result<Vec<_>, _>>()
             .map_err(|error| error.to_string())?;
+        let target_pages = target_pages_for(params.intent.as_deref(), params.target_pages.clone());
         let title = params.title.clone();
         let guide = scaffold(
             &self.workspace,
@@ -1004,6 +1058,8 @@ impl FolisiftServer {
                 course: params.course.unwrap_or_default(),
                 sources: sources.clone(),
                 style: style.clone(),
+                output_intent: params.intent.clone(),
+                target_pages: target_pages.clone(),
             },
         )
         .map_err(|error| error.to_string())?;
@@ -1467,6 +1523,14 @@ fn guide_profiles(
     })
 }
 
+fn target_pages_for(intent: Option<&str>, requested: Option<String>) -> Option<String> {
+    requested.or_else(|| {
+        intent
+            .and_then(folisift_core::intent::recommend)
+            .map(|recommendation| recommendation.target_pages)
+    })
+}
+
 fn genre_checklist(structure: &str) -> Vec<&'static str> {
     match structure {
         "revision-sheet" => vec![
@@ -1499,6 +1563,12 @@ fn genre_checklist(structure: &str) -> Vec<&'static str> {
             "symbol/unit table",
             "pitfalls block",
             "prose kept lookup-sized",
+        ],
+        "concept-summary" => vec![
+            "explanatory prose for each key concept",
+            "at least one table or explanatory diagram",
+            "at least one worked example",
+            "declared source_scope",
         ],
         _ => vec!["A–G coverage, audit section and source page references"],
     }
@@ -1549,21 +1619,43 @@ struct StyleRequest {
     voice: Option<String>,
     study_mode: Option<String>,
     citation: Option<String>,
+    intent: Option<String>,
 }
 
 fn build_style(request: StyleRequest) -> Result<folisift_core::StyleProfile, String> {
     let language = request.language.unwrap_or_else(|| "tr".to_string());
-    let structure = request.structure.unwrap_or_else(|| "a-g".to_string());
+    let recommendation = request
+        .intent
+        .as_deref()
+        .and_then(folisift_core::intent::recommend);
+    if request.intent.is_some() && recommendation.is_none() {
+        return Err(format!(
+            "unknown output intent {:?}; use one of {:?}",
+            request.intent,
+            folisift_core::intent::OUTPUT_INTENTS
+        ));
+    }
+    let structure = request
+        .structure
+        .or_else(|| recommendation.as_ref().map(|item| item.structure.clone()))
+        .unwrap_or_else(|| "a-g".to_string());
     let default_layout = match structure.as_str() {
         "revision-sheet" | "knowledge-organiser" => "revision",
         "lecture-notes" => "notes",
         "workbook" => "workbook",
-        "formula-sheet" => "reference",
+        "formula-sheet" | "concept-summary" => {
+            if structure == "concept-summary" {
+                "reader"
+            } else {
+                "reference"
+            }
+        }
         _ => "reader",
     };
     let style = folisift_core::StyleProfile {
         aesthetic: request
             .aesthetic
+            .or_else(|| recommendation.as_ref().map(|item| item.style.clone()))
             .unwrap_or_else(|| default_layout.to_string()),
         structure,
         language: language.clone(),

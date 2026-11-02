@@ -7,6 +7,7 @@ pub mod config;
 pub mod error;
 pub mod gates;
 pub mod genre;
+pub mod intent;
 pub mod paths;
 pub mod scaffold;
 pub mod structures;

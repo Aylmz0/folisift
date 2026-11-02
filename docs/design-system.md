@@ -158,6 +158,27 @@ rule, denser tables and square technical boxes. It is selected by the style
 pack `clean`; it is experimental until its snapshots and cross-style gates
 pass. `paper` remains the default and the old-PDF parity standard.
 
+## Output intent and page budget
+
+The reader task comes before the layout. `style recommend` accepts an
+`intent` and returns a style, structure and page budget:
+
+| Intent | Output | Default budget | Primary evidence |
+|---|---|---|---|
+| `exam-summary` | revision sheet, visual/tabular | 2–4 pages | retrieval, graphic organizers, signaling |
+| `exam-revision` | full revision sheet | 6–10 pages | retrieval, spacing, worked examples |
+| `concept-summary` | explanatory prose + table/figure | 4–8 pages | coherence, dual coding, worked examples |
+| `study` | reader/A–G | 10–18 pages | signaling, segmenting, prose coherence |
+| `deep` | reader/A–G | 16–28 pages | mechanisms, assumptions, expertise reversal |
+| `reference` | formula/reference sheet | 2–8 pages | information design, lookup speed |
+| `practice` | workbook | 6–12 pages | worked examples, retrieval, ICAP |
+| `one-page` | knowledge organiser | 1 page | graphic organizers, coherence |
+
+An intent is not a font size. It changes the content grammar and the page
+budget. `target_pages` is enforced after rendering; a guide outside its budget
+fails the build. A summary must declare `source_scope` instead of claiming
+A–G coverage.
+
 ## Notes, workbook and reference
 
 These are full genres, not density variants:
