@@ -6,8 +6,8 @@
   "layout": "clean",
   "aesthetic": "brief",
   "supported_structures": [
-    "executive-brief",
-    "a-g"
+    "a-g",
+    "executive-brief"
   ],
   "supported_languages": [
     "tr",

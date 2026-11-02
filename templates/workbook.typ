@@ -428,7 +428,7 @@
   above: 4mm,
   below: 3mm,
   width: 100%,
-  breakable: false,
+  breakable: true,
   fill: zebra,
   stroke: (left: 1.6pt + sage),
   inset: (left: 3.5mm, right: 3mm, top: 2.5mm, bottom: 2.5mm),

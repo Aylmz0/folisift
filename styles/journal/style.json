@@ -6,9 +6,9 @@
   "layout": "paper",
   "aesthetic": "journal",
   "supported_structures": [
+    "a-g",
     "imrad",
-    "literature-matrix",
-    "a-g"
+    "literature-matrix"
   ],
   "supported_languages": [
     "tr",

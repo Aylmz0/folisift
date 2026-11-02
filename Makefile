@@ -11,7 +11,7 @@ VISUAL_BASELINE ?= tests/baselines/pd0-pd1.pdf
 CLEAN_BASELINE ?= tests/baselines/clean-preview.pdf
 VISUAL_PAGES ?= 1,4,8,12,18,22
 
-.PHONY: help build check verify audit toc-check production-report revision revision-check type-check palette-check genre-check genre-visual genre-capture package-check doctor parity parity-capture visual visual-capture diagram diagram-status package test fmt clippy analyze pages scaffold
+.PHONY: help build check verify audit toc-check production-report revision revision-check type-check palette-check exam-check genre-check genre-visual genre-capture package-check doctor parity parity-capture visual visual-capture diagram diagram-status package test fmt clippy analyze pages scaffold
 
 help:
 	@echo "make build      # guide PDF"
@@ -24,6 +24,7 @@ help:
 	@echo "make revision-check # revision + organiser build gates"
 	@echo "make palette-check # palette contrast + grayscale proof"
 	@echo "make genre-check # notes/workbook/reference preview + baselines"
+	@echo "make exam-check  # build, audit, TOC and hashes of the five exam PDFs"
 	@echo "make package-check # package + clean-directory doctor"
 	@echo "make revision   # revision sheet + one-page organiser pilots"
 	@echo "make doctor     # PDFium/cache/guides/fonts checks"
@@ -71,6 +72,9 @@ type-check:
 
 palette-check:
 	python3 scripts/check-palettes.py
+
+exam-check:
+	./scripts/check-exam-set.sh
 
 genre-check: genre-visual
 

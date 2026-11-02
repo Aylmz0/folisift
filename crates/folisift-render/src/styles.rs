@@ -1010,7 +1010,7 @@ pub fn apply_palette(template: &str, tokens: &Value, layout: &str) -> Result<Str
             message: "tokens.palette is required".to_string(),
         })?;
     let defaults: &[(&str, &str)] = match layout {
-        "paper" | "notes" => &[
+        "paper" => &[
             ("paper", "#FAF6EC"),
             ("ink", "#211E19"),
             ("muted", "#5E574B"),
@@ -1042,7 +1042,7 @@ pub fn apply_palette(template: &str, tokens: &Value, layout: &str) -> Result<Str
             ("zebra", "#F7F1E5"),
             ("headerfill", "#EFE7D8"),
         ],
-        "clean" | "workbook" | "reference" => &[
+        "clean" | "notes" | "workbook" | "reference" => &[
             ("paper", "#FFFFFF"),
             ("ink", "#111827"),
             ("muted", "#4B5563"),

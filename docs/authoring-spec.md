@@ -39,7 +39,7 @@ exam-relevant section, distinction, example, table, formula or figure.
 ## 1. CONFIG — edit for each project
 
 ```yaml
-course: "BMÜ325 Programlama Dilleri"
+course: "Course 101"
 source_pdfs: ["PD0.pdf", "PD1.pdf", "PD2.pdf", "PD3.pdf", "PD4.pdf", "PD5.pdf", "PD6.pdf", "PD7.pdf", "PD8.pdf"]
 output_slug: "programlama-dilleri"
 output_pdf: "../output/Programlama_Dilleri_Calisma_Kilavuzu.pdf"

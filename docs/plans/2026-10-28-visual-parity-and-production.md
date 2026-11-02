@@ -92,7 +92,7 @@ The old cover has:
 - double frame: 0.8 pt gold outer, 0.4 pt linen inner;
 - 33 pt serif title, 17 pt italic subtitle;
 - course line in small uppercase;
-- pilot badge “PİLOT SÜRÜM · PD0–PD1”;
+- pilot badge “PILOT · SAMPLE”;
 - syntax-tree motif near the bottom;
 - source/deck note at the bottom.
 

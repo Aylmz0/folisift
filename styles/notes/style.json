@@ -32,7 +32,7 @@
     "business"
   ],
   "palette": "warm-paper",
-  "fonts": "editorial",
+  "fonts": "technical",
   "supported_palettes": [
     "warm-paper",
     "forest-sage",
@@ -45,7 +45,6 @@
     "cobalt"
   ],
   "supported_fonts": [
-    "editorial",
     "technical"
   ],
   "tokens": "tokens.json",

@@ -224,12 +224,12 @@ Use the headings from the inventory, in source order:
 ---
 title: "Programlama Dilleri — Çalışma Kılavuzu"
 subtitle: "Kavramlar, diller ve çevrim süreçleri"
-course: "BMÜ325 Programlama Dilleri"
+course: "Course 101"
 running: "Programlama Dilleri · Çalışma Kılavuzu"
-cover_kicker: "BMÜ325 · Programlama Dilleri"
+cover_kicker: "Course 101 · Study guide"
 cover_title: "Çalışma Kılavuzu"
 deck: "Bölüm 0: Hazırlık · Bölüm 1: Giriş"
-pilot: "PİLOT SÜRÜM · PD0–PD1"
+pilot: "PILOT · SAMPLE"
 cover_motif: "assets/cover-motif.svg"
 cover_notes:
   - "Ders slaytlarından derlenmiştir: PD0 (123 slayt) · PD1 (137 slayt)"
@@ -402,7 +402,7 @@ pixels changed, not that the new pixels are better.
 
 ```bash
 cargo run -p folisift-cli -- scaffold \
-  --slug pd2 --title "Bölüm 2" --course "BMÜ325" \
+  --slug sample --title "Sample chapter" --course "Course 101" \
   --style reader --structure a-g --language tr --domain cs \
   --palette warm-paper --fonts editorial \
   --source sources/PD2.pdf

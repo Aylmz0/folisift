@@ -13,7 +13,7 @@ the tag (`d5a5174`) and the local binary.
 
 Folisift pins the engine in `crates/folisift-render/src/diagram.rs:14`
 (`D2_VERSION = "v0.9.0"`). The staged binary reports `d2 v0.9.0`
-(`/home/yilmaz/.local/lib/folisift/d2 --version`). No source code was changed.
+(`$FOLISIFT_D2 --version`). No source code was changed.
 
 Evidence labels: **Strong** = meta-analysis or directly verified engine behaviour;
 **Moderate** = consistent experimental programme or primary design standard;
@@ -427,7 +427,7 @@ D2 source paths are under <https://github.com/d2lang/d2/blob/v0.9.0/>; 0.8.2 not
 
 ### Local verification
 
-- Staged binary `/home/yilmaz/.local/lib/folisift/d2`; `--version`, `--help`, `layout`,
+- Staged binary `$FOLISIFT_D2`; `--version`, `--help`, `layout`,
   `layout dagre`, `layout elk`, `layout tala`, `themes`.
 - Folisift: `crates/folisift-render/src/diagram.rs`, `crates/folisift-cli/src/diagram_cmd.rs`,
   `crates/folisift-render/src/assets.rs`, `docs/diagram-engine-evaluation.md`,
