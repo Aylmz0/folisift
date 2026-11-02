@@ -80,6 +80,7 @@ pub fn scaffold(workspace: &Workspace, options: &ScaffoldOptions) -> Result<Guid
         coverage: Some("data/coverage.md".to_string()),
         target_pages: options.target_pages.clone(),
         output_intent: options.output_intent.clone(),
+        review_intervals: None,
         theme: options.style.aesthetic.clone(),
         style: Some(options.style.clone()),
         style_rationale: Some(format!(

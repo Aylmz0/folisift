@@ -354,6 +354,30 @@ fn rejects_invalid_slugs() {
 }
 
 #[test]
+fn rejects_invalid_review_intervals() {
+    let root = fixture();
+    for intervals in ["[]", "[0]", "[366]", "[1,2,3,4,5,6,7,8,9,10,11]"] {
+        fs::write(
+            root.path().join("guides/demo/config.json"),
+            format!(
+                r#"{{
+                  "schema_version": 3,
+                  "slug": "demo",
+                  "title": "Demo",
+                  "content": "guide.md",
+                  "output": "../../output/demo.pdf",
+                  "sources": ["../../sources/PD0.pdf"],
+                  "review_intervals": {intervals}
+                }}"#
+            ),
+        )
+        .expect("config");
+        let error = Guide::load(&workspace(root.path()), "demo").expect_err("must reject");
+        assert!(error.to_string().contains("review_intervals"), "{error}");
+    }
+}
+
+#[test]
 fn rejects_invalid_target_pages() {
     let root = fixture();
     fs::write(

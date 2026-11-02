@@ -62,6 +62,25 @@ enum Command {
         #[arg(long, default_value_t = false)]
         strict: bool,
     },
+    /// Extract high-signal claims and citation gaps from a guide.
+    Claims {
+        #[arg(long)]
+        guide: String,
+        /// Markdown output path, relative to the workspace.
+        #[arg(long)]
+        out: Option<PathBuf>,
+    },
+    /// Export recall/answer pairs as Anki-compatible CSV.
+    Cards {
+        #[arg(long)]
+        guide: String,
+        /// CSV output path, relative to the workspace.
+        #[arg(long)]
+        out: Option<PathBuf>,
+        /// Comma-separated review intervals in days; overrides config.
+        #[arg(long)]
+        review_intervals: Option<String>,
+    },
     /// Build a source inventory with liteparse.
     Analyze {
         /// Source PDFs, relative to the workspace root.
@@ -529,6 +548,77 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 empty_sections,
             };
             println!("{}", serde_json::to_string_pretty(&status)?);
+        }
+        Command::Claims { guide, out } => {
+            let guide = Guide::load(&workspace, &guide)?;
+            let markdown = std::fs::read_to_string(&guide.content)?;
+            let report = folisift_core::claims::extract_claims(&markdown);
+            let out = match out {
+                Some(path) => workspace.resolve_write(&path)?,
+                None => guide.dir.join("data/claims.md"),
+            };
+            report.write_markdown(&out)?;
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&json!({
+                    "guide": guide.slug,
+                    "output": out.display().to_string(),
+                    "total": report.total,
+                    "referenced": report.referenced,
+                    "unreferenced": report.unreferenced,
+                    "note": "A citation is traceability, not verification; inspect the cited page.",
+                }))?
+            );
+        }
+        Command::Cards {
+            guide,
+            out,
+            review_intervals,
+        } => {
+            let guide = Guide::load(&workspace, &guide)?;
+            let markdown = std::fs::read_to_string(&guide.content)?;
+            let intervals = match review_intervals {
+                Some(value) => {
+                    let values = value
+                        .split(',')
+                        .map(str::trim)
+                        .filter(|value| !value.is_empty())
+                        .map(|value| value.parse::<u32>())
+                        .collect::<Result<Vec<_>, _>>()
+                        .map_err(|_| {
+                            std::io::Error::new(
+                                std::io::ErrorKind::InvalidInput,
+                                "review intervals must be comma-separated positive days",
+                            )
+                        })?;
+                    folisift_core::cards::normalize_review_intervals(values).map_err(|error| {
+                        std::io::Error::new(std::io::ErrorKind::InvalidInput, error)
+                    })?
+                }
+                None => folisift_core::cards::normalize_review_intervals(
+                    guide.config.review_intervals.clone().unwrap_or_default(),
+                )
+                .unwrap_or_default(),
+            };
+            let cards =
+                folisift_core::cards::cards_from_markdown(&markdown, &guide.slug, &intervals);
+            let out = match out {
+                Some(path) => workspace.resolve_write(&path)?,
+                None => guide.dir.join("data/cards.csv"),
+            };
+            if let Some(parent) = out.parent() {
+                std::fs::create_dir_all(parent)?;
+            }
+            std::fs::write(&out, folisift_core::cards::to_csv(&cards))?;
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&json!({
+                    "guide": guide.slug,
+                    "output": out.display().to_string(),
+                    "cards": cards.len(),
+                    "review_intervals_days": intervals,
+                }))?
+            );
         }
         Command::Analyze {
             sources,

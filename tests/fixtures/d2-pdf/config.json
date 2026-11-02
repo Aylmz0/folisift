@@ -1,0 +1,23 @@
+{
+  "schema_version": 3,
+  "slug": "d2-pdf",
+  "title": "D2 PDF baseline",
+  "language": "en",
+  "content": "guide.md",
+  "output": "../../output/d2-pdf.pdf",
+  "sources": ["../../sources/PD0.pdf"],
+  "target_pages": "2-4",
+  "theme": "reader",
+  "style": {
+    "aesthetic": "reader",
+    "structure": "a-g",
+    "language": "en",
+    "source_language": "en",
+    "voice": "academic",
+    "study_mode": "deep",
+    "domain": "cs",
+    "citation": "page-ref"
+  },
+  "style_source": "explicit",
+  "style_rationale": "Fixed fixture for deterministic per-kind D2 PDF rendering."
+}

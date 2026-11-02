@@ -12,6 +12,7 @@
   "inventory": "data/inventory.json",
   "coverage": "data/coverage.md",
   "target_pages": "4-6",
+  "review_intervals": [1, 3, 7, 14],
   "theme": "revision",
   "style": {
     "aesthetic": "revision",

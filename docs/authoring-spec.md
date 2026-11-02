@@ -81,8 +81,8 @@ A guide is successful only if all of these are true:
    what was image-only, and what was inaccessible.
 8. **No generic quiz padding.** Long-form course guides do not add questions,
    flashcards, mock exams or generic “study tips” as filler. A revision-sheet
-   genre may include optional, source-grounded recall prompts with a separate
-   answer key; that is retrieval design, not padding.
+   or concept-summary genre may include optional, source-grounded recall
+   prompts with a separate answer key; that is retrieval design, not padding.
 
 ## 3. NON-NEGOTIABLE RULES
 
@@ -102,7 +102,8 @@ A guide is successful only if all of these are true:
   interchangeably without checking. State the convention once in the front
   matter. In this project they are the same (slide number = PDF page).
 - No generic quiz padding, flashcards, mock exams or “exam trick” lists. The
-  revision-sheet genre may use optional recall prompts with an answer key.
+  revision-sheet and concept-summary genres may use optional recall prompts
+  with an answer key.
 - No generic motivational advice. “Kritik ayrım” boxes are allowed because they
   explain content distinctions, not study habits.
 - Do not repeat the same explanation in several chapters. Cross-reference it.
@@ -517,7 +518,8 @@ Before declaring completion:
 - [ ] No orphan headings, clipped tables/code, or missing glyphs.
 - [ ] Turkish is consistent; English terms are parenthetical on first use.
 - [ ] No generic quiz padding, flashcards, mock exams or generic study advice;
-      revision recall prompts, when used, have a separate answer key.
+      revision and concept-summary recall prompts, when used, have a separate
+      answer key.
 - [ ] Page count is within the configured `page_range`; no padding and no
       underfilled body pages.
 - [ ] Final PDF, HTML/CSS, source map and coverage report are delivered.

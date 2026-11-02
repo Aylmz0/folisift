@@ -168,6 +168,9 @@ pub struct GuideConfig {
     /// Reader task that determined structure and length.
     #[serde(default)]
     pub output_intent: Option<String>,
+    /// Optional spaced-review intervals in days for recall cards.
+    #[serde(default)]
+    pub review_intervals: Option<Vec<u32>>,
     #[serde(default = "default_theme")]
     pub theme: String,
     #[serde(default)]
@@ -308,6 +311,20 @@ impl Guide {
         }
         if let Some(range) = &config.target_pages {
             validate_target_pages(range)?;
+        }
+        if let Some(intervals) = &config.review_intervals {
+            if intervals.is_empty() || intervals.len() > 10 {
+                return Err(config_error(
+                    &config_path,
+                    "review_intervals must contain 1-10 entries",
+                ));
+            }
+            if intervals.iter().any(|days| *days == 0 || *days > 365) {
+                return Err(config_error(
+                    &config_path,
+                    "review_intervals must be between 1 and 365 days",
+                ));
+            }
         }
         if let Some(intent) = &config.output_intent
             && !crate::intent::OUTPUT_INTENTS.contains(&intent.as_str())

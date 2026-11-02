@@ -11,13 +11,14 @@ VISUAL_BASELINE ?= tests/baselines/pd0-pd1.pdf
 CLEAN_BASELINE ?= tests/baselines/clean-preview.pdf
 VISUAL_PAGES ?= 1,4,8,12,18,22
 
-.PHONY: help build check verify audit toc-check production-report revision revision-check type-check palette-check style-audit exam-check genre-check genre-visual genre-capture package-check doctor parity parity-capture visual visual-capture diagram diagram-status package test fmt clippy analyze pages scaffold
+.PHONY: help build check verify audit dep-audit toc-check production-report revision revision-check type-check palette-check style-audit exam-check genre-check genre-visual genre-capture d2-pdf-check d2-pdf-capture package-check doctor parity parity-capture visual visual-capture diagram diagram-status package test fmt clippy analyze pages scaffold
 
 help:
 	@echo "make build      # guide PDF"
 	@echo "make check      # build + coverage gate"
 	@echo "make verify     # check + layout audit + pdfinfo"
 	@echo "make audit      # layout audit of the built PDF"
+	@echo "make dep-audit  # RustSec dependency audit"
 	@echo "make toc-check  # TOC page-number links (dev: PyMuPDF)"
 	@echo "make production-report # MCP prepare/build report smoke"
 	@echo "make type-check # body/code/line typography gate"
@@ -25,6 +26,7 @@ help:
 	@echo "make palette-check # palette contrast + grayscale proof"
 	@echo "make style-audit # render and audit every style preview"
 	@echo "make genre-check # notes/workbook/reference preview + baselines"
+	@echo "make d2-pdf-check # per-kind D2 sequence/class/ERD PDF baseline"
 	@echo "make exam-check  # build, audit, TOC and hashes of the five exam PDFs"
 	@echo "make package-check # package + clean-directory doctor"
 	@echo "make revision   # revision sheet + one-page organiser pilots"
@@ -53,6 +55,9 @@ verify: check audit
 
 audit:
 	cargo run -p folisift-cli -- audit --pdf $(OUTPUT) --expected-pages 22 --strict
+
+dep-audit:
+	cargo audit
 
 toc-check:
 	python3 scripts/check-toc-links.py $(OUTPUT)
@@ -90,6 +95,14 @@ genre-visual:
 	./target/debug/folisift visual compare --reference tests/baselines/genres/workbook.pdf --current output/style-preview-workbook-en.pdf --pages 1,2,3,4,5 --out data/visual/genres/workbook --threshold 1.0 --ratio-threshold 0.001 --fail-on-diff
 	./target/debug/folisift styles preview reference --language en --out output/style-preview-reference-en.pdf
 	./target/debug/folisift visual compare --reference tests/baselines/genres/reference.pdf --current output/style-preview-reference-en.pdf --pages 1,2,3,4 --out data/visual/genres/reference --threshold 1.0 --ratio-threshold 0.001 --fail-on-diff
+	./target/debug/folisift styles preview revision --language en --out output/style-preview-revision-en.pdf
+	./target/debug/folisift visual compare --reference tests/baselines/genres/revision.pdf --current output/style-preview-revision-en.pdf --pages 1,2 --out data/visual/genres/revision --threshold 1.0 --ratio-threshold 0.001 --fail-on-diff
+
+d2-pdf-check:
+	./scripts/check-d2-pdf.sh
+
+d2-pdf-capture:
+	UPDATE_D2_PDF_BASELINE=1 ./scripts/check-d2-pdf.sh
 
 genre-capture:
 	cargo build -q -p folisift-cli
@@ -100,6 +113,8 @@ genre-capture:
 	cp output/style-preview-workbook-en.pdf tests/baselines/genres/workbook.pdf
 	./target/debug/folisift styles preview reference --language en --out output/style-preview-reference-en.pdf
 	cp output/style-preview-reference-en.pdf tests/baselines/genres/reference.pdf
+	./target/debug/folisift styles preview revision --language en --out output/style-preview-revision-en.pdf
+	cp output/style-preview-revision-en.pdf tests/baselines/genres/revision.pdf
 
 package-check: package
 	./scripts/check-package.sh

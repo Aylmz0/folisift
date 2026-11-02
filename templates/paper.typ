@@ -245,6 +245,13 @@
 // ---- evidence-based learning components --------------------------------
 #let recall(label: "HATIRLA", body) = definition(label: label, body)
 #let explain(label: "AÇIKLA", body) = note(label: label, body)
+#let answer(label: "CEVAP", body) = labelled_box(
+  label: label,
+  fill: rgb("#F1EEE4"),
+  stroke: (left: 1pt + sage),
+  inset: (left: 3.2mm, right: 3.2mm, top: 2.5mm, bottom: 2mm),
+  body,
+)
 #let review_plan(label: "TEKRAR PLANI", body) = definition(label: label, body)
 
 // ---- front matter and TOC ----------------------------------------------

@@ -3,6 +3,8 @@
 //! This crate deliberately has no dependency on the CLI, MCP, PDF parser or
 //! renderer. Those layers call into these types.
 
+pub mod cards;
+pub mod claims;
 pub mod config;
 pub mod error;
 pub mod gates;

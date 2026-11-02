@@ -31,7 +31,28 @@ fn mcp_stdio_lists_tools() {
         }"#,
     )
     .expect("config");
-    std::fs::write(root.path().join("guides/demo/guide.md"), "# Demo\n").expect("guide");
+    std::fs::write(
+        root.path().join("guides/demo/guide.md"),
+        r#"---
+title: Demo
+language: en
+sources: [PD0]
+---
+
+## 1.1 Test
+
+Recall improves by 20% after one week [PD0, p. 1].
+
+::: recall
+What is X? [PD0, p. 1]
+:::
+
+::: answer
+X is Y. [PD0, p. 1]
+:::
+"#,
+    )
+    .expect("guide");
     let mut child = Command::new(env!("CARGO_BIN_EXE_folisift"))
         .arg("mcp")
         .arg("--root")
@@ -85,12 +106,14 @@ fn mcp_stdio_lists_tools() {
         .iter()
         .filter_map(|tool| tool["name"].as_str())
         .collect::<Vec<_>>();
-    assert_eq!(tools.len(), 13);
+    assert_eq!(tools.len(), 15);
     for expected in [
         "read_source",
         "search_source",
         "build_guide",
         "check_coverage",
+        "claims",
+        "cards",
         "diagram",
     ] {
         assert!(tools.contains(&expected), "missing {expected}");
@@ -134,6 +157,56 @@ fn mcp_stdio_lists_tools() {
     assert!(
         response["result"]["structuredContent"]["styles"].is_array(),
         "{response}"
+    );
+
+    writeln!(
+        stdin,
+        "{}",
+        serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": 22,
+            "method": "tools/call",
+            "params": {"name": "claims", "arguments": {"slug": "demo", "out": "data/claims.md"}}
+        })
+    )
+    .expect("write claims");
+    stdin.flush().expect("flush claims");
+    line.clear();
+    reader.read_line(&mut line).expect("read claims");
+    let response: serde_json::Value = serde_json::from_str(&line).expect("claims JSON");
+    assert!(
+        response["result"]["structuredContent"]["total"]
+            .as_u64()
+            .is_some_and(|total| total >= 1),
+        "{response}"
+    );
+    assert!(
+        root.path().join("data/claims.md").is_file(),
+        "claims report missing"
+    );
+
+    writeln!(
+        stdin,
+        "{}",
+        serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": 23,
+            "method": "tools/call",
+            "params": {"name": "cards", "arguments": {"slug": "demo", "out": "data/cards.csv", "review_intervals": [1, 3, 7]}}
+        })
+    )
+    .expect("write cards");
+    stdin.flush().expect("flush cards");
+    line.clear();
+    reader.read_line(&mut line).expect("read cards");
+    let response: serde_json::Value = serde_json::from_str(&line).expect("cards JSON");
+    assert!(
+        response["result"]["structuredContent"]["cards"].as_u64() == Some(1),
+        "{response}"
+    );
+    assert!(
+        root.path().join("data/cards.csv").is_file(),
+        "cards CSV missing"
     );
 
     let spec = serde_json::json!({

@@ -302,12 +302,12 @@ The template owns pagination and typography; content uses semantic blocks.
 | `::: critical label=...` | sage critical-distinction box |
 | `::: example label=...` | rule-top/bottom example box |
 | `::: note label=...` | gold note box (use for **Açıklayıcı not**) |
-| `::: recall label=...` | optional retrieval question/prompt (answer separated in prose) |
+| `::: recall label=...` | retrieval question; pair it with a later `::: answer` |
 | `::: explain label=...` | optional self-explanation prompt (“why/how/what-if”) |
-| `::: review-plan label=...` | optional short spaced-review schedule |
+| `::: review-plan label=...` | short spaced-review schedule; keep it consistent with `review_intervals` |
 | `::: must-know` | compact card stack of must-know definitions; revision layout |
 | `::: synthesis title=...` | one-page synthesis block; revision layout |
-| `::: answer label=...` | separated answer-key block; revision layout |
+| `::: answer label=...` | separated answer-key block; reader and revision layouts |
 | `::: organiser title=... source=...` | one-page knowledge-organiser page; revision layout |
 | `::: table widths="5,20,35,40" kind="facts" caption="..." source="..." id="..."` | table metadata; wrap the Markdown table |
 | `::: columns` … `::: columnbreak` … `:::` | two-column region and explicit break |
@@ -413,6 +413,40 @@ screenshots, so page size and rendering DPI stay under engine control.
 
 Review the diff images before running `visual-capture`; the tool proves that
 pixels changed, not that the new pixels are better.
+
+## Claim spot-check and recall cards
+
+Two deterministic review artifacts sit beside the PDF. Neither changes the
+guide or claims learning efficacy.
+
+```bash
+folisift claims --guide my-course
+folisift cards --guide my-course --review-intervals 1,3,7
+```
+
+`claims` writes `guides/<slug>/data/claims.md`. It lists high-signal sentences
+(numbers, dates, comparisons, causal wording) and the source page they cite,
+or marks the reference as missing. A citation is **traceability, not
+verification**: open the cited page and check the subject, number/unit, date,
+causal wording and qualifiers. Claims inside `::: recall` questions are ignored;
+claims inside answers and prose are included.
+
+`cards` pairs `::: recall` and `::: answer` blocks in document order and writes
+an Anki-compatible CSV with `front,back,tags,source`. The guide tags are the
+slug, `recall`, and one `review-<days>d` tag per interval. Set the default
+intervals in `config.json`:
+
+```json
+"review_intervals": [1, 3, 7]
+```
+
+The CLI flag overrides the config. Intervals are 1–365 days, unique, sorted and
+limited to ten entries. `last_reviewed` and confidence belong to the review
+application, not the PDF; the guide only carries the schedule. Keep the
+`::: review-plan` prose consistent with the intervals.
+
+Both artifacts are available over MCP as `claims` and `cards`; output paths
+must stay under `guides/`, `output/` or `data/`.
 
 ## New guide
 

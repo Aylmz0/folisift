@@ -544,3 +544,55 @@ fn rejects_incompatible_structure_and_domain() {
     let error = render(SAMPLE, &options(&profile)).expect_err("must reject");
     assert!(error.to_string().contains("soap"));
 }
+
+#[test]
+fn reader_concept_summary_supports_self_check_answers() {
+    let content = r#"---
+title: "Concept"
+language: en
+sources: [PD0]
+---
+
+## Big picture
+
+Retrieval practice improves delayed recall when the learner produces an answer before checking the source. [PD0, p. 1]
+
+## Key concepts
+
+A recall prompt is a cue; an answer key is checked only after the attempt. [PD0, p. 1]
+
+## Mechanisms
+
+The attempt reactivates the route to the target and exposes gaps that rereading hides. [PD0, p. 1]
+
+## Examples and comparisons
+
+A learner closes the page and writes the definition before checking the source. [PD0, p. 1]
+
+## Connections
+
+Retrieval supports later spaced review; the PDF carries the prompts, not the schedule state. [PD0, p. 1]
+
+## Self-check
+
+::: recall
+Why does retrieval need a delay before the answer?
+:::
+
+::: answer label="ANSWER"
+The delay makes the attempt effortful and exposes gaps. [PD0, p. 1]
+:::
+"#;
+    let profile = StyleProfile {
+        aesthetic: "reader".to_string(),
+        structure: "concept-summary".to_string(),
+        language: "en".to_string(),
+        source_language: "en".to_string(),
+        domain: "cs".to_string(),
+        voice: "academic".to_string(),
+        ..StyleProfile::default()
+    };
+    let rendered = render(content, &options(&profile)).expect("concept summary render");
+    assert!(rendered.pdf.starts_with(b"%PDF-"));
+    assert!(rendered.pages >= 1);
+}

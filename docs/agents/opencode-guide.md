@@ -26,10 +26,11 @@ itself never runs a shell, D2 or a network request.
 8. shell: folisift diagram build --guide <slug> --all
 9. diagram status
 10. build_guide check=true
-11. folisift audit --pdf <output> --guide <slug> --expected-pages <n> --strict
-12. make visual (when a baseline exists)
-13. human review: accuracy, G audit, table drafts, visual quality
-14. release only after approval
+11. claims for the citation spot-check; cards for recall/answer export
+12. folisift audit --pdf <output> --guide <slug> --expected-pages <n> --strict
+13. make visual (when a baseline exists)
+14. human review: accuracy, G audit, table drafts, visual quality
+15. release only after approval
 ```
 
 Do not skip the build/audit gates. Do not lower a threshold to make a run pass.
@@ -105,6 +106,8 @@ The following are never auto-approved:
 |---|---|
 | `prepare_guide` | analyze sources, return visual targets and the visual-audit path |
 | `build_guide` | render and enforce coverage + visual-audit gates |
+| `claims` | write a high-signal claim/citation report for review |
+| `cards` | export recall/answer pairs as Anki-compatible CSV |
 | `check_coverage` | canonical coverage + visual-audit gate |
 | `diagram` `validate` | validate a spec before saving |
 | `diagram` `save` | write spec + generated D2 source |

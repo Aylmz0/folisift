@@ -232,9 +232,24 @@ pub fn concept_summary_issues(markdown: &str) -> Vec<String> {
                 && !line.starts_with("```")
                 && !line.starts_with("~~~")
         })
-        .count();
-    if prose < 6 {
-        issues.push("concept summary needs explanatory prose, not only headings/cards".to_string());
+        .collect::<Vec<_>>();
+    let prose_words = prose
+        .iter()
+        .map(|line| line.split_whitespace().count())
+        .sum::<usize>();
+    if prose_words < 120 {
+        issues.push(
+            "concept summary needs explanatory prose (at least 120 words), not only headings/cards"
+                .to_string(),
+        );
+    }
+    if !body.contains("::: recall") && !body.contains("::: explain") {
+        issues.push(
+            "concept summary needs a self-check prompt (::: recall or ::: explain)".to_string(),
+        );
+    }
+    if !body.contains('[') {
+        issues.push("concept summary needs at least one source reference".to_string());
     }
     issues
 }
@@ -386,6 +401,36 @@ X is Y. [PD0, p. 1]
         );
     }
 
+    const CONCEPT: &str = r#"## Big picture
+
+Retrieval practice asks a learner to produce an answer from memory instead of rereading the same passage, and the difficulty of that act is what makes later recall more durable. [PD0, s. 1]
+
+## Key concepts
+
+A recall prompt is a cue that names the target without giving away the answer. An answer key is separated from the prompt so the learner can attempt retrieval before checking. [PD0, s. 2]
+
+## Mechanisms
+
+The attempt to retrieve reactivates a route to the target and exposes gaps that rereading hides. Checking the answer then corrects the gap while the retrieval effort is still active. [PD0, s. 3]
+
+::: example
+A learner reads a definition, closes the page and writes the definition from memory before checking the source. [PD0, s. 3]
+:::
+
+::: table caption="Rereading and retrieval" source="PD0, s. 4"
+| Task | Learner action | Likely outcome |
+|---|---|---|
+| Rereading | Read again | Familiarity |
+| Retrieval | Produce from memory | Durable recall |
+:::
+
+## Self-check
+
+::: recall
+Why does a retrieval attempt need a delay before the answer is shown? [PD0, s. 3]
+:::
+"#;
+
     #[test]
     fn concept_summary_needs_explanation_and_support() {
         let bare = "## Big picture\nText.\n";
@@ -399,6 +444,11 @@ X is Y. [PD0, p. 1]
             concept_summary_issues(only_cards)
                 .iter()
                 .any(|i| i.contains("explanatory prose"))
+        );
+        assert!(
+            concept_summary_issues(CONCEPT).is_empty(),
+            "{:?}",
+            concept_summary_issues(CONCEPT)
         );
     }
 

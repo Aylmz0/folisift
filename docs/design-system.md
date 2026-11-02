@@ -179,6 +179,21 @@ budget. `target_pages` is enforced after rendering; a guide outside its budget
 fails the build. A summary must declare `source_scope` instead of claiming
 A–G coverage.
 
+## Review artifacts
+
+The PDF stays the primary artifact. Two sidecars support review without
+changing the layout:
+
+- **Claim spot-check** (`claims`): high-signal prose claims with a source page
+  or a missing-reference marker. It is a reading aid, not a truth verdict.
+- **Recall cards** (`cards`): `::: recall` / `::: answer` pairs exported as
+  `front,back,tags,source` CSV with `review-<days>d` tags. The schedule comes
+  from `review_intervals`; the review app owns mutable per-card state.
+
+Neither sidecar adds decorative UI to the PDF. Exam sheets keep recall and
+answer separate; concept summaries may use self-check prompts without turning
+into flashcard decks.
+
 ## Notes, workbook and reference
 
 These are full genres, not density variants:
@@ -216,6 +231,7 @@ They are experimental until their snapshots pass.
 | Critical distinction | Exam-relevant contrast | Sage left rule, light fill |
 | Example | Worked example / code | Top/bottom rule, slightly smaller text |
 | Note | Source caveat or added clarification | Gold left rule, small text |
+| Answer key | Separated recall answer | Cream fill, sage left rule |
 | Data table | Comparisons, criteria, facts | No vertical lines; dark top/bottom; light header |
 | Figure | Diagram | Simple SVG; caption below; figure number |
 | Code block | Code / grammar / regex | Sand background, gold left rule, wrap long lines |

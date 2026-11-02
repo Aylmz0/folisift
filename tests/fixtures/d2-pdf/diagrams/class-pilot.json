@@ -1,0 +1,28 @@
+{
+  "schema_version": 3,
+  "id": "class-pilot",
+  "kind": "class",
+  "title": "Expression hierarchy",
+  "caption": "Literal is a concrete Expr with a value and a shared evaluation contract.",
+  "alt": "Literal inherits from Expr and supplies a value field.",
+  "source": "PD3, s. 12",
+  "direction": "right",
+  "layout": "tala",
+  "classes": [
+    {
+      "id": "expr",
+      "label": "Expr",
+      "fields": ["+span: Span"],
+      "methods": ["+eval(): Value"]
+    },
+    {
+      "id": "literal",
+      "label": "Literal",
+      "fields": ["+value: Value"],
+      "methods": []
+    }
+  ],
+  "edges": [
+    {"from": "literal", "to": "expr", "label": "inherits", "arrowhead": "triangle"}
+  ]
+}

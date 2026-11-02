@@ -92,9 +92,9 @@ All previews render and audit. Preview minimum fonts before the P0 fixes were
 | O-2 | medium | style previews are not automatically audit-gated | P1 |
 | O-3 | medium | no negative fixtures for notes/workbook/reference (only positive previews + unit rules) | P1 |
 | O-4 | medium | candidate fonts are not selectable and no font licence/glyph matrix is published | P2 |
-| O-5 | medium | no per-kind PDF baseline for D2 (SVG baseline only) | P2 |
-| O-6 | medium | no automated citation-claim verification; page refs are traceability, not truth | P2 |
-| O-7 | low | revision preview has no PDF baseline; genre baselines cover only notes/workbook/reference | P2 |
+| O-5 | medium | no per-kind PDF baseline for D2 (SVG baseline only) | fixed: `make d2-pdf-check` |
+| O-6 | medium | no automated citation-claim verification; page refs are traceability, not truth | fixed: `claims` review report |
+| O-7 | low | revision preview has no PDF baseline; genre baselines cover only notes/workbook/reference | fixed: `genre-visual` covers revision |
 | O-8 | low | `cargo audit` / dependency vulnerability gate is not in CI | P2 |
 | O-9 | low | PDF reading order is not tested with a screen reader; tagged/bookmarks are proxies | P3 |
 | O-10 | low | source scope is page-level, not section-level, for selective genres | P2 |
@@ -173,6 +173,21 @@ a bullet-only exam sheet.
 Evidence and limits are recorded in
 [`learning-science-and-genre-review-2026-11-02.md`](../learning-science-and-genre-review-2026-11-02.md).
 
+## 4.2 Review artifacts — implemented 2026-11-02
+
+- `folisift claims --guide <slug>` writes `data/claims.md`: high-signal
+  numeric/date/comparison/causal sentences, their source page, and a
+  missing-reference marker. It skips recall questions and never claims truth.
+- `folisift cards --guide <slug>` pairs recall/answer blocks in document order
+  and writes `data/cards.csv` with `front,back,tags,source`. `review_intervals`
+  in `config.json` adds `review-<days>d` tags.
+- MCP exposes `claims` and `cards`; the tool schema is now **5**.
+- `make d2-pdf-check` renders sequence/class/ERD diagrams through the PDF and
+  compares them with `tests/baselines/d2/pdf-pilot.pdf`.
+- `make dep-audit` and the CI `audit` job fail on RustSec vulnerabilities.
+- Candidate font review: keep the embedded trio; see
+  [`font-candidate-review-2026-11-02.md`](../font-candidate-review-2026-11-02.md).
+
 ## 5. Plan
 
 ### P0 — Exam lockdown (today)
@@ -202,8 +217,8 @@ Evidence and limits are recorded in
 - [x] Add `make style-audit`: render every preview, run `audit --strict`, and
   fail on min font/overflow.
 - [x] Make journal/brief previews genre-specific (IMRAD / executive brief).
-- [ ] Add a build-service integration test that exercises CLI/MCP parity on a
-  temp workspace.
+- [x] Add a build-service integration test that exercises CLI/MCP parity on a
+  temp workspace (`crates/folisift-cli/tests/build_parity.rs`).
 - [x] Document `source_scope` in `authoring-spec.md` as normative.
 - [x] Add release-status wording to README: released vs development build.
 
@@ -211,16 +226,24 @@ Evidence and limits are recorded in
 
 ### P2 — Research-informed study features (after exams)
 
-- [ ] Citation spot-check report: list numeric/date/comparison claims and
-  their source page, with a “citation is not verification” warning.
-- [ ] Section-level source scope in addition to page ranges.
-- [ ] Optional spaced-review metadata: `review_after`, `confidence`,
-  `last_reviewed` frontmatter and a `review-plan` report; keep PDF output.
-- [ ] Anki/CSV export for recall/answer blocks (CLI only; no MCP network).
-- [ ] Per-kind PDF baselines for D2 sequence/class/ERD.
-- [ ] `cargo audit` or equivalent dependency gate.
-- [ ] Candidate font review with licence, Turkish glyph, x-height and package
-  weight evidence; add only if they beat the embedded trio.
+- [x] Citation spot-check report: `claims` writes numeric/date/comparison
+  claims with their source page or a missing-reference marker, plus a
+  “citation is not verification” warning.
+- [x] Guide-level spaced-review metadata: `review_intervals` in `config.json`
+  and `review-<days>d` tags in the card export. Mutable `last_reviewed` and
+  confidence stay in the review app; the PDF and CSV carry the schedule, not
+  the app state.
+- [x] Anki/CSV export for recall/answer blocks (`cards`, CLI and MCP; no
+  network).
+- [x] Per-kind PDF baselines for D2 sequence/class/ERD
+  (`make d2-pdf-check`, `tests/baselines/d2/pdf-pilot.pdf`).
+- [x] Revision preview PDF baseline (`tests/baselines/genres/revision.pdf`).
+- [x] RustSec dependency gate (`make dep-audit`, CI `audit` job).
+- [x] Candidate font review with licence, Turkish glyph, x-height and package
+  weight evidence; decision: keep the embedded trio
+  ([review](../font-candidate-review-2026-11-02.md)).
+- [ ] Section-level source scope in addition to page ranges. Page-level scope
+  is the current contract; add section scope only when a real guide needs it.
 
 **Exit:** measured learning-workflow improvements, not feature count.
 
@@ -243,6 +266,8 @@ cargo fmt --all -- --check
 make type-check
 make palette-check
 make genre-check
+make d2-pdf-check
+make dep-audit
 make parity
 make visual
 make revision-check

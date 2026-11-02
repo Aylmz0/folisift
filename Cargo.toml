@@ -43,3 +43,9 @@ typst-pdf = "0.15"
 lto = "thin"
 codegen-units = 1
 strip = true
+
+# crates.io citationberg 0.7.0 pins quick-xml 0.38, which has two high-severity
+# parsing advisories. Upstream main has the quick-xml 0.41 bump; pin this commit
+# until a fixed 0.7.x release is available.
+[patch.crates-io]
+citationberg = { git = "https://github.com/typst/citationberg", rev = "8966cf7c178b38b621d297c9eb6d0bb81e14be5e" }
