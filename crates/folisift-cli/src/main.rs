@@ -4,6 +4,10 @@ use std::process::ExitCode;
 use clap::{Parser, Subcommand};
 use folisift_build::build as build_guide;
 use folisift_core::{Guide, ScaffoldOptions, Workspace, list_guides, scaffold, version};
+use folisift_links::{
+    DEFAULT_MODEL, Embedder, LinkIndex, LinkOptions, Model2VecEmbedder, find_model_dir,
+    read_layouts, read_report, sections_from_layout, write_markdown_report, write_report,
+};
 use folisift_parse::{
     SourceCache, analyze_sources_with_layout, parse_page_list, read_block_view, read_source_at,
     render_pages, search_source, write_layouts,
@@ -81,6 +85,11 @@ enum Command {
         /// Comma-separated review intervals in days; overrides config.
         #[arg(long)]
         review_intervals: Option<String>,
+    },
+    /// Build or inspect local semantic links between source sections.
+    Links {
+        #[command(subcommand)]
+        command: LinksCommand,
     },
     /// Build a source inventory with liteparse.
     Analyze {
@@ -225,6 +234,41 @@ enum Command {
         /// Crop as normalized fractions: left,top,width,height.
         #[arg(long)]
         crop: Option<String>,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+enum LinksCommand {
+    /// Build document-links.json from stored layout blocks.
+    Build {
+        #[arg(long)]
+        guide: String,
+        #[arg(long, default_value_t = 5)]
+        top_k: usize,
+        #[arg(long, default_value_t = 0.75)]
+        min_cosine: f32,
+        #[arg(long, default_value_t = 0.55)]
+        min_score: f32,
+        /// Use BM25 only; no embedding model is loaded.
+        #[arg(long)]
+        no_model: bool,
+        /// Optional model directory; otherwise FOLISIFT_MODEL_DIR / sidecar.
+        #[arg(long)]
+        model_dir: Option<PathBuf>,
+    },
+    /// Read links for one guide section or the whole guide.
+    Read {
+        #[arg(long)]
+        guide: String,
+        #[arg(long)]
+        section: Option<String>,
+        #[arg(long, default_value_t = 20)]
+        limit: usize,
+    },
+    /// Report model, blocks and links status without inference.
+    Status {
+        #[arg(long)]
+        guide: String,
     },
 }
 
@@ -467,6 +511,11 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                     .map(|m| !m.permissions().readonly())
                     .unwrap_or(false);
             let font_count = folisift_render::embedded_font_count();
+            let model = find_model_dir(workspace.root());
+            let model_detail = model
+                .as_ref()
+                .map(|path| path.display().to_string())
+                .unwrap_or_else(|| "not installed; `links build` is unavailable".to_string());
             let checks = vec![
                 json!({"name": "pdfium", "ok": pdfium.is_ok(), "detail": pdfium.as_ref().err().map(ToString::to_string).unwrap_or_else(|| folisift_parse::pdfium::PDFIUM_VERSION.to_string())}),
                 json!({"name": "cache", "ok": cache_ok, "detail": cache.display().to_string()}),
@@ -474,6 +523,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 json!({"name": "guides", "ok": invalid_guides == 0, "detail": format!("{} guide(s), {invalid_guides} invalid", guides.len()), "warning": if guides.is_empty() { Some("no guides yet") } else { None }}),
                 json!({"name": "fonts", "ok": font_count > 0, "detail": format!("{font_count} embedded face(s)")}),
                 json!({"name": "structures", "ok": !folisift_core::structures::packs().is_empty(), "detail": format!("{} pack(s)", folisift_core::structures::packs().len())}),
+                json!({"name": "semantic-model", "ok": true, "available": model.is_some(), "required": false, "detail": model_detail}),
                 {
                     let d2 = diagram_cmd::engine_info();
                     json!({"name": "d2", "ok": d2["ok"], "required": d2["required"], "detail": d2["detail"], "path": d2["path"], "version": d2["version"]})
@@ -631,6 +681,119 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                     "review_intervals_days": intervals,
                 }))?
             );
+        }
+        Command::Links { command } => {
+            match command {
+                LinksCommand::Build {
+                    guide,
+                    top_k,
+                    min_cosine,
+                    min_score,
+                    no_model,
+                    model_dir,
+                } => {
+                    let guide = Guide::load(&workspace, &guide)?;
+                    let layouts = read_layouts(&guide.dir.join("data/blocks"))?;
+                    if layouts.is_empty() {
+                        return Err("no layout blocks found; run `folisift analyze` or `prepare_guide` first".into());
+                    }
+                    let options = LinkOptions {
+                        top_k,
+                        min_cosine,
+                        min_score,
+                        ..LinkOptions::default()
+                    };
+                    let sections = layouts
+                        .iter()
+                        .flat_map(|layout| sections_from_layout(layout, options.max_section_chars))
+                        .collect::<Vec<_>>();
+                    if sections.is_empty() {
+                        return Err("layout blocks produced no sections".into());
+                    }
+                    let model =
+                        if no_model {
+                            None
+                        } else {
+                            let dir = model_dir
+                        .or_else(|| find_model_dir(workspace.root()))
+                        .ok_or("model directory not found; set FOLISIFT_MODEL_DIR or --model-dir")?;
+                            Some(Model2VecEmbedder::load(&dir)?)
+                        };
+                    let model_name = model.as_ref().map(|_| DEFAULT_MODEL.to_string());
+                    let report = LinkIndex::build(
+                        &sections,
+                        model.as_ref().map(|model| model as &dyn Embedder),
+                        model_name,
+                        &options,
+                    )?;
+                    let out = guide.dir.join("data/document-links.json");
+                    write_report(&out, &report)?;
+                    write_markdown_report(&guide.dir.join("data/document-links.md"), &report)?;
+                    println!(
+                        "{}",
+                        serde_json::to_string_pretty(&json!({
+                            "guide": guide.slug,
+                            "output": out.display().to_string(),
+                            "sections": report.sections.len(),
+                            "links": report.links.len(),
+                            "model": report.model,
+                            "blocks": layouts.len(),
+                        }))?
+                    );
+                }
+                LinksCommand::Read {
+                    guide,
+                    section,
+                    limit,
+                } => {
+                    let guide = Guide::load(&workspace, &guide)?;
+                    let report = read_report(&guide.dir.join("data/document-links.json"))?;
+                    let links = report
+                        .links
+                        .iter()
+                        .filter(|link| {
+                            section
+                                .as_deref()
+                                .is_none_or(|section| link.from == section || link.to == section)
+                        })
+                        .take(limit)
+                        .cloned()
+                        .collect::<Vec<_>>();
+                    println!(
+                        "{}",
+                        serde_json::to_string_pretty(&json!({
+                            "guide": guide.slug,
+                            "model": report.model,
+                            "total": report.links.len(),
+                            "returned": links.len(),
+                            "links": links,
+                        }))?
+                    );
+                }
+                LinksCommand::Status { guide } => {
+                    let guide = Guide::load(&workspace, &guide)?;
+                    let blocks = read_layouts(&guide.dir.join("data/blocks"))?;
+                    let links_path = guide.dir.join("data/document-links.json");
+                    let links = read_report(&links_path).ok();
+                    let model = find_model_dir(workspace.root());
+                    println!(
+                        "{}",
+                        serde_json::to_string_pretty(&json!({
+                            "guide": guide.slug,
+                            "blocks": blocks.iter().map(|layout| json!({
+                                "source": layout.source,
+                                "pages": layout.page_count,
+                            })).collect::<Vec<_>>(),
+                            "blocks_ready": !blocks.is_empty(),
+                            "model": model.as_ref().map(|path| path.display().to_string()),
+                            "model_ready": model.is_some(),
+                            "links": links.as_ref().map(|report| report.links.len()),
+                            "links_ready": links.is_some(),
+                            "output": links_path.display().to_string(),
+                        }))?
+                    );
+                }
+            }
         }
         Command::Analyze {
             sources,

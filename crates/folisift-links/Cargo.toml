@@ -1,0 +1,18 @@
+[package]
+name = "folisift-links"
+description = "Local semantic links for Folisift source layout blocks"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+bm25.workspace = true
+folisift-parse = { path = "../folisift-parse", version = "0.11.0" }
+model2vec-rs.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

@@ -6,6 +6,7 @@ members = [
     "crates/folisift-build",
     "crates/folisift-mcp",
     "crates/folisift-cli",
+    "crates/folisift-links",
 ]
 resolver = "3"
 
@@ -35,6 +36,8 @@ tempfile = "3"
 thiserror = "2"
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 axum = { version = "0.8", features = ["http1", "tokio"] }
+bm25 = "2.3"
+model2vec-rs = { version = "=0.4.0", default-features = false, features = ["onig", "hf-hub"] }
 typst = "0.15"
 typst-layout = "0.15"
 typst-pdf = "0.15"

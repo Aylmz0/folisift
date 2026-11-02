@@ -18,6 +18,7 @@ The archive contains:
 folisift              # CLI and MCP server
 libpdfium.so          # source PDF/text extraction
 d2                    # pinned v0.9.0, authoring only
+models/               # int8 model2vec model for local semantic links
 D2-LICENSE.txt
 THIRD_PARTY_NOTICES.md
 styles/               # built-in style packs
@@ -27,7 +28,8 @@ templates/fonts/      # Inter and Noto fonts
 
 A normal user does not need Rust, Python, Node, Graphviz or a separate D2
 install. D2 is only used by `folisift diagram build`; `folisift build` embeds
-committed SVG assets.
+committed SVG assets. The model is bundled for `folisift links`; it is local
+inference only and the MCP server makes no network call.
 
 Manual archive verification:
 
@@ -66,8 +68,9 @@ workspace as its `cwd`. The equivalent config is:
 ```
 
 Use an absolute `command` path if `folisift` is not on `PATH`. Do not expose the
-workspace to a server unless you trust the client. The MCP has no LLM call,
-shell, network access or external D2 execution.
+workspace to a server unless you trust the client. The MCP has no generative LLM call,
+shell, network access or external D2 execution. The optional `links` tool uses
+the bundled static embedding model locally; it does not download anything.
 
 For a remote/HTTP client, use a loopback bind:
 
@@ -110,7 +113,15 @@ make package
 ```
 
 `make package` requires `FOLISIFT_D2` or a staged
-`target/package/d2-v0.9.0/bin/d2`.
+`target/package/d2-v0.9.0/bin/d2`. It also requires the int8 semantic model
+under `models/potion-multilingual-128M-int8`; generate it once with:
+
+```bash
+./scripts/prepare-model2vec.sh
+```
+
+Set `FOLISIFT_MODEL_DIR` to use another model directory. The model is MIT and
+is never committed; the release archive carries it as a sidecar.
 
 ## First workspace
 

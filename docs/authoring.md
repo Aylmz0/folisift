@@ -465,6 +465,24 @@ application, not the PDF; the guide only carries the schedule. Keep the
 Both artifacts are available over MCP as `claims` and `cards`; output paths
 must stay under `guides/`, `output/` or `data/`.
 
+## Semantic section links
+
+Once `data/blocks` exists, the local link helper can propose cross-source
+connections:
+
+```bash
+folisift links build --guide my-course --no-model   # BM25 baseline
+folisift links build --guide my-course              # model2vec if installed
+folisift links read --guide my-course --section PD2:p26:s1
+folisift links status --guide my-course
+```
+
+The output is `data/document-links.json` and is review-only. It records source
+pages and block ids; `semantically_similar_to` is a similarity proposal, not a
+verified prerequisite or causal claim. The MCP `links` tool exposes the same
+actions. A release install can use the bundled int8 model; a development
+checkout can point `FOLISIFT_MODEL_DIR` at a local model directory.
+
 ## New guide
 
 ```bash

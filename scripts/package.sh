@@ -19,6 +19,15 @@ mkdir -p "$STAGE/templates"
 cp -R templates/fonts "$STAGE/templates/"
 cp THIRD_PARTY_NOTICES.md PDFIUM-LICENSE.txt "$STAGE/"
 
+MODEL_DIR="${FOLISIFT_MODEL_DIR:-models/potion-multilingual-128M-int8}"
+if [ -d "${MODEL_DIR}" ]; then
+  mkdir -p "$STAGE/models"
+  cp -R "${MODEL_DIR}" "$STAGE/models/"
+else
+  echo "error: semantic model not found at ${MODEL_DIR}; set FOLISIFT_MODEL_DIR" >&2
+  exit 1
+fi
+
 D2="${FOLISIFT_D2:-}"
 if [ -z "${D2}" ] && [ -x "target/package/d2-v0.9.0/bin/d2" ]; then
   D2="target/package/d2-v0.9.0/bin/d2"

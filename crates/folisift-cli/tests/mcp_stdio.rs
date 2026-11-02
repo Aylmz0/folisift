@@ -106,7 +106,7 @@ X is Y. [PD0, p. 1]
         .iter()
         .filter_map(|tool| tool["name"].as_str())
         .collect::<Vec<_>>();
-    assert_eq!(tools.len(), 16);
+    assert_eq!(tools.len(), 17);
     for expected in [
         "read_source",
         "search_source",
@@ -115,6 +115,7 @@ X is Y. [PD0, p. 1]
         "claims",
         "cards",
         "read_blocks",
+        "links",
         "diagram",
     ] {
         assert!(tools.contains(&expected), "missing {expected}");
@@ -208,6 +209,26 @@ X is Y. [PD0, p. 1]
     assert!(
         root.path().join("data/cards.csv").is_file(),
         "cards CSV missing"
+    );
+
+    writeln!(
+        stdin,
+        "{}",
+        serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": 24,
+            "method": "tools/call",
+            "params": {"name": "links", "arguments": {"action": "status", "guide": "demo"}}
+        })
+    )
+    .expect("write links status");
+    stdin.flush().expect("flush links status");
+    line.clear();
+    reader.read_line(&mut line).expect("read links status");
+    let response: serde_json::Value = serde_json::from_str(&line).expect("links JSON");
+    assert_eq!(
+        response["result"]["structuredContent"]["blocks_ready"], false,
+        "{response}"
     );
 
     let spec = serde_json::json!({

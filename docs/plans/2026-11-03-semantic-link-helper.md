@@ -1,6 +1,6 @@
 # Semantic link helper with model2vec-rs — 2026-11-03
 
-- **Status:** Proposed; implementation not started
+- **Status:** In progress; core crate, CLI/MCP surface and local int8 model prepared
 - **Decision:** use **model2vec-rs** for local semantic similarity
 - **Scope:** `folisift-links` library, `folisift links` CLI, MCP `links` tool,
   release model asset
@@ -518,3 +518,20 @@ make package-check
   [2026-11-02-liteparse-full-utilization.md](2026-11-02-liteparse-full-utilization.md)
 - Research and alternatives:
   [lightweight-semantic-linking-research-2026-11-03.md](../lightweight-semantic-linking-research-2026-11-03.md)
+
+
+## 13. Implementation log
+
+- 2026-11-03: first implementation slice landed.
+  - Added `crates/folisift-links` with page-aware sectioning, BM25 Turkish
+    candidates, model2vec-rs embeddings and JSON report read/write.
+  - Added `folisift links status|build|read` and MCP `links` (schema 7, 17
+    tools).
+  - Added `read_blocks` for bounded layout access.
+  - Prepared `models/potion-multilingual-128M-int8` (123 MB model, 18 MB
+    tokenizer) and included it in the local package path; the directory is
+    gitignored and copied by `scripts/package.sh`.
+  - `links build --no-model` works on PD2 as a BM25 baseline; model-backed
+    build produces 8 links from 100 sections at the initial thresholds.
+- Remaining: clean-release install verification, model quality pilot on the
+  three course PDFs, and threshold tuning.

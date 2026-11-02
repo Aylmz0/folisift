@@ -6,6 +6,8 @@ sources/**/*.pdf
 
 # Generated source text, layout blocks and page screenshots.
 guides/*/data/blocks/
+guides/*/data/document-links.json
+guides/*/data/document-links.md
 data/blocks/
 guides/*/data/cache/
 data/pages/
@@ -25,3 +27,6 @@ data/visual/
 
 # Generated style previews are not release outputs.
 output/style-preview-*.pdf
+
+# Downloaded semantic model assets; release packaging copies them.
+models/

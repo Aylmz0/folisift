@@ -469,6 +469,6 @@ make package-check
     three-PDF parity report is done.
   - Phase 4: `folisift read-blocks` and MCP `read_blocks` return page-bounded,
     block-capped views.
-  - MCP tool schema is now 6; 16 tools.
+  - MCP tool schema is now 7; 17 tools (the semantic `links` surface).
 - Remaining: Phase 3 parity on the three course PDFs, Phase 5 default/cleanup,
   Phase 6 document graph.

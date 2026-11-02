@@ -181,7 +181,7 @@ Evidence and limits are recorded in
 - `folisift cards --guide <slug>` pairs recall/answer blocks in document order
   and writes `data/cards.csv` with `front,back,tags,source`. `review_intervals`
   in `config.json` adds `review-<days>d` tags.
-- MCP exposes `claims`, `cards` and `read_blocks`; the tool schema is now **6**.
+- MCP exposes `claims`, `cards`, `read_blocks` and `links`; the tool schema is now **7**.
 - `make d2-pdf-check` renders sequence/class/ERD diagrams through the PDF and
   compares them with `tests/baselines/d2/pdf-pilot.pdf`.
 - `make dep-audit` and the CI `audit` job fail on RustSec vulnerabilities.

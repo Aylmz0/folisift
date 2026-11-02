@@ -23,6 +23,20 @@ rendering. PDFium is licensed under the BSD 3-Clause licence.
 The sidecar is loaded from the binary directory at runtime; it is not linked
 into the Rust binary.
 
+## Model2Vec
+
+Folisift ships a quantized `potion-multilingual-128M` static embedding model
+for the optional `links` helper. The model is loaded from the sidecar model
+directory at runtime; it is not linked into the Rust binary.
+
+- Project: <https://github.com/MinishLab/model2vec>
+- Model: <https://huggingface.co/minishlab/potion-multilingual-128M>
+- License: MIT
+- Runtime crate: `model2vec-rs` (MIT), <https://github.com/MinishLab/model2vec-rs>
+
+The model is used only for local semantic similarity; it is not a generative
+model and makes no network calls after installation.
+
 ## Embedded fonts
 
 The renderer embeds Noto Serif, Inter and Noto Sans Mono. The Noto families are
