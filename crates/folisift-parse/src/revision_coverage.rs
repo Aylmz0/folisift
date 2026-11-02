@@ -9,10 +9,8 @@ use serde::Deserialize;
 use crate::inventory::Inventory;
 
 static PAGE_REF_RE: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
-    regex::Regex::new(
-        r"(?i)\b([A-Za-z][A-Za-z0-9_-]{0,63})\s*,\s*(?:s|p)\.\s*(\d+)(?:\s*[–-]\s*(\d+))?",
-    )
-    .expect("valid page reference regex")
+    regex::Regex::new(r"(?i)\[([^\[\],]+?)\s*,\s*(?:s|p)\.\s*(\d+)(?:\s*[–-]\s*(\d+))?\]")
+        .expect("valid page reference regex")
 });
 
 #[derive(Debug, Deserialize)]
@@ -111,7 +109,7 @@ pub fn revision_coverage_issues(inventory: &Inventory, markdown: &str) -> Vec<St
         let mut cited = vec![false; scope.end - scope.start + 1];
         let mut saw_reference = false;
         for capture in PAGE_REF_RE.captures_iter(markdown) {
-            let source = capture[1].to_string();
+            let source = capture[1].trim().to_string();
             if source != scope.source {
                 continue;
             }
@@ -253,6 +251,18 @@ mod tests {
         assert!(
             issues.iter().any(|issue| issue.contains("uncited pages")),
             "{issues:?}"
+        );
+    }
+
+    #[test]
+    fn accepts_unicode_source_ids() {
+        let mut inventory = inventory();
+        inventory.sources[0].filename = "Ders_Notu_1_VİZE.pdf".to_string();
+        let markdown = guide("Ders_Notu_1_VİZE:1-2", "A [Ders_Notu_1_VİZE, s. 1-2].");
+        assert!(
+            revision_coverage_issues(&inventory, &markdown).is_empty(),
+            "{:?}",
+            revision_coverage_issues(&inventory, &markdown)
         );
     }
 

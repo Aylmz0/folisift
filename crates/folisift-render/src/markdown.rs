@@ -9,7 +9,8 @@ use crate::diagram::DiagramAsset;
 use crate::error::{Error, Result};
 
 static SOURCE_REF_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"\[(PD\d+[^\]]*s\.[^\]]*)\]").expect("valid source reference regex")
+    Regex::new(r"\[([^\[\]]+?,\s*(?:s|p)\.\s*\d+(?:\s*[–-]\s*\d+)?)\]")
+        .expect("valid source reference regex")
 });
 
 static SOURCE_REF_MARKER_RE: LazyLock<Regex> = LazyLock::new(|| {

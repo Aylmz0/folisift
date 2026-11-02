@@ -10,7 +10,7 @@ use regex::Regex;
 use serde::Serialize;
 
 static PAGE_REF_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"\[([A-Za-z][A-Za-z0-9_-]*)\s*,\s*(?:s|p)\.\s*(\d+)(?:\s*[–-]\s*(\d+))?\]")
+    Regex::new(r"\[([^\[\],]+?)\s*,\s*(?:s|p)\.\s*(\d+)(?:\s*[–-]\s*(\d+))?\]")
         .expect("valid page reference regex")
 });
 static HIGH_SIGNAL_RE: LazyLock<Regex> = LazyLock::new(|| {
@@ -245,6 +245,13 @@ mod tests {
         assert_eq!(report.referenced, 2);
         let markdown = "Recall improves by 20% after one week.\n";
         assert_eq!(extract_claims(markdown).unreferenced, 1);
+    }
+
+    #[test]
+    fn accepts_unicode_source_ids() {
+        let report = extract_claims("Retention increased by 20% [Ders_Notu_1_VİZE, s. 4].\n");
+        assert_eq!(report.referenced, 1);
+        assert_eq!(report.claims[0].references[0].source, "Ders_Notu_1_VİZE");
     }
 
     #[test]
