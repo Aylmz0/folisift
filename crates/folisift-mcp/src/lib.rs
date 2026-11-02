@@ -4,7 +4,8 @@ use std::sync::Arc;
 use folisift_core::{Guide, ScaffoldOptions, Workspace, list_guides, scaffold, version};
 use folisift_links::{
     DEFAULT_MODEL, Embedder, LinkIndex, LinkOptions, Model2VecEmbedder, find_model_dir,
-    read_layouts, read_report, sections_from_layout, write_markdown_report, write_report,
+    read_layouts, read_report, sections_from_layout, verify_model_dir, write_markdown_report,
+    write_report,
 };
 use folisift_parse::{
     Inventory, SourceCache, VisualAudit, analyze_sources, analyze_sources_with_layout,
@@ -429,6 +430,7 @@ impl FolisiftServer {
                         "pages": layout.page_count,
                     })).collect::<Vec<_>>(),
                     "model_ready": model.is_some(),
+                    "model_verified": model.as_ref().is_some_and(|path| verify_model_dir(path).is_ok()),
                     "model": model.map(|path| path.display().to_string()),
                     "links_ready": report.is_some(),
                     "links": report.as_ref().map(|report| report.links.len()),

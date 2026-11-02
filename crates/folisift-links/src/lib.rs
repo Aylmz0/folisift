@@ -58,6 +58,6 @@ pub fn find_model_dir(workspace_root: &Path) -> Option<PathBuf> {
     });
     sidecar.filter(|path| path.is_dir())
 }
-pub use model::Model2VecEmbedder;
+pub use model::{Model2VecEmbedder, verify_model_dir};
 pub use section::{Section, sections_from_layout};
 pub use store::{LINKS_SCHEMA_VERSION, read_report, write_markdown_report, write_report};

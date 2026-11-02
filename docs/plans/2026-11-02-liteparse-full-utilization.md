@@ -432,16 +432,16 @@ make package-check
 
 ## 10. Acceptance checklist
 
-- [ ] Folisift-owned layout schema and mapping exist.
-- [ ] LiteParse blocks are enabled with a measured size/time budget.
-- [ ] Headings come from blocks where available, with a fallback.
-- [ ] Tables have a parity report before the old path is retired.
-- [ ] Inventory stays compact; full blocks are a separate generated artifact.
-- [ ] Old inventories and guides still load.
-- [ ] Exam PDF hashes are unchanged after metadata-only adoption.
-- [ ] MCP/CLI block access is page-bounded.
-- [ ] Docs describe the new artifact and its non-authoritative status.
-- [ ] No new external runtime dependency.
+- [x] Folisift-owned layout schema and mapping exist.
+- [x] LiteParse blocks are enabled with a measured size/time budget.
+- [x] Headings come from blocks where available, with a fallback.
+- [x] Tables have a parity report before the old path is retired.
+- [x] Inventory stays compact; full blocks are a separate generated artifact.
+- [x] Old inventories and guides still load.
+- [x] Exam PDF hashes are unchanged after metadata-only adoption.
+- [x] MCP/CLI block access is page-bounded.
+- [x] Docs describe the new artifact and its non-authoritative status.
+- [x] No new external runtime dependency.
 
 
 ## 11. Implementation log

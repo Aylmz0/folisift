@@ -491,20 +491,20 @@ make package-check
 
 ## 11. Acceptance checklist
 
-- [ ] Model2Vec pilot shows useful Turkish pairs and acceptable latency.
-- [ ] Blocks are the only source of section text; no PDF re-parse.
-- [ ] Every link has source/page/block provenance.
-- [ ] BM25-only mode works without a model.
-- [ ] Model2Vec mode works offline from the installed model.
-- [ ] `folisift links` CLI works after a clean archive install.
-- [ ] MCP `links status/build/read` works after a clean archive install.
-- [ ] `doctor` checks model files and hashes.
-- [ ] Output is deterministic.
-- [ ] No model, network or LLM in MCP's other tools; links uses local inference only.
-- [ ] `build_guide` and exam PDF hashes are unchanged.
-- [ ] 20 hand-checked pairs reviewed; false-link rate documented.
-- [ ] Model and licence are in the release archive.
-- [ ] ADR records local embeddings in MCP and the model asset contract.
+- [x] Model2Vec pilot shows useful Turkish pairs and acceptable latency.
+- [x] Blocks are the only source of section text; no PDF re-parse.
+- [x] Every link has source/page/block provenance.
+- [x] BM25-only mode works without a model.
+- [x] Model2Vec mode works offline from the installed model.
+- [x] `folisift links` CLI works after a clean archive install.
+- [x] MCP `links status/build/read` works after a clean archive install.
+- [x] `doctor` checks model files and hashes.
+- [x] Output is deterministic.
+- [x] No model, network or LLM in MCP's other tools; links uses local inference only.
+- [x] `build_guide` and exam PDF hashes are unchanged.
+- [x] 20 hand-checked pairs reviewed; false-link rate documented.
+- [x] Model and licence are in the release archive.
+- [x] ADR records local embeddings in MCP and the model asset contract.
 
 ## 12. References
 

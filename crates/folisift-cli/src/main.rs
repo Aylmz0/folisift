@@ -6,7 +6,8 @@ use folisift_build::build as build_guide;
 use folisift_core::{Guide, ScaffoldOptions, Workspace, list_guides, scaffold, version};
 use folisift_links::{
     DEFAULT_MODEL, Embedder, LinkIndex, LinkOptions, Model2VecEmbedder, find_model_dir,
-    read_layouts, read_report, sections_from_layout, write_markdown_report, write_report,
+    read_layouts, read_report, sections_from_layout, verify_model_dir, write_markdown_report,
+    write_report,
 };
 use folisift_parse::{
     SourceCache, analyze_sources_with_layout, parse_page_list, read_block_view, read_source_at,
@@ -520,6 +521,9 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 .as_ref()
                 .map(|path| path.display().to_string())
                 .unwrap_or_else(|| "not installed; `links build` is unavailable".to_string());
+            let model_verified = model
+                .as_ref()
+                .is_some_and(|path| verify_model_dir(path).is_ok());
             let checks = vec![
                 json!({"name": "pdfium", "ok": pdfium.is_ok(), "detail": pdfium.as_ref().err().map(ToString::to_string).unwrap_or_else(|| folisift_parse::pdfium::PDFIUM_VERSION.to_string())}),
                 json!({"name": "cache", "ok": cache_ok, "detail": cache.display().to_string()}),
@@ -527,7 +531,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 json!({"name": "guides", "ok": invalid_guides == 0, "detail": format!("{} guide(s), {invalid_guides} invalid", guides.len()), "warning": if guides.is_empty() { Some("no guides yet") } else { None }}),
                 json!({"name": "fonts", "ok": font_count > 0, "detail": format!("{font_count} embedded face(s)")}),
                 json!({"name": "structures", "ok": !folisift_core::structures::packs().is_empty(), "detail": format!("{} pack(s)", folisift_core::structures::packs().len())}),
-                json!({"name": "semantic-model", "ok": true, "available": model.is_some(), "required": false, "detail": model_detail}),
+                json!({"name": "semantic-model", "ok": true, "available": model.is_some(), "verified": model_verified, "required": false, "detail": model_detail}),
                 {
                     let d2 = diagram_cmd::engine_info();
                     json!({"name": "d2", "ok": d2["ok"], "required": d2["required"], "detail": d2["detail"], "path": d2["path"], "version": d2["version"]})
@@ -791,6 +795,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                             "blocks_ready": !blocks.is_empty(),
                             "model": model.as_ref().map(|path| path.display().to_string()),
                             "model_ready": model.is_some(),
+                            "model_verified": model.as_ref().is_some_and(|path| verify_model_dir(path).is_ok()),
                             "links": links.as_ref().map(|report| report.links.len()),
                             "links_ready": links.is_some(),
                             "output": links_path.display().to_string(),
