@@ -328,6 +328,35 @@ X is Y. [PD0, p. 1]
     }
 
     #[test]
+    fn rejects_incomplete_genre_fixtures() {
+        assert!(
+            notes_issues("## Goals\nText.")
+                .iter()
+                .any(|i| i.contains("cue"))
+        );
+        assert!(
+            notes_issues("::: cue\nQ\n:::\n\n::: answer-key\nA\n:::")
+                .iter()
+                .any(|i| i.contains("answer key"))
+        );
+        assert!(
+            workbook_issues("## Problems\nText.")
+                .iter()
+                .any(|i| i.contains("problem block"))
+        );
+        assert!(
+            workbook_issues("::: answer-key\nA\n:::\n\n## Practice\nText.")
+                .iter()
+                .any(|i| i.contains("after the practice"))
+        );
+        assert!(
+            reference_issues("## Formulas\nText.")
+                .iter()
+                .any(|i| i.contains("formula"))
+        );
+    }
+
+    #[test]
     fn previews_pass_their_genre_grammar() {
         let notes = include_str!("../../../styles/notes/preview.en.md");
         assert!(notes_issues(notes).is_empty(), "{:?}", notes_issues(notes));

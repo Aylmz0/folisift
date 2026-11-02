@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "id": "notes",
-  "name": "Notes",
+  "name": "Guided notes — Cornell",
   "status": "experimental",
   "layout": "notes",
   "aesthetic": "notes",

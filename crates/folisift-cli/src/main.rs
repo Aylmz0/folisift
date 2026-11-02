@@ -88,11 +88,11 @@ enum Command {
         #[arg(long = "source", required = true, num_args = 1..)]
         sources: Vec<PathBuf>,
         /// Style/layout id (run `styles list`): paper, reader, clean,
-        /// journal, brief, accessible, revision.
+        /// journal, brief, accessible, revision, notes, workbook, reference.
         #[arg(long = "style", default_value = "paper")]
         style: String,
         /// Structure profile: a-g, revision-sheet, knowledge-organiser,
-        /// imrad, irac, soap, formula-sheet, lecture-notes, ...
+        /// imrad, irac, soap, formula-sheet, lecture-notes, workbook, ...
         #[arg(long, default_value = "a-g")]
         structure: String,
         /// Output language: tr or en.

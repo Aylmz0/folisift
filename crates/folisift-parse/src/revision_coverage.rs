@@ -9,8 +9,10 @@ use serde::Deserialize;
 use crate::inventory::Inventory;
 
 static PAGE_REF_RE: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
-    regex::Regex::new(r"(?i)\b([A-Z]{2}\d*)\s*,\s*(?:s|p)\.\s*(\d+)(?:\s*[–-]\s*(\d+))?")
-        .expect("valid page reference regex")
+    regex::Regex::new(
+        r"(?i)\b([A-Za-z][A-Za-z0-9_-]{0,63})\s*,\s*(?:s|p)\.\s*(\d+)(?:\s*[–-]\s*(\d+))?",
+    )
+    .expect("valid page reference regex")
 });
 
 #[derive(Debug, Deserialize)]

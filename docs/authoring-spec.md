@@ -480,6 +480,22 @@ tables, figures, formulas and examples still require manual review in G.
 - Do not ask the user for decisions already fixed in CONFIG.
 - If a build fails, read the first error; do not regenerate everything.
 
+### 9.1 Selective genres: source_scope
+
+Revision sheets, knowledge organisers, guided notes, workbooks and reference
+sheets do not use the A–G heading coverage gate. They declare a page scope in
+frontmatter:
+
+```yaml
+source_scope: "PD2:26-29"
+```
+
+Every page in the scope must be cited at least once with `[PD2, s. 27]` or
+`[PD2, s. 26–29]`. English decks may use `p.`; Turkish decks use `s.`. A
+reference outside the scope, an unknown source or an uncited page fails the
+build. This is page-level coverage, not a claim that every claim in a sentence
+is verified.
+
 ## 10. QUALITY GATE CHECKLIST
 
 Before declaring completion:

@@ -174,15 +174,15 @@ spaced-review metadata, negative fixtures and source organization/reporting.
 
 ### P1 — Correctness and preview gates (before exams if time)
 
-- [ ] Add negative fixtures for notes/workbook/reference and assert the exact
+- [x] Add negative fixtures for notes/workbook/reference and assert the exact
   failure messages.
-- [ ] Add `make style-audit`: render every preview, run `audit --strict`, and
+- [x] Add `make style-audit`: render every preview, run `audit --strict`, and
   fail on min font/overflow.
 - [ ] Make journal/brief previews genre-specific (IMRAD / executive brief).
 - [ ] Add a build-service integration test that exercises CLI/MCP parity on a
   temp workspace.
-- [ ] Document `source_scope` in `authoring-spec.md` as normative.
-- [ ] Add release-status wording to README: released vs development build.
+- [x] Document `source_scope` in `authoring-spec.md` as normative.
+- [x] Add release-status wording to README: released vs development build.
 
 **Exit:** preview regressions and genre typos fail CI, not review.
 

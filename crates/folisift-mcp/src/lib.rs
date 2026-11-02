@@ -638,7 +638,37 @@ impl FolisiftServer {
         let guide = Guide::load(&self.workspace, guide_slug).map_err(|error| error.to_string())?;
         match action {
             "validate" | "save" => {
-                let value = params.spec.ok_or("diagram validate/save needs spec")?;
+                let Some(value) = params.spec else {
+                    if action == "save" {
+                        return Err("diagram save needs a spec".to_string());
+                    }
+                    let specs = match params.id.as_deref() {
+                        Some(id) => vec![
+                            diagram::read_spec(&guide.dir, id)
+                                .map_err(|error| error.to_string())?,
+                        ],
+                        None => {
+                            diagram::read_specs(&guide.dir).map_err(|error| error.to_string())?
+                        }
+                    };
+                    let mut items = Vec::with_capacity(specs.len());
+                    for spec in specs {
+                        diagram::validate_spec(&spec).map_err(|error| error.to_string())?;
+                        items.push(json!({
+                            "id": spec.id,
+                            "kind": spec.kind,
+                            "ok": true,
+                            "spec": diagram::spec_path(&guide.dir, &spec.id).display().to_string(),
+                            "spec_sha256": diagram::spec_hash(&spec).map_err(|error| error.to_string())?,
+                        }));
+                    }
+                    return Ok(Json(json!({
+                        "ok": true,
+                        "action": action,
+                        "guide": guide.slug,
+                        "items": items,
+                    })));
+                };
                 let spec: DiagramSpec = serde_json::from_value(value)
                     .map_err(|error| format!("diagram spec: {error}"))?;
                 if let Some(id) = params.id.as_deref()
@@ -901,11 +931,15 @@ impl FolisiftServer {
             "words": inventory.totals.words,
             "style": style,
             "style_source": if params.style.is_some() {
-                "explicit"
-            } else if style.aesthetic == "revision" {
-                "default-revision"
+                "explicit".to_string()
             } else {
-                "default-reader"
+                match style.aesthetic.as_str() {
+                    "revision" => "default-revision".to_string(),
+                    "notes" => "default-notes".to_string(),
+                    "workbook" => "default-workbook".to_string(),
+                    "reference" => "default-reference".to_string(),
+                    _ => "default-reader".to_string(),
+                }
             },
             "style_rationale_required": true,
             "domain_profile": folisift_render::domains::load(self.workspace.root(), &style.domain)
@@ -916,13 +950,14 @@ impl FolisiftServer {
             "visual_audit": guide.visual_audit().display().to_string(),
             "visual_audit_template": visual_template,
             "visual_rules": "Every low-text page needs one visual-audit decision: redraw, table, text, decorative or unreadable. High-priority targets need a redraw or a source-grounded reason. Use 0-3 meaningful diagrams per chapter; no decorative images; every figure needs a takeaway caption, source and alt text.",
+            "genre_checklist": genre_checklist(&style.structure),
             "sources": source_rows,
             "outline": outline,
             "next": [
                 "read_source with 10-20 page chunks; use search_source for terms",
                 "render low-text pages and record every decision in visual-audit.json",
                 "write guide.md with the host write/edit tool; do not ask the server to write prose",
-                "build_guide check=true; fix only named coverage/visual failures",
+                "build_guide check=true; fix only named genre/coverage/visual failures",
             ],
         })))
     }
@@ -1049,6 +1084,16 @@ impl FolisiftServer {
         let markdown =
             std::fs::read_to_string(&guide.content).map_err(|error| error.to_string())?;
         let inventory = self.load_or_analyze_inventory(&guide).await?;
+        let style = guide.style();
+        if folisift_core::gates::uses_revision_coverage(&style.structure) {
+            let issues = folisift_parse::revision_coverage_issues(&inventory, &markdown);
+            return Ok(Json(json!({
+                "kind": "source-scope",
+                "passed": issues.is_empty(),
+                "issues": issues,
+                "structure": style.structure,
+            })));
+        }
         let report = coverage_report(&inventory, &markdown, folisift_parse::DEFAULT_THRESHOLD);
         if let Some(path) = &guide.coverage {
             report
@@ -1416,6 +1461,43 @@ fn guide_profiles(
     })
 }
 
+fn genre_checklist(structure: &str) -> Vec<&'static str> {
+    match structure {
+        "revision-sheet" => vec![
+            "must-know block",
+            "diagram or concept map",
+            "recall prompt and answer key",
+            "one-page synthesis",
+            "review plan",
+        ],
+        "knowledge-organiser" => vec![
+            "exactly one page",
+            "big questions",
+            "key terms and timeline",
+            "one dominant map or diagram",
+        ],
+        "lecture-notes" => vec![
+            "at least one cue block",
+            "notes/workspace block",
+            "summary block",
+            "no pre-filled answer key",
+        ],
+        "workbook" => vec![
+            "at least two problem blocks",
+            "ruled workspace",
+            "worked or faded example",
+            "answer key after practice",
+        ],
+        "formula-sheet" => vec![
+            "formula cards with conditions",
+            "symbol/unit table",
+            "pitfalls block",
+            "prose kept lookup-sized",
+        ],
+        _ => vec!["A–G coverage, audit section and source page references"],
+    }
+}
+
 fn style_prompt_fragment(style: &folisift_core::StyleProfile) -> String {
     let voice = match style.voice.as_str() {
         "technical" => "Adım adım, önkoşul ve hata durumları belirtilen teknik anlatım.",
@@ -1743,6 +1825,22 @@ mod tests {
         })
         .expect("style");
         assert_eq!(organiser.aesthetic, "revision");
+
+        for (structure, aesthetic) in [
+            ("lecture-notes", "notes"),
+            ("workbook", "workbook"),
+            ("formula-sheet", "reference"),
+        ] {
+            let style = super::build_style(super::StyleRequest {
+                structure: Some(structure.to_string()),
+                language: Some("en".to_string()),
+                domain: Some("cs".to_string()),
+                ..Default::default()
+            })
+            .expect("genre style");
+            assert_eq!(style.aesthetic, aesthetic, "{structure}");
+            assert!(!super::genre_checklist(structure).is_empty());
+        }
     }
 
     #[test]

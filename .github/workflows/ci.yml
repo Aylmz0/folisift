@@ -47,3 +47,4 @@ jobs:
       - run: cargo run -p folisift-cli -- styles preview reference --language en
       - run: cargo test -p folisift-render --test style
       - run: cargo test -p folisift-core genre
+      - run: ./scripts/check-style-previews.sh
