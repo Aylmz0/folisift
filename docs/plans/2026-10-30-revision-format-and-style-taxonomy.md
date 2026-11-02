@@ -1,8 +1,14 @@
 # Folisift v0.10 — Genre-first revision format and layout systems
 
+> **Execution note (v0.12.0):** This is a historical design plan. The delivered
+> v0.10–v0.12 surface is recorded in the status tables below. Unchecked boxes
+> are earlier checklists superseded by later implementation or explicitly
+> deferred metadata work; they are not open release blockers.
+
+
 - **Status:** v0.10 revision/organiser complete; v0.11 notes/workbook/reference genres complete; metadata migration remains a follow-on
 - **Date:** 2026-10-30
-- **Baseline:** `v0.9.0` (`f7f4e400`, build 101; PD0–PD1 22, PD2 23, PD3 20
+- **Baseline:** `v0.9.0` (`2a601794`, build 100; reference guides 22/23/20
   pages; 124 tests)
 - **Trigger:** the user review of `paper` vs `reader`, the lack of true
   purpose-specific output genres, and the typography inconsistencies found in
