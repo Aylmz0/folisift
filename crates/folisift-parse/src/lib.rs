@@ -28,7 +28,9 @@ pub use parser::{LiteparseParser, SourceParser, analyze_source, analyze_sources,
 pub use pdfium::{PDFIUM_DIR_ENV, init as init_pdfium};
 pub use render::CropBox;
 pub use render::{PageImage, render_pages};
-pub use revision_coverage::revision_coverage_issues;
+pub use revision_coverage::{
+    RevisionCoverageReport, revision_coverage_issues, revision_coverage_report,
+};
 pub use source_cache::{PageText, SourceCache, SourceText};
 pub use source_read::{
     ReadSourceResult, SearchHit, SearchSourceResult, read_source, read_source_at, search_source,

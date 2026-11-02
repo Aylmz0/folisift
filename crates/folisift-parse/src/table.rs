@@ -175,7 +175,7 @@ fn extract_from_positions(
     let candidate = groups
         .into_iter()
         .filter(|(columns, rows)| {
-            *columns >= 3
+            *columns >= 2
                 && *columns <= 8
                 && rows.len() >= 3
                 && rows
@@ -274,6 +274,20 @@ mod tests {
         assert_eq!(table.rows[0], vec!["Sözcük", "Karakter", "Token"]);
         assert!(table.draft);
         assert!(table.confidence > 0.5);
+    }
+
+    #[test]
+    fn recovers_a_two_column_table() {
+        let chars = grid(&[
+            &["Kavram", "Anlam"],
+            &["Atom", "Bölünemeyen birim"],
+            &["Liste", "Atom ve alt listeler"],
+            &["quote", "Veri olarak koru"],
+        ]);
+        let tables = extract_from_positions(1, chars, bbox());
+        assert_eq!(tables.len(), 1);
+        assert_eq!(tables[0].header, vec!["Kavram", "Anlam"]);
+        assert_eq!(tables[0].rows.len(), 3);
     }
 
     #[test]

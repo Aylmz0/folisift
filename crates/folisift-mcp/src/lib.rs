@@ -1086,11 +1086,17 @@ impl FolisiftServer {
         let inventory = self.load_or_analyze_inventory(&guide).await?;
         let style = guide.style();
         if folisift_core::gates::uses_revision_coverage(&style.structure) {
-            let issues = folisift_parse::revision_coverage_issues(&inventory, &markdown);
+            let report = folisift_parse::revision_coverage_report(&inventory, &markdown);
+            if let Some(path) = &guide.coverage {
+                report
+                    .write_markdown(path)
+                    .map_err(|error| error.to_string())?;
+            }
             return Ok(Json(json!({
                 "kind": "source-scope",
-                "passed": issues.is_empty(),
-                "issues": issues,
+                "passed": report.passed,
+                "issues": report.issues,
+                "scope": report.scope,
                 "structure": style.structure,
             })));
         }

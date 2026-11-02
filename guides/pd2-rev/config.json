@@ -9,8 +9,8 @@
   "sources": [
     "../../sources/PD2.pdf"
   ],
-  "inventory": null,
-  "coverage": null,
+  "inventory": "data/inventory.json",
+  "coverage": "data/coverage.md",
   "target_pages": "4-6",
   "theme": "revision",
   "style": {

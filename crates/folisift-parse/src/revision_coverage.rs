@@ -21,11 +21,52 @@ struct ScopeFrontmatter {
     source_scope: Option<String>,
 }
 
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct RevisionCoverageReport {
+    pub scope: Option<String>,
+    pub issues: Vec<String>,
+    pub passed: bool,
+}
+
+impl RevisionCoverageReport {
+    pub fn write_markdown(&self, path: &std::path::Path) -> crate::Result<()> {
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent).map_err(|error| crate::error::io(parent, error))?;
+        }
+        let mut out = String::from("# Revision source coverage\n\n");
+        if let Some(scope) = &self.scope {
+            out.push_str(&format!("Scope: `{scope}`\n\n"));
+        }
+        out.push_str(&format!(
+            "Result: **{}**\n\n",
+            if self.passed { "PASS" } else { "FAIL" }
+        ));
+        if self.issues.is_empty() {
+            out.push_str("Every page in the declared scope is cited.\n");
+        } else {
+            for issue in &self.issues {
+                out.push_str(&format!("- {issue}\n"));
+            }
+        }
+        std::fs::write(path, out).map_err(|error| crate::error::io(path, error))
+    }
+}
+
 #[derive(Debug, Clone)]
 struct Scope {
     source: String,
     start: usize,
     end: usize,
+}
+
+pub fn revision_coverage_report(inventory: &Inventory, markdown: &str) -> RevisionCoverageReport {
+    let scope = frontmatter(markdown).and_then(|value| value.source_scope);
+    let issues = revision_coverage_issues(inventory, markdown);
+    RevisionCoverageReport {
+        scope,
+        passed: issues.is_empty(),
+        issues,
+    }
 }
 
 pub fn revision_coverage_issues(inventory: &Inventory, markdown: &str) -> Vec<String> {

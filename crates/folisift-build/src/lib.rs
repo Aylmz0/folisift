@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 use folisift_core::{Guide, StyleProfile, Workspace, gates};
 use folisift_parse::{
     AuditOptions, GuideVisualReport, Inventory, LayoutAudit, VisualAudit, analyze_sources,
-    check_coverage, revision_coverage_issues,
+    check_coverage,
 };
 use folisift_render::{RenderOptions, Rendered, render, styles};
 
@@ -141,11 +141,14 @@ pub async fn build(workspace: &Workspace, request: BuildRequest) -> Result<Build
         {
             let inventory = load_inventory(&guide).await?;
             if gates::uses_revision_coverage(&style.structure) {
-                let issues = revision_coverage_issues(&inventory, &markdown);
-                if !issues.is_empty() {
+                let report = folisift_parse::revision_coverage_report(&inventory, &markdown);
+                if let Some(path) = &guide.coverage {
+                    report.write_markdown(path)?;
+                }
+                if !report.passed {
                     return Err(Error::Message(format!(
                         "revision source coverage failed:\n- {}",
-                        issues.join("\n- ")
+                        report.issues.join("\n- ")
                     )));
                 }
                 revision_coverage = true;

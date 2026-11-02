@@ -6,9 +6,11 @@
   "content": "guide.md",
   "stylesheet": null,
   "output": "../../output/PD2_LISP_Bilgi_Organizatoru.pdf",
-  "sources": ["../../sources/PD2.pdf"],
-  "inventory": null,
-  "coverage": null,
+  "sources": [
+    "../../sources/PD2.pdf"
+  ],
+  "inventory": "data/inventory.json",
+  "coverage": "data/coverage.md",
   "target_pages": "1-2",
   "theme": "revision",
   "style": {
