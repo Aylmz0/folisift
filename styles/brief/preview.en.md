@@ -1,36 +1,49 @@
 ---
-title: "Style preview"
-subtitle: "Clean technical reader"
-course: "Folisift"
-running: "Folisift style preview"
+title: "Decision Brief"
+subtitle: "Executive / BLUF style preview"
+course: "Course 101"
 language: en
-sources: [PD0]
+sources: [SRC1]
+running: "Decision Brief"
 ---
 
-::: front kicker="Front matter" title="About this guide" lead="This preview shows the clean cover, contents, chapter opener, boxes and tables."
-|  |  |
+::: front kicker="BRIEF" title="Decision in one page" lead="Answer first, then findings, recommendation and risks."
+:::
+
+::: toc title="Contents" note="Page numbers refer to this PDF."
+:::
+
+::: chapter part="BLUF" side="SOURCE: SRC1" kicker="BRIEF" title="Summary" toc="Summary" running="Summary" lead="The decision and the evidence behind it."
+:::
+
+## Summary
+
+Adopt structured summaries as a comprehension step, not as the only study method. Pair them with retrieval practice and spaced review. [SRC1, p. 3]
+
+::: critical label="BOTTOM LINE"
+The evidence supports structured summary for organizing understanding; it does not support replacing practice testing. [SRC1, p. 5]
+:::
+
+## Key findings
+
+- Structured summary improved delayed recall in the studied comparison. [SRC1, p. 5]
+- Retrieval practice has stronger general evidence than summarization alone. [SRC1, p. 4]
+
+::: table caption="Decision evidence" source="SRC1, p. 4" widths="36,64"
+| Finding | Implication |
 |---|---|
-| Purpose | One-page visual reference |
-| Status | Experimental |
+| Summary effect | Use as comprehension support |
+| Retrieval effect | Add self-testing |
 :::
 
-::: toc title="Guide map" note="Page numbers refer to this PDF."
+## Recommendations
+
+1. Use a one-page summary to organize the topic.
+2. Add recall questions and an answer key.
+3. Schedule a short review after two to three days.
+
+## Risks
+
+::: note label="RISK"
+Do not turn a small summary effect into a promise of exam success; check the source, the sample and the outcome measure. [SRC1, p. 6]
 :::
-
-::: chapter part="B · DETAILED REVIEW" side="SOURCE: PD0 · 1 SLIDE" kicker="CHAPTER 1" title="Sample chapter" toc="Chapter 1 — Sample chapter" running="Chapter 1 · Sample chapter" lead="A short opener used to test the style components."
-:::
-
-## 1.1 Definition and distinction
-
-::: definition label="Definition"
-**Sample term:** A short, exam-oriented definition. [PD0, s. 1]
-:::
-
-::: critical label="Critical distinction"
-**A / B:** The first concept defines form; the second defines meaning. [PD0, s. 1]
-:::
-
-| Criterion | Value |
-|---|---|
-| Example | 1 |
-| Source | PD0 |

@@ -201,7 +201,7 @@ Evidence and limits are recorded in
   failure messages.
 - [x] Add `make style-audit`: render every preview, run `audit --strict`, and
   fail on min font/overflow.
-- [ ] Make journal/brief previews genre-specific (IMRAD / executive brief).
+- [x] Make journal/brief previews genre-specific (IMRAD / executive brief).
 - [ ] Add a build-service integration test that exercises CLI/MCP parity on a
   temp workspace.
 - [x] Document `source_scope` in `authoring-spec.md` as normative.
