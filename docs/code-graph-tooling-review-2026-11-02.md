@@ -1,5 +1,10 @@
 # Code-graph tooling review — 2026-11-02
 
+> This note is about code graphs for developing Folisift. It is not about
+> applying a graph to the source PDFs. See
+> [`document-graph-tooling-review-2026-11-02.md`](document-graph-tooling-review-2026-11-02.md)
+> for the authoring-side document graph.
+
 - **Question:** Should Folisift add Graphify or a similar code-graph system?
 - **Status:** Evaluation only; no runtime dependency added
 - **Decision:** Use a code graph, if at all, as an optional developer tool. Do not ship it in the Folisift binary, MCP server, release archive or build gates.
