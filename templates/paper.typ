@@ -599,7 +599,7 @@
             #link("https://github.com/Aylmz0/folisift")[
               #text(
                 font: "Inter",
-                size: __TINY_SIZE__,
+                size: __SMALL_SIZE__,
                 tracking: 0.05em,
                 fill: faint,
               )[Folisift · github.com/Aylmz0/folisift]

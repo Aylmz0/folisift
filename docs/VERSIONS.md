@@ -6,23 +6,31 @@ table.
 
 | Tag | Date | Build | Commit | PDFium | What changed |
 |---|---|---:|---|---|---|
-| `v0.9.0` | 2026-10-30 | 101 | `f7f4e400491ac4852859915fff27c1ad6c9ebf60` | `chromium/8058` | Reader/professional styles, linked TOC, canonical/visual gates, adaptive ranges |
-| `v0.8.0` | 2026-10-29 | 88 | `f39e13bacb0a9f779b4a3736c2087676a5d23476` | `chromium/8058` | MCP object structuredContent, schema 3, public install |
-| `v0.7.3` | 2026-10-29 | 85 | `75b2b4ce2ae752abbc5915cd758f00f102d8396a` | `chromium/8058` | MCP style-preview fix, D2 spec hardening |
-| `v0.7.2` | 2026-10-29 | 83 | `a1afffc8519f631df611ac2b755bb5feb9af3b1c` | `chromium/8058` | Actionable diagram status, pinned D2 archive check |
-| `v0.7.1` | 2026-10-29 | 81 | `81a090cf8f4db8ff1b599672f72ff7ebf4ec486c` | `chromium/8058` | D2 manifest/cache hardening, licence-complete archive |
-| `v0.7.0` | 2026-10-29 | 78 | `64b0e2620be05551716c9e1e743785a85b90268e` | `chromium/8058` | D2-only diagram pipeline, diagram MCP tool, OpenCode runbook |
-| `v0.6.2` | 2026-10-29 | 68 | `1fa1a7b2a6dc40c18e6b46ce4460289df6628569` | `chromium/8058` | Tall-figure fitting, synthetic PDF defect fixtures, 24-table parity test |
-| `v0.6.1` | 2026-10-29 | 64 | `48503766022525e25cb0a0df8141c6ebe8de9009` | `chromium/8058` | Image-overflow audit, seeded gate fixtures |
-| `v0.6.0` | 2026-10-29 | 60 | `06417467029510a016d598c997bda5e767192683` | `chromium/8058` | Structure packs, visual regression, table/diagram contracts, asset hardening, HTTP auth |
-| `v0.5.0` | 2026-10-29 | 48 | `b2f56c1b7bd56621a7a758b85efe2b0e2a9c1739` | `chromium/8058` | Streamable HTTP MCP, cross-platform CI, install/platform docs |
-| `v0.4.1` | 2026-10-29 | 45 | `0107114a232a44d0619dec16c4bf4989cdaec29a` | `chromium/8058` | Accessibility gates, domain profiles, cross-platform CI |
-| `v0.4.0` | 2026-10-29 | 42 | `f14d2562e3a6e2a2b998f9a4c3a60f848ae6bc92` | `chromium/8058` | Schema-3 styles, paper/clean packs, `style` tool, covers metadata, tr/en labels |
-| `v0.3.0` | 2026-10-28 | 40 | `8fba8aebe303e8524d595086ba977ac6904d82de` | `chromium/8058` | 22-page `paper` parity, front/TOC/chapter directives, `prepare_guide`, doctor and layout audit |
-| `v0.2.0` | 2026-10-27 | 22 | `e41c1f8b1e1e5ff84716b6c8ab20dddaf0732f4e` | `chromium/8058` | Chunked source reads/search, source cache, empty-section coverage gate, 10 MCP tools |
-| `v0.1.0` | 2026-10-26 | 16 | `bb261447e5d20ca8da5de0e868ab8d821b0cda63` | `chromium/8058` | First Rust/Typst/MCP release; PD0–PD1 guide, 23 pages, coverage 13/13; Python engine removed |
+| `v0.12.0` | 2026-11-03 | 136 | `908a626fbfae1121bf164ee6e0172993816fc4da` | `chromium/8058` | Section-level source scope, deterministic document graph, local semantic links, noncommercial license, output identity and tagged reading-order/contrast checks |
+| `v0.9.0` | 2026-10-30 | 100 | `2a601794355690176dc0de2d87105a088a473a2a` | `chromium/8058` | Reader/professional styles, linked TOC, canonical/visual gates, adaptive ranges |
+| `v0.8.0` | 2026-10-29 | 87 | `be98e0ce17a504c4341096e48c47475f62c163f2` | `chromium/8058` | MCP object structuredContent, schema 3, public install |
+| `v0.7.3` | 2026-10-29 | 84 | `49c02d5dc795c249917938059fae91c13cb5b2dc` | `chromium/8058` | MCP style-preview fix, D2 spec hardening |
+| `v0.7.2` | 2026-10-29 | 82 | `65f9d15567c8ea1586ddd4b8ab620ae8719a0a94` | `chromium/8058` | Actionable diagram status, pinned D2 archive check |
+| `v0.7.1` | 2026-10-29 | 80 | `3df53dc9f7ad1c3f0f1e45328b6dbe83c1982e88` | `chromium/8058` | D2 manifest/cache hardening, licence-complete archive |
+| `v0.7.0` | 2026-10-29 | 77 | `1c71f9b95393b899279447f810e63b902b22868a` | `chromium/8058` | D2-only diagram pipeline, diagram MCP tool, OpenCode runbook |
+| `v0.6.2` | 2026-10-29 | 67 | `e31b57331fbdf647bf37a3a2942bbad6978dec26` | `chromium/8058` | Tall-figure fitting, synthetic PDF defect fixtures, 24-table parity test |
+| `v0.6.1` | 2026-10-29 | 63 | `816f9dda7b5c27d931458857250e7c26b79744e0` | `chromium/8058` | Image-overflow audit, seeded gate fixtures |
+| `v0.6.0` | 2026-10-29 | 59 | `e970c19db777a62f2d22148490a53eef1fbd6a98` | `chromium/8058` | Structure packs, visual regression, table/diagram contracts, asset hardening, HTTP auth |
+| `v0.5.0` | 2026-10-29 | 47 | `f366f7f96e97ead1f049441d5b9733ef1db1187c` | `chromium/8058` | Streamable HTTP MCP, cross-platform CI, install/platform docs |
+| `v0.4.1` | 2026-10-29 | 44 | `3f1a867d29b4bc9d8ed4f0ae2fade0d859297de8` | `chromium/8058` | Accessibility gates, domain profiles, cross-platform CI |
+| `v0.4.0` | 2026-10-29 | 41 | `bcbaa37550cc35e9eb4c0ee33fcb819c2c1ad28d` | `chromium/8058` | Schema-3 styles, paper/clean packs, `style` tool, covers metadata, tr/en labels |
+| `v0.3.0` | 2026-10-28 | 39 | `c810f0316a2828cab6ab5ddb846ff2cab82add7e` | `chromium/8058` | 22-page `paper` parity, front/TOC/chapter directives, `prepare_guide`, doctor and layout audit |
+| `v0.2.0` | 2026-10-27 | 23 | `1d6e20f1d2129aa901a4b9f4a574b34c0b6cfc78` | `chromium/8058` | Chunked source reads/search, source cache, empty-section coverage gate, 10 MCP tools |
+| `v0.1.0` | 2026-10-26 | 16 | `fb7fe59de483f8e4e88d4346cb10f4c91f3445e2` | `chromium/8058` | First Rust/Typst/MCP release; 23-page reference guide, coverage 13/13; Python engine removed |
 
 ## Notes
+
+- `v0.12.0` adds section-level `source_scope`, the deterministic
+  `document-graph.json` and `graph` CLI/MCP surface, local Model2Vec links with
+  precision-first defaults, tagged-PDF reading-order and rendered contrast
+  checks, the offline exam copy target and the PolyForm Noncommercial license.
+  Generated PDFs carry the Folisift identity on every page and the repository
+  link on the cover. Generated PDFs are no longer tracked by git.
 
 - `v0.9.0` adds the reader/journal/brief/accessible packs, linked TOC,
   canonical source-topic coverage, visual-audit and underfilled-page gates,
@@ -55,8 +63,7 @@ table.
   22-page reference, and `make parity` checks the page map plus layout audit.
 - `v0.2.0` is the LLM-hands release: the server provides bounded source text,
   search and content-aware coverage; the host agent still writes all prose.
-- The canonical guide output is `output/PD0-PD1_Calisma_Ozeti.pdf`.
-- The release archive contains `folisift` and the platform PDFium shared
-  library. See ADR-0005.
+- The release archive contains `folisift`, PDFium, D2, the semantic model and
+  the license/notice files. See ADR-0005.
 - Do not tag an unreleased row without running the checklist in
   `docs/agents/versioning.md`.
