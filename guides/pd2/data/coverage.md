@@ -7,20 +7,20 @@ Eşik: **0.55**
 | Bölüm | Kaynak sayfa | Durum | Gövde karakteri | Eşleşen kılavuz satırı |
 |---|---:|---|---:|---|
 | 2.1 Zuse'nin Plankalkul' ü | 7 | OK | 1670 | ## 2.1 Zuse’nin Plankalkül’ü |
-| 2.2 Minimum Donanım Programlama: Sözde kod (Pseudocode) | — | OK | 1665 | ## 2.2 Minimum donanım programlama: sözdekodlar |
+| 2.2 Minimum Donanım Programlama: Sözde kod (Pseudocode) | 11 | OK | 1665 | ## 2.2 Minimum donanım programlama: sözdekodlar |
 | 2.3 IBM 704 ve Fortran | 15 | OK | 3051 | ## 2.3 IBM 704 ve Fortran |
 | 2.4 Fonksiyonel Programlama: LISP | 26 | OK | 2206 | ## 2.4 Fonksiyonel programlama: LISP |
-| 2.5 Sofistikeliğe doğru ilk adım: ALGOL 60 | — | OK | 2601 | ## 2.5 Sofistikeliğe doğru ilk adım: ALGOL 60 |
+| 2.5 Sofistikeliğe doğru ilk adım: ALGOL 60 | 34 | OK | 2601 | ## 2.5 Sofistikeliğe doğru ilk adım: ALGOL 60 |
 | 2.6 Ticari Kayıtları bilgisayara uyarlamak: COBOL | — | OK | 2280 | ## 2.6 Ticari kayıtları bilgisayara uyarlamak: COBOL |
 | 2.7 Zaman Paylaşımının (Timesharing) başlangıcı: BASIC | 50 | OK | 1592 | ## 2.7 Zaman paylaşımının başlangıcı: BASIC |
 | 2.8 Herkes için Herşey: PL/I | 55 | OK | 1607 | ## 2.8 Herkes için her şey: PL/I |
-| 2.9 İlk iki Dinamik Dil: APL ve SNOBOL | — | OK | 1499 | ## 2.9 İlk iki dinamik dil: APL ve SNOBOL |
+| 2.9 İlk iki Dinamik Dil: APL ve SNOBOL | 61 | OK | 1499 | ## 2.9 İlk iki dinamik dil: APL ve SNOBOL |
 | 2.10 Veri Soyutlama (Data Abstraction) nın başlangıçları: SIMULA 67 | 64 | OK | 903 | ## 2.10 Veri soyutlamanın başlangıçları: SIMULA 67 |
-| 2.11 Ortogonal (Orthogonal) Dizayn: ALGOL 68 | — | OK | 663 | ## 2.11 Ortogonal tasarım: ALGOL 68 |
+| 2.11 Ortogonal (Orthogonal) Dizayn: ALGOL 68 | 66 | OK | 663 | ## 2.11 Ortogonal tasarım: ALGOL 68 |
 | 2.12 ALGOL'lerin ilk torunlarından bazıları | 68 | OK | 2095 | ## 2.12 ALGOL’lerin ilk torunları |
-| 2.13 Mantık (Logic) temelli programlama: Prolog | — | OK | 1047 | ## 2.13 Mantık temelli programlama: Prolog |
+| 2.13 Mantık (Logic) temelli programlama: Prolog | 73 | OK | 1047 | ## 2.13 Mantık temelli programlama: Prolog |
 | 2.14 Tarihin en büyük tasarım çabası: Ada | 75 | OK | 1637 | ## 2.14 Tarihin en büyük tasarım çabası: Ada |
-| 2.15 Nesneye-dayalı Programlama: Smalltalk | — | OK | 1115 | ## 2.15 Nesneye dayalı programlama: Smalltalk |
+| 2.15 Nesneye-dayalı Programlama: Smalltalk | 80 | OK | 1115 | ## 2.15 Nesneye dayalı programlama: Smalltalk |
 | 2.16 Zorunlu(Imperative) ve nesneye-dayalı (Object-Oriented) özellikleri birleştirmek: C+ + | 82 | OK | 1494 | ## 2.16 Zorunlu ve nesneye dayalı özellikleri birleştirmek: C++ |
 | 2.17 Bir Zorunlu nesneye-dayalı dil (Imperative- Based Object-Oriented): Java | 86 | OK | 1988 | ## 2.17 Zorunlu tabanlı nesneye dayalı dil: Java |
 | 2.18 Betik Diller (Scripting Languages): JavaScript, PHP, ve Python | 92 | OK | 2551 | <!-- covers: PD2:2.18 --> |

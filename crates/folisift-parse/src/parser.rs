@@ -9,16 +9,31 @@ use regex::Regex;
 
 use crate::error::{Error, Result};
 use crate::inventory::{CanonicalSection, Heading, Inventory, PageRow, SourceInventory};
+use crate::layout::{LayoutBlock, LayoutBlockKind, PageLayout, Rect, SourceLayout};
 use crate::pdfium;
 use crate::text::{
     LOW_TEXT_THRESHOLD, clean_text, count_chars, count_words, first_line, heading_of,
     meaningful_lines,
 };
 
+/// The two products of one source parse.
+#[derive(Debug, Clone)]
+pub struct AnalyzedSource {
+    pub inventory: SourceInventory,
+    pub layout: Option<SourceLayout>,
+}
+
+/// The combined result of analyzing several sources.
+#[derive(Debug, Clone)]
+pub struct Analysis {
+    pub inventory: Inventory,
+    pub layouts: Vec<SourceLayout>,
+}
+
 /// A source inventory producer. Tests can substitute a fixture implementation.
 #[async_trait]
 pub trait SourceParser: Send + Sync {
-    async fn analyze(&self, path: &Path, low_text_threshold: usize) -> Result<SourceInventory>;
+    async fn analyze(&self, path: &Path, low_text_threshold: usize) -> Result<AnalyzedSource>;
 }
 
 /// Production parser: liteparse with OCR disabled.
@@ -29,7 +44,8 @@ impl LiteparseParser {
     fn engine() -> LiteParse {
         LiteParse::new(LiteParseConfig {
             ocr_enabled: false,
-            output_format: OutputFormat::Text,
+            output_format: OutputFormat::Json,
+            extract_blocks: true,
             quiet: true,
             max_pages: 10_000,
             ..Default::default()
@@ -39,7 +55,7 @@ impl LiteparseParser {
 
 #[async_trait]
 impl SourceParser for LiteparseParser {
-    async fn analyze(&self, path: &Path, low_text_threshold: usize) -> Result<SourceInventory> {
+    async fn analyze(&self, path: &Path, low_text_threshold: usize) -> Result<AnalyzedSource> {
         pdfium::init(None)?;
 
         let path_text = path.to_str().ok_or_else(|| Error::Parse {
@@ -59,11 +75,19 @@ impl SourceParser for LiteparseParser {
             });
         }
 
+        let source_id = path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or("source")
+            .trim_end_matches(".pdf")
+            .to_string();
         let title = pdfium::document_title(path).unwrap_or_default();
         let mut page_map = Vec::with_capacity(result.pages.len());
-        let mut headings = Vec::new();
-        let mut seen_headings = HashSet::new();
+        let mut fallback_headings = Vec::new();
+        let mut layout_headings = Vec::new();
         let mut low_text_pages = Vec::new();
+        let mut layout_pages = Vec::with_capacity(result.pages.len());
+        let mut layout_enabled = false;
         let mut total_chars = 0;
         let mut total_words = 0;
 
@@ -76,30 +100,93 @@ impl SourceParser for LiteparseParser {
 
             let lines = meaningful_lines(&page.text);
             let low_text = chars < low_text_threshold;
-            page_map.push(PageRow {
-                page: page.page_number,
-                first_line: first_line(&lines),
-                chars,
-                low_text,
-            });
-            if low_text {
-                low_text_pages.push(page.page_number);
-            }
-            if let Some(heading) = heading_of(&lines) {
-                let key = heading
-                    .split_whitespace()
-                    .collect::<Vec<_>>()
-                    .join(" ")
-                    .to_lowercase();
-                if seen_headings.insert(key) {
-                    headings.push(Heading {
+            let mut page_layout = None;
+            if let Some(blocks) = &page.blocks {
+                layout_enabled = true;
+                let mapped = blocks
+                    .iter()
+                    .enumerate()
+                    .map(|(index, block)| {
+                        LayoutBlock::from_liteparse(
+                            format!("{source_id}:p{}:b{index}", page.page_number),
+                            block,
+                        )
+                    })
+                    .collect::<Vec<_>>();
+                let block_heading_count = mapped
+                    .iter()
+                    .filter(|block| block.kind == LayoutBlockKind::Heading)
+                    .count();
+                let table_count = mapped.iter().filter(|block| block.kind.is_table()).count();
+                for block in &mapped {
+                    if block.kind == LayoutBlockKind::Heading
+                        && let Some(heading) = block.text.as_deref().map(str::trim)
+                        && !heading.is_empty()
+                    {
+                        layout_headings.push(Heading {
+                            heading: normalize_heading(heading),
+                            page: page.page_number,
+                            level: block.level,
+                            block_id: Some(block.id.clone()),
+                        });
+                    }
+                }
+                page_map.push(PageRow {
+                    page: page.page_number,
+                    first_line: first_line(&lines),
+                    chars,
+                    low_text,
+                    blocks: mapped.len(),
+                    headings: block_heading_count,
+                    tables: table_count,
+                });
+                page_layout = Some(PageLayout {
+                    page: page.page_number,
+                    page_label: page.page_label.clone(),
+                    width: page.page_width,
+                    height: page.page_height,
+                    content_bounds: page.content_bounds.clone().map(Rect::from),
+                    blocks: mapped,
+                });
+            } else {
+                page_map.push(PageRow {
+                    page: page.page_number,
+                    first_line: first_line(&lines),
+                    chars,
+                    low_text,
+                    blocks: 0,
+                    headings: 0,
+                    tables: 0,
+                });
+                if let Some(heading) = heading_of(&lines) {
+                    fallback_headings.push(Heading {
                         heading,
                         page: page.page_number,
+                        level: None,
+                        block_id: None,
                     });
                 }
             }
+            if low_text {
+                low_text_pages.push(page.page_number);
+            }
+            if let Some(page_layout) = page_layout {
+                layout_pages.push(page_layout);
+            }
         }
 
+        let numbered_layout_headings = layout_headings
+            .iter()
+            .filter(|heading| is_navigational_heading(&heading.heading))
+            .cloned()
+            .collect::<Vec<_>>();
+        let headings = if !numbered_layout_headings.is_empty() {
+            dedupe_headings(numbered_layout_headings)
+        } else if !layout_headings.is_empty() {
+            dedupe_headings(layout_headings)
+        } else {
+            dedupe_headings(fallback_headings)
+        };
         let path = path
             .canonicalize()
             .unwrap_or_else(|_| path.to_path_buf())
@@ -123,41 +210,115 @@ impl SourceParser for LiteparseParser {
         let source_digest = std::fs::read(&path)
             .ok()
             .map(|bytes| blake3::hash(&bytes).to_hex().to_string());
+        let layout = layout_enabled
+            .then(|| SourceLayout::new(source_id.clone(), result.pages.len(), layout_pages));
 
-        Ok(SourceInventory {
-            path,
-            filename,
-            title,
-            pages: result.pages.len(),
-            chars: total_chars,
-            words: total_words,
-            low_text_threshold,
-            source_digest,
-            low_text_pages,
-            headings,
-            sections,
-            page_map,
+        Ok(AnalyzedSource {
+            inventory: SourceInventory {
+                path,
+                filename,
+                title,
+                pages: result.pages.len(),
+                chars: total_chars,
+                words: total_words,
+                low_text_threshold,
+                source_digest,
+                low_text_pages,
+                headings,
+                layout: layout.as_ref().map(SourceLayout::summary),
+                sections,
+                page_map,
+            },
+            layout,
         })
     }
 }
 
+fn normalize_heading(heading: &str) -> String {
+    let heading = heading.trim();
+    let Some(captures) = HEADING_NUMBER_RE.captures(heading) else {
+        return heading.to_string();
+    };
+    format!("{} {}", captures[1].trim(), captures[2].trim())
+}
+
+fn is_navigational_heading(heading: &str) -> bool {
+    let heading = heading.trim();
+    if heading.starts_with("Bölüm ") || heading.starts_with("Chapter ") {
+        return true;
+    }
+    let mut chars = heading.chars();
+    let Some(first) = chars.next() else {
+        return false;
+    };
+    if !first.is_ascii_digit() {
+        return false;
+    }
+    heading
+        .trim_start_matches(|character: char| character.is_ascii_digit())
+        .chars()
+        .next()
+        .is_some_and(|character| character == '.' || character.is_whitespace())
+}
+
+fn dedupe_headings(headings: Vec<Heading>) -> Vec<Heading> {
+    let mut seen = HashSet::new();
+    headings
+        .into_iter()
+        .filter(|heading| {
+            let key = heading
+                .heading
+                .split_whitespace()
+                .collect::<Vec<_>>()
+                .join(" ")
+                .to_lowercase();
+            seen.insert(key)
+        })
+        .collect()
+}
+
 /// Analyze several sources and return the combined inventory.
 pub async fn analyze_sources(paths: &[PathBuf], low_text_threshold: usize) -> Result<Inventory> {
+    Ok(analyze_sources_with_layout(paths, low_text_threshold)
+        .await?
+        .inventory)
+}
+
+/// Analyze several sources and return both inventory and full layouts.
+pub async fn analyze_sources_with_layout(
+    paths: &[PathBuf],
+    low_text_threshold: usize,
+) -> Result<Analysis> {
     let parser = LiteparseParser;
     let mut sources = Vec::with_capacity(paths.len());
+    let mut layouts = Vec::new();
     for path in paths {
-        sources.push(parser.analyze(path, low_text_threshold).await?);
+        let analyzed = parser.analyze(path, low_text_threshold).await?;
+        sources.push(analyzed.inventory);
+        if let Some(layout) = analyzed.layout {
+            layouts.push(layout);
+        }
     }
-    Ok(Inventory::new(low_text_threshold, sources))
+    Ok(Analysis {
+        inventory: Inventory::new(low_text_threshold, sources),
+        layouts,
+    })
 }
 
 /// Analyze one source with the default threshold.
 pub async fn analyze_source(path: &Path) -> Result<SourceInventory> {
-    LiteparseParser.analyze(path, LOW_TEXT_THRESHOLD).await
+    Ok(LiteparseParser
+        .analyze(path, LOW_TEXT_THRESHOLD)
+        .await?
+        .inventory)
 }
 
 static TOC_LINE_RE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"^\s*(\d{1,3})(?:\.(\d{1,3}))?\.?\s*(.+?)\s*$").expect("valid TOC regex")
+});
+
+static HEADING_NUMBER_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"^(\d+(?:\.\d+)*)\.?\s*[:.\-]?\s+(.+)$").expect("valid heading number regex")
 });
 
 /// Recover the source's own topic-list sections from the first pages.
@@ -304,6 +465,42 @@ pub fn parse_page_list(value: &str) -> Result<Vec<u32>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test]
+    async fn parses_layout_blocks_headings_and_tables() {
+        let path =
+            Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/fixtures/pdf/blocks.pdf");
+        let analyzed = LiteparseParser
+            .analyze(&path, 120)
+            .await
+            .expect("layout parse");
+        let layout = analyzed.layout.expect("blocks enabled");
+        assert_eq!(layout.page_count, 2);
+        assert_eq!(layout.pages.len(), 2);
+        assert_eq!(layout.pages[0].page, 1);
+        assert!(
+            layout.pages[0]
+                .blocks
+                .iter()
+                .any(|block| block.kind == LayoutBlockKind::Heading && block.level == Some(1))
+        );
+        assert!(
+            layout.pages[1]
+                .blocks
+                .iter()
+                .any(|block| block.kind == LayoutBlockKind::Table && !block.rows.is_empty())
+        );
+        let summary = analyzed.inventory.layout.expect("layout summary");
+        assert_eq!(summary.headings, 3);
+        assert_eq!(summary.tables, 1);
+        assert!(
+            analyzed
+                .inventory
+                .headings
+                .iter()
+                .any(|heading| heading.heading == "1 Layout fixture" && heading.level == Some(1))
+        );
+    }
 
     #[test]
     fn parses_page_lists() {

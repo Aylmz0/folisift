@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::{Result, io};
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Inventory {
     pub generated_at: String,
     pub low_text_threshold: usize,
@@ -14,7 +14,7 @@ pub struct Inventory {
     pub totals: Totals,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SourceInventory {
     pub path: String,
     pub filename: String,
@@ -28,6 +28,9 @@ pub struct SourceInventory {
     pub source_digest: Option<String>,
     pub low_text_pages: Vec<usize>,
     pub headings: Vec<Heading>,
+    /// Compact layout summary; full blocks live in the separate layout artifact.
+    #[serde(default)]
+    pub layout: Option<crate::layout::LayoutSummary>,
     /// Sections recovered from the source's own topic list/TOC.
     ///
     /// Heading extraction misses styled or wrapped headings. This list is the
@@ -57,6 +60,12 @@ fn default_section_origin() -> String {
 pub struct Heading {
     pub heading: String,
     pub page: usize,
+    /// Heading level from the layout classifier when available.
+    #[serde(default)]
+    pub level: Option<u8>,
+    /// Stable block id from the layout artifact when available.
+    #[serde(default)]
+    pub block_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -65,6 +74,12 @@ pub struct PageRow {
     pub first_line: String,
     pub chars: usize,
     pub low_text: bool,
+    #[serde(default)]
+    pub blocks: usize,
+    #[serde(default)]
+    pub headings: usize,
+    #[serde(default)]
+    pub tables: usize,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -190,7 +205,20 @@ impl Inventory {
             let _ = writeln!(out, "## {} — {}\n", source.filename, title);
             let _ = writeln!(out, "- Sayfa: **{}**", source.pages);
             let _ = writeln!(out, "- Kelime: **{}**", source.words);
-            let _ = writeln!(out, "- Düşük metinli sayfalar: **{low_pages}**\n");
+            let _ = writeln!(out, "- Düşük metinli sayfalar: **{low_pages}**");
+            if let Some(layout) = &source.layout {
+                let _ = writeln!(
+                    out,
+                    "- Yerleşim: **{}** blok, **{}** başlık, **{}** tablo, **{}** figür ({} sayfa)\n",
+                    layout.blocks,
+                    layout.headings,
+                    layout.tables,
+                    layout.figures,
+                    layout.pages_with_blocks
+                );
+            } else {
+                out.push('\n');
+            }
             let _ = writeln!(out, "### Başlıklar\n");
             let _ = writeln!(out, "| Sayfa | Başlık |\n|---:|---|");
             for heading in &source.headings {
@@ -260,7 +288,10 @@ mod tests {
             headings: vec![Heading {
                 heading: "0.1 Giriş".to_string(),
                 page: 2,
+                level: None,
+                block_id: None,
             }],
+            layout: None,
             sections: vec![],
             page_map: vec![
                 PageRow {
@@ -268,11 +299,17 @@ mod tests {
                     first_line: "Bölüm: 0".to_string(),
                     chars: 8,
                     low_text: true,
+                    blocks: 0,
+                    headings: 0,
+                    tables: 0,
                 },
                 PageRow {
                     page: 2,
                     first_line: "0.1 Giriş".to_string(),
                     chars: 122,
+                    blocks: 0,
+                    headings: 0,
+                    tables: 0,
                     low_text: false,
                 },
             ],

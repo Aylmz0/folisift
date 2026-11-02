@@ -3,9 +3,9 @@ use std::sync::Arc;
 
 use folisift_core::{Guide, ScaffoldOptions, Workspace, list_guides, scaffold, version};
 use folisift_parse::{
-    Inventory, SourceCache, VisualAudit, analyze_sources, check_coverage as coverage_report,
-    parse_page_list, read_source_at as read_source_pages, render_pages as render_page_images,
-    search_source as search_source_text,
+    Inventory, SourceCache, VisualAudit, analyze_sources, analyze_sources_with_layout,
+    check_coverage as coverage_report, parse_page_list, read_source_at as read_source_pages,
+    render_pages as render_page_images, search_source as search_source_text, write_layouts,
 };
 use folisift_render::diagram::{self, DiagramSpec, DiagramTheme};
 use folisift_render::{RenderOptions, render as render_guide, styles};
@@ -905,9 +905,28 @@ impl FolisiftServer {
             .map_err(|error| error.to_string())?,
         };
 
-        let inventory = analyze_sources(&sources, folisift_parse::LOW_TEXT_THRESHOLD)
+        let analysis = analyze_sources_with_layout(&sources, folisift_parse::LOW_TEXT_THRESHOLD)
             .await
             .map_err(|error| error.to_string())?;
+        let inventory = analysis.inventory;
+        write_layouts(&analysis.layouts, &guide.dir.join("data/blocks"))
+            .map_err(|error| error.to_string())?;
+        let layout_summaries = analysis
+            .layouts
+            .iter()
+            .map(|layout| {
+                let summary = layout.summary();
+                json!({
+                    "source": layout.source,
+                    "pages": layout.page_count,
+                    "blocks": summary.blocks,
+                    "headings": summary.headings,
+                    "tables": summary.tables,
+                    "figures": summary.figures,
+                    "pages_with_blocks": summary.pages_with_blocks,
+                })
+            })
+            .collect::<Vec<_>>();
         if !was_existing || !guide.content.exists() {
             std::fs::write(
                 &guide.content,
@@ -1019,6 +1038,8 @@ impl FolisiftServer {
             "visual_targets": visual_targets,
             "visual_audit": guide.visual_audit().display().to_string(),
             "visual_audit_template": visual_template,
+            "block_dir": guide.dir.join("data/blocks").display().to_string(),
+            "layout": layout_summaries,
             "visual_rules": "Every low-text page needs one visual-audit decision: redraw, table, text, decorative or unreadable. High-priority targets need a redraw or a source-grounded reason. Use 0-3 meaningful diagrams per chapter; no decorative images; every figure needs a takeaway caption, source and alt text.",
             "genre_checklist": genre_checklist(&style.structure),
             "sources": source_rows,
@@ -1082,8 +1103,11 @@ impl FolisiftServer {
         )
         .map_err(|error| error.to_string())?;
 
-        let inventory = analyze_sources(&sources, folisift_parse::LOW_TEXT_THRESHOLD)
+        let analysis = analyze_sources_with_layout(&sources, folisift_parse::LOW_TEXT_THRESHOLD)
             .await
+            .map_err(|error| error.to_string())?;
+        let inventory = analysis.inventory;
+        write_layouts(&analysis.layouts, &guide.dir.join("data/blocks"))
             .map_err(|error| error.to_string())?;
         let body = skeleton_markdown(&title, &style.language, &style.structure, &inventory);
         let content_path = guide.dir.join("guide.md");
@@ -1968,6 +1992,7 @@ mod tests {
                 source_digest: None,
                 low_text_pages: (1..=low_text).collect(),
                 headings: vec![],
+                layout: None,
                 sections,
                 page_map: vec![],
             }],

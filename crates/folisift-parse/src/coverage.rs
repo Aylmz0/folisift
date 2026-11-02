@@ -622,18 +622,26 @@ mod tests {
                     Heading {
                         heading: "0.1 Giriş ve amaçlar".to_string(),
                         page: 3,
+                        level: None,
+                        block_id: None,
                     },
                     Heading {
                         heading: "0.2 Programlama dili nedir?".to_string(),
                         page: 10,
+                        level: None,
+                        block_id: None,
                     },
                 ],
+                layout: None,
                 sections: vec![],
                 page_map: vec![PageRow {
                     page: 1,
                     first_line: String::new(),
                     chars: 0,
                     low_text: true,
+                    blocks: 0,
+                    headings: 0,
+                    tables: 0,
                 }],
             }],
             totals: Totals {

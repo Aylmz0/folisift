@@ -226,12 +226,16 @@ mod tests {
                 source_digest: None,
                 low_text_pages,
                 headings: vec![],
+                layout: None,
                 sections: vec![],
                 page_map: vec![PageRow {
                     page: 1,
                     first_line: String::new(),
                     chars: 0,
                     low_text: true,
+                    blocks: 0,
+                    headings: 0,
+                    tables: 0,
                 }],
             }],
             totals: Totals {

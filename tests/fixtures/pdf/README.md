@@ -18,3 +18,6 @@ python3 tests/fixtures/pdf/generate.py
 overall audit fails. The fixtures are deliberately untagged and have no useful
 bookmarks; the tests target one defect at a time rather than treating the whole
 audit result as a boolean.
+
+`blocks.pdf` is generated from `blocks.html` with `weasyprint blocks.html blocks.pdf`.
+It covers heading levels, a table and a page boundary for the layout-block tests.

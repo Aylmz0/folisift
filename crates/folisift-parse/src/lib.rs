@@ -7,6 +7,7 @@ pub mod audit;
 pub mod coverage;
 pub mod error;
 pub mod inventory;
+pub mod layout;
 pub mod parser;
 pub mod pdfium;
 pub mod render;
@@ -24,7 +25,14 @@ pub use coverage::{
 };
 pub use error::{Error, Result};
 pub use inventory::{CanonicalSection, Heading, Inventory, PageRow, SourceInventory, Totals};
-pub use parser::{LiteparseParser, SourceParser, analyze_source, analyze_sources, parse_page_list};
+pub use layout::{
+    LAYOUT_SCHEMA_VERSION, LayoutBlock, LayoutBlockKind, LayoutCell, LayoutSummary, PageLayout,
+    PageLayoutSummary, Rect as LayoutRect, SourceLayout, write_layouts,
+};
+pub use parser::{
+    Analysis, AnalyzedSource, LiteparseParser, SourceParser, analyze_source, analyze_sources,
+    analyze_sources_with_layout, parse_page_list,
+};
 pub use pdfium::{PDFIUM_DIR_ENV, init as init_pdfium};
 pub use render::CropBox;
 pub use render::{PageImage, render_pages};

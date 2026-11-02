@@ -10,8 +10,10 @@ use regex::Regex;
 use serde::Serialize;
 
 static PAGE_REF_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"\[([^\[\],]+?)\s*,\s*(?:s|p)\.\s*(\d+)(?:\s*[–-]\s*(\d+))?\]")
-        .expect("valid page reference regex")
+    Regex::new(
+        r"(?i)(?:\[)?\b([\p{L}\p{N}_.-]+)\s*,\s*(?:s|p)\.\s*(\d+)(?:\s*[–-]\s*(\d+))?(?:\])?",
+    )
+    .expect("valid page reference regex")
 });
 static HIGH_SIGNAL_RE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(

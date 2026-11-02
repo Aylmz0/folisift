@@ -9,8 +9,10 @@ use serde::Deserialize;
 use crate::inventory::Inventory;
 
 static PAGE_REF_RE: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
-    regex::Regex::new(r"(?i)\[([^\[\],]+?)\s*,\s*(?:s|p)\.\s*(\d+)(?:\s*[–-]\s*(\d+))?\]")
-        .expect("valid page reference regex")
+    regex::Regex::new(
+        r"(?i)(?:\[)?\b([\p{L}\p{N}_.-]+)\s*,\s*(?:s|p)\.\s*(\d+)(?:\s*[–-]\s*(\d+))?(?:\])?",
+    )
+    .expect("valid page reference regex")
 });
 
 #[derive(Debug, Deserialize)]
@@ -215,6 +217,7 @@ mod tests {
                 source_digest: None,
                 low_text_pages: Vec::new(),
                 headings: Vec::new(),
+                layout: None,
                 sections: Vec::new(),
                 page_map: Vec::new(),
             }],
@@ -234,6 +237,16 @@ mod tests {
     fn accepts_a_fully_cited_scope() {
         let markdown = guide("PD2:26-29", "A [PD2, s. 26–29] and B [PD2, s. 27].");
         assert!(revision_coverage_issues(&inventory(), &markdown).is_empty());
+    }
+
+    #[test]
+    fn accepts_plain_scope_references() {
+        let markdown = guide("PD2:26-29", "Aralık: PD2, s. 26–29.");
+        assert!(
+            revision_coverage_issues(&inventory(), &markdown).is_empty(),
+            "{:?}",
+            revision_coverage_issues(&inventory(), &markdown)
+        );
     }
 
     #[test]

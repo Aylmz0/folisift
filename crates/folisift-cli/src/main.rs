@@ -5,7 +5,8 @@ use clap::{Parser, Subcommand};
 use folisift_build::build as build_guide;
 use folisift_core::{Guide, ScaffoldOptions, Workspace, list_guides, scaffold, version};
 use folisift_parse::{
-    SourceCache, analyze_sources, parse_page_list, read_source_at, render_pages, search_source,
+    SourceCache, analyze_sources_with_layout, parse_page_list, read_source_at, render_pages,
+    search_source, write_layouts,
 };
 use folisift_render::{RenderOptions, render, styles};
 use serde::Serialize;
@@ -632,8 +633,14 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 .collect::<Result<Vec<_>, _>>()?;
             let out = workspace.resolve_write(out)?;
             let md = workspace.resolve_write(md)?;
-            let inventory = analyze_sources(&sources, low_threshold).await?;
+            let blocks_dir = out
+                .parent()
+                .unwrap_or_else(|| std::path::Path::new("data"))
+                .join("blocks");
+            let analysis = analyze_sources_with_layout(&sources, low_threshold).await?;
+            let inventory = analysis.inventory;
             inventory.write_files(&out, &md)?;
+            let block_paths = write_layouts(&analysis.layouts, &blocks_dir)?;
             let cache = SourceCache::new(workspace.root().join("data/cache"));
             let mut texts = Vec::new();
             for source in &sources {
@@ -648,6 +655,10 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
             let value = json!({
                 "inventory": out.display().to_string(),
                 "markdown": md.display().to_string(),
+                "blocks": block_paths
+                    .iter()
+                    .map(|path| path.display().to_string())
+                    .collect::<Vec<_>>(),
                 "texts": texts,
                 "pages": inventory.totals.pages,
                 "words": inventory.totals.words,
@@ -726,7 +737,10 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                     target_pages,
                 },
             )?;
-            let inventory = analyze_sources(&sources, folisift_parse::LOW_TEXT_THRESHOLD).await?;
+            let analysis =
+                analyze_sources_with_layout(&sources, folisift_parse::LOW_TEXT_THRESHOLD).await?;
+            let inventory = analysis.inventory;
+            write_layouts(&analysis.layouts, &guide.dir.join("data/blocks"))?;
             let mut body = format!(
                 "---\ntitle: {title_for_content:?}\nrunning: {title_for_content:?}\nlanguage: {:?}\nsources: []\n---\n\n",
                 style.language

@@ -8,9 +8,9 @@ Eşik: **0.55**
 |---|---:|---|---:|---|
 | 0.1 Giriş ve Amaçlar | 3 | OK | 2243 | ## 0.1 Giriş ve amaçlar |
 | 0.2 Programlama Dili Nedir? | 10 | OK | 2340 | ## 0.2 Programlama dili nedir? |
-| 0.3 Programlama Dillerini Düzeylere | 21 | OK | 1042 | ## 0.3 Programlama dillerini düzeylere ayırmak |
+| 0.3 Programlama Dillerini Düzeylere Ayırmak | 21 | OK | 1042 | ## 0.3 Programlama dillerini düzeylere ayırmak |
 | 0.4 Dil Çevrimi | 22 | OK | 10065 | ## 0.4 Dil çevrimi |
-| 0.5 Programlama Dillerinin Yazılım | 115 | OK | 2102 | ## 0.5 Programlama dillerinin yazılım yaşam döngüsündeki yeri |
+| 0.5 Programlama Dillerinin Yazılım Yaşam Döngüsündeki Yeri | 115 | OK | 2102 | ## 0.5 Programlama dillerinin yazılım yaşam döngüsündeki yeri |
 
 Alt bölüm: **5** · Düşük metinli slayt: **40**
 

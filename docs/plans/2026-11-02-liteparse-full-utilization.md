@@ -1,6 +1,6 @@
 # LiteParse full-utilization plan — 2026-11-02
 
-- **Status:** Proposed; implementation not started
+- **Status:** In progress; phases 0–2 implemented
 - **Scope:** `folisift-parse`, source inventory, CLI/MCP source access
 - **Non-goals:** renderer changes, semantic graph extraction, new runtime
   dependencies, OCR policy changes
@@ -442,3 +442,27 @@ make package-check
 - [ ] MCP/CLI block access is page-bounded.
 - [ ] Docs describe the new artifact and its non-authoritative status.
 - [ ] No new external runtime dependency.
+
+
+## 11. Implementation log
+
+- 2026-11-03: Phase 0–2 landed.
+  - Added `crates/folisift-parse/src/layout.rs` with Folisift-owned
+    `SourceLayout`, `PageLayout`, `LayoutBlock`, `LayoutCell`, `Rect`,
+    `LayoutSummary` and JSON read/write helpers.
+  - `SourceParser::analyze` now returns `AnalyzedSource` (inventory + layout);
+    `analyze_sources` remains the inventory-only compatibility wrapper and
+    `analyze_sources_with_layout` returns both.
+  - `LiteparseParser` uses `OutputFormat::Json` with `extract_blocks: true`.
+  - `inventory.headings` uses navigational heading blocks, normalized section
+    numbers, and keeps the old first-line fallback.
+  - CLI `analyze` and CLI/MCP scaffold/prepare write
+    `data/blocks/<source>.json`; the path is gitignored.
+  - Added `tests/fixtures/pdf/blocks.pdf` and a parser test for heading levels
+    and table cells.
+  - Parity probe on PD0/PD2/PD3: PD2 now recovers 22 numbered headings (old
+    18) including missing 2.2/2.5/2.9/2.11–2.20; PD0/PD3 recover the numbered
+    TOC sections without the old bogus first-line headings.
+  - `make exam-check` still passes with the existing five PDF hashes.
+- Remaining: Phase 3 table parity, Phase 4 bounded block reads, Phase 5
+  default/cleanup, Phase 6 document graph.

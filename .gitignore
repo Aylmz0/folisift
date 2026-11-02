@@ -4,7 +4,9 @@ sources/**/*.pdf
 
 .DS_Store
 
-# Generated source text and page screenshots.
+# Generated source text, layout blocks and page screenshots.
+guides/*/data/blocks/
+data/blocks/
 guides/*/data/cache/
 data/pages/
 data/visual/
