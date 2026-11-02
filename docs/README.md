@@ -8,6 +8,7 @@
 | [Design system](design-system.md) | Paper palette, typography and components |
 | [Learning-science review](learning-science-and-genre-review-2026-11-02.md) | Evidence for exam summaries, concept summaries and readers |
 | [Font candidate review](font-candidate-review-2026-11-02.md) | Licence, glyph and package evidence for candidate pairings |
+| [Code-graph tooling review](code-graph-tooling-review-2026-11-02.md) | Graphify and alternatives as developer tooling, not a runtime dependency |
 | [ADRs](adr/) | Architectural decisions and their consequences |
 | [Plans](plans/) | Proposed architecture and migration plans |
 | [Agent configuration](agents/) | Issue tracker, triage labels, domain-doc rules, versioning |
