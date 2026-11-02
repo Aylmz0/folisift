@@ -56,11 +56,11 @@ Result:
 
 | PDF | Text spans | Below threshold |
 |---|---:|---:|
-| `PD0-PD1` | 1867 | 0 |
-| `PD2` | 2158 | 0 |
-| `PD3` | 2094 | 52 |
-| Revision | 236 | 0 |
-| Organiser | 96 | 0 |
+| `PD0-PD1` | 1876 | 0 |
+| `PD2` | 2173 | 0 |
+| `PD3` | 2114 | 52 |
+| Revision | 241 | 0 |
+| Organiser | 98 | 0 |
 
 All 52 findings are code syntax colours in `PD3` on the `code_bg` surface:
 
