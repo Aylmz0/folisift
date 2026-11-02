@@ -533,5 +533,6 @@ make package-check
     gitignored and copied by `scripts/package.sh`.
   - `links build --no-model` works on PD2 as a BM25 baseline; model-backed
     build produces 8 links from 100 sections at the initial thresholds.
-- Remaining: clean-release install verification, model quality pilot on the
-  three course PDFs, and threshold tuning.
+  - Clean-package check passes with the model in the archive, and the installed
+    MCP `links status/read` path was exercised successfully.
+- Remaining: quality pilot on the three course PDFs and threshold tuning.
