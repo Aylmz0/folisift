@@ -8,6 +8,15 @@
 - **Constraint:** the build stays deterministic; the MCP server still performs
   no LLM, shell or network calls.
 
+## 0. Preconditions
+
+- The repository is at a clean commit with no active changes in
+  `crates/folisift-parse`.
+- `sources/PD0.pdf`, `sources/PD2.pdf` and `sources/PD3.pdf` are present for
+  the comparison runs. They stay local and untracked.
+- A synthetic fixture PDF is added for CI; no course PDF is required by tests.
+- The semantic helper is not started until this plan's phases 0–3 are stable.
+
 ## 1. Why this plan
 
 Folisift uses LiteParse 2.17.0, but only its plain-text projection. The parser
@@ -182,7 +191,61 @@ Add `.gitignore` entries for generated blocks if the trial confirms they are
 reproducible from the source PDFs. A guide that needs a reviewed block artifact
 can opt in and track that one file explicitly.
 
-## 5. Phases
+## 5. Module seam and artifact ownership
+
+The parser is the seam. It should return both products of one parse, not force
+callers to parse twice:
+
+```rust
+pub struct AnalyzedSource {
+    pub inventory: SourceInventory,
+    pub layout: Option<SourceLayout>,
+}
+
+pub struct Analysis {
+    pub inventory: Inventory,
+    pub layouts: Vec<SourceLayout>,
+}
+
+pub struct SourceLayout {
+    pub schema_version: u32,
+    pub source: String,
+    pub page_count: usize,
+    pub pages: Vec<PageLayout>,
+}
+
+#[async_trait]
+pub trait SourceParser: Send + Sync {
+    async fn analyze(&self, path: &Path, low_text_threshold: usize)
+        -> Result<AnalyzedSource>;
+}
+```
+
+`SourceInventory` keeps only the compact `Option<LayoutSummary>`.
+`SourceLayout` owns the full page/block data. The CLI/MCP write the artifact;
+the parser does not choose workspace paths.
+
+Compatibility adapters:
+
+```rust
+// Existing callers keep the inventory-only API.
+pub async fn analyze_sources(paths: &[PathBuf], threshold: usize) -> Result<Inventory> {
+    Ok(analyze_sources_with_layout(paths, threshold).await?.inventory)
+}
+
+pub async fn analyze_sources_with_layout(
+    paths: &[PathBuf],
+    threshold: usize,
+) -> Result<Analysis>;
+```
+
+`Analysis { inventory, layouts }` is written by the CLI/MCP layer. Test
+fixtures implement the same `SourceParser` seam.
+
+This is a deep module: one parse, one interface, two outputs. The caller learns
+one method and never handles the parser-specific block representation.
+
+## 6. Phases
 
 ### Phase 0 — fixture and probe
 
@@ -193,8 +256,8 @@ can opt in and track that one file explicitly.
 - Keep a probe/benchmark command or ignored test that reports block counts,
   serialized size and parse time.
 
-**Exit:** the fixture proves the block contract without depending on local
-course PDFs.
+**Done when:** the fixture test passes in CI without `sources/`, and the probe
+reports block count, JSON size and parse time.
 
 ### Phase 1 — model and mapping
 
@@ -207,14 +270,17 @@ course PDFs.
 - Add block JSON writer/reader helpers.
 - Add unit tests for mapping, JSON round-trip and stable block ids.
 
-**Exit:** `cargo test -p folisift-parse` proves the schema; no behavior change
-yet.
+**Done when:** `cargo test -p folisift-parse` passes, old inventory fixtures
+deserialize, and the new mapping has no LiteParse type in the public inventory
+schema.
 
 ### Phase 2 — parse blocks
 
 - Change `LiteparseParser::engine()` to `OutputFormat::Json` with
   `extract_blocks: true`.
-- Collect blocks per page; write the full block artifact.
+- Collect blocks per page into `SourceLayout`.
+- Return `AnalyzedSource { inventory, layout }`; the CLI/MCP writer writes the
+  full block artifact.
 - Compute `LayoutSummary` for the inventory.
 - Derive headings from `heading` blocks first. Keep `heading_of()` as a
   fallback when a page has no blocks.
@@ -223,8 +289,10 @@ yet.
 - Compare old and new headings on PD0, PD2 and PD3 before switching the
   primary source.
 
-**Exit:** headings come from layout where available; on the three course PDFs
-the heading set improves or stays equal, and coverage does not regress.
+**Done when:** block JSON is written for PD0/PD2/PD3; block-derived headings
+equal or improve the old set on those three PDFs; coverage reports do not
+regress; `make exam-check` hashes are unchanged before any intentional content
+change.
 
 ### Phase 3 — tables and figures
 
@@ -235,7 +303,8 @@ the heading set improves or stays equal, and coverage does not regress.
   tables, bbox coverage.
 - Only then decide whether `table.rs` becomes a fallback or is retired.
 
-**Exit:** one table path, or a documented fallback with parity evidence.
+**Done when:** a parity report covers ruled, borderless and merged-cell tables,
+and there is one default path with a named fallback.
 
 ### Phase 4 — source access
 
@@ -248,7 +317,9 @@ the heading set improves or stays equal, and coverage does not regress.
 - Add a `max_chars`/page-range budget so an agent cannot accidentally pull 148
   KB of blocks into one context window.
 
-**Exit:** hosts can inspect structure without loading full PDF text twice.
+**Done when:** a page-bounded CLI/MCP call returns blocks with page ids and
+`prepare_guide` returns the layout summary plus artifact path; no response
+exceeds the configured budget.
 
 ### Phase 5 — default and cleanup
 
@@ -260,7 +331,8 @@ the heading set improves or stays equal, and coverage does not regress.
 - Update `docs/authoring-spec.md`, `docs/architecture.md` and the inventory
   schema notes.
 
-**Exit:** the normal pipeline uses blocks; old guides still load.
+**Done when:** the default pipeline writes blocks, old inventories still load,
+and the exam outputs are byte-identical to the pre-block baseline.
 
 ### Phase 6 — downstream document graph
 
@@ -276,12 +348,14 @@ citation -> source page
 ```
 
 Semantic edges are a separate decision. They must not be added to the MCP
-server or the build gate. See
+server or the build gate. The selected semantic helper is planned in
+[`2026-11-03-semantic-link-helper.md`](2026-11-03-semantic-link-helper.md).
+See
 [`document-graph-tooling-review-2026-11-02.md`](../document-graph-tooling-review-2026-11-02.md)
 and the lightweight helper evaluation in
 [`lightweight-semantic-linking-research-2026-11-03.md`](../lightweight-semantic-linking-research-2026-11-03.md).
 
-## 6. Tests and gates
+## 7. Tests and gates
 
 Unit:
 
@@ -320,7 +394,7 @@ make visual
 make package-check
 ```
 
-## 7. Risks and mitigations
+## 8. Risks and mitigations
 
 | Risk | Mitigation |
 |---|---|
@@ -331,9 +405,21 @@ make package-check
 | Stale block artifacts | Include source digest and parser version; regenerate on digest change |
 | Agent pulls too many blocks | Page-range and character budgets; default text-only `read_source` |
 | Parser upgrade changes block shapes | Folisift-owned schema + mapping tests; pin dependency |
-| Duplicate parse cost | Share one parsed result between analysis and cache in a later phase |
+| Duplicate parse cost | Block extraction must not add a second parse. The existing `prepare_guide` text-cache parse remains a separate, tracked performance task; do not claim it is removed by this plan. |
 
-## 8. Non-goals
+## 8.1 Rollback and sequencing
+
+- Phase 1 adds types and mapping only; `OutputFormat::Text` remains the
+  default until parity tests pass.
+- Phase 2 is gated by a heading parity report on PD0/PD2/PD3. If block headings
+  regress, keep the old `heading_of()` path and leave block extraction opt-in.
+- Phase 3 is gated by a table parity report. If LiteParse tables are worse,
+  keep `table.rs` as the default and expose block tables as diagnostics only.
+- Phase 5 flips the default only after all earlier gates pass; reverting the
+  default is a one-line config change, not a data migration.
+- The semantic helper starts only after phases 0–3, so it never re-parses PDFs.
+
+## 9. Non-goals
 
 - No semantic entity/relation extraction in this plan.
 - No LLM, embeddings, graph database or network in the MCP server.
@@ -342,7 +428,7 @@ make package-check
   audit path.
 - No claim that block extraction improves learning outcomes.
 
-## 9. Acceptance checklist
+## 10. Acceptance checklist
 
 - [ ] Folisift-owned layout schema and mapping exist.
 - [ ] LiteParse blocks are enabled with a measured size/time budget.

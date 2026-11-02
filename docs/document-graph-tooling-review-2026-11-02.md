@@ -424,7 +424,9 @@ for risk framing, not for proving quality.
 The recurring signal supports the same design: deterministic structure first,
 semantic links as proposals, human review before they affect content. For the
 small local helper option (BM25 + model2vec-rs), see
-[`lightweight-semantic-linking-research-2026-11-03.md`](lightweight-semantic-linking-research-2026-11-03.md).
+[`lightweight-semantic-linking-research-2026-11-03.md`](lightweight-semantic-linking-research-2026-11-03.md)
+and the selected implementation plan
+[`plans/2026-11-03-semantic-link-helper.md`](plans/2026-11-03-semantic-link-helper.md).
 
 ## 9. Sources
 

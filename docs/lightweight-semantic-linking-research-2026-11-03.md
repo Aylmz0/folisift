@@ -2,7 +2,8 @@
 
 - **Question:** Can Folisift add a small, local helper that links source-text
   sections by meaning, without adopting a GraphRAG platform?
-- **Status:** Research; no dependency selected
+- **Status:** Decision: model2vec-rs selected; implementation planned in
+  [`plans/2026-11-03-semantic-link-helper.md`](plans/2026-11-03-semantic-link-helper.md)
 - **Preference:** FOSS, local-first, small blast radius, no SaaS lock-in
 - **Constraint:** Folisift builds stay deterministic; the MCP server performs
   no LLM, shell or network calls.
@@ -201,7 +202,9 @@ These are practitioner anecdotes, not controlled benchmarks.
 
 ## 10. Recommendation
 
-**Build a small optional helper, not a semantic platform.**
+**Decision: use model2vec-rs for a small optional helper, not a semantic
+platform.** The implementation plan is
+[`plans/2026-11-03-semantic-link-helper.md`](plans/2026-11-03-semantic-link-helper.md).
 
 Proposed stack:
 
