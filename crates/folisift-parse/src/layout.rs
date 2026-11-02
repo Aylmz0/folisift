@@ -254,6 +254,17 @@ pub fn write_layouts(layouts: &[SourceLayout], dir: &Path) -> Result<Vec<std::pa
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct BlockView {
+    pub schema_version: u32,
+    pub source: String,
+    pub page_count: usize,
+    pub pages: Vec<PageLayout>,
+    pub total_blocks: usize,
+    pub returned_blocks: usize,
+    pub truncated: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct LayoutSummary {
     pub schema_version: u32,
     pub pages_with_blocks: usize,
@@ -273,6 +284,51 @@ pub struct PageLayoutSummary {
     pub figures: usize,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub content_bounds: Option<Rect>,
+}
+
+/// Read a bounded page/block view from a stored layout artifact.
+pub fn read_block_view(
+    blocks_dir: &Path,
+    source: &str,
+    pages: Option<&[u32]>,
+    max_blocks: usize,
+) -> Result<BlockView> {
+    if source.is_empty() || source.contains('/') || source.contains('\\') || source.contains("..") {
+        return Err(Error::Parse {
+            path: blocks_dir.join(format!("{source}.json")),
+            message: "invalid source id".to_string(),
+        });
+    }
+    let layout = SourceLayout::read_json(&blocks_dir.join(format!("{source}.json")))?;
+    let total_blocks = layout.pages.iter().map(|page| page.blocks.len()).sum();
+    let mut returned_blocks = 0usize;
+    let mut truncated = false;
+    let mut selected = Vec::new();
+    for page in &layout.pages {
+        if pages.is_some_and(|selected_pages| !selected_pages.contains(&(page.page as u32))) {
+            continue;
+        }
+        let mut page = page.clone();
+        if returned_blocks + page.blocks.len() > max_blocks {
+            let remaining = max_blocks.saturating_sub(returned_blocks);
+            page.blocks.truncate(remaining);
+            truncated = true;
+        }
+        returned_blocks += page.blocks.len();
+        selected.push(page);
+        if truncated {
+            break;
+        }
+    }
+    Ok(BlockView {
+        schema_version: layout.schema_version,
+        source: layout.source,
+        page_count: layout.page_count,
+        pages: selected,
+        total_blocks,
+        returned_blocks,
+        truncated,
+    })
 }
 
 fn is_false(value: &bool) -> bool {
@@ -346,6 +402,47 @@ mod tests {
         assert_eq!(summary.headings, 1);
         assert_eq!(summary.tables, 1);
         assert_eq!(summary.pages_with_blocks, 1);
+    }
+
+    #[test]
+    fn reads_a_bounded_block_view() {
+        let page = PageLayout {
+            page: 1,
+            page_label: None,
+            width: 600.0,
+            height: 800.0,
+            content_bounds: None,
+            blocks: (0..3)
+                .map(|index| LayoutBlock {
+                    id: format!("SRC:p1:b{index}"),
+                    kind: LayoutBlockKind::Paragraph,
+                    bbox: None,
+                    text: Some(format!("block {index}")),
+                    level: None,
+                    bold: false,
+                    italic: false,
+                    ordered: None,
+                    marker: None,
+                    lines: vec![],
+                    lang: None,
+                    header: vec![],
+                    rows: vec![],
+                    header_rows: None,
+                    figure_id: None,
+                    figure_format: None,
+                })
+                .collect(),
+        };
+        let layout = SourceLayout::new("SRC", 1, vec![page]);
+        let dir = std::env::temp_dir().join(format!("folisift-block-view-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        write_layouts(std::slice::from_ref(&layout), &dir).expect("write");
+        let view = read_block_view(&dir, "SRC", Some(&[1]), 2).expect("view");
+        let _ = std::fs::remove_dir_all(&dir);
+        assert_eq!(view.returned_blocks, 2);
+        assert_eq!(view.total_blocks, 3);
+        assert!(view.truncated);
+        assert_eq!(view.pages[0].blocks.len(), 2);
     }
 
     #[test]

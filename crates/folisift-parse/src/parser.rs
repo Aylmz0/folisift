@@ -484,12 +484,27 @@ mod tests {
                 .iter()
                 .any(|block| block.kind == LayoutBlockKind::Heading && block.level == Some(1))
         );
-        assert!(
-            layout.pages[1]
-                .blocks
+        let table = layout.pages[1]
+            .blocks
+            .iter()
+            .find(|block| block.kind == LayoutBlockKind::Table)
+            .expect("table block");
+        assert_eq!(
+            table
+                .header
                 .iter()
-                .any(|block| block.kind == LayoutBlockKind::Table && !block.rows.is_empty())
+                .map(|cell| cell.text.as_str())
+                .collect::<Vec<_>>(),
+            vec!["Term", "Meaning"]
         );
+        assert_eq!(
+            table.rows[0]
+                .iter()
+                .map(|cell| cell.text.as_str())
+                .collect::<Vec<_>>(),
+            vec!["Atom", "Indivisible unit"]
+        );
+        assert!(table.header.iter().all(|cell| cell.bbox.is_some()));
         let summary = analyzed.inventory.layout.expect("layout summary");
         assert_eq!(summary.headings, 3);
         assert_eq!(summary.tables, 1);

@@ -1,6 +1,6 @@
 # LiteParse full-utilization plan — 2026-11-02
 
-- **Status:** In progress; phases 0–2 implemented
+- **Status:** In progress; phases 0–2 implemented, phase 3 fixture parity done, phase 4 bounded reads done
 - **Scope:** `folisift-parse`, source inventory, CLI/MCP source access
 - **Non-goals:** renderer changes, semantic graph extraction, new runtime
   dependencies, OCR policy changes
@@ -464,5 +464,11 @@ make package-check
     18) including missing 2.2/2.5/2.9/2.11–2.20; PD0/PD3 recover the numbered
     TOC sections without the old bogus first-line headings.
   - `make exam-check` still passes with the existing five PDF hashes.
-- Remaining: Phase 3 table parity, Phase 4 bounded block reads, Phase 5
-  default/cleanup, Phase 6 document graph.
+  - Phase 3 fixture parity: LiteParse preserves table header, rows and cell
+    boxes; the old `table.rs` extractor remains as the CLI fallback until the
+    three-PDF parity report is done.
+  - Phase 4: `folisift read-blocks` and MCP `read_blocks` return page-bounded,
+    block-capped views.
+  - MCP tool schema is now 6; 16 tools.
+- Remaining: Phase 3 parity on the three course PDFs, Phase 5 default/cleanup,
+  Phase 6 document graph.

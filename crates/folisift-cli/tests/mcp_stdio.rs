@@ -106,7 +106,7 @@ X is Y. [PD0, p. 1]
         .iter()
         .filter_map(|tool| tool["name"].as_str())
         .collect::<Vec<_>>();
-    assert_eq!(tools.len(), 15);
+    assert_eq!(tools.len(), 16);
     for expected in [
         "read_source",
         "search_source",
@@ -114,6 +114,7 @@ X is Y. [PD0, p. 1]
         "check_coverage",
         "claims",
         "cards",
+        "read_blocks",
         "diagram",
     ] {
         assert!(tools.contains(&expected), "missing {expected}");

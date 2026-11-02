@@ -388,6 +388,23 @@ The figure helper measures the rendered image. A tall SVG is capped at 17 cm
 and centered instead of overflowing the page; wide images keep the full content
 width. This applies to both `paper` and `clean`.
 
+### Layout blocks
+
+`folisift analyze`, `scaffold` and MCP `prepare_guide` also write
+`guides/<slug>/data/blocks/<source>.json`. The file contains page/block
+geometry, heading levels, reading order and table cell boxes from LiteParse.
+It is generated data and ignored by default; `inventory.json` keeps only a
+compact `layout` summary.
+
+Read a bounded view with:
+
+```bash
+folisift read-blocks --guide my-course --source PD0 --pages 26-29
+```
+
+The MCP equivalent is `read_blocks` (guide, source, pages, max_blocks). Use it
+instead of loading a whole block artifact into the context window.
+
 ## Build and gate
 
 ```bash

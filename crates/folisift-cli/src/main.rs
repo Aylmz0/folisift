@@ -5,8 +5,8 @@ use clap::{Parser, Subcommand};
 use folisift_build::build as build_guide;
 use folisift_core::{Guide, ScaffoldOptions, Workspace, list_guides, scaffold, version};
 use folisift_parse::{
-    SourceCache, analyze_sources_with_layout, parse_page_list, read_source_at, render_pages,
-    search_source, write_layouts,
+    SourceCache, analyze_sources_with_layout, parse_page_list, read_block_view, read_source_at,
+    render_pages, search_source, write_layouts,
 };
 use folisift_render::{RenderOptions, render, styles};
 use serde::Serialize;
@@ -182,6 +182,17 @@ enum Command {
         /// Character offset to resume a page that exceeded max_chars.
         #[arg(long)]
         offset: Option<usize>,
+    },
+    /// Read a bounded view of stored layout blocks for one guide source.
+    ReadBlocks {
+        #[arg(long)]
+        guide: String,
+        #[arg(long)]
+        source: String,
+        #[arg(long)]
+        pages: Option<String>,
+        #[arg(long, default_value_t = 200)]
+        max_blocks: usize,
     },
     /// Search cached source text for a term.
     SearchSource {
@@ -1081,6 +1092,28 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
             let cache = SourceCache::new(workspace.root().join("data/cache"));
             let result = read_source_at(&cache, &source, Some(&pages), max_chars, offset).await?;
             println!("{}", serde_json::to_string_pretty(&result)?);
+        }
+        Command::ReadBlocks {
+            guide,
+            source,
+            pages,
+            max_blocks,
+        } => {
+            let guide = Guide::load(&workspace, &guide)?;
+            let pages = pages.as_deref().map(parse_page_list).transpose()?;
+            let view = read_block_view(
+                &guide.dir.join("data/blocks"),
+                &source,
+                pages.as_deref(),
+                max_blocks,
+            )?;
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&json!({
+                    "guide": guide.slug,
+                    "blocks": view,
+                }))?
+            );
         }
         Command::SearchSource {
             source,

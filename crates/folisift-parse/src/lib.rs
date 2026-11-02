@@ -26,8 +26,9 @@ pub use coverage::{
 pub use error::{Error, Result};
 pub use inventory::{CanonicalSection, Heading, Inventory, PageRow, SourceInventory, Totals};
 pub use layout::{
-    LAYOUT_SCHEMA_VERSION, LayoutBlock, LayoutBlockKind, LayoutCell, LayoutSummary, PageLayout,
-    PageLayoutSummary, Rect as LayoutRect, SourceLayout, write_layouts,
+    BlockView, LAYOUT_SCHEMA_VERSION, LayoutBlock, LayoutBlockKind, LayoutCell, LayoutSummary,
+    PageLayout, PageLayoutSummary, Rect as LayoutRect, SourceLayout, read_block_view,
+    write_layouts,
 };
 pub use parser::{
     Analysis, AnalyzedSource, LiteparseParser, SourceParser, analyze_source, analyze_sources,

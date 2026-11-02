@@ -4,8 +4,9 @@ use std::sync::Arc;
 use folisift_core::{Guide, ScaffoldOptions, Workspace, list_guides, scaffold, version};
 use folisift_parse::{
     Inventory, SourceCache, VisualAudit, analyze_sources, analyze_sources_with_layout,
-    check_coverage as coverage_report, parse_page_list, read_source_at as read_source_pages,
-    render_pages as render_page_images, search_source as search_source_text, write_layouts,
+    check_coverage as coverage_report, parse_page_list, read_block_view,
+    read_source_at as read_source_pages, render_pages as render_page_images,
+    search_source as search_source_text, write_layouts,
 };
 use folisift_render::diagram::{self, DiagramSpec, DiagramTheme};
 use folisift_render::{RenderOptions, render as render_guide, styles};
@@ -48,6 +49,18 @@ pub struct ReadSourceParams {
     pub max_chars: Option<usize>,
     /// Character offset to resume a page that exceeded max_chars.
     pub offset: Option<usize>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct ReadBlocksParams {
+    /// Guide slug.
+    pub slug: String,
+    /// Source id: filename without .pdf.
+    pub source: String,
+    /// Page list such as 26-29 or 1,3,5.
+    pub pages: Option<String>,
+    /// Maximum blocks returned; default 200.
+    pub max_blocks: Option<usize>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -365,6 +378,36 @@ impl FolisiftServer {
         .map_err(|error| error.to_string())?;
         let value = serde_json::to_value(result).map_err(|error| error.to_string())?;
         Ok(Json(value))
+    }
+
+    #[tool(
+        description = "Read a bounded view of stored layout blocks for a guide source",
+        annotations(title = "Read blocks", read_only_hint = true, open_world_hint = false)
+    )]
+    async fn read_blocks(
+        &self,
+        Parameters(params): Parameters<ReadBlocksParams>,
+    ) -> Result<Json<Value>, String> {
+        let guide =
+            Guide::load(&self.workspace, &params.slug).map_err(|error| error.to_string())?;
+        let pages = params
+            .pages
+            .as_deref()
+            .map(parse_page_list)
+            .transpose()
+            .map_err(|error| error.to_string())?;
+        let view = read_block_view(
+            &guide.dir.join("data/blocks"),
+            &params.source,
+            pages.as_deref(),
+            params.max_blocks.unwrap_or(200),
+        )
+        .map_err(|error| error.to_string())?;
+        Ok(Json(json!({
+            "guide": guide.slug,
+            "source": params.source,
+            "view": view,
+        })))
     }
 
     #[tool(
