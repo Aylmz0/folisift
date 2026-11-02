@@ -309,19 +309,63 @@ Rules:
 
 ## 6. Build vs buy
 
-**Buy now:** GraphRAG, LightRAG, Neo4j LLM Graph Builder or Graphify would each
-add a Python/LLM/graph stack before we know whether the graph improves the
-guide. For a three-PDF course, that is a large bet.
+Do **not** build a semantic extraction engine from scratch. Entity extraction,
+relation extraction, coreference, entity resolution, Turkish handling and
+evaluation are a product-sized problem. That is the user's concern, and it is
+valid.
 
-**Build a thin layer:** liteparse already gives page text, headings and a page
-map. A deterministic structural graph is a small Rust addition. The semantic
-edge layer can be a host-authored JSON file at first, with no new runtime
-dependency.
+Build only the adapter and the contract:
 
-**Adopt a ready system when:** the corpus grows to many courses/documents, the
-structural graph is insufficient, and a page-aware extraction policy is
-defined. At that point Neo4j LLM Graph Builder or GraphRAG with page-level
-chunks is a reasonable experiment.
+- read LiteParse blocks and page geometry;
+- attach stable page/block ids;
+- send page-tagged sections to an existing extractor;
+- validate every returned edge has a source page and quote;
+- store the result as graph JSON;
+- keep the graph advisory.
+
+Do not build the model, the graph database or the retrieval UI ourselves unless
+a ready system fails a measured pilot.
+
+### Shortlist by integration cost
+
+| Approach | Work | Best for | Main catch |
+|---|---|---|---|
+| **iText2KG** | Python library; LLM + embeddings | Typed semantic edges from page-tagged sections | No page field; we add page metadata around sections |
+| **TrustGraph** | Docker/Pulsar/graph DB + LLM | Page-level provenance as a platform | Operational weight; overkill for three PDFs |
+| **txtai** | Python; local embeddings + graph | Obsidian-style related sections/backlinks | Similarity, not typed facts; page metadata DIY |
+| **LightRAG** | Python service; graph + vector; LLM | Incremental graph + local/global retrieval | Page provenance DIY; Reddit reports mixed quality |
+| **GraphRAG** | Python pipeline; LLM; Parquet/vector store | Global themes/community summaries | Expensive indexing; page provenance DIY |
+| **Neo4j LLM Graph Builder** | Neo4j + LLM + loader | Page-aware entity graph with a UI | Heavy platform; not a small dependency |
+| **Own semantic engine** | High | Full control | Do not do this now |
+
+### Recommended first experiment
+
+Use **iText2KG** as the semantic extractor, fed by LiteParse page/block sections:
+
+```text
+LiteParse block
+  -> section text with [source, page, block_id]
+  -> iText2KG graph (entities + relations)
+  -> Folisift validation (page + quote + confidence)
+  -> document-graph.json
+```
+
+If page provenance is the hard requirement and the Docker/Pulsar/graph-DB
+footprint is acceptable, pilot **TrustGraph** instead. Its document model is
+already `Document -> Pages -> Chunks -> Triples`, which is the closest ready
+FOSS match to Folisift.
+
+### What not to do
+
+Do not start with Microsoft GraphRAG or LightRAG just because they are popular.
+Both can produce useful global summaries, but for a three-PDF authoring task
+they add an LLM extraction pipeline and a graph/vector store before we know the
+graph improves the guide. Reddit reports in section 8 are a warning against
+assuming "more graph" means "better document answers".
+
+**Adopt a ready system when:** a measured pilot on the three PDFs produces
+useful, page-anchored edges with acceptable false-positive rate and operational
+cost. Until then, the only code we should own is the adapter and validator.
 
 ## 7. Recommendation
 
