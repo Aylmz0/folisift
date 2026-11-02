@@ -400,6 +400,7 @@ Read a bounded view with:
 
 ```bash
 folisift read-blocks --guide my-course --source PD0 --pages 26-29
+folisift table extract --guide my-course --source sources/PD0.pdf --page 12
 ```
 
 The MCP equivalent is `read_blocks` (guide, source, pages, max_blocks). Use it

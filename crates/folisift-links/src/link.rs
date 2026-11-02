@@ -156,6 +156,17 @@ impl LinkIndex {
         let mut degrees = vec![0usize; sections.len()];
         let mut ranked = Vec::new();
         for (&(left, right), lexical) in &candidates {
+            if sections[left].source == sections[right].source
+                && (same_heading(&sections[left], &sections[right])
+                    || sections[left]
+                        .page_start
+                        .abs_diff(sections[right].page_start)
+                        <= 2)
+            {
+                // Repeated slide titles and immediate neighbours are serial
+                // navigation, not a cross-topic connection.
+                continue;
+            }
             let cosine = match &embeddings {
                 Some(embeddings) => cosine(&embeddings[left], &embeddings[right]),
                 None => 0.0,
@@ -227,6 +238,20 @@ impl LinkIndex {
     }
 }
 
+fn same_heading(left: &Section, right: &Section) -> bool {
+    let normalize = |value: Option<&str>| {
+        value
+            .unwrap_or_default()
+            .split_whitespace()
+            .collect::<Vec<_>>()
+            .join(" ")
+            .to_lowercase()
+    };
+    let left = normalize(left.heading.as_deref());
+    let right = normalize(right.heading.as_deref());
+    !left.is_empty() && left == right
+}
+
 fn cosine(left: &[f32], right: &[f32]) -> f32 {
     if left.len() != right.len() || left.is_empty() {
         return 0.0;
@@ -277,12 +302,12 @@ mod tests {
         }
     }
 
-    fn section(id: &str, text: &str) -> Section {
+    fn section(id: &str, text: &str, page: usize) -> Section {
         Section {
             id: id.to_string(),
             source: "PD0".to_string(),
-            page_start: 1,
-            page_end: 1,
+            page_start: page,
+            page_end: page,
             block_ids: vec![],
             heading: None,
             text: text.to_string(),
@@ -293,9 +318,9 @@ mod tests {
     #[test]
     fn links_similar_sections() {
         let sections = vec![
-            section("a", "atom and list"),
-            section("b", "atom and list representation"),
-            section("c", "compiler table"),
+            section("a", "atom and list", 1),
+            section("b", "atom and list representation", 5),
+            section("c", "compiler table", 9),
         ];
         let report = LinkIndex::build(
             &sections,
@@ -316,9 +341,9 @@ mod tests {
     #[test]
     fn bm25_only_mode_has_no_cosine_requirement() {
         let sections = vec![
-            section("a", "atom and list"),
-            section("b", "atom and list representation"),
-            section("c", "compiler table"),
+            section("a", "atom and list", 1),
+            section("b", "atom and list representation", 5),
+            section("c", "compiler table", 9),
         ];
         let options = LinkOptions {
             min_score: 0.0,

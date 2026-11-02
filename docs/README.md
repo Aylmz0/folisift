@@ -11,6 +11,8 @@
 | [Code-graph tooling review](code-graph-tooling-review-2026-11-02.md) | Graphify and alternatives as developer tooling, not a runtime dependency |
 | [Document-graph tooling review](document-graph-tooling-review-2026-11-02.md) | GraphRAG, LightRAG, Graphify and page-anchored document graphs for source PDFs |
 | [Lightweight semantic linking](lightweight-semantic-linking-research-2026-11-03.md) | Small Rust/FOSS helper options for section-level semantic links |
+| [Semantic link pilot](semantic-link-pilot-2026-11-03.md) | Twenty-pair review and threshold decision for review-only links |
+| [Table parity](table-parity-2026-11-03.md) | Layout table blocks vs the legacy native-text extractor |
 | [ADRs](adr/) | Architectural decisions and their consequences |
 | [Plans](plans/) | Proposed architecture and migration plans |
 | [Agent configuration](agents/) | Issue tracker, triage labels, domain-doc rules, versioning |

@@ -333,12 +333,16 @@ enum VisualCommand {
 
 #[derive(Debug, Subcommand)]
 enum TableCommand {
-    /// Extract a draft table from one native-text PDF page.
+    /// Extract a table from one PDF page; --guide uses layout blocks.
     Extract {
         #[arg(long)]
         source: PathBuf,
         #[arg(long)]
         page: usize,
+        /// Read layout table blocks from this guide instead of the legacy
+        /// native-text draft extractor.
+        #[arg(long)]
+        guide: Option<String>,
         #[arg(long)]
         out: Option<PathBuf>,
     },
@@ -1228,14 +1232,49 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
             }
         },
         Command::Table { command } => match command {
-            TableCommand::Extract { source, page, out } => {
+            TableCommand::Extract {
+                source,
+                page,
+                guide,
+                out,
+            } => {
                 let source = workspace.resolve_read(&source)?;
-                let tables = folisift_parse::extract_tables(&source, page)?;
-                let value = json!({
-                    "source": source.display().to_string(),
-                    "page": page,
-                    "tables": tables,
-                });
+                let value = if let Some(slug) = guide {
+                    let guide = Guide::load(&workspace, &slug)?;
+                    let source_id = source
+                        .file_name()
+                        .and_then(|name| name.to_str())
+                        .unwrap_or_default()
+                        .trim_end_matches(".pdf");
+                    let layout = folisift_parse::SourceLayout::read_json(
+                        &guide
+                            .dir
+                            .join("data/blocks")
+                            .join(format!("{source_id}.json")),
+                    )?;
+                    let tables = layout
+                        .pages
+                        .iter()
+                        .filter(|page_layout| page_layout.page == page)
+                        .flat_map(|page_layout| page_layout.blocks.iter())
+                        .filter(|block| block.kind.is_table())
+                        .map(|block| json!(block))
+                        .collect::<Vec<_>>();
+                    json!({
+                        "source": source.display().to_string(),
+                        "page": page,
+                        "mode": "layout",
+                        "tables": tables,
+                    })
+                } else {
+                    let tables = folisift_parse::extract_tables(&source, page)?;
+                    json!({
+                        "source": source.display().to_string(),
+                        "page": page,
+                        "mode": "native-draft",
+                        "tables": tables,
+                    })
+                };
                 if let Some(out) = out {
                     let out = workspace.resolve_write(out)?;
                     std::fs::write(&out, serde_json::to_string_pretty(&value)?)?;

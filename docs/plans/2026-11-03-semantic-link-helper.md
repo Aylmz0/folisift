@@ -1,6 +1,6 @@
 # Semantic link helper with model2vec-rs — 2026-11-03
 
-- **Status:** In progress; core crate, CLI/MCP surface and local int8 model prepared
+- **Status:** Implemented and piloted; threshold decision recorded
 - **Decision:** use **model2vec-rs** for local semantic similarity
 - **Scope:** `folisift-links` library, `folisift links` CLI, MCP `links` tool,
   release model asset
@@ -535,4 +535,7 @@ make package-check
     build produces 8 links from 100 sections at the initial thresholds.
   - Clean-package check passes with the model in the archive, and the installed
     MCP `links status/read` path was exercised successfully.
-- Remaining: quality pilot on the three course PDFs and threshold tuning.
+  - Quality pilot: 20 hand-checked pairs, 15 useful / 3 weak / 2 false (75%
+    useful). Default thresholds remain `0.75 / 0.55`; `0.65 / 0.45` is the
+    exploratory setting. See [`semantic-link-pilot-2026-11-03.md`](../semantic-link-pilot-2026-11-03.md).
+- Remaining: duplicate-target suppression and a second-corpus pilot.

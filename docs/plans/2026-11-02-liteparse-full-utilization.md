@@ -1,6 +1,6 @@
 # LiteParse full-utilization plan — 2026-11-02
 
-- **Status:** In progress; phases 0–2 implemented, phase 3 fixture parity done, phase 4 bounded reads done
+- **Status:** In progress; phases 0–4 complete, phase 5/6 remaining
 - **Scope:** `folisift-parse`, source inventory, CLI/MCP source access
 - **Non-goals:** renderer changes, semantic graph extraction, new runtime
   dependencies, OCR policy changes
@@ -470,5 +470,7 @@ make package-check
   - Phase 4: `folisift read-blocks` and MCP `read_blocks` return page-bounded,
     block-capped views.
   - MCP tool schema is now 7; 17 tools (the semantic `links` surface).
-- Remaining: Phase 3 parity on the three course PDFs, Phase 5 default/cleanup,
-  Phase 6 document graph.
+  - Phase 3 parity on the real corpus: 30 pages with layout tables, 37 layout
+    tables, 0 legacy `table.rs` tables; layout tables are now the primary
+    path. See [`table-parity-2026-11-03.md`](../table-parity-2026-11-03.md).
+- Remaining: Phase 5 default/cleanup and the Phase 6 document graph.
