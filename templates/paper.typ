@@ -455,7 +455,7 @@
     indent: 5mm,
     spacing: 3.2mm,
   )
-  set raw(tab-size: 2)
+  set raw(tab-size: 2, theme: none)
   show raw.where(block: true): it => block(
     fill: sand,
     stroke: (left: 1.4pt + gold),

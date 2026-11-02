@@ -5,7 +5,7 @@ PDFs into source-traceable, paper-like study guides with a deterministic build,
 layout audit and local review tools. The engine is shared; each course is a
 self-contained guide bundle.
 
-**Current release: `v0.12.0`** — Linux archive, source builds for macOS and
+**Current release: `v0.12.1`** — Linux archive, source builds for macOS and
 Windows, and a noncommercial license.
 
 - Repository: <https://github.com/Aylmz0/folisift>
@@ -68,8 +68,8 @@ pre-generated SVG and never execute D2.
 ### Manual archive
 
 ```bash
-tar -xzf folisift-v0.12.0-linux-x86_64.tar.gz
-sha256sum -c folisift-v0.12.0-linux-x86_64.tar.gz.sha256
+tar -xzf folisift-v0.12.1-linux-x86_64.tar.gz
+sha256sum -c folisift-v0.12.1-linux-x86_64.tar.gz.sha256
 ./folisift doctor
 ```
 

@@ -35,6 +35,12 @@ python3 scripts/check-reading-order.py \
   output/PD3_Calisma_Ozeti.pdf \
   output/PD2_Revizyon.pdf \
   output/PD2_LISP_Bilgi_Organizatoru.pdf
+python3 scripts/check-component-contrast.py --strict \
+  output/PD0-PD1_Calisma_Ozeti.pdf \
+  output/PD2_Calisma_Ozeti.pdf \
+  output/PD3_Calisma_Ozeti.pdf \
+  output/PD2_Revizyon.pdf \
+  output/PD2_LISP_Bilgi_Organizatoru.pdf
 python3 scripts/check-production-report.py >/dev/null
 
 sha256sum \

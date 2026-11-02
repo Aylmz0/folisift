@@ -58,24 +58,17 @@ Result:
 |---|---:|---:|
 | `PD0-PD1` | 1876 | 0 |
 | `PD2` | 2173 | 0 |
-| `PD3` | 2114 | 52 |
+| `PD3` | 2031 | 0 |
 | Revision | 241 | 0 |
 | Organiser | 98 | 0 |
 
-All 52 findings are code syntax colours in `PD3` on the `code_bg` surface:
-
-- 42 punctuation spans at `#D73948` on `#F8E8D8` → **3.84:1**
-- 6 comment spans at `#74747C` → **3.87:1**
-- 4 keyword spans at `#4B69C6` → **4.24:1**
-
-The brand accent `#8A3E2F` would be **6.24:1** on the same surface. Fixing
-this means changing the Typst raw-theme colours, which changes every exam PDF
-hash. That is a deliberate design change, not part of the parsing/linking
-work, so the current immutable exam set keeps its hashes.
+The earlier code-token findings were cleared by disabling Typst's default raw
+syntax-highlighting colours (`set raw(theme: none)`), so code inherits the
+body ink colour on the sand surface. The strict contrast check now passes and
+runs in `make exam-check`.
 
 Use `make component-contrast-check` for the report and
-`make component-contrast-strict` when the code theme is fixed. The strict
-target is expected to fail until then.
+`make component-contrast-strict` for the gate.
 
 ## 3. Multi-page overflow
 

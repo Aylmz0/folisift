@@ -6,6 +6,7 @@ table.
 
 | Tag | Date | Build | Commit | PDFium | What changed |
 |---|---|---:|---|---|---|
+| `v0.12.1` | 2026-11-03 | 140 | `c97fe65` | `chromium/8058` | Accessible monochrome code blocks, strict component-contrast gate and release documentation corrections |
 | `v0.12.0` | 2026-11-03 | 136 | `9b0bfb8a6d12206c935ac8f95ded161fdcb31f4d` | `chromium/8058` | Section-level source scope, deterministic document graph, local semantic links, noncommercial license, output identity and tagged reading-order/contrast checks |
 | `v0.9.0` | 2026-10-30 | 100 | `2a601794355690176dc0de2d87105a088a473a2a` | `chromium/8058` | Reader/professional styles, linked TOC, canonical/visual gates, adaptive ranges |
 | `v0.8.0` | 2026-10-29 | 87 | `be98e0ce17a504c4341096e48c47475f62c163f2` | `chromium/8058` | MCP object structuredContent, schema 3, public install |
@@ -24,6 +25,10 @@ table.
 | `v0.1.0` | 2026-10-26 | 16 | `fb7fe59de483f8e4e88d4346cb10f4c91f3445e2` | `chromium/8058` | First Rust/Typst/MCP release; 23-page reference guide, coverage 13/13; Python engine removed |
 
 ## Notes
+
+- `v0.12.1` disables Typst's default raw syntax-highlighting colours so code
+  keeps the body ink contrast, makes the component-contrast check strict in
+  `make exam-check`, and refreshes the release documentation.
 
 - `v0.12.0` adds section-level `source_scope`, the deterministic
   `document-graph.json` and `graph` CLI/MCP surface, local Model2Vec links with
