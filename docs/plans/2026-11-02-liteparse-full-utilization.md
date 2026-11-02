@@ -277,7 +277,9 @@ citation -> source page
 
 Semantic edges are a separate decision. They must not be added to the MCP
 server or the build gate. See
-[`document-graph-tooling-review-2026-11-02.md`](../document-graph-tooling-review-2026-11-02.md).
+[`document-graph-tooling-review-2026-11-02.md`](../document-graph-tooling-review-2026-11-02.md)
+and the lightweight helper evaluation in
+[`lightweight-semantic-linking-research-2026-11-03.md`](../lightweight-semantic-linking-research-2026-11-03.md).
 
 ## 6. Tests and gates
 

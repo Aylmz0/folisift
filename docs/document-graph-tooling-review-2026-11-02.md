@@ -422,7 +422,9 @@ for risk framing, not for proving quality.
   <https://www.reddit.com/r/ObsidianMD/comments/1tnxv2q/plugin_showcase_semantic_autolinker_generate/>
 
 The recurring signal supports the same design: deterministic structure first,
-semantic links as proposals, human review before they affect content.
+semantic links as proposals, human review before they affect content. For the
+small local helper option (BM25 + model2vec-rs), see
+[`lightweight-semantic-linking-research-2026-11-03.md`](lightweight-semantic-linking-research-2026-11-03.md).
 
 ## 9. Sources
 
