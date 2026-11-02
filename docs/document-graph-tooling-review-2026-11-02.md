@@ -191,6 +191,24 @@ workspace/S3-style document handling, not a small Rust component.
 Fit: worth a separate pilot if the graph becomes a product; too heavy for the
 first experiment.
 
+### TrustGraph
+
+TrustGraph is an Apache-2.0 FOSS context backend. Its PDF extraction path is
+explicitly page-aware:
+
+```text
+Document → Pages → Chunks → Triples/Embeddings
+```
+
+The page and chunk nodes are stored in the same graph as extracted facts, and
+each triple is linked back to its immediate chunk. Its documentation describes
+this as extraction-time provenance: a fact can be traversed back to its exact
+page/chunk instead of only its source file.
+
+Fit: the closest ready FOSS platform to Folisift's page-level requirement, but
+it brings a Docker/Pulsar/graph-database deployment and an LLM extraction
+pipeline. It is a pilot candidate, not a small dependency.
+
 ### InfraNodus
 
 InfraNodus builds text networks, topic clusters and content-gap reports through
@@ -231,6 +249,7 @@ second parser, not a small addition.
 | **txtai** | Graph/vector | Row metadata; no page contract | Optional/LLM examples | Related-section backlinks; page schema DIY |
 | **GraphRAG SDK** | Yes | PDF loader; citation support; page metadata needs checking | Yes | Complete but FalkorDB-heavy |
 | **WhyHow KG Studio** | Yes | Platform ingestion; page behavior needs pilot | Yes | Self-hosted but heavy |
+| **TrustGraph** | Yes | Document → page → chunk → triple DAG | Yes | Closest FOSS page-provenance platform; heavy deployment |
 | **InfraNodus** | Text network | No page contract; hosted API | Service-side | Topics/gaps, not citation graph |
 | **RAGFlow** | GraphRAG deprecated | Parser has citations; graph feature moving | Yes | Do not target its old GraphRAG |
 | **PaperQA2** | No | Page-level citations | Yes for answers | Research QA, not graph |
@@ -324,11 +343,44 @@ chunks is a reasonable experiment.
    new MCP tool.
 
 The user's idea is sound at the **authoring intelligence** layer. The mistake
-would be treating a generic graph extractor as the source of truth. Folisift's
+would be treating a generic graph extractor as the source of truth. The
+implementation sequence for the structural half is
+[`plans/2026-11-02-liteparse-full-utilization.md`](plans/2026-11-02-liteparse-full-utilization.md). Folisift's
 advantage is page-level auditability; the graph must inherit that, not bypass
 it.
 
-## 8. Sources
+## 8. Community signals from Reddit
+
+These are practitioner anecdotes, not controlled benchmarks. They are useful
+for risk framing, not for proving quality.
+
+- **LightRAG vs GraphRAG:** a recurring comparison is that LightRAG is cheaper
+  and easier to update incrementally, while its graph can feel less coherent;
+  extraction quality depends heavily on the prompt, source type and model.
+  <https://www.reddit.com/r/Rag/comments/1jtdrtt/graphrag_vs_lightrag/>
+- **Graph RAG vs flat RAG for PDF Q&A:** one practitioner with LightRAG +
+  Neo4j + Milvus reported that a plain Docling + embedding setup answered
+  document questions better; the graph was "more brittle" and missed context.
+  <https://www.reddit.com/r/Rag/comments/1qyvjt1/lightrag_graph_rag_performing_worse_than_open_web/>
+- **Cost:** multiple threads describe GraphRAG's indexing cost as driven by
+  large numbers of LLM calls; graph storage is not the expensive part.
+  <https://www.reddit.com/r/LLMDevs/comments/1is4pat/graphrag_isnt_just_a_technique_its_a_paradigm/>
+  <https://www.reddit.com/r/Rag/comments/1mkqjjq/my_experience_with_graphrag/>
+- **Messy PDF extraction:** practitioners warn that entity extraction from
+  regulatory/technical PDFs can produce noisy entities and relations unless the
+  extraction schema and entity resolution are controlled.
+  <https://www.reddit.com/r/LocalLLaMA/comments/1qreog0/how_to_create_a_knowledge_graph_from_100s_of/>
+- **Obsidian-style automatic links:** users value local/offline operation and
+  review-before-write. Successful projects combine deterministic title/alias
+  matching with local embeddings, and let the user approve links rather than
+  silently rewriting notes.
+  <https://www.reddit.com/r/ObsidianMD/comments/1s46wxu/i_built_a_tool_that_automatically_adds_semantic/>
+  <https://www.reddit.com/r/ObsidianMD/comments/1tnxv2q/plugin_showcase_semantic_autolinker_generate/>
+
+The recurring signal supports the same design: deterministic structure first,
+semantic links as proposals, human review before they affect content.
+
+## 9. Sources
 
 - Microsoft GraphRAG indexing methods and outputs:
   <https://github.com/microsoft/graphrag/blob/main/docs/index/methods.md>
@@ -350,6 +402,8 @@ it.
   <https://github.com/neuml/txtai>
 - GraphRAG SDK:
   <https://github.com/falkordb/graphrag-sdk>
+- TrustGraph provenance:
+  <https://github.com/trustgraph-ai/trustgraph/blob/master/docs/tech-specs/extraction-time-provenance.md>
 - WhyHow Knowledge Graph Studio:
   <https://github.com/whyhow-ai/knowledge-graph-studio>
 - InfraNodus Graph View:
