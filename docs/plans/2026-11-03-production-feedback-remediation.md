@@ -1,7 +1,7 @@
 # Production feedback remediation plan — 2026-11-03
 
-- **Status:** Active; v0.14.0 closes the M2/M3 workflow core, M4 depth remains
-  opt-in and partially implemented
+- **Status:** Active; v0.14.0 closes the M2/M3 workflow core, W2/W13 and
+  engine-depth W15–W17 remain partial
 - **Source:** [`docs/FOLISIFT-GERI-BILDIRIM.md`](../FOLISIFT-GERI-BILDIRIM.md)
 - **Baseline:** Folisift 0.12.4, build 143, MCP schema 8
 - **Purpose:** turn every finding in the production feedback into an owned,
@@ -18,10 +18,10 @@ testable subset and a named remaining gap; they are not claimed complete.
 | Workstream | Status in v0.14.0 | Evidence / remaining gap |
 |---|---|---|
 | W1 coverage manifest | Shipped | `coverage-manifest` CLI/MCP, manifest-first build, page-accurate coverage report, tests |
-| W2 layout continuity | Partial | glossary group flow, compact tables, role-aware underfill; full chapter/columns/diagram keep options remain |
-| W3 diagnostics and draft | Partial | checked builds stage a draft; typed `Diagnostic` envelope remains |
+| W2 layout continuity | Partial | chapter/columns/table/diagram keep options, glossary flow and role-aware underfill; `toc_depth`/include-exclude and columnbreak semantics remain |
+| W3 diagnostics and draft | Shipped (core) | `Diagnostic` code/envelope, `E_MARKDOWN` line + directive stack, `_draft.pdf` + `draft_path` |
 | W4 D2 decision support | Shipped (core) | 24 nodes, 40 edges, depth 8, `decision`, `tala/dagre/elk`, tests |
-| W5 Turkish headings | Partial | glued headings `1.İş`/`5.2.İş`/`13.4.Tutulacak`, `headings.review.md`; full TOC reconciliation remains |
+| W5 Turkish headings | Shipped (core) | glued headings, `headings.review.md`, TOC/body mismatch rows, 1-based public pages |
 | W6 style compatibility | Shipped (core) | matrix filtering, `irac+law` → reader/accessible, page estimate, restyle, theme/style check |
 | W7 MCP surface and QA | Shipped (core) | `qa_guide`, `audit_guide`, profiles, resources pagination, outline pagination, table extract, 31 tools |
 | W8 IRAC scaffold | Shipped (core) | 10 cases, `###` levels, `source-headings.md`, existing-content preservation |
@@ -29,7 +29,7 @@ testable subset and a named remaining gap; they are not claimed complete.
 | W10 page roles | Shipped (core) | `PageRole`, TOC/chapter/figure/table exemptions, figure/table-only and chapter-split lists |
 | W11 graph and links | Shipped (core) | heading nodes, `query`/`path`/`explain`, link heading labels |
 | W12 claims and cards | Shipped (core) | section/severity/missing citation, noise filter, default intervals, empty warning, `verify_citations` |
-| W13 page budget UX | Partial | `budget` command, section attribution, capped search context; incremental analysis reuse remains |
+| W13 page budget UX | Partial | `budget` command, section attribution, capped search context and incremental section hashes; parse/brief reuse remains |
 | W14 context retrieval | Shipped (core) | briefs, section read, `source_brief`, `source_topics`, `guide_plan`, `visual_brief`, `citation_snippet`, `cost_report` |
 | W15 LiteParse depth | Partial | complexity/OCR policy and candidates in `source_brief`; typed metadata/vector/structure APIs remain |
 | W16 D2 depth | Partial | `dagre`/`elk` layouts and manifest recording; classes/tooltips/per-container direction remain |

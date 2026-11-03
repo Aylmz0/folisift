@@ -1713,7 +1713,13 @@ impl FolisiftServer {
             },
         )
         .await
-        .map_err(|error| error.to_string())?;
+        .map_err(|error| {
+            let diagnostic = folisift_core::Diagnostic::from_message(&error.to_string());
+            format!(
+                "{error}\ndiagnostic: {}",
+                serde_json::to_string(&diagnostic).unwrap_or_default()
+            )
+        })?;
         let coverage = outcome
             .coverage
             .as_ref()
@@ -1734,6 +1740,7 @@ impl FolisiftServer {
             "cache_hit": outcome.rendered.cache_hit,
             "style": outcome.style,
             "style_rationale": outcome.style_rationale,
+            "incremental": outcome.incremental,
             "warnings": outcome.rendered.warnings.len(),
             "stats": content_stats(&outcome.markdown),
             "coverage": coverage,
@@ -1952,7 +1959,11 @@ impl FolisiftServer {
         let inventory = self.load_or_analyze_inventory(&guide).await?;
         let k = params.k.unwrap_or(8).clamp(1, 30);
         let topics = source_topics(&inventory, k);
-        Ok(Json(json!({"guide": guide.slug, "topics": topics})))
+        Ok(Json(json!({
+            "guide": guide.slug,
+            "method": "heading-terms",
+            "topics": topics,
+        })))
     }
 
     #[tool(

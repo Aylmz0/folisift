@@ -74,6 +74,9 @@ struct RenderConfig {
     table_source: Option<String>,
     table_id: Option<String>,
     table_number: bool,
+    table_keep_with_next: bool,
+    table_allow_page_break: bool,
+    table_min_space_mm: Option<f32>,
     figure_label: String,
     toc_label: String,
     table_label: String,
@@ -99,6 +102,9 @@ impl Default for RenderConfig {
             table_source: None,
             table_id: None,
             table_number: true,
+            table_keep_with_next: false,
+            table_allow_page_break: false,
+            table_min_space_mm: None,
             figure_label: "Şekil".to_string(),
             toc_label: "İÇİNDEKİLER".to_string(),
             table_label: "Tablo".to_string(),
@@ -384,6 +390,8 @@ fn markdown_to_typst_with(markdown: &str, config: &RenderConfig) -> Result<Strin
                     out.push_str("\n\n");
                 }
                 "front" => {
+                    // A front note may contain one table (the pilot guides do).
+                    // Documented form: close the table first, then close front.
                     let inner_typst = markdown_to_typst_with(&inner_markdown, config)?;
                     out.push_str(&format!(
                         "#front(kicker: {}, title: {}, lead: {})[{inner_typst}]\n\n",
@@ -415,7 +423,20 @@ fn markdown_to_typst_with(markdown: &str, config: &RenderConfig) -> Result<Strin
                 }
                 "columns" => {
                     let inner_typst = markdown_to_typst_with(&inner_markdown, config)?;
-                    out.push_str(&format!("#two_col[{inner_typst}]\n\n"));
+                    let mut args = Vec::new();
+                    for key in ["flow", "keep_with_next"] {
+                        if let Some(value) = attr(&attrs, key) {
+                            args.push(format!("{key}: {}", value == "true"));
+                        }
+                    }
+                    if let Some(value) = attr(&attrs, "min_rows_before_break") {
+                        args.push(format!("min_rows_before_break: {value}"));
+                    }
+                    if args.is_empty() {
+                        out.push_str(&format!("#two_col[{inner_typst}]\n\n"));
+                    } else {
+                        out.push_str(&format!("#two_col({})[{inner_typst}]\n\n", args.join(", ")));
+                    }
                 }
                 "diagram" => {
                     if !inner_markdown.trim().is_empty() {
@@ -448,14 +469,19 @@ fn markdown_to_typst_with(markdown: &str, config: &RenderConfig) -> Result<Strin
                             ),
                         });
                     }
-                    out.push_str(&format!(
-                        "#figure(fitted_image({}, width: {}, alt: {}), caption: [{}], supplement: [{}], numbering: \"1\")\n\n",
+                    let figure = format!(
+                        "#figure(fitted_image({}, width: {}, alt: {}), caption: [{}], supplement: [{}], numbering: \"1\")",
                         typst_string(&asset.path),
                         width,
                         typst_string(&asset.alt),
                         caption_typst(&asset.caption),
                         typst_string(&config.figure_label),
-                    ));
+                    );
+                    if attr(&attrs, "keep_with_next") == Some("true") {
+                        out.push_str(&format!("#block(sticky: true)[{figure}]\n\n"));
+                    } else {
+                        out.push_str(&format!("{figure}\n\n"));
+                    }
                 }
                 "table" => {
                     let mut table_config = config.clone();
@@ -488,6 +514,25 @@ fn markdown_to_typst_with(markdown: &str, config: &RenderConfig) -> Result<Strin
                     {
                         table_config.table_number =
                             !matches!(value.trim().to_lowercase().as_str(), "false" | "0" | "no");
+                    }
+                    if let Some(value) = attr(&attrs, "keep_with_next") {
+                        table_config.table_keep_with_next = value == "true";
+                    }
+                    if let Some(value) = attr(&attrs, "allow_page_break") {
+                        table_config.table_allow_page_break = value == "true";
+                    }
+                    if let Some(value) = attr(&attrs, "min_space_mm") {
+                        let mm: f32 = value.parse().map_err(|_| Error::Markdown {
+                            line: start_line,
+                            message: format!("table min_space_mm is not a number: {value}"),
+                        })?;
+                        if !(0.0..=100.0).contains(&mm) {
+                            return Err(Error::Markdown {
+                                line: start_line,
+                                message: format!("table min_space_mm out of range: {value}"),
+                            });
+                        }
+                        table_config.table_min_space_mm = Some(mm);
                     }
                     out.push_str(&markdown_to_typst_with(&inner_markdown, &table_config)?);
                 }
@@ -547,6 +592,17 @@ fn chapter_call(attrs: &BTreeMap<String, String>) -> String {
     }
     if let Some(value) = attr(attrs, "subs") {
         args.push(format!("subs: {}", value == "true"));
+    }
+    for key in [
+        "keep_with_next",
+        "break_before",
+        "break_after",
+        "allow_split",
+        "full_page_opener",
+    ] {
+        if let Some(value) = attr(attrs, key) {
+            args.push(format!("{key}: {}", value == "true"));
+        }
     }
     format!("#chapter({})", args.join(", "))
 }
@@ -768,6 +824,9 @@ struct Renderer {
     table_source: Option<String>,
     table_id: Option<String>,
     table_number: bool,
+    table_keep_with_next: bool,
+    table_allow_page_break: bool,
+    table_min_space_mm: Option<f32>,
     figure_label: String,
     table_label: String,
 }
@@ -788,6 +847,9 @@ impl Renderer {
             table_source: config.table_source.clone(),
             table_id: config.table_id.clone(),
             table_number: config.table_number,
+            table_keep_with_next: config.table_keep_with_next,
+            table_allow_page_break: config.table_allow_page_break,
+            table_min_space_mm: config.table_min_space_mm,
             figure_label: config.figure_label.clone(),
             table_label: config.table_label.clone(),
         }
@@ -1079,6 +1141,9 @@ impl Renderer {
                 self.table_id.as_deref(),
                 glossary,
                 self.table_number,
+                self.table_keep_with_next,
+                self.table_allow_page_break,
+                self.table_min_space_mm,
             ));
         }
         self.out.push_str("\n\n");
@@ -1129,6 +1194,9 @@ fn table_typst(
     id: Option<&str>,
     glossary: bool,
     number: bool,
+    keep_with_next: bool,
+    allow_page_break: bool,
+    min_space_mm: Option<f32>,
 ) -> String {
     let columns = header
         .len()
@@ -1174,9 +1242,10 @@ fn table_typst(
         let caption = caption.map_or_else(|| "none".to_string(), typst_string);
         let source = source.map_or_else(|| "none".to_string(), typst_string);
         format!(
-            "#table_block(caption: {caption}, source: {source}, label: {}, number: {})[{}]",
+            "#table_block(caption: {caption}, source: {source}, label: {}, number: {}, keep_with_next: {keep_with_next}, allow_page_break: {allow_page_break}, min_space_mm: {})[{}]",
             typst_string(table_label),
             number,
+            min_space_mm.map_or_else(|| "none".to_string(), |value| format!("{value}")),
             out
         )
     } else {
@@ -1282,6 +1351,17 @@ mod tests {
     }
 
     #[test]
+    fn table_placement_options_are_emitted() {
+        let typst = markdown_to_typst(
+            "::: table caption=\"T\" keep_with_next=\"true\" allow_page_break=\"true\" min_space_mm=\"6\"\n| A | B |\n|---|---|\n| 1 | 2 |\n:::\n",
+        )
+        .expect("typst");
+        assert!(typst.contains("keep_with_next: true"), "{typst}");
+        assert!(typst.contains("allow_page_break: true"));
+        assert!(typst.contains("min_space_mm: 6"));
+    }
+
+    #[test]
     fn caption_numbering_can_be_disabled_without_dropping_the_id() {
         let typst = markdown_to_typst(
             "::: table caption=\"Şekil 2’nin dalları\" caption_number=\"false\" id=\"tab-branches\"\n| A | B |\n|---|---|\n| 1 | 2 |\n:::\n",
@@ -1336,6 +1416,22 @@ mod tests {
         assert!(typst.contains("widths: (18%, 32%, 18%, 32%)"), "{typst}");
         assert!(typst.contains("#glossary_group["));
         assert!(typst.contains("Sözdizimi"));
+    }
+
+    #[test]
+    fn chapter_and_columns_layout_options_are_emitted_or_rejected() {
+        let typst = markdown_to_typst(
+            "::: chapter title=\"Bölüm\" keep_with_next=\"false\" break_before=\"true\" break_after=\"true\" allow_split=\"true\" full_page_opener=\"true\"\n:::\n\n::: columns flow=\"true\" keep_with_next=\"false\" min_rows_before_break=\"2\"\nA\n:::",
+        )
+        .expect("typst");
+        assert!(typst.contains("keep_with_next: false"));
+        assert!(typst.contains("break_before: true"));
+        assert!(typst.contains("break_after: true"));
+        assert!(typst.contains("allow_split: true"));
+        assert!(typst.contains("full_page_opener: true"));
+        assert!(
+            typst.contains("#two_col(flow: true, keep_with_next: false, min_rows_before_break: 2)")
+        );
     }
 
     #[test]

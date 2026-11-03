@@ -101,9 +101,10 @@
 }
 
 // ---- tables -------------------------------------------------------------
-#let table_block(caption: none, source: none, label: "Tablo", number: true, body) = block(
-  breakable: false,
-  above: 3mm,
+#let table_block(caption: none, source: none, label: "Tablo", number: true, keep_with_next: false, allow_page_break: false, min_space_mm: none, body) = block(
+  breakable: allow_page_break,
+  sticky: keep_with_next,
+  above: if min_space_mm == none { 3mm } else { min_space_mm * 1mm },
   below: 4mm,
 )[
   #if caption != none [
@@ -411,9 +412,14 @@
   flow: false,
   compact: false,
   subs: true,
+  keep_with_next: true,
+  break_before: false,
+  break_after: false,
+  allow_split: false,
+  full_page_opener: false,
 ) = {
-  if not flow {
-    pagebreak(weak: true)
+  if not flow or break_before or full_page_opener {
+    pagebreak(weak: not (break_before or full_page_opener))
   }
   running_entry(running)
   toc_entry(level: 1, body: if toc == none { title } else { toc }, part: part, subs: subs)
@@ -446,9 +452,15 @@
       #text(font: "Inter", size: source-size, tracking: 0.04em, fill: soft)[#range]
     ]
   ]
+  if break_after {
+    pagebreak(weak: false)
+  }
 }
 
-#let two_col(body) = block[
+#let two_col(flow: false, keep_with_next: false, min_rows_before_break: 0, body) = block(
+  breakable: flow,
+  sticky: keep_with_next,
+)[
   #set text(size: table-size)
   #set par(justify: false, leading: 0.66em, spacing: 2mm)
   #show block: set block(above: 2.8mm, below: 0pt)

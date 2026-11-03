@@ -5,7 +5,7 @@ pub enum Error {
     #[error("frontmatter error: {0}")]
     Frontmatter(String),
 
-    #[error("Markdown error at line {line}: {message}")]
+    #[error("E_MARKDOWN at line {line}: {message}")]
     Markdown { line: usize, message: String },
 
     #[error("Typst error: {0}")]

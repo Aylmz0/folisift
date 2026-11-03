@@ -9,6 +9,7 @@ guides/*/data/blocks/
 guides/*/data/document-links.json
 guides/*/data/document-links.md
 guides/*/data/document-graph.json
+guides/*/data/incremental-sections.json
 data/blocks/
 guides/*/data/cache/
 data/pages/

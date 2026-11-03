@@ -6,6 +6,7 @@ table.
 
 | Tag | Date | Build | Commit | PDFium | What changed |
 |---|---|---:|---|---|---|
+| `v0.14.1` | 2026-11-04 | 157 | pending | `chromium/8058` | Layout-continuity options, typed Diagnostic envelope, draft persistence, TOC/body heading review, table placement options and incremental section hashes |
 | `v0.14.0` | 2026-11-04 | 154 | `99f301428baf3f2e845cd9c523ccc5f4715f8cdc` | `chromium/8058` | M2/M3 workflow core: QA/audit tools, MCP profiles, style estimate/restyle, IRAC scaffold, page roles, graph query/path/explain, claims severity, guide plan/briefs/topics/cost, D2 dagre/elk, schema 10 with 31 tools |
 | `v0.13.0` | 2026-11-03 | 152 | `afb40ad3b1dbd669297731e5c90dde3d6cac24fe` | `chromium/8058` | Reviewed coverage manifest, section brief/read context tools, D2 24-node/decision support, four-column glossary tables, MCP schema 9 with 21 tools |
 | `v0.12.4` | 2026-11-03 | 143 | `8038559` | `chromium/8058` | Hotfix: revision template accepts per-diagram width; compact figure sizing applies to revision diagrams too |
@@ -30,6 +31,13 @@ table.
 | `v0.1.0` | 2026-10-26 | 16 | `fb7fe59de483f8e4e88d4346cb10f4c91f3445e2` | `chromium/8058` | First Rust/Typst/MCP release; 23-page reference guide, coverage 13/13; Python engine removed |
 
 ## Notes
+
+- `v0.14.1` adds chapter/columns/table/diagram continuity options
+  (`keep_with_next`, `break_before`, `break_after`, `allow_split`,
+  `full_page_opener`, `allow_page_break`, `min_space_mm`), a typed
+  `Diagnostic` envelope with `E_MARKDOWN` directive stacks, checked-build
+  `_draft.pdf` persistence with `draft_path`, TOC/body heading review rows and
+  incremental section hashes. The release remains schema 10 with 31 tools.
 
 - `v0.14.0` adds the M2/M3 workflow core: one `qa_guide` release report,
   `audit_guide`, MCP tool profiles (`core` is ten tools; active profiles stay

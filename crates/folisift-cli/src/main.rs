@@ -615,6 +615,10 @@ async fn main() -> ExitCode {
         Ok(()) => ExitCode::SUCCESS,
         Err(error) => {
             eprintln!("error: {error}");
+            let diagnostic = folisift_core::Diagnostic::from_message(&error.to_string());
+            if let Ok(json) = serde_json::to_string(&diagnostic) {
+                eprintln!("diagnostic: {json}");
+            }
             ExitCode::FAILURE
         }
     }
@@ -1568,6 +1572,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                     "content_hash": outcome.rendered.content_hash,
                     "cache_hit": outcome.rendered.cache_hit,
                     "style": outcome.style,
+                    "incremental": outcome.incremental,
                     "warnings": outcome.rendered.warnings.len(),
                     "revision_coverage": outcome.revision_coverage.then_some(true),
                     "coverage": coverage,

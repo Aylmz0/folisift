@@ -49,6 +49,18 @@ pub struct BuildOutcome {
     pub revision_coverage: bool,
     pub genre_passed: bool,
     pub passed: Option<bool>,
+    pub incremental: Option<serde_json::Value>,
+}
+
+fn fail_with_draft(message: String, staged: &mut Option<StagedPdf>) -> Error {
+    let mut message = message;
+    if let Some(staged) = staged.take() {
+        match staged.persist_draft() {
+            Ok(path) => message.push_str(&format!("\ndraft_path: {}", path.display())),
+            Err(error) => message.push_str(&format!("\ndraft could not be kept: {error}")),
+        }
+    }
+    Error::Message(message)
 }
 
 pub async fn build(workspace: &Workspace, request: BuildRequest) -> Result<BuildOutcome> {
@@ -68,6 +80,7 @@ pub async fn build(workspace: &Workspace, request: BuildRequest) -> Result<Build
         None => guide.output.clone(),
     };
     let markdown = std::fs::read_to_string(&content_path)?;
+    let incremental = incremental_report(&guide, &markdown)?;
     let style = guide.style();
     let source_names = guide
         .config
@@ -95,7 +108,7 @@ pub async fn build(workspace: &Workspace, request: BuildRequest) -> Result<Build
         },
     )?;
 
-    let staged = if request.check {
+    let mut staged = if request.check {
         Some(StagedPdf::create(&output_path, &rendered.pdf)?)
     } else {
         write_pdf(&output_path, &rendered.pdf)?;
@@ -114,11 +127,14 @@ pub async fn build(workspace: &Workspace, request: BuildRequest) -> Result<Build
     if request.check {
         let issues = gates::genre_issues(&style.structure, &markdown);
         if !issues.is_empty() {
-            return Err(Error::Message(format!(
-                "{} grammar failed:\n- {}",
-                style.structure,
-                issues.join("\n- ")
-            )));
+            return Err(fail_with_draft(
+                format!(
+                    "{} grammar failed:\n- {}",
+                    style.structure,
+                    issues.join("\n- ")
+                ),
+                &mut staged,
+            ));
         }
         let audit_options = audit_options_for(workspace, &style)?;
         let report = folisift_parse::audit_pdf_with(audit_path, None, audit_options)?;
@@ -128,7 +144,10 @@ pub async fn build(workspace: &Workspace, request: BuildRequest) -> Result<Build
                 .iter()
                 .map(|page| page.page)
                 .collect::<Vec<_>>();
-            return Err(Error::Message(format!("underfilled body pages: {pages:?}")));
+            return Err(fail_with_draft(
+                format!("underfilled body pages: {pages:?}"),
+                &mut staged,
+            ));
         }
         let mut page_issues = gates::page_count_issues(&style.structure, report.pages);
         page_issues.extend(gates::page_range_issues(
@@ -136,7 +155,7 @@ pub async fn build(workspace: &Workspace, request: BuildRequest) -> Result<Build
             report.pages,
         ));
         if !page_issues.is_empty() {
-            return Err(Error::Message(page_issues.join("\n")));
+            return Err(fail_with_draft(page_issues.join("\n"), &mut staged));
         }
         layout = Some(report);
 
@@ -150,10 +169,13 @@ pub async fn build(workspace: &Workspace, request: BuildRequest) -> Result<Build
                     report.write_markdown(path)?;
                 }
                 if !report.passed {
-                    return Err(Error::Message(format!(
-                        "revision source coverage failed:\n- {}",
-                        report.issues.join("\n- ")
-                    )));
+                    return Err(fail_with_draft(
+                        format!(
+                            "revision source coverage failed:\n- {}",
+                            report.issues.join("\n- ")
+                        ),
+                        &mut staged,
+                    ));
                 }
                 revision_coverage = true;
             } else {
@@ -165,11 +187,14 @@ pub async fn build(workspace: &Workspace, request: BuildRequest) -> Result<Build
                     )?;
                     visual_passed = Some(report.passed);
                     if !report.passed {
-                        return Err(Error::Message(format!(
-                            "visual audit failed: {} missing, {} unresolved",
-                            report.missing.len(),
-                            report.unresolved.len()
-                        )));
+                        return Err(fail_with_draft(
+                            format!(
+                                "visual audit failed: {} missing, {} unresolved",
+                                report.missing.len(),
+                                report.unresolved.len()
+                            ),
+                            &mut staged,
+                        ));
                     }
                     visual = Some(report);
                 }
@@ -184,12 +209,15 @@ pub async fn build(workspace: &Workspace, request: BuildRequest) -> Result<Build
                     report.write_markdown(path)?;
                 }
                 if !report.passed {
-                    return Err(Error::Message(format!(
-                        "coverage gate failed: {}/{} headings missing, {} empty sections",
-                        report.missing,
-                        report.total,
-                        report.empty_sections.len()
-                    )));
+                    return Err(fail_with_draft(
+                        format!(
+                            "coverage gate failed: {}/{} headings missing, {} empty sections",
+                            report.missing,
+                            report.total,
+                            report.empty_sections.len()
+                        ),
+                        &mut staged,
+                    ));
                 }
                 coverage = Some(report);
             }
@@ -222,7 +250,59 @@ pub async fn build(workspace: &Workspace, request: BuildRequest) -> Result<Build
         revision_coverage,
         genre_passed: genre_ok,
         passed,
+        incremental: Some(incremental),
     })
+}
+
+fn incremental_report(guide: &Guide, markdown: &str) -> Result<serde_json::Value> {
+    let mut current = std::collections::BTreeMap::new();
+    let mut current_heading = String::from("(front)");
+    let mut current_body = String::new();
+    for line in markdown.lines() {
+        if let Some(heading) = line.strip_prefix("## ") {
+            current.insert(
+                current_heading.clone(),
+                folisift_render::content_hash(current_body.trim()),
+            );
+            current_heading = heading.trim().to_string();
+            current_body.clear();
+        } else {
+            current_body.push_str(line);
+            current_body.push('\n');
+        }
+    }
+    current.insert(
+        current_heading,
+        folisift_render::content_hash(current_body.trim()),
+    );
+    let path = guide.dir.join("data/incremental-sections.json");
+    let previous = std::fs::read_to_string(&path)
+        .ok()
+        .and_then(|text| {
+            serde_json::from_str::<std::collections::BTreeMap<String, String>>(&text).ok()
+        })
+        .unwrap_or_default();
+    let reused = current
+        .iter()
+        .filter(|(heading, hash)| previous.get(*heading) == Some(*hash))
+        .count();
+    let changed = current
+        .iter()
+        .filter(|(heading, hash)| previous.get(*heading) != Some(*hash))
+        .map(|(heading, _)| heading.clone())
+        .collect::<Vec<_>>();
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    let text = serde_json::to_string_pretty(&current)
+        .map_err(|error| Error::Message(format!("incremental report: {error}")))?;
+    std::fs::write(&path, text + "\n")?;
+    Ok(serde_json::json!({
+        "reused_sections": reused,
+        "rebuilt_sections": current.len().saturating_sub(reused),
+        "layout_recomputed": true,
+        "changed_headings": changed,
+    }))
 }
 
 /// Audit a guide PDF with the guide's own margins and typography.
@@ -383,6 +463,20 @@ impl StagedPdf {
         std::fs::rename(&self.path, &self.output)?;
         self.committed = true;
         Ok(())
+    }
+
+    /// Keep the staged PDF as `<name>_draft.pdf` when a check fails.
+    fn persist_draft(mut self) -> std::io::Result<PathBuf> {
+        let parent = self.output.parent().unwrap_or_else(|| Path::new("."));
+        let stem = self
+            .output
+            .file_stem()
+            .and_then(|value| value.to_str())
+            .unwrap_or("output");
+        let draft = parent.join(format!("{stem}_draft.pdf"));
+        std::fs::rename(&self.path, &draft)?;
+        self.committed = true;
+        Ok(draft)
     }
 }
 

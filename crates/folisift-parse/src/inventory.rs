@@ -162,6 +162,24 @@ impl Inventory {
                     status
                 ));
             }
+            for section in &source.sections {
+                if !source.headings.iter().any(|heading| {
+                    heading
+                        .heading
+                        .split_whitespace()
+                        .next()
+                        .unwrap_or_default()
+                        .trim_end_matches('.')
+                        == section.number
+                }) {
+                    out.push_str(&format!(
+                        "| {} | — | {} {} | — | TOC section missing in body |\n",
+                        source.filename,
+                        section.number,
+                        section.title.replace('|', "\\|")
+                    ));
+                }
+            }
         }
         out.push_str("\nReview rows are not a coverage claim; fix the source map or add a manual override.\n");
         out
@@ -360,5 +378,48 @@ mod tests {
         assert!(markdown.contains("**Toplam:** 2 slayt, 20 kelime, 1 düşük metinli slayt."));
         assert!(markdown.contains("| PD0.pdf | 2 | 20 | 1 |"));
         assert!(markdown.contains("| 2 | 0.1 Giriş |"));
+    }
+    #[test]
+    fn review_flags_toc_sections_missing_from_the_body() {
+        let inventory = Inventory::new(
+            120,
+            vec![SourceInventory {
+                path: "PD0.pdf".to_string(),
+                filename: "PD0.pdf".to_string(),
+                title: "Demo".to_string(),
+                pages: 4,
+                chars: 0,
+                words: 0,
+                low_text_threshold: 120,
+                source_digest: None,
+                low_text_pages: vec![],
+                headings: vec![Heading {
+                    heading: "1.1 Giriş".to_string(),
+                    page: 2,
+                    level: Some(2),
+                    block_id: None,
+                }],
+                layout: None,
+                sections: vec![
+                    CanonicalSection {
+                        number: "1.1".to_string(),
+                        title: "Giriş".to_string(),
+                        page: 2,
+                        origin: "toc".to_string(),
+                    },
+                    CanonicalSection {
+                        number: "1.2".to_string(),
+                        title: "Eksik bölüm".to_string(),
+                        page: 3,
+                        origin: "toc".to_string(),
+                    },
+                ],
+                page_map: vec![],
+            }],
+        );
+        let review = inventory.headings_review();
+        assert!(review.contains("1.1 Giriş"));
+        assert!(review.contains("TOC section missing in body"));
+        assert!(review.contains("1.2 Eksik bölüm"));
     }
 }

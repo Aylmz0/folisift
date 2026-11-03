@@ -6,6 +6,7 @@
 pub mod cards;
 pub mod claims;
 pub mod config;
+pub mod diagnostic;
 pub mod error;
 pub mod gates;
 pub mod genre;
@@ -18,6 +19,7 @@ pub mod version;
 pub use config::{
     Guide, GuideConfig, GuideSummary, SUPPORTED_SCHEMA_VERSIONS, StyleProfile, list_guides,
 };
+pub use diagnostic::{Diagnostic, ErrorCode};
 pub use error::{Error, Result};
 pub use paths::{Workspace, validate_slug};
 pub use scaffold::{ScaffoldOptions, scaffold};
