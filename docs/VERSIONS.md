@@ -6,7 +6,7 @@ table.
 
 | Tag | Date | Build | Commit | PDFium | What changed |
 |---|---|---:|---|---|---|
-| `v0.14.2` | 2026-11-04 | 159 | pending | `chromium/8058` | TOC depth/subs, table/diagram placement, per-group D2 direction, page-complete and OCR policy fields; W2/W13 close |
+| `v0.14.2` | 2026-11-04 | 159 | `afb574c66c81ecdd732c048993261346116f5b41` | `chromium/8058` | TOC depth/subs, table/diagram placement, per-group D2 direction, page-complete and OCR policy fields; W2/W13 close |
 | `v0.14.1` | 2026-11-04 | 157 | `87614fe25cc6e83ab73d889c223918b4ddc69fb8` | `chromium/8058` | Layout-continuity options, typed Diagnostic envelope, draft persistence, TOC/body heading review, table placement options and incremental section hashes |
 | `v0.14.0` | 2026-11-04 | 154 | `99f301428baf3f2e845cd9c523ccc5f4715f8cdc` | `chromium/8058` | M2/M3 workflow core: QA/audit tools, MCP profiles, style estimate/restyle, IRAC scaffold, page roles, graph query/path/explain, claims severity, guide plan/briefs/topics/cost, D2 dagre/elk, schema 10 with 31 tools |
 | `v0.13.0` | 2026-11-03 | 152 | `afb40ad3b1dbd669297731e5c90dde3d6cac24fe` | `chromium/8058` | Reviewed coverage manifest, section brief/read context tools, D2 24-node/decision support, four-column glossary tables, MCP schema 9 with 21 tools |
