@@ -6,6 +6,7 @@ table.
 
 | Tag | Date | Build | Commit | PDFium | What changed |
 |---|---|---:|---|---|---|
+| `v0.15.1` | 2026-11-04 | 175 | pending | `chromium/8058` | Model2Vec-backed `topics` CLI clustering with heading-term fallback |
 | `v0.15.0` | 2026-11-04 | 172 | `1f99c6bf84385673c6c8b730ba6a63f7badf9a9f` | `chromium/8058` | M5: opt-in LiteParse annotations/forms/structure/vector/complexity insights, D2 sketch rendering, MCP schema 11 with 32 tools |
 | `v0.14.6` | 2026-11-04 | 170 | `9a5c4a13a269db56efbff028bd8fdfd14740d7d5` | `chromium/8058` | Guide summaries expose guide_kind/source_count/case_count; authoring and architecture docs cover manifest, QA, glossary and continuity options |
 | `v0.14.5` | 2026-11-04 | 167 | `3f8c77564f1ce930f7bea3ab3ce72879fc200029` | `chromium/8058` | QA diagram count uses generated diagram assets only; architecture schema-2/3 wording corrected |
@@ -37,6 +38,10 @@ table.
 | `v0.1.0` | 2026-10-26 | 16 | `fb7fe59de483f8e4e88d4346cb10f4c91f3445e2` | `chromium/8058` | First Rust/Typst/MCP release; 23-page reference guide, coverage 13/13; Python engine removed |
 
 ## Notes
+
+- `v0.15.1` adds `folisift topics --guide <slug>`: greedy clustering over
+  heading embeddings from the bundled local Model2Vec model, with `--no-model`
+  as the deterministic heading-term fallback. No network or LLM call.
 
 - `v0.15.0` closes M5 optional polish. `folisift insights --source` and MCP
   `source_insights` expose annotations, AcroForm fields, tagged structure,

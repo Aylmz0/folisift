@@ -33,7 +33,7 @@ testable subset and a named remaining gap; they are not claimed complete.
 | W14 context retrieval | Shipped (core) | briefs, section read, `source_brief`, `source_topics`, `guide_plan`, `visual_brief`, `citation_snippet`, `cost_report` |
 | W15 LiteParse depth | Shipped | opt-in `insights` reports annotations, AcroForm fields, tagged structure, vector geometry, image refs and per-page complexity |
 | W16 D2 depth | Shipped | `dagre`/`elk`, per-group direction, manifest layout and opt-in sketch rendering |
-| W17 Model2Vec/reranker | Shipped | local Model2Vec links are the default; deterministic topic clustering is the fallback and the reranker remains opt-in |
+| W17 Model2Vec/reranker | Shipped | local Model2Vec links and `topics` clustering are the default; heading-term clustering is the fallback and the reranker remains opt-in |
 | W18 OCR policy | Shipped (policy) | OCR off by default, explicit candidates/reasons, no silent OCR |
 | W19 determinism/docs | Shipped (docs) | cookbook, release checklist, versioned gates |
 | W20 agent profiles | Shipped (core) | `fast`/`deep` profiles plus core/source/authoring/review |

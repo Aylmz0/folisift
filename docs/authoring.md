@@ -57,6 +57,16 @@ not run OCR, write files, or change coverage. The MCP flow reads source text in
 bounded chunks with `read_source` and can search it with `search_source`; the
 host LLM writes the prose.
 
+Cluster source headings with the bundled local Model2Vec model:
+
+```bash
+cargo run -p folisift-cli -- topics --guide pd3 --k 8
+cargo run -p folisift-cli -- topics --guide pd3 --k 8 --no-model
+```
+
+The default is local embeddings; `--no-model` is the deterministic heading-term
+fallback. Neither path sends text to a network.
+
 ## Choose a style
 
 Styles are engine-owned packs under `styles/`. `paper` is the frozen parity
