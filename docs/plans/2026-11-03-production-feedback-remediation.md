@@ -408,6 +408,9 @@ coverage_manifest { slug, action: build|read|update|validate, entries? }
   visual, cards, claims and diagrams and returns one compact report with
   `build`, `coverage`, `audit`, `visual`, `cards`, `claims`, `diagrams`,
   `warnings` and `passed`.
+- Add MCP tool profiles (`core`, `source`, `authoring`, `review`) and keep one
+  active profile at or below 15 tools; see W21. Do not expose the full future
+  tool catalog in every session.
 - Add `coverage_manifest`, `restyle_guide`, `style_estimate`, `table_extract`,
   `doctor`, and graph query/path/explain.
 - Align names: `styles` vs `style`; `diagram build` vs `save`/`render_plan`;
@@ -565,7 +568,7 @@ coverage_manifest { slug, action: build|read|update|validate, entries? }
 
 ### W14 — Context economics and agent-first retrieval
 
-**Findings:** §37.1–37.7, §38.4, §40.7, §41.6.
+**Findings:** §37.1–37.7, §38.4, §40.7, §41.6, §42.
 
 **Change**
 
@@ -758,7 +761,8 @@ Make the agent-first profile explicit and opt-in:
   "target_pages": "auto",
   "model2vec": {"clustering": true, "classification": true,
     "retrieval_top_k": 8, "max_length": 512},
-  "outputs": {"detail": "summary", "max_tokens": 1200, "format": "md+json"}
+  "outputs": {"detail": "summary", "max_tokens": 1200, "format": "md+json"},
+  "mcp": {"profile": "core", "max_active_tools": 15, "schema_budget": "5% context"}
 }
 ```
 
@@ -774,6 +778,89 @@ Make the agent-first profile explicit and opt-in:
 - `effort=fast` cuts source chars read and tool calls versus `deep` on the same
   guide without losing manifest coverage.
 - Any capability that changes output is recorded in the report; reruns match.
+
+### W21 — MCP context architecture
+
+**Findings:** §37.1–37.7, §38.4, §41.6, §42.
+
+**Evidence**
+
+| Source | Pattern | Folisift consequence |
+|---|---|---|
+| MCP client best practices | Progressive discovery; ~150k tokens of definitions vs ~2k on demand; code mode turns ~100k+ intermediate tokens into a small script/result | Do not load the full future catalog; keep a stable small profile |
+| MCP pagination spec | Opaque cursors for `tools/list`, `resources/list`, `resources/templates/list` | Every list/read surface gets cursor + `next` |
+| Context7 | Resolve → query; one concept per query | `source_topics` → `section_brief`; do not combine ten concepts |
+| GitHub MCP | Toolsets, dynamic toolsets, read-only, `fields`, `perPage` ≤100, line ranges | Task profiles, field selection, bounded pages |
+| Sentry MCP | Search returns a list; detail is a separate resource; limit/period/compact | `search_source` never doubles as full read |
+| Notion MCP | Search → page Markdown; block children cursor; Markdown beats block JSON | Resource reads return Markdown/brief, not raw blocks |
+| Playwright MCP | Snapshot `target`/`depth`, file output, image omission | Bound page/block payloads; write large output to a file |
+| Linear MCP | `first`/`after` cursor and `pageInfo` | Use cursor/`next` consistently |
+| Matt Pocock skills | Metadata → `SKILL.md` → linked files; smart zone ~150k; phase boundaries | Coordinator reads the smallest artifact that answers the question |
+
+**Change**
+
+- **Coordinator rule.** The host agent is the coordinator. Folisift supplies a
+  compact catalog/outline (`folisift://capabilities`) and explicit drill-down
+  tools; it never pushes the source PDF, full block JSON or a 10k-line Markdown
+  file by default.
+- **Tool profiles.** Add `folisift mcp --profile core|source|authoring|review`.
+  - `core` (default): `workspace_info`, `list_guides`, `guide_status`,
+    `prepare_guide`, `build_guide`, `audit_guide`, `qa_guide`, `read_source`,
+    `search_source` (≤10).
+  - `source`: `analyze_source`, `read_source`, `search_source`, `read_blocks`,
+    `section_brief`, `read_section`, `source_topics`, `visual_brief` (≤8).
+  - `authoring`: `prepare_guide`, `coverage_manifest`, `restyle_guide`,
+    `style_estimate`, `diagram`, `table_extract`, `guide_plan` (≤7).
+  - `review`: `links`, `graph`, `claims`, `cards`, `cost_report`,
+    `audit_guide`, `qa_guide`, `list_guides` (≤8).
+  A host connects the profile(s) needed for the task. No profile exceeds 15
+  tools; a profile whose serialized definitions exceed 5% of the context budget
+  must split.
+- **Stable tool list.** Choose the profile before the session and keep tool
+  order/schema stable. Do not enable/disable tools per turn: it invalidates
+  prompt caching. Append new definitions at the end only at a session boundary.
+  Do not implement one giant `folisift(action, args)` mega-tool; it hides
+  selection and observability. Use profiles and stable names.
+- **Resources before payloads.** Add read-only MCP resources:
+  - `folisift://guide/{slug}/outline`
+  - `folisift://guide/{slug}/coverage/{row}`
+  - `folisift://source/{id}/page/{page}`
+  - `folisift://source/{id}/heading/{number}`
+  Use `resources/list`/`resources/templates/list` with cursor and
+  `resources/read` for one resource. A resource read has a `max_tokens` cap and
+  returns Markdown or a brief, not raw block JSON.
+- **Hierarchy.** `source_topics` → `chapter_brief` → `section_brief` →
+  `heading_brief` → `read_section` → raw `read_source` only on explicit
+  request. `read_blocks` is a diagnostic tool, not a default context source.
+- **Output contract.** Every large result supports:
+  `detail: summary|normal|full`, `fields`, `max_tokens`, `cursor`/`next`,
+  `truncated`, `page_complete`. Large artifacts go to a file/resource and return
+  a path plus a summary. Images are omitted unless explicitly requested.
+- **Prompt-cache discipline.** The tools array is a cacheable prefix. Profiles
+  keep it short and unchanged; resources carry the variable data. Discovery
+  happens before the first turn, not mid-conversation.
+- **Programmatic-call compatibility.** Tool names, typed JSON outputs and
+  deterministic behavior must be stable so hosts that support code mode or
+  programmatic calling can compose calls without passing intermediates through
+  the model.
+- **Budget metrics.** Record `tool_schema_tokens`, `tool_result_tokens`,
+  `tool_calls`, `context_tokens`, `cache_read_tokens`, `source_chars_read` and
+  `source_chars_total` in `cost_report`.
+
+**Acceptance**
+
+- A default `core` session is ≤10 tools and tool definitions are ≤5% of the
+  configured context budget.
+- `source` profile can answer a section question without loading `authoring` or
+  `review` tools.
+- `resources/read` for one page/section returns a bounded Markdown brief, not
+  raw block JSON.
+- `read_source` returns `page_complete=false` and a cursor when a page is cut.
+- Two identical sessions with the same profile produce identical tool ordering
+  and no mid-session schema churn.
+- The benchmark records lower schema/result tokens than the current all-tools
+  baseline.
+
 
 ## 6. API surface
 
@@ -803,6 +890,21 @@ Make the agent-first profile explicit and opt-in:
 `data`; large responses support `detail`, `max_tokens`, `fields`, `format`.
 A MCP schema bump is required for the new tool set; old tools keep aliases
 until the next major version.
+
+**Resource surface**
+
+| URI | Read returns | Write |
+|---|---|---|
+| `folisift://capabilities` | profile/tool catalog, usage recipes and budgets | no |
+| `folisift://guide/{slug}/outline` | chapter/section/heading outline and counts | no |
+| `folisift://guide/{slug}/coverage/{row}` | one manifest row + evidence | no |
+| `folisift://source/{id}/page/{page}` | bounded page text or page brief | no |
+| `folisift://source/{id}/heading/{number}` | section brief + source page | no |
+| `folisift://guide/{slug}/report/{kind}` | audit/coverage/claims summary | no |
+
+`resources/list` and `resources/templates/list` use MCP cursors. `resources/read`
+never returns raw block JSON or unbounded source; the default is Markdown or a
+brief with `max_tokens`. Writes remain tools, never resources.
 
 ## 7. Data contracts
 
@@ -909,6 +1011,7 @@ Markdown parsing, Typst layout, D2 or PDF auditing.
 - W3 diagnostics + draft.
 - W4 D2 decision support.
 - W5 Turkish heading/page index.
+- W21 MCP profiles, resources, output budgets and stable tool list.
 - W14a `read_section`, hierarchical briefs, `cost_report`, `detail`/`max_tokens`.
 
 **Exit:** a 141-heading source cannot pass with fewer than 141 manifest rows;
@@ -1021,6 +1124,13 @@ opt-in flag.
 | A33 | `theme` vs `style.aesthetic` | one authority documented; mismatch is rejected |
 | A34 | workspace/list metadata | `guide_kind`, `case_count`, `source_count` documented |
 | A35 | agent-fast profile | rerun deterministic; fast uses fewer chars/tokens than deep |
+| A36 | MCP `core` profile | ≤10 tools; schema ≤5% of context budget |
+| A37 | MCP profile isolation | source task works without authoring/review tools |
+| A38 | resource pagination | `resources/list` cursor and bounded `resources/read` |
+| A39 | output contract | `detail`/`fields`/`max_tokens`/`next`/`truncated` work |
+| A40 | prompt cache stability | same profile has stable tool order; no mid-session churn |
+| A41 | no raw block dump | default read returns brief/Markdown, not full block JSON |
+| A42 | coordinator flow | analyze→topics→plan→brief→read→write→qa→restyle |
 
 ## 9.1 §34 evidence corpus and §35 smoke commands
 
@@ -1694,6 +1804,36 @@ semantic-link, OCR and engine-capability findings are not lost.
 | F-41.8-5 | Priority: conditional FastEmbed reranker | W17 | P2 |
 
 
+### 10.17 §42 — MCP context architecture research
+
+| ID | Finding | Workstream | Priority | Evidence |
+|---|---|---|---|---|
+| F-42-1 | MCP clients should expose progressive tool discovery, not full catalog upfront | W21/W7 | P0 | confirmed |
+| F-42-2 | MCP example: ~150k tokens of definitions vs ~2k on demand | W0/W21 | P1 | confirmed |
+| F-42-3 | MCP pagination uses opaque cursors for list/read surfaces | W21 | P0 | confirmed |
+| F-42-4 | Programmatic tool calling keeps intermediates out of context | W21/W14 | P1 | confirmed |
+| F-42-5 | Prompt caching requires a stable tools array | W21 | P0 | confirmed |
+| F-42-6 | Context7 uses resolve→query and one concept per query | W14/W21 | P1 | confirmed |
+| F-42-7 | GitHub MCP uses toolsets, dynamic toolsets, read-only and `fields` | W7/W21 | P0 | confirmed |
+| F-42-8 | Sentry separates `search_issues` list from detail resource | W14/W21 | P1 | confirmed |
+| F-42-9 | Notion prefers Markdown page reads and cursor-paginated blocks | W14/W21 | P1 | confirmed |
+| F-42-10 | Playwright bounds snapshots by target/depth/file and can omit images | W21 | P1 | confirmed |
+| F-42-11 | Linear uses `first`/`after` cursor and `pageInfo` | W21 | P1 | confirmed |
+| F-42-12 | Community reports tool definitions consuming 30–50% of context and tool confusion above ~50 tools | W0/W21 | P1 | confirmed |
+| F-42-13 | Folisift future surface exceeds 30 tools without profiles | W7/W21 | P0 | planned |
+| F-42-14 | Folisift needs MCP resources for guide/source/coverage reads | W21 | P0 | planned |
+| F-42-15 | Folisift needs chapter→section→heading brief hierarchy | W14/W21 | P0 | planned |
+| F-42-16 | Folisift needs `detail`/`fields`/`max_tokens`/cursor output contract | W14/W21 | P0 | planned |
+| F-42-17 | Folisift needs a coordinator flow, not a single mega-tool | W21 | P0 | planned |
+| F-42-18 | Folisift needs context/tool metrics in `cost_report` | W0/W21 | P1 | planned |
+| F-42-19 | Folisift must keep a stable profile/tool order per session | W21 | P0 | planned |
+| F-42-20 | Folisift must not return raw block JSON or full source by default | W21/W14 | P0 | planned |
+| F-42-21 | `resources/list`/`resources/templates/list` need cursor pagination | W21 | P1 | planned |
+| F-42-22 | Large outputs should go to file/resource with a path+summary | W21 | P1 | planned |
+| F-42-23 | Profile schema budget target is ≤5% of context and ≤15 tools | W21 | P0 | planned |
+| F-42-24 | Benchmark must compare all-tools baseline vs profile+resources | W0/W21 | P1 | planned |
+
+
 ## 11. Open questions and risks
 
 1. **Coverage semantics.** Is a “heading” every layout heading block, every
@@ -1714,6 +1854,14 @@ semantic-link, OCR and engine-capability findings are not lost.
    keep aliases for one minor release.
 7. **Cost claim.** No release note may claim token savings until W0 benchmark
    passes. Architecture alone is not evidence.
+8. **Host profile support.** If the host cannot run separate MCP profiles, the
+   fallback is a single `core` server with ≤10 stable tools; resources still
+   carry the variable data. A giant mega-tool is not the fallback.
+9. **Prompt-cache invalidation.** Any per-turn tool enable/disable can cost more
+   than it saves. Profiles are selected at session start, not changed mid-task.
+10. **Tokenizer variance.** Token budgets are approximate across providers; the
+    report records the tokenizer/estimate used and never presents an estimate as
+    a provider bill.
 
 ## 12. Non-goals
 
@@ -1736,6 +1884,9 @@ The feedback is closed when:
 - every failure is machine-readable and actionable;
 - D2 can express a 20-node decision tree with a deterministic layout;
 - one `qa_guide` call is the release gate;
+- MCP profiles keep the active surface at or below 15 tools and tool schemas at
+  or below 5% of the context budget;
+- resources carry page/section/coverage reads; tools carry actions;
 - `section_brief`/`read_section`/`source_topics` reduce measured source
   reading without losing coverage;
 - LiteParse/D2/Model2Vec advanced capabilities are opt-in, measured and
@@ -1797,3 +1948,4 @@ finding register.
 | §39 OCR | §10.15 / §10.16 |
 | §40 multi-source | §10.15 / §10.16 |
 | §41 engine capabilities | §10.15 / §10.16 |
+| §42 MCP context architecture research | §10.17 |
