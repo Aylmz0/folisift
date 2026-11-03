@@ -13,7 +13,7 @@ tempfile.workspace = true
 async-trait.workspace = true
 blake3.workspace = true
 chrono.workspace = true
-folisift-core = { path = "../folisift-core", version = "0.12.2" }
+folisift-core = { path = "../folisift-core", version = "0.12.3" }
 image.workspace = true
 liteparse.workspace = true
 liteparse-pdfium.workspace = true
