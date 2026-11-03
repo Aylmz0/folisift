@@ -21,6 +21,14 @@ This plan is the single remediation map for the feedback. It has four layers:
 Workstream IDs are stable. A finding is not “done” until its register row
 points to a passing test and, where relevant, a migrated artifact.
 
+**Priority legend**
+
+- **P0** — trust or correctness blocker; must land before the next release.
+- **P1** — required workflow fix; next release after P0.
+- **P2** — quality, docs or ergonomics; scheduled when P0/P1 are stable.
+- **P3** — optional/experimental; never release-blocking and requires explicit
+  opt-in/evidence.
+
 **Evidence status values**
 
 - `confirmed` — reproduced or directly visible in the current code/artifacts.
@@ -245,13 +253,16 @@ coverage_manifest { slug, action: build|read|update|validate, entries? }
 **Change**
 
 - Add `ChapterOptions`: `keep_with_next`, `break_before`, `break_after`,
-  `allow_split`.
+  `allow_split`, `full_page_opener`.
 - Add `ColumnsOptions`: `flow`, `min_rows_before_break`, `keep_with_next`.
 - Add table/diagram placement options: `keep_with_next`, `min_space_mm`,
   `allow_page_break`.
-- Default `keep_with_next=true` for chapter opener plus first content block.
-- Add `chapter_split` audit: opener and first content below a minimum space are
-  a diagnostic, not a silent page break.
+- Default `keep_with_next=true` for chapter opener plus first content block,
+  but `full_page_opener=true` or `break_before=true` opts out. Existing
+  full-page chapter openers keep their current behavior through an explicit
+  migration flag, not a silent layout change.
+- Add `chapter_split` audit only for a split kicker/title or a title separated
+  from its first content; do not flag an intentional full-page opener.
 - Document `flow=true` explicitly: it pulls the chapter into the previous
   page's remaining space.
 - `::: front` + nested `::: table` gets a directive-stack diagnostic and a
@@ -363,7 +374,9 @@ coverage_manifest { slug, action: build|read|update|validate, entries? }
 
 - `style recommend` filters by structure/domain/target pages, treats
   `supported_structures` as mandatory, and returns the closest compatible
-  option with a reason when the requested one is invalid.
+  option with a reason when the requested one is invalid. For `irac + law` the
+  known compatible set is `reader` and `accessible`; the matrix is data, not a
+  hard-coded list.
 - `style info` reports supported structures/domains and page-cost modifiers.
 - `styles list` includes a compatibility column for the current guide.
 - Scaffold style rationale is explicit, not a leaking default; the host can
@@ -428,15 +441,17 @@ coverage_manifest { slug, action: build|read|update|validate, entries? }
   `Sorun/Kural/Uygulama/Sonuç`; source headings go to `source-headings.md`.
 - Write frontmatter `sources` automatically.
 - Do not overwrite an existing guide without `force`.
-- Structure validator accepts the documented heading level or explicitly
-  requires `##` with an actionable error; prefer accepting `##` and `###`
-  where the structure grammar allows child sections.
-- Error message names the missing section and the expected heading level.
+- Add `StructureSection.level` to every structure pack. `irac` declares
+  `level: 2` or `3` explicitly; other packs default to `2`. The validator
+  compares against the declared level, not a global “only `##`” rule.
+- Error message names the missing section, the expected level and the actual
+  line.
 
 **Acceptance**
 
 - `prepare_guide` IRAC skeleton has cases before source headings.
-- `### Sorun` passes or returns “use `##`” with the exact line.
+- `### Sorun` passes when the IRAC pack declares level 3, or returns “use
+  `##`” with the exact line when it declares level 2.
 - Existing content is preserved without `force`.
 
 ### W9 — Table and statistics truth
@@ -535,8 +550,10 @@ coverage_manifest { slug, action: build|read|update|validate, entries? }
   estimate, suggested cut/move; name the pages that exceed the target.
 - `search_source` reports match count/capped count, rank, heading and section;
   a 109-page/20-result query must say that results were capped.
-- `incremental_build` hashes sections/content blocks and rebuilds only changed
-  sections; report reused vs rebuilt sections.
+- `incremental_analysis` hashes sections/content blocks and reuses parse/brief
+  artifacts for unchanged sections. PDF layout is always globally recomputed
+  because pagination, TOC, bookmarks and page numbers are global. Report
+  `reused_sections`, `rebuilt_sections`, `layout_recomputed: true`.
 - `build_guide` reports which sections consume pages and what changed between
   builds.
 - `style_estimate` and `diagram_fit` feed the budget before full build.
@@ -552,9 +569,17 @@ coverage_manifest { slug, action: build|read|update|validate, entries? }
 
 **Change**
 
-- `section_brief`: per heading, 300–600 tokens, extractive and deterministic:
-  key concepts, numbers/dates, table rows, contradictions, source pages,
-  suggested guide heading.
+- Make briefs hierarchical and token-budgeted:
+
+  | Brief | Count in the 141-heading case | Token budget |
+  |---|---:|---:|
+  | `chapter_brief` | 17 | 300–600 each |
+  | `section_brief` | 17 | 150–300 each |
+  | `heading_brief` | 141 | 80–150 each, on demand |
+
+  The agent reads chapter/section briefs first and drills into heading briefs
+  only when needed. A flat 141 × 300–600 brief is explicitly rejected as too
+  expensive.
 - `read_section`: heading-based full/summary/claims/tables reading.
 - `source_topics`: embed/cluster headings, representative headings + page
   ranges + authority notes.
@@ -568,6 +593,10 @@ coverage_manifest { slug, action: build|read|update|validate, entries? }
 - `cost_report`: source chars, read chars, guide words, tool calls, builds,
   estimated tokens/time.
 - `effort`/`token_budget` on `prepare_guide`.
+- **Phasing:** `read_section`, hierarchical `section_brief`, `cost_report`,
+  `detail`/`max_tokens` land in M1/M2. `source_topics`, clustering,
+  classification, reranking and advanced retrieval land in M3. The expensive
+  source-reading path is not left until M3.
 - Large responses default to `detail: summary`; `full` is opt-in. Apply it
   first to `style info`, `coverage`, `links read`, `build_guide` and
   `prepare_guide`, which the report names as oversized.
@@ -636,8 +665,10 @@ coverage_manifest { slug, action: build|read|update|validate, entries? }
 - Use embeddings for clustering (`source_topics`), classification
   (`coverage_hint`) and retrieval (`section_brief`).
 - Use `max_length`/batch controls; deterministic tie-break by page/block order.
-- Evaluate `encode_as_sequence`, int8/PCA/SIF controls and truncation on long
-  legal sections before adopting them.
+- Evaluate `encode_as_sequence` and truncation on long legal sections.
+  `int8` is a model artifact; PCA/SIF are distillation-time choices, not
+  runtime flags. Record them in the model manifest instead of exposing fake
+  runtime controls.
 - Preserve the useful legal bridge examples as review-only evidence; do not
   turn them into claims.
 - Add FastEmbed reranker only behind a measured flag; keep model hash/top-k.
@@ -656,12 +687,16 @@ coverage_manifest { slug, action: build|read|update|validate, entries? }
 
 **Change**
 
-- OCR `auto` default:
-  - skip when text layer is sufficient;
+- Default is `ocr: "off"`; `ocr: "auto"` is opt-in only through an explicit
+  profile or parameter.
+- `is_complex.needs_ocr` is advisory: it produces a recommendation, never an
+  automatic OCR run.
+- When auto is opted in:
+  - skip when the text layer is sufficient;
   - run only on `low_text_pages` / complexity reasons;
   - language `tur`;
   - targeted table regions;
-  - compare with text layer, remove duplicates;
+  - compare with the text layer and remove duplicates;
   - record confidence and `manual_review`.
 - Never full-PDF OCR by default.
 - Report `pages_ocr`, `pages_skipped`, `confidence`; expose `ocr_server_url`,
@@ -713,7 +748,7 @@ Make the agent-first profile explicit and opt-in:
 ```json
 {
   "profile": "agent-fast",
-  "liteparse": {"ocr": "auto", "ocr_language": "tur", "complexity": true,
+  "liteparse": {"ocr": "off", "ocr_language": "tur", "complexity": true,
     "extract_blocks": true, "extract_text_metadata": true,
     "extract_vector_graphics": true, "extract_images": true,
     "extract_content_bounds": true, "continue_on_page_error": true},
@@ -729,6 +764,7 @@ Make the agent-first profile explicit and opt-in:
 
 - `fast` means smaller briefs and fewer source pages; `deep` means more
   evidence and optional vision/OCR. Both are deterministic and page-anchored.
+- `ocr:auto` is an explicit opt-in; the default profile keeps OCR off.
 - The profile never enables network calls, LLM summaries or full-PDF OCR by
   default.
 - Record every profile choice and model/engine version in the run report.
@@ -749,7 +785,7 @@ Make the agent-first profile explicit and opt-in:
 | `restyle_guide` | style/palette/fonts | content hash before/after |
 | `style_estimate` | estimate pages for style | page range + confidence |
 | `read_section` | heading, mode full/summary/claims/tables | bounded to max_tokens |
-| `section_brief` | heading | 300–600 token extractive brief |
+| `section_brief` | heading/level | hierarchical: chapter 300–600, section 150–300, heading 80–150 tokens |
 | `source_brief` | source | bounded source overview |
 | `source_topics` | source, k | cluster labels + page ranges |
 | `guide_plan` | slug/target pages | per-section word/page budget |
@@ -773,8 +809,9 @@ until the next major version.
 ```rust
 struct HeadingEntry {
     source: String,
-    heading: String,
-    page: usize, // 1-based
+    heading: String,              // raw source text
+    normalized_heading: String,   // matching key
+    page: usize,                  // 1-based
     guide_heading: Option<String>,
     status: CoverageStatus,
     evidence: Option<String>,
@@ -799,10 +836,57 @@ struct Diagnostic {
 
 enum PageRole { FrontMatter, Toc, ChapterOpener, FigurePage, TablePage, Body, IntentionalBlank }
 
-struct ChapterOptions { keep_with_next: bool, break_before: bool, break_after: bool, allow_split: bool }
+struct ChapterOptions {
+    keep_with_next: bool,
+    break_before: bool,
+    break_after: bool,
+    allow_split: bool,
+    full_page_opener: bool, // opt out of keep_with_next
+}
+
 struct ColumnsOptions { flow: bool, min_rows_before_break: usize, keep_with_next: bool }
-struct DiagramOptions { max_nodes: usize, layout: DiagramLayout, aspect_ratio: Option<f32>, width: Option<String>, height: Option<String>, multiline: bool }
-struct QaReport { build: BuildReport, coverage: CoverageReport, audit: AuditReport, visual: VisualReport, cards: CardReport, diagrams: DiagramReport, passed: bool }
+
+struct TocOptions {
+    subs: bool,
+    toc_depth: Option<u8>,
+    include: Vec<String>,
+    exclude: Vec<String>,
+}
+
+struct DiagramOptions {
+    max_nodes: usize,
+    max_edges: usize,
+    max_depth: usize,
+    layout: DiagramLayout,
+    aspect_ratio: Option<f32>,
+    width: Option<String>,
+    height: Option<String>,
+    max_width: Option<String>,
+    max_height: Option<String>,
+    fit: Option<String>,
+    allow_page_span: bool,
+    multiline: bool,
+}
+
+struct StructureSection {
+    id: String,
+    tr: String,
+    en: String,
+    level: u8, // 2 or 3, explicit per structure pack
+}
+
+struct QaReport {
+    build: BuildReport,
+    coverage: CoverageReport,
+    audit: AuditReport,
+    visual: VisualReport,
+    cards: CardReport,
+    claims: ClaimsReport,
+    diagrams: DiagramReport,
+    warnings: Vec<Diagnostic>,
+    passed: bool,
+}
+
 struct StyleApply { slug: String, style: String, palette: String, fonts: String, output: Option<String> }
 ```
 
@@ -825,10 +909,12 @@ Markdown parsing, Typst layout, D2 or PDF auditing.
 - W3 diagnostics + draft.
 - W4 D2 decision support.
 - W5 Turkish heading/page index.
+- W14a `read_section`, hierarchical briefs, `cost_report`, `detail`/`max_tokens`.
 
 **Exit:** a 141-heading source cannot pass with fewer than 141 manifest rows;
 chapter/columns/table/diagram units do not split silently; errors are
-machine-readable; a 20-node decision tree fits.
+machine-readable; a 20-node decision tree fits; `read_section` and the
+hierarchical briefs reduce source chars read on the benchmark.
 
 ### M2 — Workflow P1
 
@@ -840,15 +926,16 @@ machine-readable; a 20-node decision tree fits.
 - W11 graph/links.
 - W12 claims/cards.
 - W13 page budget UX.
+- W14b `guide_plan`, compact outputs and per-tool field filters.
 
 **Exit:** one `qa_guide` call is the release gate; IRAC scaffold is usable
 without rewriting; counts agree across reports.
 
-### M3 — Context economics
+### M3 — Advanced context economics
 
-- W14 `section_brief`/`read_section`/`source_topics`/`guide_plan`/cost report.
-- Compact output modes and token budgets.
-- Benchmark against direct PDF and extracted text.
+- W14c `source_topics`, clustering/classification, advanced retrieval.
+- Benchmark against direct PDF and extracted text; verify the M1/M2 briefs.
+- Conditional reranker only if the benchmark justifies it.
 
 **Exit:** at least 25% cost or 30% time improvement at equal quality on the
 benchmark, or the savings claim is removed from product messaging.
@@ -860,9 +947,19 @@ benchmark, or the savings claim is removed from product messaging.
 - W17 Model2Vec clustering/classification/conditional reranker.
 - W18 OCR policy.
 - W19 determinism/docs/release.
+- W20 agent-fast/deep profiles.
 
 **Exit:** advanced capabilities are opt-in, measured and deterministic; no
 silent OCR, no undocumented layout behavior.
+
+### M5 — Optional polish (P3)
+
+- Annotations/forms ingestion.
+- Sketch/icon D2 experiments.
+- Non-blocking documentation and UX polish.
+
+**Exit:** none of these block a release; each needs its own evidence and
+opt-in flag.
 
 ## 8.1 §30 roadmap mapping
 
@@ -917,7 +1014,7 @@ silent OCR, no undocumented layout behavior.
 | A26 | 21-low-text guide | targeted OCR only; confidence/manual review |
 | A27 | deterministic rerun | identical manifest/brief/clusters (no timestamps) |
 | A28 | cost benchmark | tokens/time/calls measured; no secrets |
-| A29 | `source_brief` | 300–600 tokens; extractive provenance |
+| A29 | hierarchical briefs | chapter/section/heading budgets; extractive provenance |
 | A30 | multi-column D2 | per-container direction works or is rejected |
 | A31 | `audit_guide` MCP | returns the same diagnostics as CLI `audit --strict` |
 | A32 | `prepare_guide` outline | `total`, `next` and complete pagination |
@@ -986,25 +1083,25 @@ appear here. `Evidence` records what we know at plan time, not final status.
 |---|---|---|---|---|
 | F-0.1-1 | 117 pages, 18 tables | W1/W9 | P0 | confirmed |
 | F-0.1-2 | 139 scan headings vs 267 layout vs 141 manual vs 7 canonical | W1/W5 | P0 | confirmed |
-| F-0.1-3 | 26-page guide, 3 D2, 3 counted tables, 47 bookmarks | W9/W10 | P1 | confirmed |
+| F-0.1-3 | 26-page guide, 3 D2, 3 counted tables (undercount), 47 bookmarks | W9/W10 | P1 | confirmed |
 | F-0.1-4 | IRAC 11 pages, 5/8 cards | W8/W12 | P1 | confirmed |
 | F-0.1-5 | reader+forest-sage 11, berry 11, accessible 14 (over 10–12) | W6 | P1 | confirmed |
 | F-0.1-6 | Page budget oscillation 25→22→24→25→26→27→26 | W13 | P1 | confirmed |
-| F-0.1-7 | Digital guide 19 pages, 207 source pages, 21 low-text, 41 canonical, 4 D2, 12 tables, 6 cards, 146 claims | W1/W14/W18 | P0/P1 | confirmed |
+| F-0.1-7 | Digital guide 19 pages, 207 source pages, 21 low-text, 41 canonical, 4 D2, 12 tables, 40-term glossary, 6 cards, 146 claims | W1/W9/W14/W18 | P0/P1 | confirmed |
 | F-0.1-8 | “passed” is insufficient when numbers disagree | W0/W1 | P0 | confirmed |
 
 ### 10.3a §1.1 — chronological break points
 
-| ID | Finding | Workstream | Priority |
-|---|---|---|---|
-| F-1.1-1 | Source analysis: 117 pages, 18 tables, 139 headings; 4.4.4/10.2 missing; layout 267 | W1/W5 | P0 |
-| F-1.1-2 | Main guide: 17 sections, 3 D2, 26 pages; coverage 7/7; underfilled 4/8/19; page loop 25→...→26 | W1/W2/W13 | P0 |
-| F-1.1-3 | Dismissal diagram: 7→12 nodes; down became horizontal; width ineffective; `\n` failed | W4 | P0 |
-| F-1.1-4 | C section: chapter kicker/title split; 66-term columns jumped; had to use a table | W2 | P0 |
-| F-1.1-5 | IRAC: wrong scaffold; `### Sorun` not counted; 7 empty sections; page 10 underfilled | W8/W10 | P1 |
-| F-1.1-6 | Style: manual config; accessible 14 pages; recommend workbook/incompatible | W6 | P1 |
-| F-1.1-7 | Digital: 207 pages, 21 low-text, 41 canonical, 31-slide source at 0, `page: —`, figures 2–3 too large | W1/W10/W13/W18 | P0 |
-| F-1.1-8 | QA: build + audit + cards + claims separate; no MCP audit/qa | W7 | P1 |
+| ID | Finding | Workstream | Priority | Evidence |
+|---|---|---|---|---|
+| F-1.1-1 | Source analysis: 117 pages, 18 tables, 139 headings; 4.4.4/10.2 missing; layout 267 | W1/W5 | P0 | confirmed |
+| F-1.1-2 | Main guide: 17 sections, 3 D2, 26 pages; coverage 7/7; underfilled 4/8/19; page loop 25→...→26 | W1/W2/W13 | P0 | confirmed |
+| F-1.1-3 | Dismissal diagram: 7→12 nodes; down became horizontal; width ineffective; `\n` failed | W4 | P0 | needs-repro |
+| F-1.1-4 | C section: chapter kicker/title split; 66-term columns jumped; had to use a table | W2 | P0 | confirmed |
+| F-1.1-5 | IRAC: wrong scaffold; `### Sorun` not counted; 7 empty sections; page 10 underfilled | W8/W10 | P1 | confirmed |
+| F-1.1-6 | Style: manual config; accessible 14 pages; recommend workbook/incompatible | W6 | P1 | confirmed |
+| F-1.1-7 | Digital: 207 pages, 21 low-text, 41 canonical, 31-slide source at 0, `page: —`, figures 2–3 too large | W1/W10/W13/W18 | P0 | confirmed |
+| F-1.1-8 | QA: build + audit + cards + claims separate; no MCP audit/qa | W7 | P1 | confirmed |
 
 ### 10.3 §1–§2 — session and priority matrix
 
@@ -1046,6 +1143,8 @@ appear here. `Evidence` records what we know at plan time, not final status.
 | F-3-6 | Need `coverage_manifest` build/read/update/validate | W1 | P0 | confirmed |
 | F-3-7 | Need heading override add/rename/merge/page | W1/W5 | P0 | confirmed |
 | F-3-8 | Need acceptance: 141/141, missing fail, docs agree | W1 | P0 | confirmed |
+| F-3-9 | `MIN_SECTION_CHARS=400` treats “empty” as a character floor | W1 | P0 | confirmed |
+| F-3-10 | `coverage gate failed: 0/7 headings missing, 7 empty sections` has no diagnostic detail | W1/W3 | P0 | confirmed |
 
 ### 10.5 §4 — layout
 
@@ -1075,6 +1174,7 @@ appear here. `Evidence` records what we know at plan time, not final status.
 | F-5-6 | Need ErrorCode/Diagnostic envelope | W3 | P0 | confirmed |
 | F-5-7 | Need page/line/block/directive_stack/suggestions | W3 | P0 | confirmed |
 | F-5-8 | Need JSON output for every error | W3/W7 | P0 | confirmed |
+| F-5-9 | Coverage/empty-section failure is one prose line | W3/W1 | P0 | confirmed |
 
 ### 10.7 §6 — D2
 
@@ -1155,7 +1255,7 @@ appear here. `Evidence` records what we know at plan time, not final status.
 | F-12.1-11 | `build_guide` uses `passed/layout_passed/genre_passed` | W3/W7 | P1 | confirmed |
 | F-12.1-12 | `styles` vs `style` naming | W7 | P2 | confirmed |
 | F-12.1-13 | `prepare_guide` style description says paper/clean | W7/W19 | P2 | confirmed |
-| F-12.1-14 | `prepare_guide` outline only first 10, no total/next | W7 | P1 | confirmed |
+| F-12.1-14 | `prepare_guide` outline only first 10, no total/next | W7 | P1 | needs-repro |
 | F-12.1-15 | `covers` keys malformed | W1/W5 | P0 | confirmed |
 | F-12.1-16 | layout.headings 267 vs scan 139 unexplained | W0/W1/W5 | P0 | confirmed |
 | F-12.1-17 | `existing:false` no force semantics | W7/W8 | P1 | confirmed |
@@ -1188,11 +1288,12 @@ appear here. `Evidence` records what we know at plan time, not final status.
 | F-18-2 | figure-only output page not role-aware | W10 | P2 | confirmed |
 | F-19-1 | style compatibility matrix absent | W6 | P2 | confirmed |
 | F-19-2 | recommend offers incompatible styles | W6 | P1 | confirmed |
+| F-19-3 | IRAC + law real compatible set is only `reader` and `accessible` | W6 | P1 | confirmed |
 | F-20-1 | `subs=false` semantics unclear | W2/W19 | P2 | confirmed |
 | F-20-2 | need toc_depth/include/exclude | W2 | P2 | confirmed |
 | F-20-3 | Need explicit `TocOptions` contract | W2/W19 | P2 | planned |
 | F-20-4 | Need exact `subs=false`, `toc_depth`, include/exclude docs | W2/W19 | P2 | planned |
-| F-21-1 | table widths validation not explicit | W9 | P2 | confirmed |
+| F-21-1 | table widths validation not explicit | W9 | P2 | needs-repro |
 | F-22-1 | search returns broad/opaque results | W13 | P2 | confirmed |
 | F-22-2 | `next_pages/next_offset` can repeat | W13 | P2 | confirmed |
 | F-22-3 | truncation mid-page has no flag | W13 | P2 | confirmed |
@@ -1230,7 +1331,7 @@ appear here. `Evidence` records what we know at plan time, not final status.
 | F-28.1-12 | graph lacks heading/section nodes | W11 | P2 | confirmed |
 | F-28.1-13 | read_source truncation mid-page | W13 | P2 | confirmed |
 | F-28.1-14 | search has no rank/heading | W13 | P2 | confirmed |
-| F-28.1-15 | table widths error unclear | W9 | P2 | confirmed |
+| F-28.1-15 | table widths error unclear | W9 | P2 | needs-repro |
 | F-28.1-16 | TOC underfilled exception only first pages | W10 | P2 | confirmed |
 | F-28.1-17 | front+table nesting undocumented | W19 | P2 | confirmed |
 | F-28.1-18 | flow/subs undocumented | W19 | P2 | confirmed |
@@ -1341,54 +1442,6 @@ appear here. `Evidence` records what we know at plan time, not final status.
 | F-41-11 | capability priority order | W15/W16/W17/W9 | P1 | planned |
 | F-41-12 | Context7 sources | W19 | P2 | reference |
 
-## 11. Open questions and risks
-
-1. **Coverage semantics.** Is a “heading” every layout heading block, every
-   TOC row, or a reviewed topic? The plan chooses reviewed manifest rows as
-   the gate and keeps the other counts as evidence.
-2. **D2 width repro.** The current code path passes width, but the production
-   report says it did not change size. M1 includes a bbox regression test;
-   if it fails, fix or reject the attribute.
-3. **Direction under TALA.** TALA may legitimately choose aspect ratio. The
-   product must either expose the chosen layout or offer ELK/dagre; it must not
-   promise a direction it cannot honor.
-4. **OCR cost.** Auto OCR must be measured; low-text pages can be expensive.
-   Default stays off for text-layer PDFs.
-5. **Extractive briefs.** They are deterministic but less fluent than an LLM
-   summary. The host may still ask the LLM to rewrite, but then the source
-   context is already compressed.
-6. **Schema compatibility.** New MCP tools require a schema bump; old clients
-   keep aliases for one minor release.
-7. **Cost claim.** No release note may claim token savings until W0 benchmark
-   passes. Architecture alone is not evidence.
-
-## 12. Non-goals
-
-- No cloud dependency, API key, LLM call, shell execution or network access in
-  the MCP server.
-- No full-PDF OCR by default.
-- No generative summarization inside the deterministic brief pipeline.
-- No graph database or hosted service.
-- No claim that a similarity link is a verified fact or coverage proof.
-- No silent overwrite of an existing guide.
-- No “passed” result without counts and diagnostic evidence.
-
-## 13. Definition of done
-
-The feedback is closed when:
-
-- every register row has a passing test or an explicit accepted deferral;
-- the 141-heading source gate is exact;
-- chapter/columns/table/diagram continuity has regression tests;
-- every failure is machine-readable and actionable;
-- D2 can express a 20-node decision tree with a deterministic layout;
-- one `qa_guide` call is the release gate;
-- `section_brief`/`read_section`/`source_topics` reduce measured source
-  reading without losing coverage;
-- LiteParse/D2/Model2Vec advanced capabilities are opt-in, measured and
-  deterministic;
-- the release report includes counts, audit, cost/time and remaining risks.
-
 ### 10.16 Detailed §37–§41 sub-findings
 
 The following rows expand the grouped register entries so the agent-economics,
@@ -1448,7 +1501,7 @@ semantic-link, OCR and engine-capability findings are not lost.
 | F-37.5-9 | `diagram_fit` page estimate | W4 | P1 |
 | F-37.5-10 | `citation_snippet` exact source sentence | W14 | P1 |
 | F-37.5-11 | `verify_citations` claim↔page | W12 | P1 |
-| F-37.5-12 | `incremental_build` by section hash | W13 | P2 |
+| F-37.5-12 | `incremental_analysis` by section hash; PDF layout global | W13 | P2 |
 | F-37.5-13 | `cost_report` per run | W0 | P1 |
 | F-37.5-14 | `effort`/`token_budget` on prepare | W14 | P1 |
 
@@ -1547,10 +1600,12 @@ semantic-link, OCR and engine-capability findings are not lost.
 | F-40.1-3 | Preserve source order and topic unity | W14 | P1 |
 | F-40.1-4 | Unify terminology/abbreviations | W14/W17 | P1 |
 | F-40.1-5 | Preserve within-source differences | W14 | P0 |
+| F-40.1-7 | Preserve DPP 2026 vs 18 February 2027 distinction | W14 | P0 |
 | F-40.1-6 | Convert visual slides to text/table | W18/W15 | P1 |
 | F-40.2-1 | 21 low-text pages require visual audit | W10/W18 | P1 |
 | F-40.2-2 | Most are decorative/dividers | W18/W10 | P2 |
 | F-40.2-3 | OCR cannot decide exam relevance | W18/W10 | P1 |
+| F-40.2-4 | 21 low-text distribution is 11 + 8 + 2 | W10/W18 | P1 |
 | F-40.3-1 | 31-slide source has 0 canonical sections | W1 | P0 |
 | F-40.3-2 | 14 product sections have `page: —` | W1/W5/W15 | P0 |
 | F-40.3-3 | `body_chars` repeated across headings | W1 | P0 |
@@ -1594,7 +1649,7 @@ semantic-link, OCR and engine-capability findings are not lost.
 | F-41.1-12 | `preserve_very_small_text` unused | W15 | P2 |
 | F-41.1-13 | table cell/bbox not in MCP | W15/W9/W7 | P1 |
 | F-41.1-14 | `extract_blocks` is used but table cells not surfaced | W15/W9 | P1 |
-| F-41.1-15 | `extract_content_bounds` only partially used | W15/W10 | P1 |
+| F-41.1-15 | `extract_content_bounds` only partially used | W15/W10 | P1 | needs-repro |
 | F-41.1-16 | `ocr_server_url` unused | W18 | P2 |
 | F-41.1-17 | `dpi`/`num_workers` OCR cost controls unused | W18/W0 | P2 |
 | F-41.2-1 | 18/12 tables not cell-verified | W15/W9 | P1 |
@@ -1613,10 +1668,10 @@ semantic-link, OCR and engine-capability findings are not lost.
 | F-41.4-3 | retrieval only pairwise | W14/W17 | P1 |
 | F-41.4-4 | `encode_as_sequence` unused | W17 | P2 |
 | F-41.4-5 | `max_length`/truncation unused | W17 | P1 |
-| F-41.4-6 | int8/PCA/SIF controls unused | W17 | P2 |
+| F-41.4-6 | int8/PCA/SIF controls: PCA/SIF are distillation-time, not runtime flags | W17 | P2 | policy-gap |
 | F-41.4-7 | reranking unused | W17 | P2 |
 | F-41.5-1 | FastEmbed-rs reranker not evaluated | W17 | P2 |
-| F-41.5-2 | Offline `TextRerank`/user-defined model path not tested | W17 | P2 |
+| F-41.5-2 | Offline `TextRerank`/user-defined model path not tested | W17 | P2 | needs-repro |
 | F-41.5-3 | Reranker latency/model cost not measured | W0/W17 | P2 |
 | F-41.6-1 | agent-fast profile not implemented | W14/W15/W16/W17/W18 | P1 |
 | F-41.6.1-1 | LiteParse version in report | W19 | P0 |
@@ -1637,6 +1692,55 @@ semantic-link, OCR and engine-capability findings are not lost.
 | F-41.8-3 | Priority: Model2Vec cluster/classify/retrieve | W17 | P1 |
 | F-41.8-4 | Priority: LiteParse table cells | W15/W9 | P1 |
 | F-41.8-5 | Priority: conditional FastEmbed reranker | W17 | P2 |
+
+
+## 11. Open questions and risks
+
+1. **Coverage semantics.** Is a “heading” every layout heading block, every
+   TOC row, or a reviewed topic? The plan chooses reviewed manifest rows as
+   the gate and keeps the other counts as evidence.
+2. **D2 width repro.** The current code path passes width, but the production
+   report says it did not change size. M1 includes a bbox regression test;
+   if it fails, fix or reject the attribute.
+3. **Direction under TALA.** TALA may legitimately choose aspect ratio. The
+   product must either expose the chosen layout or offer ELK/dagre; it must not
+   promise a direction it cannot honor.
+4. **OCR cost.** Auto OCR must be measured; low-text pages can be expensive.
+   Default stays off for text-layer PDFs.
+5. **Extractive briefs.** They are deterministic but less fluent than an LLM
+   summary. The host may still ask the LLM to rewrite, but then the source
+   context is already compressed.
+6. **Schema compatibility.** New MCP tools require a schema bump; old clients
+   keep aliases for one minor release.
+7. **Cost claim.** No release note may claim token savings until W0 benchmark
+   passes. Architecture alone is not evidence.
+
+## 12. Non-goals
+
+- No cloud dependency, API key, LLM call, shell execution or network access in
+  the MCP server.
+- No full-PDF OCR by default.
+- No generative summarization inside the deterministic brief pipeline.
+- No graph database or hosted service.
+- No claim that a similarity link is a verified fact or coverage proof.
+- No silent overwrite of an existing guide.
+- No “passed” result without counts and diagnostic evidence.
+
+## 13. Definition of done
+
+The feedback is closed when:
+
+- every register row has a passing test or an explicit accepted deferral;
+- the 141-heading source gate is exact;
+- chapter/columns/table/diagram continuity has regression tests;
+- every failure is machine-readable and actionable;
+- D2 can express a 20-node decision tree with a deterministic layout;
+- one `qa_guide` call is the release gate;
+- `section_brief`/`read_section`/`source_topics` reduce measured source
+  reading without losing coverage;
+- LiteParse/D2/Model2Vec advanced capabilities are opt-in, measured and
+  deterministic;
+- the release report includes counts, audit, cost/time and remaining risks.
 
 ## 14. Feedback section coverage map
 
