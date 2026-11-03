@@ -665,7 +665,6 @@ fn detect_underfilled(pages: &[PageAudit]) -> Vec<UnderfilledPage> {
     let threshold = (median as f64 * 0.35).max(100.0);
     pages
         .iter()
-        .skip(3)
         .filter(|page| {
             !page.role.is_intentional() && page.chars >= 5 && (page.chars as f64) < threshold
         })
@@ -765,7 +764,13 @@ mod tests {
             empty: chars < 5,
             overflow: false,
             visual: false,
-            role: PageRole::Body,
+            role: if page == 1 {
+                PageRole::FrontMatter
+            } else if page == 3 {
+                PageRole::Toc
+            } else {
+                PageRole::Body
+            },
             text_left: 0.0,
             text_top: 0.0,
             text_right: 0.0,
@@ -820,6 +825,10 @@ mod tests {
             visual,
             role: if visual {
                 PageRole::FigurePage
+            } else if page == 1 {
+                PageRole::FrontMatter
+            } else if page == 3 {
+                PageRole::Toc
             } else {
                 PageRole::Body
             },

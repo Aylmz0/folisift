@@ -1,6 +1,6 @@
 # Production feedback remediation plan — 2026-11-03
 
-- **Status:** Completed through v0.15.1; all milestones, including M5 optional
+- **Status:** Completed through v0.16.0; all milestones, including M5 optional
   polish, are implemented
 - **Source:** [`docs/FOLISIFT-GERI-BILDIRIM.md`](../FOLISIFT-GERI-BILDIRIM.md)
 - **Baseline:** Folisift 0.12.4, build 143, MCP schema 8
@@ -9,37 +9,37 @@
 - **Primary outcome:** “passed” must mean complete, visually continuous and
   machine-diagnosable; context must get cheaper without adding network calls
 
-## 0.1 Release 0.15.1 implementation status
+## 0.1 Release 0.16.0 implementation status
 
-v0.15.1 closes the trust-critical slice, the M2 workflow core, the M3 context
+v0.16.0 closes the trust-critical slice, the M2 workflow core, the M3 context
 core and the M4 core on the current workspace. Items marked **Partial** have a shipped,
 testable subset and a named remaining gap; they are not claimed complete.
 
-| Workstream | Status in v0.15.1 | Evidence / remaining gap |
+| Workstream | Status in v0.16.0 | Evidence / remaining gap |
 |---|---|---|
 | W1 coverage manifest | Shipped | `coverage-manifest` CLI/MCP, manifest-first build, page-accurate coverage report, tests |
-| W2 layout continuity | Shipped (core) | chapter/columns/table/diagram keep/break options, `toc_depth`/`subs`, glossary flow, role-aware underfill; front/table close order documented |
+| W2 layout continuity | Shipped | chapter/columns/table/diagram keep/break options, `toc_depth`/`subs`/`include`/`exclude`, glossary flow, role-aware underfill; unsupported min-row option is rejected explicitly |
 | W3 diagnostics and draft | Shipped (core) | `Diagnostic` code/envelope, `E_MARKDOWN` line + directive stack, `_draft.pdf` + `draft_path` |
 | W4 D2 decision support | Shipped (core) | 24 nodes, 40 edges, depth 8, `decision`, `tala/dagre/elk`, tests |
 | W5 Turkish headings | Shipped (core) | glued headings, `headings.review.md`, TOC/body mismatch rows, 1-based public pages |
 | W6 style compatibility | Shipped (core) | matrix filtering, `irac+law` → reader/accessible, page estimate, restyle, theme/style check |
-| W7 MCP surface and QA | Shipped (core) | `qa_guide`, `audit_guide`, profiles, resources pagination, outline pagination, table extract, 32 tools |
+| W7 MCP surface and QA | Shipped | `qa_guide`, `audit_guide`, `doctor`, profiles, resources pagination, outline pagination, table extract, structured draft path, 33 tools |
 | W8 IRAC scaffold | Shipped (core) | 10 cases, `###` levels, `source-headings.md`, existing-content preservation |
 | W9 table/statistics truth | Shipped (core) | markdown/wrapped/captioned/glossary/total, `E_TABLE_WIDTHS`, caption-number opt-out without dropping ids |
-| W10 page roles | Shipped (core) | `PageRole`, TOC/chapter/figure/table exemptions, figure/table-only and chapter-split lists |
+| W10 page roles | Shipped | `PageRole`, TOC/chapter/figure/table exemptions, first-three heuristic removed, figure/table-only and chapter-split lists |
 | W11 graph and links | Shipped (core) | heading nodes, `query`/`path`/`explain`, link heading labels |
-| W12 claims and cards | Shipped (core) | section/severity/missing citation, noise filter, default intervals, empty warning, `verify_citations` |
+| W12 claims and cards | Shipped | section/severity/missing citation, noise filter, default intervals, empty warning, definition/must-know cards, `verify_citations` |
 | W13 page budget UX | Shipped (core) | `budget`, section attribution, capped search context, incremental section hashes/report; parse artifacts are still recomputed by design |
-| W14 context retrieval | Shipped (core) | briefs, section read, `source_brief`, `source_topics`, `guide_plan`, `visual_brief`, `citation_snippet`, `cost_report` |
+| W14 context retrieval | Shipped | briefs with level, full/summary/claims/tables reads, `max_tokens`, `source_brief`, `source_topics`, `guide_plan`, `visual_brief`, `citation_snippet`, `cost_report` |
 | W15 LiteParse depth | Shipped | opt-in `insights` reports annotations, AcroForm fields, tagged structure, vector geometry, image refs and per-page complexity |
-| W16 D2 depth | Shipped (core) | `dagre`/`elk`, per-group direction, manifest layout and opt-in sketch rendering; icon/class/tooltip experiments remain opt-in polish |
+| W16 D2 depth | Shipped | `dagre`/`elk`, per-group direction, multiline labels, tooltip/link/local icon metadata, sketch rendering and manifest tracking |
 | W17 Model2Vec/reranker | Shipped (core) | local Model2Vec links and `topics` clustering are the default; heading-term clustering is the fallback; conditional reranker is not enabled without a benchmark |
 | W18 OCR policy | Shipped (policy) | OCR off by default, explicit candidates/reasons, no silent OCR |
 | W19 determinism/docs | Shipped (docs) | cookbook, release checklist, versioned gates |
 | W20 agent profiles | Shipped (core) | `fast`/`deep` profiles plus core/source/authoring/review |
-| W21 MCP profiles/resources | Shipped (core) | active profile ≤15 tools, core 10, resource cursor pagination, capabilities resource |
+| W21 MCP profiles/resources | Shipped | active profile ≤15 tools, core 10, resource cursor pagination, templates, source-page resources, capabilities |
 | W22 four-column glossary | Shipped | `::: glossary`, 18/32/18/32 widths, compact repeated headers, atomic pairs |
-| M5 optional polish | Shipped | annotations/forms insights, opt-in D2 sketch, cookbook/UX polish |
+| M5 optional polish | Shipped | annotations/forms insights, opt-in D2 sketch/tooltip/link/icon metadata, Model2Vec topics, cookbook/UX polish |
 
 The five exam PDFs pass `make exam-check`; `make visual`, `make type-check`,
 `make parity`, `make genre-check`, `make d2-pdf-check`, `cargo test`, `clippy`

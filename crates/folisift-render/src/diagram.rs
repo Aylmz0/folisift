@@ -3,7 +3,7 @@
 //! The renderer never runs D2. The CLI owns the external render step; the
 //! build path only reads validated manifests and SVG assets.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
@@ -63,6 +63,20 @@ pub struct DiagramSpec {
     pub classes: Vec<ClassSpec>,
     #[serde(default)]
     pub tables: Vec<TableSpec>,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub node_meta: BTreeMap<String, NodeMeta>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct NodeMeta {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tooltip: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub link: Option<String>,
+    /// Local icon path or data URI; remote URLs are rejected for offline builds.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub icon: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -423,6 +437,20 @@ pub fn validate_spec(spec: &DiagramSpec) -> Result<()> {
 }
 
 fn validate_graph(spec: &DiagramSpec) -> Result<()> {
+    for (id, meta) in &spec.node_meta {
+        if !spec.nodes.iter().any(|node| &node.id == id) {
+            return Err(Error::Diagram(format!(
+                "node_meta references unknown node {id:?}"
+            )));
+        }
+        if let Some(icon) = &meta.icon
+            && (icon.starts_with("http://") || icon.starts_with("https://"))
+        {
+            return Err(Error::Diagram(
+                "remote icon URLs are rejected; use a local path under the guide".to_string(),
+            ));
+        }
+    }
     if spec.nodes.is_empty() || spec.nodes.len() > MAX_NODES {
         return Err(Error::Diagram(format!(
             "diagram must have 1-{MAX_NODES} nodes (found {})",
@@ -1012,7 +1040,13 @@ fn graph_source(spec: &DiagramSpec, theme: &DiagramTheme, out: &mut String) -> R
             let Some(node_spec) = spec.nodes.iter().find(|candidate| &candidate.id == node) else {
                 continue;
             };
-            write_node(out, "  ", &node_keys[node_spec.id.as_str()], node_spec);
+            write_node(
+                out,
+                "  ",
+                &node_keys[node_spec.id.as_str()],
+                node_spec,
+                spec.node_meta.get(&node_spec.id),
+            );
         }
         out.push_str("}\n");
     }
@@ -1020,7 +1054,13 @@ fn graph_source(spec: &DiagramSpec, theme: &DiagramTheme, out: &mut String) -> R
         if grouped.contains_key(node.id.as_str()) {
             continue;
         }
-        write_node(out, "", &node_keys[node.id.as_str()], node);
+        write_node(
+            out,
+            "",
+            &node_keys[node.id.as_str()],
+            node,
+            spec.node_meta.get(&node.id),
+        );
     }
     for edge in &spec.edges {
         write_edge(
@@ -1034,12 +1074,25 @@ fn graph_source(spec: &DiagramSpec, theme: &DiagramTheme, out: &mut String) -> R
     Ok(())
 }
 
-fn write_node(out: &mut String, indent: &str, key: &str, node: &Node) {
-    if let Some(shape) = &node.shape {
-        out.push_str(&format!(
-            "{indent}{key}: {} {{\n{indent}  shape: {shape}\n{indent}}}\n",
-            d2_quote(&node.label)
-        ));
+fn write_node(out: &mut String, indent: &str, key: &str, node: &Node, meta: Option<&NodeMeta>) {
+    let has_block = node.shape.is_some() || meta.is_some();
+    if has_block {
+        out.push_str(&format!("{indent}{key}: {} {{\n", d2_quote(&node.label)));
+        if let Some(shape) = &node.shape {
+            out.push_str(&format!("{indent}  shape: {shape}\n"));
+        }
+        if let Some(meta) = meta {
+            if let Some(tooltip) = &meta.tooltip {
+                out.push_str(&format!("{indent}  tooltip: {}\n", d2_quote(tooltip)));
+            }
+            if let Some(link) = &meta.link {
+                out.push_str(&format!("{indent}  link: {}\n", d2_quote(link)));
+            }
+            if let Some(icon) = &meta.icon {
+                out.push_str(&format!("{indent}  icon: {}\n", d2_quote(icon)));
+            }
+        }
+        out.push_str(&format!("{indent}}}\n"));
     } else {
         out.push_str(&format!("{indent}{key}: {}\n", d2_quote(&node.label)));
     }
@@ -1147,7 +1200,7 @@ fn d2_quote(value: &str) -> String {
         match character {
             '\\' => out.push_str("\\\\"),
             '"' => out.push_str("\\\""),
-            '\n' | '\r' => out.push(' '),
+            '\n' | '\r' => out.push_str("\\n"),
             _ => out.push(character),
         }
     }
@@ -1730,6 +1783,7 @@ mod tests {
             notes: Vec::new(),
             classes: Vec::new(),
             tables: Vec::new(),
+            node_meta: BTreeMap::new(),
         }
     }
 
@@ -1937,6 +1991,32 @@ mod tests {
         assert!(out.contains("<title"));
         assert!(out.contains("<desc"));
         assert!(out.contains("paint-order=\"stroke\""));
+    }
+
+    #[test]
+    fn node_meta_writes_tooltip_link_and_local_icon() {
+        let mut spec = spec();
+        spec.node_meta.insert(
+            "src".to_string(),
+            NodeMeta {
+                tooltip: Some("kaynak".to_string()),
+                link: Some("https://example.invalid".to_string()),
+                icon: Some("assets/source.svg".to_string()),
+            },
+        );
+        let mut out = String::new();
+        graph_source(&spec, &DiagramTheme::default(), &mut out).expect("graph");
+        assert!(out.contains("tooltip: \"kaynak\""));
+        assert!(out.contains("icon: \"assets/source.svg\""));
+    }
+
+    #[test]
+    fn multiline_labels_are_escaped_for_d2() {
+        let mut spec = spec();
+        spec.nodes[0].label = "birinci satır\nikinci satır".to_string();
+        let mut out = String::new();
+        graph_source(&spec, &DiagramTheme::default(), &mut out).expect("graph");
+        assert!(out.contains("birinci satır\\nikinci satır"), "{out}");
     }
 
     #[test]

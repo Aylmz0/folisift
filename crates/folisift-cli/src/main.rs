@@ -89,6 +89,9 @@ enum Command {
         /// Comma-separated review intervals in days; overrides config.
         #[arg(long)]
         review_intervals: Option<String>,
+        /// Also emit cards from ::: definition / ::: must-know blocks.
+        #[arg(long)]
+        include_definitions: bool,
     },
     /// Build or inspect local semantic links between source sections.
     Links {
@@ -99,6 +102,15 @@ enum Command {
     Insights {
         #[arg(long)]
         source: PathBuf,
+        /// Enable LiteParse OCR (off by default).
+        #[arg(long)]
+        ocr: bool,
+        /// Page range such as 1-5,10.
+        #[arg(long)]
+        pages: Option<String>,
+        /// Continue after page-level PDFium errors.
+        #[arg(long)]
+        continue_on_page_error: bool,
     },
     /// Build a source inventory with liteparse.
     Analyze {
@@ -197,6 +209,9 @@ enum Command {
         heading: String,
         #[arg(long, default_value_t = 600)]
         max_chars: usize,
+        /// Token budget alias; overrides max_chars when set.
+        #[arg(long)]
+        max_tokens: Option<usize>,
     },
     /// Read one source section with an offset and truncation flag.
     ReadSection {
@@ -208,6 +223,12 @@ enum Command {
         heading: String,
         #[arg(long, default_value_t = 4000)]
         max_chars: usize,
+        /// Token budget alias; overrides max_chars when set.
+        #[arg(long)]
+        max_tokens: Option<usize>,
+        /// full, summary, claims or tables.
+        #[arg(long, default_value = "full")]
+        mode: String,
         #[arg(long, default_value_t = 0)]
         offset: usize,
     },
@@ -228,6 +249,9 @@ enum Command {
         /// Use heading terms only; skip the local model.
         #[arg(long)]
         no_model: bool,
+        /// Output path; defaults to guides/<slug>/data/topics.json.
+        #[arg(long)]
+        out: Option<PathBuf>,
     },
     /// Build or inspect the deterministic document graph.
     Graph {
@@ -950,6 +974,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
             guide,
             out,
             review_intervals,
+            include_definitions,
         } => {
             let guide = Guide::load(&workspace, &guide)?;
             let markdown = std::fs::read_to_string(&guide.content)?;
@@ -980,8 +1005,12 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 )
                 .unwrap_or_default(),
             };
-            let cards =
-                folisift_core::cards::cards_from_markdown(&markdown, &guide.slug, &intervals);
+            let cards = folisift_core::cards::cards_from_markdown_opts(
+                &markdown,
+                &guide.slug,
+                &intervals,
+                include_definitions,
+            );
             let out = match out {
                 Some(path) => workspace.resolve_write(&path)?,
                 None => guide.dir.join("data/cards.csv"),
@@ -1153,9 +1182,20 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
         }
-        Command::Insights { source } => {
+        Command::Insights {
+            source,
+            ocr,
+            pages,
+            continue_on_page_error,
+        } => {
             let source = workspace.resolve_read(&source)?;
-            let value = folisift_parse::extract_insights(&source).await?;
+            let value = folisift_parse::extract_insights(
+                &source,
+                ocr,
+                pages.as_deref(),
+                continue_on_page_error,
+            )
+            .await?;
             println!("{}", serde_json::to_string_pretty(&value)?);
         }
         Command::Analyze {
@@ -1781,11 +1821,13 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
             source,
             heading,
             max_chars,
+            max_tokens,
         } => {
             let guide = Guide::load(&workspace, &guide)?;
             let layout = folisift_parse::SourceLayout::read_json(
                 &guide.dir.join("data/blocks").join(format!("{source}.json")),
             )?;
+            let max_chars = max_tokens.map_or(max_chars, |tokens| tokens.saturating_mul(4));
             let brief = folisift_parse::section_brief(&layout, &heading, max_chars)
                 .ok_or_else(|| format!("section {heading:?} not found in {source}"))?;
             println!("{}", serde_json::to_string_pretty(&brief)?);
@@ -1795,14 +1837,18 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
             source,
             heading,
             max_chars,
+            max_tokens,
+            mode,
             offset,
         } => {
             let guide = Guide::load(&workspace, &guide)?;
             let layout = folisift_parse::SourceLayout::read_json(
                 &guide.dir.join("data/blocks").join(format!("{source}.json")),
             )?;
-            let read = folisift_parse::read_section(&layout, &heading, max_chars, offset)
-                .ok_or_else(|| format!("section {heading:?} not found in {source}"))?;
+            let max_chars = max_tokens.map_or(max_chars, |tokens| tokens.saturating_mul(4));
+            let read =
+                folisift_parse::read_section_mode(&layout, &heading, max_chars, offset, &mode)
+                    .ok_or_else(|| format!("section {heading:?} not found in {source}"))?;
             println!("{}", serde_json::to_string_pretty(&read)?);
         }
         Command::CoverageManifest { guide, action } => {
@@ -1871,7 +1917,12 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
         }
-        Command::Topics { guide, k, no_model } => {
+        Command::Topics {
+            guide,
+            k,
+            no_model,
+            out,
+        } => {
             let guide = Guide::load(&workspace, &guide)?;
             let inventory = if let Some(path) = &guide.inventory {
                 serde_json::from_slice::<folisift_parse::Inventory>(&std::fs::read(path)?)?
@@ -1887,14 +1938,18 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 let model = Model2VecEmbedder::load(&model_dir)?;
                 ("model2vec", topic_embeddings(&inventory, k, &model)?)
             };
-            println!(
-                "{}",
-                serde_json::to_string_pretty(&json!({
-                    "guide": guide.slug,
-                    "method": method,
-                    "topics": topics,
-                }))?
-            );
+            let value = json!({
+                "guide": guide.slug,
+                "method": method,
+                "topics": topics,
+            });
+            let out = out.unwrap_or_else(|| guide.dir.join("data/topics.json"));
+            let out = workspace.resolve_write(out)?;
+            if let Some(parent) = out.parent() {
+                std::fs::create_dir_all(parent)?;
+            }
+            std::fs::write(&out, serde_json::to_string_pretty(&value)? + "\n")?;
+            println!("{}", serde_json::to_string_pretty(&value)?);
         }
         Command::Graph { command } => match command {
             GraphCommand::Build { guide } => {

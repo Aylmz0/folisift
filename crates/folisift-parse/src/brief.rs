@@ -13,6 +13,7 @@ use crate::layout::{LayoutBlock, LayoutBlockKind, SourceLayout};
 pub struct SectionBrief {
     pub source: String,
     pub heading: String,
+    pub level: String,
     pub page_start: usize,
     pub page_end: usize,
     pub summary: String,
@@ -27,6 +28,8 @@ pub struct SectionBrief {
 pub struct SectionRead {
     pub source: String,
     pub heading: String,
+    pub level: String,
+    pub mode: String,
     pub page_start: usize,
     pub page_end: usize,
     pub text: String,
@@ -114,6 +117,7 @@ pub fn section_brief(layout: &SourceLayout, query: &str, max_chars: usize) -> Op
     Some(SectionBrief {
         source: layout.source.clone(),
         heading: section.heading.clone(),
+        level: section_level(&section.heading).to_string(),
         page_start: section.page_start,
         page_end: section.page_end,
         summary,
@@ -131,25 +135,87 @@ pub fn read_section(
     max_chars: usize,
     offset: usize,
 ) -> Option<SectionRead> {
+    read_section_mode(layout, query, max_chars, offset, "full")
+}
+
+pub fn read_section_mode(
+    layout: &SourceLayout,
+    query: &str,
+    max_chars: usize,
+    offset: usize,
+    mode: &str,
+) -> Option<SectionRead> {
     let sections = source_sections(layout);
     let section = find_section(&sections, query)?;
-    let text = section.text.trim();
-    let chars = text.chars().count();
+    let full = section.text.trim();
+    let chars = full.chars().count();
     let max_chars = max_chars.clamp(20, 24000);
     let start = offset.min(chars);
-    let snippet = text.chars().skip(start).take(max_chars).collect::<String>();
-    let truncated = start + snippet.chars().count() < chars;
+    let text = match mode {
+        "summary" => summary(full, max_chars),
+        "claims" => claim_lines(full),
+        "tables" => table_text(section),
+        _ => full.chars().skip(start).take(max_chars).collect::<String>(),
+    };
+    let truncated = match mode {
+        "full" => start + text.chars().count() < chars,
+        _ => text.chars().count() > max_chars,
+    };
+    let text = text.chars().take(max_chars).collect::<String>();
     Some(SectionRead {
         source: layout.source.clone(),
         heading: section.heading.clone(),
+        level: section_level(&section.heading).to_string(),
+        mode: mode.to_string(),
         page_start: section.page_start,
         page_end: section.page_end,
-        text: snippet,
+        text,
         chars,
-        estimated_tokens: estimate_tokens(text),
+        estimated_tokens: estimate_tokens(full),
         truncated,
         next_offset: truncated.then_some(start + max_chars),
     })
+}
+
+fn section_level(heading: &str) -> &'static str {
+    let number = heading.split_whitespace().next().unwrap_or_default();
+    match number.matches('.').count() {
+        0 => "chapter",
+        1 => "section",
+        _ => "heading",
+    }
+}
+
+fn claim_lines(text: &str) -> String {
+    let kept = text
+        .split_inclusive(['.', '!', '?'])
+        .map(str::trim)
+        .filter(|sentence| {
+            sentence.chars().count() >= 20
+                && (sentence.contains('[')
+                    || sentence.chars().any(|character| character.is_ascii_digit())
+                    || sentence.to_lowercase().contains("artar")
+                    || sentence.to_lowercase().contains("azalır"))
+        })
+        .collect::<Vec<_>>();
+    if kept.is_empty() {
+        text.to_string()
+    } else {
+        kept.join("\n")
+    }
+}
+
+fn table_text(section: &SourceSection) -> String {
+    if section.table_rows.is_empty() {
+        section
+            .text
+            .lines()
+            .filter(|line| line.contains('|'))
+            .collect::<Vec<_>>()
+            .join("\n")
+    } else {
+        section.table_rows.join("\n")
+    }
 }
 
 fn summary(text: &str, max_chars: usize) -> String {
@@ -336,6 +402,17 @@ mod tests {
         assert!(brief.numbers.iter().any(|value| value == "2026"));
         assert!(brief.citations.iter().any(|value| value.contains("PD3")));
         assert!(brief.table_rows.iter().any(|value| value.contains("Ad")));
+    }
+
+    #[test]
+    fn read_section_modes_are_bounded_and_explicit() {
+        let summary = read_section_mode(&layout(), "3.1", 200, 0, "summary").expect("summary");
+        assert_eq!(summary.mode, "summary");
+        assert_eq!(summary.level, "section");
+        let claims = read_section_mode(&layout(), "3.1", 200, 0, "claims").expect("claims");
+        assert!(claims.text.contains("2026") || claims.text.contains("[PD3"));
+        let tables = read_section_mode(&layout(), "3.1", 200, 0, "tables").expect("tables");
+        assert!(tables.text.contains("Ad") || tables.text.is_empty());
     }
 
     #[test]

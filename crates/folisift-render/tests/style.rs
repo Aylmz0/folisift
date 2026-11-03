@@ -163,6 +163,7 @@ fn embeds_a_prebuilt_diagram_and_rejects_inline_blocks() {
         notes: Vec::new(),
         classes: Vec::new(),
         tables: Vec::new(),
+        node_meta: std::collections::BTreeMap::new(),
     };
     folisift_render::diagram::write_spec(root.path(), &spec).expect("spec");
     folisift_render::diagram::write_d2_source(

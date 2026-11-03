@@ -31,6 +31,15 @@ pub fn normalize_review_intervals(mut intervals: Vec<u32>) -> Result<Vec<u32>, S
 }
 
 pub fn cards_from_markdown(markdown: &str, slug: &str, review_intervals: &[u32]) -> Vec<Card> {
+    cards_from_markdown_opts(markdown, slug, review_intervals, false)
+}
+
+pub fn cards_from_markdown_opts(
+    markdown: &str,
+    slug: &str,
+    review_intervals: &[u32],
+    include_definitions: bool,
+) -> Vec<Card> {
     let body = strip_frontmatter(markdown);
     let blocks = blocks(body);
     let recalls = blocks
@@ -63,6 +72,36 @@ pub fn cards_from_markdown(markdown: &str, slug: &str, review_intervals: &[u32])
             tags,
         });
     }
+    if include_definitions {
+        for (kind, body, _) in blocks
+            .iter()
+            .filter(|(kind, _, _)| kind == "definition" || kind == "must-know")
+        {
+            let body = body.trim();
+            if body.is_empty() {
+                continue;
+            }
+            let front = body
+                .lines()
+                .find(|line| !line.trim().is_empty())
+                .unwrap_or(body)
+                .trim()
+                .chars()
+                .take(160)
+                .collect::<String>();
+            let source = source_of(body).unwrap_or_default();
+            let mut tags = vec![slug.to_string(), kind.clone()];
+            for interval in review_intervals {
+                tags.push(format!("review-{interval}d"));
+            }
+            cards.push(Card {
+                front,
+                back: body.to_string(),
+                source,
+                tags,
+            });
+        }
+    }
     cards
 }
 
@@ -91,7 +130,7 @@ fn blocks(markdown: &str) -> Vec<(String, String, usize)> {
             continue;
         };
         let kind = rest.split_whitespace().next().unwrap_or_default();
-        if !matches!(kind, "recall" | "answer") {
+        if !matches!(kind, "recall" | "answer" | "definition" | "must-know") {
             index += 1;
             continue;
         }
@@ -162,6 +201,16 @@ mod tests {
         let cards = cards_from_markdown(markdown, "demo", &[1]);
         assert_eq!(cards.len(), 1);
         assert_eq!(cards[0].back, "A1 [SRC1, s. 2]");
+    }
+
+    #[test]
+    fn definitions_are_opt_in_cards() {
+        let markdown = "::: definition label=\"X\"\n**X:** defined term. [SRC1, s. 1]\n:::\n";
+        assert!(cards_from_markdown(markdown, "demo", &[1]).is_empty());
+        let cards = cards_from_markdown_opts(markdown, "demo", &[1], true);
+        assert_eq!(cards.len(), 1);
+        assert!(cards[0].front.contains("X:"));
+        assert!(cards[0].tags.contains(&"definition".to_string()));
     }
 
     #[test]

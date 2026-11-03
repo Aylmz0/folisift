@@ -13,14 +13,21 @@ use serde_json::{Value, json};
 use crate::error::{Error, Result};
 use crate::pdfium;
 
-pub async fn extract_insights(path: &Path) -> Result<Value> {
+pub async fn extract_insights(
+    path: &Path,
+    ocr: bool,
+    target_pages: Option<&str>,
+    continue_on_page_error: bool,
+) -> Result<Value> {
     pdfium::init(None)?;
     let path_text = path.to_str().ok_or_else(|| Error::Parse {
         path: path.to_path_buf(),
         message: "source path is not valid UTF-8".to_string(),
     })?;
     let result = LiteParse::new(LiteParseConfig {
-        ocr_enabled: false,
+        ocr_enabled: ocr,
+        target_pages: target_pages.map(ToString::to_string),
+        continue_on_page_error,
         output_format: OutputFormat::Json,
         extract_annotations: true,
         extract_form_fields: true,
@@ -75,7 +82,9 @@ pub async fn extract_insights(path: &Path) -> Result<Value> {
         "pages": pages,
         "policy": {
             "read_only": true,
-            "ocr": false,
+            "ocr": ocr,
+            "target_pages": target_pages,
+            "continue_on_page_error": continue_on_page_error,
             "writes_files": false,
             "note": "Annotations/forms/structure/vector/complexity are diagnostics, not coverage inputs."
         },

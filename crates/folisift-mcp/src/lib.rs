@@ -19,9 +19,9 @@ use rmcp::handler::server::router::tool::ToolRouter;
 use rmcp::handler::server::wrapper::Parameters;
 use rmcp::model::{
     ContentBlock, GetPromptRequestParams, GetPromptResponse, GetPromptResult, Implementation,
-    ListPromptsResult, ListResourcesResult, PaginatedRequestParams, Prompt, PromptMessage,
-    ReadResourceRequestParams, ReadResourceResponse, ReadResourceResult, Resource,
-    ResourceContents, Role, ServerCapabilities, ServerConfig,
+    ListPromptsResult, ListResourceTemplatesResult, ListResourcesResult, PaginatedRequestParams,
+    Prompt, PromptMessage, ReadResourceRequestParams, ReadResourceResponse, ReadResourceResult,
+    Resource, ResourceContents, ResourceTemplate, Role, ServerCapabilities, ServerConfig,
 };
 use rmcp::{ErrorData, Json, ServerHandler, ServiceExt, tool, tool_handler, tool_router};
 use schemars::JsonSchema;
@@ -82,6 +82,12 @@ pub struct LinksParams {
 pub struct SourceInsightsParams {
     /// Source PDF path relative to the workspace.
     pub source: String,
+    /// Enable OCR; default false.
+    pub ocr: Option<bool>,
+    /// Page range such as 1-5,10.
+    pub pages: Option<String>,
+    /// Continue after page-level PDFium errors.
+    pub continue_on_page_error: Option<bool>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -124,6 +130,8 @@ pub struct SourceTopicsParams {
     pub guide: String,
     /// Maximum topic clusters; default 8.
     pub k: Option<usize>,
+    /// Read the CLI-generated Model2Vec topics file when available.
+    pub semantic: Option<bool>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -184,6 +192,8 @@ pub struct SectionBriefParams {
     pub heading: String,
     /// Maximum summary characters; default 600.
     pub max_chars: Option<usize>,
+    /// Token budget alias; overrides max_chars when set.
+    pub max_tokens: Option<usize>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -196,6 +206,10 @@ pub struct ReadSectionParams {
     pub heading: String,
     /// Maximum characters; default 4000.
     pub max_chars: Option<usize>,
+    /// Token budget alias; overrides max_chars when set.
+    pub max_tokens: Option<usize>,
+    /// full, summary, claims or tables; default full.
+    pub mode: Option<String>,
     /// Character offset for continuation.
     pub offset: Option<usize>,
 }
@@ -206,6 +220,8 @@ pub struct CoverageManifestParams {
     pub action: String,
     /// Guide slug.
     pub guide: String,
+    /// summary or full; default summary.
+    pub detail: Option<String>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -228,6 +244,8 @@ pub struct GraphParams {
     pub node: Option<String>,
     /// Maximum BFS depth for path; default 8.
     pub max_depth: Option<usize>,
+    /// summary or full for read; default summary.
+    pub detail: Option<String>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -387,6 +405,8 @@ pub struct CardsParams {
     pub out: Option<String>,
     /// Review intervals in days; defaults to config.review_intervals.
     pub review_intervals: Option<Vec<u32>>,
+    /// Also emit cards from ::: definition / ::: must-know blocks.
+    pub include_definitions: Option<bool>,
 }
 
 #[tool_router]
@@ -808,6 +828,16 @@ impl FolisiftServer {
             }
             "read" => {
                 let graph = DocumentGraph::read_json(&path).map_err(|error| error.to_string())?;
+                if params.detail.as_deref().unwrap_or("summary") == "summary" {
+                    return Ok(Json(json!({
+                        "guide": guide.slug,
+                        "output": path.display().to_string(),
+                        "detail": "summary",
+                        "total_nodes": graph.nodes.len(),
+                        "total_edges": graph.edges.len(),
+                        "node_kinds": graph.counts(),
+                    })));
+                }
                 let node_limit = params.node_limit.unwrap_or(100);
                 let edge_limit = params.edge_limit.unwrap_or(100);
                 Ok(Json(json!({
@@ -1727,7 +1757,7 @@ impl FolisiftServer {
         &self,
         Parameters(params): Parameters<BuildGuideParams>,
     ) -> Result<Json<Value>, String> {
-        let outcome = folisift_build::build(
+        let outcome = match folisift_build::build(
             &self.workspace,
             folisift_build::BuildRequest {
                 slug: params.slug,
@@ -1737,13 +1767,25 @@ impl FolisiftServer {
             },
         )
         .await
-        .map_err(|error| {
-            let diagnostic = folisift_core::Diagnostic::from_message(&error.to_string());
-            format!(
-                "{error}\ndiagnostic: {}",
-                serde_json::to_string(&diagnostic).unwrap_or_default()
-            )
-        })?;
+        {
+            Ok(outcome) => outcome,
+            Err(error) => {
+                if let Some((message, draft_path)) = error.build_failure() {
+                    let diagnostic = folisift_core::Diagnostic::from_message(message);
+                    return Ok(Json(json!({
+                        "passed": false,
+                        "draft_path": draft_path.map(|path| path.display().to_string()),
+                        "diagnostic": diagnostic,
+                        "message": message,
+                    })));
+                }
+                let diagnostic = folisift_core::Diagnostic::from_message(&error.to_string());
+                return Err(format!(
+                    "{error}\ndiagnostic: {}",
+                    serde_json::to_string(&diagnostic).unwrap_or_default()
+                ));
+            }
+        };
         let coverage = outcome
             .coverage
             .as_ref()
@@ -1773,6 +1815,34 @@ impl FolisiftServer {
     }
 
     #[tool(
+        description = "Diagnose PDFium, guides, cache, model and D2 before a build",
+        annotations(title = "Doctor", read_only_hint = true, open_world_hint = false)
+    )]
+    async fn doctor(&self) -> Json<Value> {
+        let guides = list_guides(&self.workspace).unwrap_or_default();
+        let invalid = guides.iter().filter(|guide| !guide.valid).count();
+        let model = find_model_dir(self.workspace.root());
+        let model_ok = model
+            .as_ref()
+            .is_some_and(|path| verify_model_dir(path).is_ok());
+        let cache = self.workspace.root().join("data/cache");
+        Json(json!({
+            "ok": invalid == 0 && model_ok,
+            "version": version::VERSION,
+            "root": self.workspace.root().display().to_string(),
+            "checks": [
+                {"name": "pdfium", "ok": folisift_parse::pdfium::init(None).is_ok(), "detail": folisift_parse::pdfium::PDFIUM_VERSION},
+                {"name": "guides", "ok": invalid == 0, "detail": format!("{} guide(s), {invalid} invalid", guides.len())},
+                {"name": "cache", "ok": cache.is_dir(), "detail": cache.display().to_string()},
+                {"name": "fonts", "ok": true, "detail": format!("{} embedded face(s)", folisift_render::embedded_font_count())},
+                {"name": "structures", "ok": true, "detail": format!("{} pack(s)", folisift_core::structures::packs().len())},
+                {"name": "semantic-model", "ok": model_ok, "required": false, "detail": model.map(|path| path.display().to_string())},
+                {"name": "d2", "ok": std::env::var("FOLISIFT_D2").is_ok(), "required": false, "detail": "set FOLISIFT_D2 for diagram build"},
+            ],
+        }))
+    }
+
+    #[tool(
         description = "Opt-in LiteParse depth: annotations, forms, structure, vectors and per-page complexity",
         annotations(
             title = "Source insights",
@@ -1788,9 +1858,14 @@ impl FolisiftServer {
             .workspace
             .resolve_read(&params.source)
             .map_err(|error| error.to_string())?;
-        let value = folisift_parse::extract_insights(&source)
-            .await
-            .map_err(|error| error.to_string())?;
+        let value = folisift_parse::extract_insights(
+            &source,
+            params.ocr.unwrap_or(false),
+            params.pages.as_deref(),
+            params.continue_on_page_error.unwrap_or(false),
+        )
+        .await
+        .map_err(|error| error.to_string())?;
         Ok(Json(value))
     }
 
@@ -2006,6 +2081,14 @@ impl FolisiftServer {
             Guide::load(&self.workspace, &params.guide).map_err(|error| error.to_string())?;
         let inventory = self.load_or_analyze_inventory(&guide).await?;
         let k = params.k.unwrap_or(8).clamp(1, 30);
+        if params.semantic.unwrap_or(false) {
+            let path = guide.dir.join("data/topics.json");
+            if let Ok(text) = std::fs::read_to_string(&path)
+                && let Ok(value) = serde_json::from_str::<Value>(&text)
+            {
+                return Ok(Json(value));
+            }
+        }
         let topics = source_topics(&inventory, k);
         Ok(Json(json!({
             "guide": guide.slug,
@@ -2260,17 +2343,19 @@ impl FolisiftServer {
                 .join(format!("{}.json", params.source)),
         )
         .map_err(|error| error.to_string())?;
-        let brief = folisift_parse::section_brief(
-            &layout,
-            &params.heading,
-            params.max_chars.unwrap_or(600),
-        )
-        .ok_or_else(|| {
-            format!(
-                "section {:?} not found in {}",
-                params.heading, params.source
-            )
-        })?;
+        let max_chars = params
+            .max_tokens
+            .map_or(params.max_chars.unwrap_or(600), |tokens| {
+                tokens.saturating_mul(4)
+            });
+        let brief = folisift_parse::section_brief(&layout, &params.heading, max_chars).ok_or_else(
+            || {
+                format!(
+                    "section {:?} not found in {}",
+                    params.heading, params.source
+                )
+            },
+        )?;
         Ok(Json(
             serde_json::to_value(brief).map_err(|error| error.to_string())?,
         ))
@@ -2293,11 +2378,17 @@ impl FolisiftServer {
                 .join(format!("{}.json", params.source)),
         )
         .map_err(|error| error.to_string())?;
-        let read = folisift_parse::read_section(
+        let max_chars = params
+            .max_tokens
+            .map_or(params.max_chars.unwrap_or(4000), |tokens| {
+                tokens.saturating_mul(4)
+            });
+        let read = folisift_parse::read_section_mode(
             &layout,
             &params.heading,
-            params.max_chars.unwrap_or(4000),
+            max_chars,
             params.offset.unwrap_or(0),
+            params.mode.as_deref().unwrap_or("full"),
         )
         .ok_or_else(|| {
             format!(
@@ -2339,12 +2430,22 @@ impl FolisiftServer {
             "read" => {
                 let manifest =
                     CoverageManifest::read_json(&path).map_err(|error| error.to_string())?;
-                Ok(Json(json!({
-                    "guide": guide.slug,
-                    "output": path.display().to_string(),
-                    "rows": manifest.rows.len(),
-                    "manifest": manifest,
-                })))
+                let detail = params.detail.as_deref().unwrap_or("summary");
+                if detail == "summary" {
+                    Ok(Json(json!({
+                        "guide": guide.slug,
+                        "output": path.display().to_string(),
+                        "rows": manifest.rows.len(),
+                        "detail": "summary",
+                    })))
+                } else {
+                    Ok(Json(json!({
+                        "guide": guide.slug,
+                        "output": path.display().to_string(),
+                        "rows": manifest.rows.len(),
+                        "manifest": manifest,
+                    })))
+                }
             }
             "validate" => {
                 let inventory = self.load_or_analyze_inventory(&guide).await?;
@@ -2509,7 +2610,12 @@ impl FolisiftServer {
             )
             .unwrap_or_default(),
         };
-        let cards = folisift_core::cards::cards_from_markdown(&markdown, &guide.slug, &intervals);
+        let cards = folisift_core::cards::cards_from_markdown_opts(
+            &markdown,
+            &guide.slug,
+            &intervals,
+            params.include_definitions.unwrap_or(false),
+        );
         let out = match params.out {
             Some(path) => self
                 .workspace
@@ -2652,6 +2758,23 @@ impl ServerHandler for FolisiftServer {
         std::future::ready(Ok(result))
     }
 
+    fn list_resource_templates(
+        &self,
+        _request: Option<PaginatedRequestParams>,
+        _context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
+    ) -> impl std::future::Future<Output = Result<ListResourceTemplatesResult, ErrorData>> + Send + '_
+    {
+        let templates = vec![
+            ResourceTemplate::new("folisift://source/{source}/page/{page}", "source-page")
+                .with_description("Bounded text blocks for one source page")
+                .with_mime_type("text/plain"),
+            ResourceTemplate::new("folisift://guide/{slug}/outline", "guide-outline")
+                .with_description("Bounded guide outline")
+                .with_mime_type("application/json"),
+        ];
+        std::future::ready(Ok(ListResourceTemplatesResult::with_all_items(templates)))
+    }
+
     fn read_resource(
         &self,
         request: ReadResourceRequestParams,
@@ -2675,6 +2798,49 @@ impl ServerHandler for FolisiftServer {
             "folisift://design-system" => self.read_workspace_markdown("docs/design-system.md"),
             "folisift://diagram-schema" => Ok(diagram_schema()),
             "folisift://diagram-rules" => Ok(diagram_rules().to_string()),
+            _ if uri.starts_with("folisift://source/") && uri.contains("/page/") => {
+                let rest = uri.trim_start_matches("folisift://source/");
+                let Some((source, page)) = rest.split_once("/page/") else {
+                    return std::future::ready(Err(ErrorData::resource_not_found(
+                        format!("bad source page URI: {uri}"),
+                        None,
+                    )));
+                };
+                let page: usize = page.parse().unwrap_or(0);
+                let mut text = None;
+                if let Ok(entries) = std::fs::read_dir(self.workspace.root().join("guides")) {
+                    for entry in entries.flatten() {
+                        let path = entry
+                            .path()
+                            .join("data/blocks")
+                            .join(format!("{source}.json"));
+                        if let Ok(layout) = folisift_parse::SourceLayout::read_json(&path)
+                            && let Some(page) = layout.pages.iter().find(|item| item.page == page)
+                        {
+                            text = Some(
+                                page.blocks
+                                    .iter()
+                                    .filter_map(|block| {
+                                        block.text_or_empty().trim().to_string().into()
+                                    })
+                                    .collect::<Vec<_>>()
+                                    .join("\n")
+                                    .chars()
+                                    .take(4000)
+                                    .collect::<String>(),
+                            );
+                            break;
+                        }
+                    }
+                }
+                match text {
+                    Some(text) => Ok(text),
+                    None => Err(ErrorData::resource_not_found(
+                        format!("source page not found: {uri}"),
+                        None,
+                    )),
+                }
+            }
             _ if uri.starts_with("folisift://guide/") && uri.ends_with("/outline") => {
                 let slug = uri
                     .trim_start_matches("folisift://guide/")

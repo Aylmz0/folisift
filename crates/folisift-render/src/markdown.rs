@@ -418,6 +418,24 @@ fn markdown_to_typst_with(markdown: &str, config: &RenderConfig) -> Result<Strin
                     if let Some(value) = attr(&attrs, "subs") {
                         args.push(format!("subs: {}", value == "true"));
                     }
+                    for (attr_key, arg_key) in
+                        [("include", "toc_include"), ("exclude", "toc_exclude")]
+                    {
+                        if let Some(value) = attr(&attrs, attr_key) {
+                            let items = value
+                                .split(',')
+                                .map(str::trim)
+                                .filter(|item| !item.is_empty())
+                                .map(typst_string)
+                                .collect::<Vec<_>>();
+                            let body = if items.len() == 1 {
+                                format!("{},", items[0])
+                            } else {
+                                items.join(", ")
+                            };
+                            args.push(format!("{arg_key}: ({body})"));
+                        }
+                    }
                     if let Some(value) = attr(&attrs, "toc_depth") {
                         let depth: u8 = value.parse().map_err(|_| Error::Markdown {
                             line: start_line,
@@ -449,7 +467,16 @@ fn markdown_to_typst_with(markdown: &str, config: &RenderConfig) -> Result<Strin
                         }
                     }
                     if let Some(value) = attr(&attrs, "min_rows_before_break") {
-                        args.push(format!("min_rows_before_break: {value}"));
+                        let rows: usize = value.parse().map_err(|_| Error::Markdown {
+                            line: start_line,
+                            message: format!("min_rows_before_break is not a number: {value}"),
+                        })?;
+                        if rows > 0 {
+                            return Err(Error::Markdown {
+                                line: start_line,
+                                message: "min_rows_before_break > 0 is not supported; use ::: columnbreak at row boundaries".to_string(),
+                            });
+                        }
                     }
                     if args.is_empty() {
                         out.push_str(&format!("#two_col[{inner_typst}]\n\n"));
@@ -1439,10 +1466,12 @@ mod tests {
 
     #[test]
     fn toc_depth_and_subs_are_emitted_or_rejected() {
-        let typst = markdown_to_typst("::: toc title=\"X\" subs=\"false\" toc_depth=\"1\"\n:::")
+        let typst = markdown_to_typst("::: toc title=\"X\" subs=\"false\" toc_depth=\"1\" include=\"Bölüm 3, Giriş\" exclude=\"Ek\"\n:::")
             .expect("toc");
         assert!(typst.contains("subs: false"));
         assert!(typst.contains("depth: 1"));
+        assert!(typst.contains("toc_include: (\"Bölüm 3\", \"Giriş\")"));
+        assert!(typst.contains("toc_exclude: (\"Ek\",)"));
         let error = markdown_to_typst("::: toc toc_depth=\"3\"\n:::").expect_err("depth");
         assert!(error.to_string().contains("toc_depth"));
     }
@@ -1450,7 +1479,7 @@ mod tests {
     #[test]
     fn chapter_and_columns_layout_options_are_emitted_or_rejected() {
         let typst = markdown_to_typst(
-            "::: chapter title=\"Bölüm\" keep_with_next=\"false\" break_before=\"true\" break_after=\"true\" allow_split=\"true\" full_page_opener=\"true\"\n:::\n\n::: columns flow=\"true\" keep_with_next=\"false\" min_rows_before_break=\"2\"\nA\n:::",
+            "::: chapter title=\"Bölüm\" keep_with_next=\"false\" break_before=\"true\" break_after=\"true\" allow_split=\"true\" full_page_opener=\"true\"\n:::\n\n::: columns flow=\"true\" keep_with_next=\"false\"\nA\n:::",
         )
         .expect("typst");
         assert!(typst.contains("keep_with_next: false"));
@@ -1458,9 +1487,14 @@ mod tests {
         assert!(typst.contains("break_after: true"));
         assert!(typst.contains("allow_split: true"));
         assert!(typst.contains("full_page_opener: true"));
-        assert!(
-            typst.contains("#two_col(flow: true, keep_with_next: false, min_rows_before_break: 2)")
-        );
+        assert!(typst.contains("#two_col(flow: true, keep_with_next: false)"));
+    }
+
+    #[test]
+    fn unsupported_min_rows_is_rejected_instead_of_silently_ignored() {
+        let error = markdown_to_typst("::: columns min_rows_before_break=\"2\"\nA\n:::")
+            .expect_err("min rows");
+        assert!(error.to_string().contains("min_rows_before_break"));
     }
 
     #[test]

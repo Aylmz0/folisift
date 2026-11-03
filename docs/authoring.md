@@ -55,7 +55,9 @@ cargo run -p folisift-cli -- insights --source sources/PD0.pdf
 The MCP equivalent is `source_insights`. It is read-only diagnostics: it does
 not run OCR, write files, or change coverage. The MCP flow reads source text in
 bounded chunks with `read_source` and can search it with `search_source`; the
-host LLM writes the prose.
+host LLM writes the prose. For smaller reads use `section_brief` (level:
+chapter/section/heading) and `read-section --mode full|summary|claims|tables`;
+both accept `--max-tokens` or `--max-chars`.
 
 Cluster source headings with the bundled local Model2Vec model:
 
@@ -342,6 +344,8 @@ The template owns pagination and typography; content uses semantic blocks.
 `break_after`, `allow_split`, `full_page_opener`. Use `compact=true` for C–G
 chapters; use `subs=false` when a chapter's `##` headings should not appear in
 the TOC. `flow=true` pulls the opener into the previous page's remaining space.
+The `::: toc` directive accepts `subs`, `toc_depth`, `include` and `exclude`
+(comma-separated heading text).
 The first `::: definition` in the front matter may carry
 `toc="A · ÇERÇEVE"` so the box gets a TOC entry.
 
@@ -488,7 +492,7 @@ guide or claims learning efficacy.
 
 ```bash
 folisift claims --guide my-course
-folisift cards --guide my-course --review-intervals 1,3,7
+folisift cards --guide my-course --review-intervals 1,3,7,14,30 --include-definitions
 ```
 
 `claims` writes `guides/<slug>/data/claims.md`. It lists high-signal sentences

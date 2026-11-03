@@ -24,9 +24,26 @@ pub enum Error {
     Io(#[from] std::io::Error),
     #[error("{0}")]
     Message(String),
+    #[error("{message}")]
+    BuildFailure {
+        message: String,
+        draft_path: Option<PathBuf>,
+    },
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
+
+impl Error {
+    pub fn build_failure(&self) -> Option<(&str, Option<&Path>)> {
+        match self {
+            Self::BuildFailure {
+                message,
+                draft_path,
+            } => Some((message, draft_path.as_deref())),
+            _ => None,
+        }
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct BuildRequest {
@@ -53,14 +70,15 @@ pub struct BuildOutcome {
 }
 
 fn fail_with_draft(message: String, staged: &mut Option<StagedPdf>) -> Error {
+    let draft_path = staged.take().and_then(|staged| staged.persist_draft().ok());
     let mut message = message;
-    if let Some(staged) = staged.take() {
-        match staged.persist_draft() {
-            Ok(path) => message.push_str(&format!("\ndraft_path: {}", path.display())),
-            Err(error) => message.push_str(&format!("\ndraft could not be kept: {error}")),
-        }
+    if let Some(path) = &draft_path {
+        message.push_str(&format!("\ndraft_path: {}", path.display()));
     }
-    Error::Message(message)
+    Error::BuildFailure {
+        message,
+        draft_path,
+    }
 }
 
 pub async fn build(workspace: &Workspace, request: BuildRequest) -> Result<BuildOutcome> {

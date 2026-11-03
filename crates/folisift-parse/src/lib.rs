@@ -25,7 +25,8 @@ pub mod visual_audit;
 
 pub use audit::{AuditOptions, LayoutAudit, PageAudit, audit_pdf, audit_pdf_with};
 pub use brief::{
-    SectionBrief, SectionRead, SourceSection, read_section, section_brief, source_sections,
+    SectionBrief, SectionRead, SourceSection, read_section, read_section_mode, section_brief,
+    source_sections,
 };
 pub use coverage::{
     CoverageReport, DEFAULT_THRESHOLD, MIN_SECTION_CHARS, check_coverage, guide_body_chars,

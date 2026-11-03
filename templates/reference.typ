@@ -287,7 +287,7 @@
   [],
 )
 
-#let toc_page(title: "", note: "", label: "İÇİNDEKİLER", subs: true, depth: 2) = page(header: none)[
+#let toc_page(title: "", note: "", label: "İÇİNDEKİLER", subs: true, depth: 2, toc_include: (), toc_exclude: ()) = page(header: none)[
   #set text(font: "Inter", size: __BODY_SIZE__, fill: ink)
   #text(font: "Inter", size: __MICRO_SIZE__, tracking: 0.2em, fill: brick)[#label]
   #v(2mm)
@@ -300,7 +300,12 @@
     let state = entries.fold((none, false, ()), ((last, subs, out), entry) => {
       let value = entry.value
       let page-number = counter(page).at(entry.location()).first()
-      if value.level == 1 {
+      let text = if value.level == 1 { value.body } else { "" }
+      let included = toc_include.len() == 0 or toc_include.any(term => text.contains(term))
+      let excluded = toc_exclude.any(term => text.contains(term))
+      if not included or excluded {
+        (last, subs, out)
+      } else if value.level == 1 {
         let part-rows = if value.part != none and value.part != last {
           out + (toc_part(value.part),)
         } else {
