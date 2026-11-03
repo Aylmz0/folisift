@@ -346,16 +346,7 @@ pub async fn qa(workspace: &Workspace, slug: &str) -> Result<serde_json::Value> 
                 .count()
         })
         .unwrap_or(0);
-    let diagram_assets = std::fs::read_dir(guide.dir.join("assets"))
-        .map(|entries| {
-            entries
-                .filter_map(std::result::Result::ok)
-                .filter(|entry| {
-                    entry.path().extension().and_then(|value| value.to_str()) == Some("svg")
-                })
-                .count()
-        })
-        .unwrap_or(0);
+    let diagram_assets = count_files(&guide.dir.join("assets/generated"), "svg");
     let audit = outcome.layout.clone();
     let audit_passed = audit.as_ref().is_some_and(|report| report.passed);
     let underfilled = audit
@@ -391,6 +382,25 @@ pub async fn qa(workspace: &Workspace, slug: &str) -> Result<serde_json::Value> 
             "assets": diagram_assets,
         },
     }))
+}
+
+fn count_files(path: &Path, extension: &str) -> usize {
+    let Ok(entries) = std::fs::read_dir(path) else {
+        return 0;
+    };
+    entries
+        .filter_map(std::result::Result::ok)
+        .map(|entry| {
+            let path = entry.path();
+            if path.is_dir() {
+                count_files(&path, extension)
+            } else if path.extension().and_then(|value| value.to_str()) == Some(extension) {
+                1
+            } else {
+                0
+            }
+        })
+        .sum()
 }
 
 /// Resolve the audit margins/typography options for a guide style.
@@ -485,5 +495,21 @@ impl Drop for StagedPdf {
         if !self.committed {
             let _ = std::fs::remove_file(&self.path);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::count_files;
+
+    #[test]
+    fn counts_nested_assets_by_extension() {
+        let root = std::env::temp_dir().join(format!("folisift-assets-{}", std::process::id()));
+        std::fs::create_dir_all(root.join("nested")).expect("dir");
+        std::fs::write(root.join("a.svg"), "x").expect("a");
+        std::fs::write(root.join("b.txt"), "x").expect("b");
+        std::fs::write(root.join("nested/c.svg"), "x").expect("c");
+        assert_eq!(count_files(&root, "svg"), 2);
+        let _ = std::fs::remove_dir_all(root);
     }
 }

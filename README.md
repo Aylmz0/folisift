@@ -5,7 +5,7 @@ PDFs into source-traceable, paper-like study guides with a deterministic build,
 layout audit and local review tools. The engine is shared; each course is a
 self-contained guide bundle.
 
-**Current release: `v0.14.4`** — Linux archive, source builds for macOS and
+**Current release: `v0.14.5`** — Linux archive, source builds for macOS and
 Windows, and a source-available PolyForm Strict license.
 
 - Repository: <https://github.com/Aylmz0/folisift>
@@ -73,8 +73,8 @@ pre-generated SVG and never execute D2.
 ### Manual archive
 
 ```bash
-tar -xzf folisift-v0.14.4-linux-x86_64.tar.gz
-sha256sum -c folisift-v0.14.4-linux-x86_64.tar.gz.sha256
+tar -xzf folisift-v0.14.5-linux-x86_64.tar.gz
+sha256sum -c folisift-v0.14.5-linux-x86_64.tar.gz.sha256
 ./folisift doctor
 ```
 
