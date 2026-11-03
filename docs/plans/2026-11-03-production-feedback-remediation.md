@@ -329,7 +329,9 @@ coverage_manifest { slug, action: build|read|update|validate, entries? }
 - Add `kind: decision` with explicit terminal/leaf semantics.
 - Add `layout` choices (`tala`, `elk`, `dagre`) and `aspect_ratio`; `direction`
   must be honored or rejected, not silently ignored.
-- Add per-diagram `width`/`height`/`max_width`/`max_height`/`fit`.
+- Replay the reported `width` failure on the current tree, then complete
+  per-diagram `width`/`height`/`max_width`/`max_height`/`fit` and add a bbox
+  regression test.
 - Add multiline labels via `label_lines` and, if safe, escaped `\n`.
 - Unify `DiagramResult`: `id`, `ok`, `state`, `cached`, `svg`, `errors`,
   `warnings`; bump the result schema and mark old `status`/`ok` fields
@@ -342,7 +344,8 @@ coverage_manifest { slug, action: build|read|update|validate, entries? }
 
 **Acceptance**
 
-- 20-node legal decision tree validates and fits one page.
+- 20-node legal decision tree validates and fits one page, or uses an explicit
+  `allow_page_span=true` two-page layout.
 - `width=60%` changes the rendered width; otherwise `E_DIAGRAM_WIDTH`.
 - Multiline label renders two lines.
 - `diagram status` has one state field and one result schema.
@@ -1086,8 +1089,9 @@ Markdown parsing, Typst layout, D2 or PDF auditing.
 
 **Exit:** a 141-heading source cannot pass with fewer than 141 manifest rows;
 chapter/columns/table/diagram units do not split silently; errors are
-machine-readable; a 20-node decision tree fits; `read_section` and the
-hierarchical briefs reduce source chars read on the benchmark.
+machine-readable; a 20-node decision tree fits; the default MCP core profile
+stays within its tool/schema budget; `read_section` and the hierarchical briefs
+reduce source chars read on the benchmark.
 
 ### M2 — Workflow P1
 
@@ -1103,7 +1107,8 @@ hierarchical briefs reduce source chars read on the benchmark.
 - W14b `guide_plan`, compact outputs and per-tool field filters.
 
 **Exit:** one `qa_guide` call is the release gate; IRAC scaffold is usable
-without rewriting; counts agree across reports.
+without rewriting; counts agree across reports; glossaries render as four-column
+tables with atomic term/definition pairs.
 
 ### M3 — Advanced context economics
 
@@ -1225,6 +1230,7 @@ Recreate them with synthetic or licensed sources and keep the same shapes:
 | claims.md (146 rows) | claims precision benchmark |
 | multi-source 207-page guide | coverage/multi-source benchmark |
 | 21 low-text pages | OCR/visual role benchmark |
+| 40-term glossary | four-column glossary benchmark (W22) |
 
 The minimal command list in §35 becomes the CLI/MCP parity smoke suite:
 `analyze`, `build --check`, `audit --strict`, `diagram validate/build/status`,
@@ -1244,6 +1250,7 @@ Every command gets a matching MCP action or an explicit “CLI-only” label.
 | 7 | page 1-based + tables count + page roles | M2/W5/W9/W10 |
 | 8 | graph query/path/explain | M3/W11 |
 | 9 | docs cookbook + common errors | M4/W19 |
+| 10 | four-column glossary + atomic pairs | M2/W22 |
 
 ## 10. Finding register
 
@@ -1276,19 +1283,6 @@ appear here. `Evidence` records what we know at plan time, not final status.
 | F-0.1-7 | Digital guide 19 pages, 207 source pages, 21 low-text, 41 canonical, 4 D2, 12 tables, 40-term glossary, 6 cards, 146 claims | W1/W9/W14/W18 | P0/P1 | confirmed |
 | F-0.1-8 | “passed” is insufficient when numbers disagree | W0/W1 | P0 | confirmed |
 
-### 10.3a §1.1 — chronological break points
-
-| ID | Finding | Workstream | Priority | Evidence |
-|---|---|---|---|---|
-| F-1.1-1 | Source analysis: 117 pages, 18 tables, 139 headings; 4.4.4/10.2 missing; layout 267 | W1/W5 | P0 | confirmed |
-| F-1.1-2 | Main guide: 17 sections, 3 D2, 26 pages; coverage 7/7; underfilled 4/8/19; page loop 25→...→26 | W1/W2/W13 | P0 | confirmed |
-| F-1.1-3 | Dismissal diagram: 7→12 nodes; down became horizontal; width ineffective; `\n` failed | W4 | P0 | needs-repro |
-| F-1.1-4 | C section: chapter kicker/title split; 66-term columns jumped; had to use a table | W2 | P0 | confirmed |
-| F-1.1-5 | IRAC: wrong scaffold; `### Sorun` not counted; 7 empty sections; page 10 underfilled | W8/W10 | P1 | confirmed |
-| F-1.1-6 | Style: manual config; accessible 14 pages; recommend workbook/incompatible | W6 | P1 | confirmed |
-| F-1.1-7 | Digital: 207 pages, 21 low-text, 41 canonical, 31-slide source at 0, `page: —`, figures 2–3 too large | W1/W10/W13/W18 | P0 | confirmed |
-| F-1.1-8 | QA: build + audit + cards + claims separate; no MCP audit/qa | W7 | P1 | confirmed |
-
 ### 10.3 §1–§2 — session and priority matrix
 
 | ID | Finding | Workstream | Priority | Evidence |
@@ -1316,6 +1310,19 @@ appear here. `Evidence` records what we know at plan time, not final status.
 | F-2-18 | Claims/cards noisy | W12 | P2 | confirmed |
 | F-2-19 | Structure validator only `##` | W8 | P1 | confirmed |
 | F-2-20 | Multi-source 31-slide gap | W1/W14 | P0/P1 | confirmed |
+
+### 10.3.1 §1.1 — chronological break points
+
+| ID | Finding | Workstream | Priority | Evidence |
+|---|---|---|---|---|
+| F-1.1-1 | Source analysis: 117 pages, 18 tables, 139 headings; 4.4.4/10.2 missing; layout 267 | W1/W5 | P0 | confirmed |
+| F-1.1-2 | Main guide: 17 sections, 3 D2, 26 pages; coverage 7/7; underfilled 4/8/19; page loop 25→...→26 | W1/W2/W13 | P0 | confirmed |
+| F-1.1-3 | Dismissal diagram: 7→12 nodes; down became horizontal; width ineffective; `\n` failed | W4 | P0 | needs-repro |
+| F-1.1-4 | C section: chapter kicker/title split; 66-term columns jumped; had to use a table | W2 | P0 | confirmed |
+| F-1.1-5 | IRAC: wrong scaffold; `### Sorun` not counted; 7 empty sections; page 10 underfilled | W8/W10 | P1 | confirmed |
+| F-1.1-6 | Style: manual config; accessible 14 pages; recommend workbook/incompatible | W6 | P1 | confirmed |
+| F-1.1-7 | Digital: 207 pages, 21 low-text, 41 canonical, 31-slide source at 0, `page: —`, figures 2–3 too large | W1/W10/W13/W18 | P0 | confirmed |
+| F-1.1-8 | QA: build + audit + cards + claims separate; no MCP audit/qa | W7 | P1 | confirmed |
 
 ### 10.4 §3 — coverage
 
@@ -1819,65 +1826,65 @@ semantic-link, OCR and engine-capability findings are not lost.
 
 #### §41.1–§41.8 — unused engine capabilities
 
-| ID | Capability/finding | Workstream | Priority |
-|---|---|---|---|
-| F-41.1-1 | LiteParse `is_complex` unused | W15 | P1 |
-| F-41.1-2 | `extract_text_metadata` unused | W15/W5 | P1 |
-| F-41.1-3 | `extract_vector_graphics` unused | W15/W10 | P1 |
-| F-41.1-4 | `extract_images` unused | W15/W10 | P1 |
-| F-41.1-5 | `extract_structure_tree` unused | W15/W5 | P1 |
-| F-41.1-6 | `target_pages` unused | W15/W18 | P1 |
-| F-41.1-7 | `ocr_language="tur"` unused | W18 | P1 |
-| F-41.1-8 | `output_format="markdown"` unused | W15 | P2 |
-| F-41.1-9 | `continue_on_page_error`/`page_errors` unused | W15 | P1 |
-| F-41.1-10 | `keep_headers_footers` policy absent | W15 | P2 |
-| F-41.1-11 | `extract_annotations`/forms unused | W15 | P3 |
-| F-41.1-12 | `preserve_very_small_text` unused | W15 | P2 |
-| F-41.1-13 | table cell/bbox not in MCP | W15/W9/W7 | P1 |
-| F-41.1-14 | `extract_blocks` is used but table cells not surfaced | W15/W9 | P1 |
+| ID | Capability/finding | Workstream | Priority | Evidence |
+|---|---|---|---|---|
+| F-41.1-1 | LiteParse `is_complex` unused | W15 | P1 | confirmed |
+| F-41.1-2 | `extract_text_metadata` unused | W15/W5 | P1 | confirmed |
+| F-41.1-3 | `extract_vector_graphics` unused | W15/W10 | P1 | confirmed |
+| F-41.1-4 | `extract_images` unused | W15/W10 | P1 | confirmed |
+| F-41.1-5 | `extract_structure_tree` unused | W15/W5 | P1 | confirmed |
+| F-41.1-6 | `target_pages` unused | W15/W18 | P1 | confirmed |
+| F-41.1-7 | `ocr_language="tur"` unused | W18 | P1 | confirmed |
+| F-41.1-8 | `output_format="markdown"` unused | W15 | P2 | confirmed |
+| F-41.1-9 | `continue_on_page_error`/`page_errors` unused | W15 | P1 | confirmed |
+| F-41.1-10 | `keep_headers_footers` policy absent | W15 | P2 | confirmed |
+| F-41.1-11 | `extract_annotations`/forms unused | W15 | P3 | confirmed |
+| F-41.1-12 | `preserve_very_small_text` unused | W15 | P2 | confirmed |
+| F-41.1-13 | table cell/bbox not in MCP | W15/W9/W7 | P1 | confirmed |
+| F-41.1-14 | `extract_blocks` is used but table cells not surfaced | W15/W9 | P1 | confirmed |
 | F-41.1-15 | `extract_content_bounds` only partially used | W15/W10 | P1 | needs-repro |
-| F-41.1-16 | `ocr_server_url` unused | W18 | P2 |
-| F-41.1-17 | `dpi`/`num_workers` OCR cost controls unused | W18/W0 | P2 |
-| F-41.2-1 | 18/12 tables not cell-verified | W15/W9 | P1 |
-| F-41.3-1 | D2 dagre/elk unused | W16 | P1 |
-| F-41.3-2 | per-container direction unused | W16 | P1 |
-| F-41.3-3 | node/container width/height unused | W16 | P1 |
-| F-41.3-4 | `near`/`top`/`left` unused | W16 | P1 |
-| F-41.3-5 | `classes` styling unused | W16 | P1 |
-| F-41.3-6 | `tooltip`/`link` unused | W16 | P2 |
-| F-41.3-7 | `grid` unused | W16 | P2 |
-| F-41.3-8 | sequence/class/sql_table limited | W16 | P2 |
-| F-41.3-9 | `vars`/`imports`/`theme` unused | W16 | P2 |
-| F-41.3-10 | sketch/icons unused | W16 | P3 |
-| F-41.4-1 | Model2Vec clustering unused | W17 | P1 |
-| F-41.4-2 | classification unused | W17 | P1 |
-| F-41.4-3 | retrieval only pairwise | W14/W17 | P1 |
-| F-41.4-4 | `encode_as_sequence` unused | W17 | P2 |
-| F-41.4-5 | `max_length`/truncation unused | W17 | P1 |
+| F-41.1-16 | `ocr_server_url` unused | W18 | P2 | confirmed |
+| F-41.1-17 | `dpi`/`num_workers` OCR cost controls unused | W18/W0 | P2 | confirmed |
+| F-41.2-1 | 18/12 tables not cell-verified | W15/W9 | P1 | confirmed |
+| F-41.3-1 | D2 dagre/elk unused | W16 | P1 | confirmed |
+| F-41.3-2 | per-container direction unused | W16 | P1 | confirmed |
+| F-41.3-3 | node/container width/height unused | W16 | P1 | confirmed |
+| F-41.3-4 | `near`/`top`/`left` unused | W16 | P1 | confirmed |
+| F-41.3-5 | `classes` styling unused | W16 | P1 | confirmed |
+| F-41.3-6 | `tooltip`/`link` unused | W16 | P2 | confirmed |
+| F-41.3-7 | `grid` unused | W16 | P2 | confirmed |
+| F-41.3-8 | sequence/class/sql_table limited | W16 | P2 | confirmed |
+| F-41.3-9 | `vars`/`imports`/`theme` unused | W16 | P2 | confirmed |
+| F-41.3-10 | sketch/icons unused | W16 | P3 | confirmed |
+| F-41.4-1 | Model2Vec clustering unused | W17 | P1 | confirmed |
+| F-41.4-2 | classification unused | W17 | P1 | confirmed |
+| F-41.4-3 | retrieval only pairwise | W14/W17 | P1 | confirmed |
+| F-41.4-4 | `encode_as_sequence` unused | W17 | P2 | confirmed |
+| F-41.4-5 | `max_length`/truncation unused | W17 | P1 | confirmed |
 | F-41.4-6 | int8/PCA/SIF controls: PCA/SIF are distillation-time, not runtime flags | W17 | P2 | policy-gap |
-| F-41.4-7 | reranking unused | W17 | P2 |
-| F-41.5-1 | FastEmbed-rs reranker not evaluated | W17 | P2 |
+| F-41.4-7 | reranking unused | W17 | P2 | confirmed |
+| F-41.5-1 | FastEmbed-rs reranker not evaluated | W17 | P2 | confirmed |
 | F-41.5-2 | Offline `TextRerank`/user-defined model path not tested | W17 | P2 | needs-repro |
-| F-41.5-3 | Reranker latency/model cost not measured | W0/W17 | P2 |
-| F-41.6-1 | agent-fast profile not implemented | W14/W15/W16/W17/W18 | P1 |
-| F-41.6.1-1 | LiteParse version in report | W19 | P0 |
-| F-41.6.1-2 | D2 version in report | W19 | P0 |
-| F-41.6.1-3 | model hash in report | W19 | P0 |
-| F-41.6.1-4 | layout engine in report | W19 | P0 |
-| F-41.6.1-5 | OCR version/language in report | W19 | P1 |
-| F-41.6.1-6 | extractive brief deterministic tie-break | W14/W19 | P0 |
-| F-41.6.1-7 | cache key source/model/policy | W19 | P0 |
-| F-41.6.1-8 | D2 layout/model pinned | W19 | P0 |
-| F-41.7-1 | Avoid full OCR | W18 | P1 |
-| F-41.7-2 | Avoid generative summaries in deterministic path | W14 | P1 |
-| F-41.7-3 | Avoid sketch/icons in legal guides | W16 | P2 |
-| F-41.7-4 | Avoid always-on reranker | W17 | P2 |
-| F-41.7-5 | Avoid heavy metadata on every source | W15 | P2 |
-| F-41.8-1 | Priority: LiteParse complexity/metadata/vector | W15 | P1 |
-| F-41.8-2 | Priority: D2 groups/direction/near/classes | W16 | P1 |
-| F-41.8-3 | Priority: Model2Vec cluster/classify/retrieve | W17 | P1 |
-| F-41.8-4 | Priority: LiteParse table cells | W15/W9 | P1 |
-| F-41.8-5 | Priority: conditional FastEmbed reranker | W17 | P2 |
+| F-41.5-3 | Reranker latency/model cost not measured | W0/W17 | P2 | confirmed |
+| F-41.6-1 | agent-fast profile not implemented | W14/W15/W16/W17/W18 | P1 | confirmed |
+| F-41.6.1-1 | LiteParse version in report | W19 | P0 | confirmed |
+| F-41.6.1-2 | D2 version in report | W19 | P0 | confirmed |
+| F-41.6.1-3 | model hash in report | W19 | P0 | confirmed |
+| F-41.6.1-4 | layout engine in report | W19 | P0 | confirmed |
+| F-41.6.1-5 | OCR version/language in report | W19 | P1 | confirmed |
+| F-41.6.1-6 | extractive brief deterministic tie-break | W14/W19 | P0 | confirmed |
+| F-41.6.1-7 | cache key source/model/policy | W19 | P0 | confirmed |
+| F-41.6.1-8 | D2 layout/model pinned | W19 | P0 | confirmed |
+| F-41.7-1 | Avoid full OCR | W18 | P1 | confirmed |
+| F-41.7-2 | Avoid generative summaries in deterministic path | W14 | P1 | confirmed |
+| F-41.7-3 | Avoid sketch/icons in legal guides | W16 | P2 | confirmed |
+| F-41.7-4 | Avoid always-on reranker | W17 | P2 | confirmed |
+| F-41.7-5 | Avoid heavy metadata on every source | W15 | P2 | confirmed |
+| F-41.8-1 | Priority: LiteParse complexity/metadata/vector | W15 | P1 | confirmed |
+| F-41.8-2 | Priority: D2 groups/direction/near/classes | W16 | P1 | confirmed |
+| F-41.8-3 | Priority: Model2Vec cluster/classify/retrieve | W17 | P1 | confirmed |
+| F-41.8-4 | Priority: LiteParse table cells | W15/W9 | P1 | confirmed |
+| F-41.8-5 | Priority: conditional FastEmbed reranker | W17 | P2 | confirmed |
 
 
 ### 10.17 §42 — MCP context architecture research
@@ -2001,7 +2008,7 @@ finding register.
 | §0 short verdict | §10.1 |
 | §0.1 measurements | §10.2 |
 | §1 session flow | §10.3 |
-| §1.1 chronology | §10.3a |
+| §1.1 chronology | §10.3.1 |
 | §2 priority matrix | §10.3 |
 | §3 coverage | §10.4 |
 | §4 layout | §10.5 |
