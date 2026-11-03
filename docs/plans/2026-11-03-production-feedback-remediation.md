@@ -25,7 +25,7 @@ testable subset and a named remaining gap; they are not claimed complete.
 | W6 style compatibility | Shipped (core) | matrix filtering, `irac+law` → reader/accessible, page estimate, restyle, theme/style check |
 | W7 MCP surface and QA | Shipped (core) | `qa_guide`, `audit_guide`, profiles, resources pagination, outline pagination, table extract, 31 tools |
 | W8 IRAC scaffold | Shipped (core) | 10 cases, `###` levels, `source-headings.md`, existing-content preservation |
-| W9 table/statistics truth | Partial | markdown/wrapped/captioned/glossary/total and `E_TABLE_WIDTHS`; caption-number opt-out remains |
+| W9 table/statistics truth | Shipped (core) | markdown/wrapped/captioned/glossary/total, `E_TABLE_WIDTHS`, caption-number opt-out without dropping ids |
 | W10 page roles | Shipped (core) | `PageRole`, TOC/chapter/figure/table exemptions, figure/table-only and chapter-split lists |
 | W11 graph and links | Shipped (core) | heading nodes, `query`/`path`/`explain`, link heading labels |
 | W12 claims and cards | Shipped (core) | section/severity/missing citation, noise filter, default intervals, empty warning, `verify_citations` |
