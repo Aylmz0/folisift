@@ -6,7 +6,7 @@ table.
 
 | Tag | Date | Build | Commit | PDFium | What changed |
 |---|---|---:|---|---|---|
-| `v0.15.0` | 2026-11-04 | 172 | pending | `chromium/8058` | M5: opt-in LiteParse annotations/forms/structure/vector/complexity insights, D2 sketch rendering, MCP schema 11 with 32 tools |
+| `v0.15.0` | 2026-11-04 | 172 | `1f99c6bf84385673c6c8b730ba6a63f7badf9a9f` | `chromium/8058` | M5: opt-in LiteParse annotations/forms/structure/vector/complexity insights, D2 sketch rendering, MCP schema 11 with 32 tools |
 | `v0.14.6` | 2026-11-04 | 170 | `9a5c4a13a269db56efbff028bd8fdfd14740d7d5` | `chromium/8058` | Guide summaries expose guide_kind/source_count/case_count; authoring and architecture docs cover manifest, QA, glossary and continuity options |
 | `v0.14.5` | 2026-11-04 | 167 | `3f8c77564f1ce930f7bea3ab3ce72879fc200029` | `chromium/8058` | QA diagram count uses generated diagram assets only; architecture schema-2/3 wording corrected |
 | `v0.14.4` | 2026-11-04 | 164 | `2993e5f4f1240338f50280a1d8d2154e1e8d5486` | `chromium/8058` | Guide-aware style compatibility in `styles list`/MCP `style list`; docs audit and architecture/output-artifact corrections |
