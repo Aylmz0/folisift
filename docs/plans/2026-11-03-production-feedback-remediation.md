@@ -48,6 +48,25 @@ polish: D2 icon/class/tooltip experiments, conditional reranker and true
 parse-artifact reuse. They are not release blockers and do not affect the
 deterministic local boundary.
 
+## 0.2 Remaining cross-cutting gaps (v0.16.0)
+
+These are the honest gaps after the v0.16.0 core:
+
+- W4: `allow_page_span`, `aspect_ratio`, explicit `label_lines` and a unified
+  `DiagramResult` envelope.
+- W7: `detail`/`fields`/`max_tokens` across every large MCP response, not only
+  the section/graph/coverage subset.
+- W10: intentional-page exceptions, table-cell exclusion in line-length stats
+  and font-size bucket explanations.
+- W13: true parse/brief artifact reuse and actual per-section page attribution;
+  current budget/incremental output is estimate/hash based.
+- W14: separate `chapter_brief`/`heading_brief` tools and a full output budget
+  contract.
+- W16: D2 classes, grid, vars/imports and node/container dimensions.
+- W17: coverage-hint classification and a benchmarked conditional reranker.
+- §9: A1–A47 still are not one executable acceptance suite; the finding
+  register still contains `needs-repro`/`planned` rows that need disposition.
+
 ## 0. How to use this plan
 
 This plan is the single remediation map for the feedback. It has four layers:
