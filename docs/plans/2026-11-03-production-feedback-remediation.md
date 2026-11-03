@@ -89,7 +89,16 @@ The plan must expose:
 - 1-based page numbers everywhere;
 - page roles and intentional layout exceptions.
 
-### 2.3 “Passed” is a contract, not a word
+### 2.3 Current-tree caveat
+
+The report is based on 0.12.4, but several recent changes touch the same paths:
+the revision template now accepts `width`, figures default to 90% width with a
+14 cm cap, and `pd3` is 21 pages. Items marked `needs-repro` (especially D2
+`width`, `direction`, `\n`) must be replayed on the current tree before they
+are called regressions. The plan keeps them because a production user observed
+them; the first task is to reproduce or disprove each one with a test.
+
+### 2.4 “Passed” is a contract, not a word
 
 A passing build must include:
 
@@ -209,6 +218,9 @@ cost or 30% time at equal coverage/audit quality.
 - Multi-source guides keep a separate manifest per source and a combined
   summary. A 31-slide source cannot silently contribute zero rows.
 - `coverage.md` and the G section counts are generated from the manifest.
+- Separate “empty section” from a fixed character floor: report no substantive
+  block, below threshold, and the configured threshold; make the threshold a
+  config value instead of an unexplained 400.
 - Add a manual heading review artifact `headings.review.md`; overrides support
   `add`, `rename`, `merge`, `page`.
 - Page numbers are 1-based in manifest, claims, coverage and MCP.
@@ -243,9 +255,18 @@ coverage_manifest { slug, action: build|read|update|validate, entries? }
 - Document `flow=true` explicitly: it pulls the chapter into the previous
   page's remaining space.
 - `::: front` + nested `::: table` gets a directive-stack diagnostic and a
-  documented two-close example.
+  documented two-close example; decide and document whether `front` may
+  auto-close before the next chapter.
+- Define `columnbreak` semantics: new column vs new page, minimum content per
+  column, and interaction with `flow`.
+- Add `TocOptions`: `subs` means “hide headings below this chapter's first
+  level”, `toc_depth` is explicit, `toc_include`/`toc_exclude` are lists;
+  document exactly which heading levels leave the TOC.
 - Table/diagram `width` and `height` are applied or rejected; never silently
-  ignored.
+  ignored. A diagram may span at most two pages only when explicitly opted in;
+  otherwise return `E_DIAGRAM_PAGE_SPAN`.
+- Cover/title/subtitle spacing is token-driven and audited like any other
+  component; no ad-hoc guide-local spacing edits.
 
 **Acceptance**
 
@@ -260,7 +281,8 @@ coverage_manifest { slug, action: build|read|update|validate, entries? }
 
 **Change**
 
-- Add `ErrorCode` and `Diagnostic`:
+- Add `ErrorCode` and `Diagnostic` with stable codes so an MCP client can
+  retry or repair without parsing prose:
   `code`, `message`, `line`, `page`, `block_id`, `directive_stack`,
   `details`, `suggestions`.
 - Every CLI/MCP error returns JSON. Human text remains a rendering of the same
@@ -271,7 +293,9 @@ coverage_manifest { slug, action: build|read|update|validate, entries? }
 - Directive parser tracks open directives with opening lines; an unclosed
   `front` reports the actual open stack, not the frontmatter line.
 - `build_guide check=true` always writes `output/_draft.pdf` on failure and
-  returns `draft_path` plus diagnostics.
+  returns `draft_path` plus diagnostics. It either runs the full strict audit
+  or clearly exposes `audit` as a separate mandatory step; `qa_guide` is the
+  one-call contract.
 - `qa_guide` returns the same diagnostic objects, not new strings.
 
 **Acceptance**
@@ -294,9 +318,11 @@ coverage_manifest { slug, action: build|read|update|validate, entries? }
 - Add per-diagram `width`/`height`/`max_width`/`max_height`/`fit`.
 - Add multiline labels via `label_lines` and, if safe, escaped `\n`.
 - Unify `DiagramResult`: `id`, `ok`, `state`, `cached`, `svg`, `errors`,
-  `warnings`.
+  `warnings`; bump the result schema and mark old `status`/`ok` fields
+  deprecated for one release.
 - Add `diagram_fit`/`diagram preview` that reports estimated page share before
-  a full build.
+  a full build. Allow a two-page diagram only when `allow_page_span=true`;
+  otherwise reject it with a clear diagnostic.
 - Document that TALA can choose aspect ratio; if `direction` cannot be
   guaranteed, say so and expose the chosen layout.
 
@@ -335,8 +361,15 @@ coverage_manifest { slug, action: build|read|update|validate, entries? }
 
 **Change**
 
-- `style recommend` filters by structure/domain/target pages and explains why.
+- `style recommend` filters by structure/domain/target pages, treats
+  `supported_structures` as mandatory, and returns the closest compatible
+  option with a reason when the requested one is invalid.
 - `style info` reports supported structures/domains and page-cost modifiers.
+- `styles list` includes a compatibility column for the current guide.
+- Scaffold style rationale is explicit, not a leaking default; the host can
+  replace it without a build-time surprise.
+- `style.aesthetic` is authoritative for schema 3; legacy `theme` must match or
+  be rejected with a diagnostic.
 - `style_estimate` estimates pages from content, style, palette, fonts and
   accessibility before a full build.
 - `restyle_guide` changes style/palette/fonts without touching content hash.
@@ -359,7 +392,9 @@ coverage_manifest { slug, action: build|read|update|validate, entries? }
 **Change**
 
 - Add `audit_guide` and `qa_guide`. `qa_guide` runs build, coverage, audit,
-  visual, cards, claims and diagrams and returns a compact report.
+  visual, cards, claims and diagrams and returns one compact report with
+  `build`, `coverage`, `audit`, `visual`, `cards`, `claims`, `diagrams`,
+  `warnings` and `passed`.
 - Add `coverage_manifest`, `restyle_guide`, `style_estimate`, `table_extract`,
   `doctor`, and graph query/path/explain.
 - Align names: `styles` vs `style`; `diagram build` vs `save`/`render_plan`;
@@ -367,9 +402,14 @@ coverage_manifest { slug, action: build|read|update|validate, entries? }
 - Add `detail: summary|normal|full`, `max_tokens`/`fields`, `format: md|json`
   to large responses.
 - `prepare_guide` outline returns `total`, `next`, full pagination and explicit
-  `existing` semantics; no overwrite without `force`.
+  `existing` semantics; no overwrite without `force`; its `style` description
+  lists every selectable style, not only paper/clean.
 - `prepare_guide` vs `scaffold_guide` gets a documented decision table.
 - `build_guide` returns `draft_path` on failure.
+- `workspace_info`/`list_guides` expose `guide_kind`, `case_count`,
+  `source_count` and `guide_count` with documented meanings.
+- `doctor` includes style/structure compatibility and reports the authoritative
+  style field (`style.aesthetic` vs legacy `theme`).
 
 **Acceptance**
 
@@ -408,7 +448,8 @@ coverage_manifest { slug, action: build|read|update|validate, entries? }
 - Count all Markdown tables, wrapped tables and captioned tables separately:
   `tables.markdown`, `tables.wrapped`, `tables.captioned`, `tables.total`.
 - Caption numbering has `number=false`/`caption_number=false`; stable `id`
-  references remain.
+  references remain. Support caption-only labels such as “Şekil 2’nin
+  dalları” without inventing a table number.
 - `widths` validation reports the actual sum and column count.
 - Table extraction/read surface exposes header, rows and per-cell bbox.
 
@@ -435,7 +476,8 @@ coverage_manifest { slug, action: build|read|update|validate, entries? }
   otherwise.
 - `visual-audit` can inspect both source and output PDF; low-text source pages
   and figure-only output pages are separate reports.
-- `intentional_pages`/`layout_exceptions` allow deliberate TOC/figure pages.
+- `intentional_pages`/`layout_exceptions` allow deliberate TOC/figure pages;
+  replace the “first three pages” heuristic with page roles entirely.
 
 **Acceptance**
 
@@ -490,7 +532,11 @@ coverage_manifest { slug, action: build|read|update|validate, entries? }
 **Change**
 
 - `page_budget` report: pages per chapter, table/diagram share, overflow/underflow
-  estimate, suggested cut/move.
+  estimate, suggested cut/move; name the pages that exceed the target.
+- `search_source` reports match count/capped count, rank, heading and section;
+  a 109-page/20-result query must say that results were capped.
+- `incremental_build` hashes sections/content blocks and rebuilds only changed
+  sections; report reused vs rebuilt sections.
 - `build_guide` reports which sections consume pages and what changed between
   builds.
 - `style_estimate` and `diagram_fit` feed the budget before full build.
@@ -514,12 +560,17 @@ coverage_manifest { slug, action: build|read|update|validate, entries? }
   ranges + authority notes.
 - `source_brief`: per-source brief.
 - `visual_brief`: low-text page role + OCR text + recommendation.
-- `guide_plan`: per-section target words/pages, must-cover terms, source pages.
+- `guide_plan`: per-section target words/pages, must-cover terms, source pages,
+  source order and topic-unity constraints.
+- `source_topics` preserves within-source differences and records terminology
+  variants; it does not flatten “Not 1 / Not 2” differences.
 - `citation_snippet`: exact source sentence for a claim.
 - `cost_report`: source chars, read chars, guide words, tool calls, builds,
   estimated tokens/time.
 - `effort`/`token_budget` on `prepare_guide`.
-- Large responses default to `detail: summary`; `full` is opt-in.
+- Large responses default to `detail: summary`; `full` is opt-in. Apply it
+  first to `style info`, `coverage`, `links read`, `build_guide` and
+  `prepare_guide`, which the report names as oversized.
 - No generative summary in the deterministic MCP path.
 
 **Acceptance**
@@ -544,6 +595,9 @@ coverage_manifest { slug, action: build|read|update|validate, entries? }
 - Use vector/image signals for figure-only/decorative classification.
 - Use `output_format="markdown"` only as a diagnostic/export, not the primary
   schema.
+- Expose `keep_headers_footers`, `preserve_very_small_text`, annotations/forms
+  and `ocr_server_url`/`dpi`/`num_workers` as measured options; they are not
+  on by default.
 - OCR policy in W18.
 
 **Acceptance**
@@ -559,7 +613,8 @@ coverage_manifest { slug, action: build|read|update|validate, entries? }
 **Change**
 
 - Add `elk`/`dagre` layouts, per-container direction, `near`/`top`/`left`.
-- Add node/container width/height, classes, tooltip/link, grid.
+- Add node/container width/height, classes, tooltip/link, grid, `vars`,
+  `imports` and theme integration.
 - Add sequence/class/sql_table only where they add real value.
 - Use `classes` for legal outcome branches (valid/invalid/conditional) with
   palette tokens.
@@ -581,6 +636,10 @@ coverage_manifest { slug, action: build|read|update|validate, entries? }
 - Use embeddings for clustering (`source_topics`), classification
   (`coverage_hint`) and retrieval (`section_brief`).
 - Use `max_length`/batch controls; deterministic tie-break by page/block order.
+- Evaluate `encode_as_sequence`, int8/PCA/SIF controls and truncation on long
+  legal sections before adopting them.
+- Preserve the useful legal bridge examples as review-only evidence; do not
+  turn them into claims.
 - Add FastEmbed reranker only behind a measured flag; keep model hash/top-k.
 - `links read` gets heading labels and why/score; still review-only.
 - Add topic clusters and read-next queue.
@@ -605,7 +664,8 @@ coverage_manifest { slug, action: build|read|update|validate, entries? }
   - compare with text layer, remove duplicates;
   - record confidence and `manual_review`.
 - Never full-PDF OCR by default.
-- Report `pages_ocr`, `pages_skipped`, `confidence`.
+- Report `pages_ocr`, `pages_skipped`, `confidence`; expose `ocr_server_url`,
+  `dpi`, `num_workers` as cost controls, not defaults.
 - Do not OCR text-layer sources merely because OCR exists.
 
 **Acceptance**
@@ -624,9 +684,13 @@ coverage_manifest { slug, action: build|read|update|validate, entries? }
   OCR version/language and reranker hash in reports.
 - Stable tie-breaks for extractive briefs and clusters.
 - Cache key: source digest + model hash + brief version + policy version.
+- Record quantization (int8/float), preprocessing and reranker top-k; changing
+  any of them invalidates the cache.
 - `docs/authoring-cookbook.md`: minimal example + closing for every directive;
-  front+table nesting; flow; subs; diagram width; table widths; cards 0;
-  counter rules.
+  front+table nesting; `front` auto-close policy; `columnbreak`; flow; subs;
+  `toc_depth/include/exclude`; diagram width/status schema; style compatibility
+  matrix; cards 0; table counts; table caption numbering; `theme` vs
+  `style.aesthetic`; counter rules.
 - “Which tool when?” decision tree: prepare vs scaffold, style vs restyle,
   build vs qa, links vs graph.
 - Release gate: `qa_guide` + `make exam-check` + benchmark/cost report.
@@ -637,6 +701,43 @@ coverage_manifest { slug, action: build|read|update|validate, entries? }
   explicitly excluded).
 - Docs cover every complaint in §28/§28.1 with a runnable example.
 - Release note states measured coverage, layout, QA and cost results.
+
+### W20 — agent-fast profile
+
+**Findings:** §37.7, §41.6, §41.6.1, §41.8.
+
+**Change**
+
+Make the agent-first profile explicit and opt-in:
+
+```json
+{
+  "profile": "agent-fast",
+  "liteparse": {"ocr": "auto", "ocr_language": "tur", "complexity": true,
+    "extract_blocks": true, "extract_text_metadata": true,
+    "extract_vector_graphics": true, "extract_images": true,
+    "extract_content_bounds": true, "continue_on_page_error": true},
+  "d2": {"layouts": ["tala", "elk", "dagre"], "groups": true,
+    "per_container_direction": true, "node_width_height": true,
+    "near_top_left": true, "classes": true},
+  "target_pages": "auto",
+  "model2vec": {"clustering": true, "classification": true,
+    "retrieval_top_k": 8, "max_length": 512},
+  "outputs": {"detail": "summary", "max_tokens": 1200, "format": "md+json"}
+}
+```
+
+- `fast` means smaller briefs and fewer source pages; `deep` means more
+  evidence and optional vision/OCR. Both are deterministic and page-anchored.
+- The profile never enables network calls, LLM summaries or full-PDF OCR by
+  default.
+- Record every profile choice and model/engine version in the run report.
+
+**Acceptance**
+
+- `effort=fast` cuts source chars read and tool calls versus `deep` on the same
+  guide without losing manifest coverage.
+- Any capability that changes output is recorded in the report; reruns match.
 
 ## 6. API surface
 
@@ -658,7 +759,8 @@ coverage_manifest { slug, action: build|read|update|validate, entries? }
 | `table_extract` | source/pages | header/rows/cell bbox |
 | `graph` | build/status/read/query/path/explain | bounded nodes/edges |
 | `cost_report` | slug/run | tokens/time/calls, no secrets |
-| `diagram` | validate/save/build/status/render_plan/fit | unified `DiagramResult` |
+| `doctor` | root | environment + style/structure compatibility |
+| `diagram` | validate/save/build/status/render_plan/fit/list | unified `DiagramResult` |
 | `build_guide` | check/build | `draft_path` on failure |
 
 **Schema discipline:** one result envelope with `ok`, `code`, `diagnostics`,
@@ -762,6 +864,27 @@ benchmark, or the savings claim is removed from product messaging.
 **Exit:** advanced capabilities are opt-in, measured and deterministic; no
 silent OCR, no undocumented layout behavior.
 
+## 8.1 §30 roadmap mapping
+
+| Source roadmap item | Plan milestone |
+|---|---|
+| P0 coverage manifest + gate | M1 / W1 |
+| P0 chapter/columns/table/diagram continuity | M1 / W2 |
+| P0 structured errors + draft | M1 / W3 |
+| P0 D2 20–24 nodes, decision, direction, width | M1 / W4 |
+| P1 restyle + style estimate + compatible recommend | M2 / W6 |
+| P1 Turkish headings + TOC reconciliation | M1 / W5 |
+| P1 qa_guide + audit_guide | M2 / W7 |
+| P1 tables count + page 1-based | M2 / W9/W5 |
+| P1 IRAC scaffold | M2 / W8 |
+| P1 diagram status schema | M2 / W4 |
+| P1 doctor + table extraction MCP | M2 / W7 |
+| P2 graph query/path/explain | M3 / W11 |
+| P2 claims/cards filters | M2 / W12 |
+| P2 documentation cookbook | M4 / W19 |
+| P2 table numbering options | M2 / W9 |
+| P2 subs/toc_depth | M2 / W2 |
+
 ## 9. Acceptance suite
 
 | ID | Test | Expected |
@@ -796,6 +919,48 @@ silent OCR, no undocumented layout behavior.
 | A28 | cost benchmark | tokens/time/calls measured; no secrets |
 | A29 | `source_brief` | 300–600 tokens; extractive provenance |
 | A30 | multi-column D2 | per-container direction works or is rejected |
+| A31 | `audit_guide` MCP | returns the same diagnostics as CLI `audit --strict` |
+| A32 | `prepare_guide` outline | `total`, `next` and complete pagination |
+| A33 | `theme` vs `style.aesthetic` | one authority documented; mismatch is rejected |
+| A34 | workspace/list metadata | `guide_kind`, `case_count`, `source_count` documented |
+| A35 | agent-fast profile | rerun deterministic; fast uses fewer chars/tokens than deep |
+
+## 9.1 §34 evidence corpus and §35 smoke commands
+
+The feedback artifacts are evidence for the benchmark, not committed fixtures.
+Recreate them with synthetic or licensed sources and keep the same shapes:
+
+| Source artifact | Plan use |
+|---|---|
+| 26-page main guide | layout/budget benchmark |
+| 11-page IRAC workbook | IRAC/structure benchmark |
+| 3 palette variants | style estimate regression |
+| 4-page style previews | preview component regression |
+| 8/5 cards CSV | cards regression |
+| 141-row topic map | coverage manifest seed |
+| 12-node legal decision tree | D2 decision benchmark |
+| claims.md (146 rows) | claims precision benchmark |
+| multi-source 207-page guide | coverage/multi-source benchmark |
+| 21 low-text pages | OCR/visual role benchmark |
+
+The minimal command list in §35 becomes the CLI/MCP parity smoke suite:
+`analyze`, `build --check`, `audit --strict`, `diagram validate/build/status`,
+`cards`, `claims`, `styles recommend`, `links build/read`, `graph build/status`.
+Every command gets a matching MCP action or an explicit “CLI-only” label.
+
+## 9.2 §36 one-week sequence
+
+| Order | Source action | Plan |
+|---:|---|---|
+| 1 | Coverage manifest + 141 gate | M1/W1 |
+| 2 | chapter keep-with-next + columns flow + table/diagram keep | M1/W2 |
+| 3 | Diagnostic enum + audit_guide + qa_guide | M1/M2/W3/W7 |
+| 4 | D2 20-node/decision/direction/width | M1/W4 |
+| 5 | restyle_guide + style_estimate | M2/W6 |
+| 6 | Turkish heading parser + TOC reconciliation | M1/W5 |
+| 7 | page 1-based + tables count + page roles | M2/W5/W9/W10 |
+| 8 | graph query/path/explain | M3/W11 |
+| 9 | docs cookbook + common errors | M4/W19 |
 
 ## 10. Finding register
 
@@ -892,6 +1057,7 @@ appear here. `Evidence` records what we know at plan time, not final status.
 | F-4.1-4 | Need chapter_split audit | W2/W10 | P0 | confirmed |
 | F-4.2-1 | Monolithic 66-term columns block jumps | W2 | P0 | confirmed |
 | F-4.2-2 | Need columns flow and row-boundary splits | W2 | P0 | confirmed |
+| F-4.2-3 | `columnbreak` new-page policy undefined | W2/W19 | P2 | policy-gap |
 | F-4.3-1 | Table/diagram does not flow into remaining space | W2 | P0 | confirmed |
 | F-4.3-2 | Diagram width must work or error | W2/W4 | P0 | needs-repro |
 | F-4.4-1 | `::: front` + table close error points to line 2 | W3 | P0 | confirmed |
@@ -916,6 +1082,7 @@ appear here. `Evidence` records what we know at plan time, not final status.
 |---|---|---|---|---|
 | F-6.1-1 | `MAX_NODES=12`, edges 20, depth 4 | W4 | P0 | confirmed |
 | F-6.1-2 | Legal decision tree needs 15–20 nodes | W4 | P0 | confirmed |
+| F-6.1-3 | Need optional two-page diagram support or explicit rejection | W4 | P1 | planned |
 | F-6.2-1 | `direction=down` still produced horizontal output | W4/W16 | P0 | needs-repro |
 | F-6.2-2 | Need aspect_ratio/rankdir/layout | W4/W16 | P0 | confirmed |
 | F-6.3-1 | `width=60/70/90%` appeared ineffective | W4 | P0 | needs-repro |
@@ -964,6 +1131,7 @@ appear here. `Evidence` records what we know at plan time, not final status.
 | F-11-3 | Chapter split not detected | W2/W10 | P1 | confirmed |
 | F-11-4 | Need page roles and exceptions | W10 | P1 | confirmed |
 | F-11-5 | Need figure_only/table_only detectors | W10 | P1 | confirmed |
+| F-11-6 | Replace first-three-pages heuristic with page roles | W10 | P1 | planned |
 | F-12-1 | IRAC scaffold emits 60+ source headings | W8 | P1 | confirmed |
 | F-12-2 | `sources: []` in scaffold | W8 | P1 | confirmed |
 | F-12-3 | IRAC sections appended at end | W8 | P1 | confirmed |
@@ -1001,6 +1169,7 @@ appear here. `Evidence` records what we know at plan time, not final status.
 |---|---|---|---|---|
 | F-13-1 | QA requires 7 separate operations | W7 | P1 | confirmed |
 | F-13-2 | Need `qa_guide` release report | W7 | P1 | confirmed |
+| F-13-3 | Report needs build/coverage/audit/visual/cards/claims/diagrams fields | W7 | P1 | planned |
 | F-14-1 | `flow` undocumented | W2/W19 | P2 | confirmed |
 | F-14-2 | `flow=true` effect unclear | W2/W19 | P2 | confirmed |
 | F-15-1 | `blocks:1` in links output unclear | W11 | P2 | confirmed |
@@ -1014,16 +1183,20 @@ appear here. `Evidence` records what we know at plan time, not final status.
 | F-16-4 | empty review intervals default | W12 | P2 | confirmed |
 | F-17-1 | table numbering follows figures | W9 | P2 | confirmed |
 | F-17-2 | need number=false/id refs | W9 | P2 | confirmed |
+| F-17-3 | need caption-only labels without table numbering | W9 | P2 | planned |
 | F-18-1 | visual-audit only source, not output | W10 | P2 | confirmed |
 | F-18-2 | figure-only output page not role-aware | W10 | P2 | confirmed |
 | F-19-1 | style compatibility matrix absent | W6 | P2 | confirmed |
 | F-19-2 | recommend offers incompatible styles | W6 | P1 | confirmed |
 | F-20-1 | `subs=false` semantics unclear | W2/W19 | P2 | confirmed |
 | F-20-2 | need toc_depth/include/exclude | W2 | P2 | confirmed |
+| F-20-3 | Need explicit `TocOptions` contract | W2/W19 | P2 | planned |
+| F-20-4 | Need exact `subs=false`, `toc_depth`, include/exclude docs | W2/W19 | P2 | planned |
 | F-21-1 | table widths validation not explicit | W9 | P2 | confirmed |
 | F-22-1 | search returns broad/opaque results | W13 | P2 | confirmed |
 | F-22-2 | `next_pages/next_offset` can repeat | W13 | P2 | confirmed |
 | F-22-3 | truncation mid-page has no flag | W13 | P2 | confirmed |
+| F-22-4 | Broad search can match 109 pages and return 20 silently | W13 | P2 | confirmed |
 | F-23-1 | page budget gives no section costs | W13 | P2 | confirmed |
 | F-23-2 | no “cut this section” suggestion | W13 | P2 | confirmed |
 | F-24-1 | diagram status fields inconsistent | W4 | P2 | confirmed |
@@ -1031,9 +1204,13 @@ appear here. `Evidence` records what we know at plan time, not final status.
 | F-26-1 | workspace guide/source counts unclear | W7/W19 | P2 | confirmed |
 | F-26-2 | IRAC section_count hides case_count | W7/W8 | P2 | confirmed |
 | F-27-1 | doctor lacks style compatibility | W7 | P2 | confirmed |
+| F-27-2 | doctor does not report authoritative style field | W7/W19 | P2 | confirmed |
 | F-28-1 | docs lack front+table example | W19 | P2 | confirmed |
 | F-28-2 | docs lack flow/subs/width/cards/tables rules | W19 | P2 | confirmed |
 | F-28-3 | need authoring cookbook and tool decision tree | W19 | P2 | confirmed |
+| F-28-4 | need front auto-close and columnbreak docs | W19 | P2 | confirmed |
+| F-28-5 | need diagram status schema and style matrix docs | W19/W4/W6 | P2 | confirmed |
+| F-28-6 | need cards-0 and table-count docs | W19/W12/W9 | P2 | confirmed |
 
 ### 10.13 §28.1 — small frictions
 
@@ -1132,10 +1309,11 @@ appear here. `Evidence` records what we know at plan time, not final status.
 | F-37-12 | Success metrics defined | W0 | P1 | planned |
 | F-37-13 | Ideal flow analyze→brief→plan→write→build→qa→restyle | W14/W7 | P0 | planned |
 | F-38-1 | Model2Vec links worked locally | W17 | P1 | preserve |
-| F-38-2 | Some bridges useful, manually verified | W17/W11 | P1 | preserve |
-| F-38-3 | Similarity is not meaning/coverage | W17/W1 | P0 | confirmed |
-| F-38-4 | Need heading labels/priority/clusters/coverage hints | W17/W11/W1 | P1 | planned |
-| F-38-5 | Use as router, not reader | W14/W17 | P0 | planned |
+| F-38-2 | Preserve the six useful legal bridges as review-only examples | W17/W11 | P1 | preserve |
+| F-38-3 | Some bridges useful, manually verified | W17/W11 | P1 | preserve |
+| F-38-4 | Similarity is not meaning/coverage | W17/W1 | P0 | confirmed |
+| F-38-5 | Need heading labels/priority/clusters/coverage hints | W17/W11/W1 | P1 | planned |
+| F-38-6 | Use as router, not reader | W14/W17 | P0 | planned |
 | F-39-1 | OCR not useful for text-layer PDF | W18 | P1 | confirmed |
 | F-39-2 | OCR useful for scanned/low-text/table/regions only | W18/W15 | P1 | confirmed |
 | F-39-3 | Turkish OCR/number risk | W18 | P1 | confirmed |
@@ -1355,7 +1533,9 @@ semantic-link, OCR and engine-capability findings are not lost.
 | F-39.4-3 | Compare OCR with text layer | W18 | P1 |
 | F-39.4-4 | Turkish dictionary/number validation | W18 | P1 |
 | F-39.4-5 | OCR only missing pages | W18 | P1 |
-| F-39.5-1 | `ocr:auto` policy and report | W18 | P1 |
+| F-39.5-1 | `ocr:auto`, `low_text_pages_only`, `min_chars_per_page` policy | W18 | P1 |
+| F-39.5-2 | `table_regions`, `language:tr`, confidence/manual-review report | W18 | P1 |
+| F-39.5-3 | Merge OCR with text layer and deduplicate | W18 | P1 |
 | F-39.6-1 | OCR is pixel-to-text, not comprehension | W18/W14 | P0 |
 
 #### §40.1–§40.8 — multi-source digital guide
@@ -1436,6 +1616,8 @@ semantic-link, OCR and engine-capability findings are not lost.
 | F-41.4-6 | int8/PCA/SIF controls unused | W17 | P2 |
 | F-41.4-7 | reranking unused | W17 | P2 |
 | F-41.5-1 | FastEmbed-rs reranker not evaluated | W17 | P2 |
+| F-41.5-2 | Offline `TextRerank`/user-defined model path not tested | W17 | P2 |
+| F-41.5-3 | Reranker latency/model cost not measured | W0/W17 | P2 |
 | F-41.6-1 | agent-fast profile not implemented | W14/W15/W16/W17/W18 | P1 |
 | F-41.6.1-1 | LiteParse version in report | W19 | P0 |
 | F-41.6.1-2 | D2 version in report | W19 | P0 |
