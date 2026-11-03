@@ -39,3 +39,6 @@ output/offline-exam/
 
 # Downloaded semantic model assets; release packaging copies them.
 models/
+
+# Local graphify knowledge graph; rebuild with `graphify update .`.
+graphify-out/
