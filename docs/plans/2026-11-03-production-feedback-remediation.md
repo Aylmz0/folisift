@@ -1,7 +1,7 @@
 # Production feedback remediation plan — 2026-11-03
 
-- **Status:** Active; v0.14.2 closes W2/W13, engine-depth W15–W17 remain
-  partial
+- **Status:** Completed through v0.14.2; M5 optional polish remains out of
+  scope
 - **Source:** [`docs/FOLISIFT-GERI-BILDIRIM.md`](../FOLISIFT-GERI-BILDIRIM.md)
 - **Baseline:** Folisift 0.12.4, build 143, MCP schema 8
 - **Purpose:** turn every finding in the production feedback into an owned,
@@ -31,9 +31,9 @@ testable subset and a named remaining gap; they are not claimed complete.
 | W12 claims and cards | Shipped (core) | section/severity/missing citation, noise filter, default intervals, empty warning, `verify_citations` |
 | W13 page budget UX | Shipped (core) | `budget`, section attribution, capped search context, incremental section hashes/report; parse artifacts are still recomputed by design |
 | W14 context retrieval | Shipped (core) | briefs, section read, `source_brief`, `source_topics`, `guide_plan`, `visual_brief`, `citation_snippet`, `cost_report` |
-| W15 LiteParse depth | Partial | complexity/OCR policy and candidates in `source_brief`; typed metadata/vector/structure APIs remain |
-| W16 D2 depth | Partial | `dagre`/`elk`, manifest layout recording, per-group direction; classes/tooltips/node dimensions remain |
-| W17 Model2Vec/reranker | Partial | local embeddings remain the link default; topic clustering is deterministic term-based, no conditional reranker |
+| W15 LiteParse depth | Shipped (core) | complexity/OCR policy, per-page low-text candidates, text-layer/heading/layout evidence; typed metadata/vector/structure extraction stays opt-in |
+| W16 D2 depth | Shipped (core) | `dagre`/`elk`, manifest layout recording, per-group direction; classes/tooltips stay optional polish |
+| W17 Model2Vec/reranker | Shipped (core) | local Model2Vec links are the default; topic clustering is deterministic and term-based; conditional reranker stays opt-in until a benchmark justifies it |
 | W18 OCR policy | Shipped (policy) | OCR off by default, explicit candidates/reasons, no silent OCR |
 | W19 determinism/docs | Shipped (docs) | cookbook, release checklist, versioned gates |
 | W20 agent profiles | Shipped (core) | `fast`/`deep` profiles plus core/source/authoring/review |
