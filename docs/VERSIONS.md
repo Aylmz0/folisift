@@ -6,7 +6,7 @@ table.
 
 | Tag | Date | Build | Commit | PDFium | What changed |
 |---|---|---:|---|---|---|
-| `v0.14.5` | 2026-11-04 | 167 | pending | `chromium/8058` | QA diagram count uses generated diagram assets only; architecture schema-2/3 wording corrected |
+| `v0.14.5` | 2026-11-04 | 167 | `3f8c775` | `chromium/8058` | QA diagram count uses generated diagram assets only; architecture schema-2/3 wording corrected |
 | `v0.14.4` | 2026-11-04 | 164 | `2993e5f4f1240338f50280a1d8d2154e1e8d5486` | `chromium/8058` | Guide-aware style compatibility in `styles list`/MCP `style list`; docs audit and architecture/output-artifact corrections |
 | `v0.14.3` | 2026-11-04 | 162 | `bc179f0050e87dfa4991e03e06a1ab4d51f79f02` | `chromium/8058` | Report real source lines for E_MARKDOWN after frontmatter; final plan/gate reconciliation |
 | `v0.14.2` | 2026-11-04 | 159 | `afb574c66c81ecdd732c048993261346116f5b41` | `chromium/8058` | TOC depth/subs, table/diagram placement, per-group D2 direction, page-complete and OCR policy fields; W2/W13 close |
