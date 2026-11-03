@@ -257,6 +257,18 @@ impl Guide {
     fn validate(workspace: &Workspace, dir: PathBuf, config: GuideConfig) -> Result<Self> {
         let config_path = dir.join("config.json");
 
+        if config.schema_version >= 3
+            && let Some(style) = &config.style
+            && style.aesthetic != config.theme
+        {
+            return Err(Error::Config {
+                path: config_path.clone(),
+                message: format!(
+                    "style.aesthetic {:?} is authoritative but legacy theme is {:?}; make them equal",
+                    style.aesthetic, config.theme
+                ),
+            });
+        }
         if !SUPPORTED_SCHEMA_VERSIONS.contains(&config.schema_version) {
             return Err(Error::UnsupportedSchema {
                 version: config.schema_version,

@@ -106,7 +106,7 @@ X is Y. [PD0, p. 1]
         .iter()
         .filter_map(|tool| tool["name"].as_str())
         .collect::<Vec<_>>();
-    assert_eq!(tools.len(), 21);
+    assert_eq!(tools.len(), 31);
     for expected in [
         "read_source",
         "search_source",
@@ -120,6 +120,16 @@ X is Y. [PD0, p. 1]
         "links",
         "graph",
         "diagram",
+        "audit_guide",
+        "qa_guide",
+        "source_brief",
+        "guide_plan",
+        "cost_report",
+        "visual_brief",
+        "source_topics",
+        "citation_snippet",
+        "table_extract",
+        "verify_citations",
     ] {
         assert!(tools.contains(&expected), "missing {expected}");
     }
@@ -324,4 +334,68 @@ X is Y. [PD0, p. 1]
     drop(stdin);
     let status = child.wait().expect("wait");
     assert!(status.success(), "server exited with {status}");
+}
+
+#[test]
+fn mcp_core_profile_lists_ten_tools() {
+    let root = tempfile::tempdir().expect("tempdir");
+    std::fs::create_dir_all(root.path().join("guides")).expect("guides");
+    std::fs::create_dir_all(root.path().join("sources")).expect("sources");
+    let mut child = Command::new(env!("CARGO_BIN_EXE_folisift"))
+        .arg("mcp")
+        .arg("--root")
+        .arg(root.path())
+        .arg("--profile")
+        .arg("core")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("spawn folisift mcp");
+    let mut stdin = child.stdin.take().expect("stdin");
+    let stdout = child.stdout.take().expect("stdout");
+    let mut reader = BufReader::new(stdout);
+    writeln!(
+        stdin,
+        "{}",
+        serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "initialize",
+            "params": {
+                "protocolVersion": "2025-11-25",
+                "capabilities": {},
+                "clientInfo": {"name": "profile-test", "version": "0"}
+            }
+        })
+    )
+    .expect("initialize");
+    writeln!(
+        stdin,
+        "{}",
+        serde_json::json!({"jsonrpc": "2.0", "method": "notifications/initialized"})
+    )
+    .expect("initialized");
+    writeln!(
+        stdin,
+        "{}",
+        serde_json::json!({"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}})
+    )
+    .expect("tools/list");
+    stdin.flush().expect("flush");
+    let mut line = String::new();
+    reader.read_line(&mut line).expect("initialize response");
+    line.clear();
+    reader.read_line(&mut line).expect("tools response");
+    let response: serde_json::Value = serde_json::from_str(&line).expect("tools JSON");
+    let tools = response["result"]["tools"].as_array().expect("tools");
+    assert_eq!(tools.len(), 10, "{response}");
+    let names = tools
+        .iter()
+        .filter_map(|tool| tool["name"].as_str())
+        .collect::<Vec<_>>();
+    assert!(names.contains(&"qa_guide"));
+    assert!(!names.contains(&"graph"));
+    child.kill().expect("kill");
+    child.wait().expect("wait");
 }

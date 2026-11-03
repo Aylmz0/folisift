@@ -8,11 +8,11 @@ publish.workspace = true
 
 [dependencies]
 axum.workspace = true
-folisift-build = { path = "../folisift-build", version = "0.13.0" }
-folisift-core = { path = "../folisift-core", version = "0.13.0" }
-folisift-links = { path = "../folisift-links", version = "0.13.0" }
-folisift-parse = { path = "../folisift-parse", version = "0.13.0" }
-folisift-render = { path = "../folisift-render", version = "0.13.0" }
+folisift-build = { path = "../folisift-build", version = "0.14.0" }
+folisift-core = { path = "../folisift-core", version = "0.14.0" }
+folisift-links = { path = "../folisift-links", version = "0.14.0" }
+folisift-parse = { path = "../folisift-parse", version = "0.14.0" }
+folisift-render = { path = "../folisift-render", version = "0.14.0" }
 rmcp.workspace = true
 schemars.workspace = true
 serde.workspace = true

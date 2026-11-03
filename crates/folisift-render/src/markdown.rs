@@ -73,6 +73,7 @@ struct RenderConfig {
     table_caption: Option<String>,
     table_source: Option<String>,
     table_id: Option<String>,
+    table_number: bool,
     figure_label: String,
     toc_label: String,
     table_label: String,
@@ -97,6 +98,7 @@ impl Default for RenderConfig {
             table_caption: None,
             table_source: None,
             table_id: None,
+            table_number: true,
             figure_label: "Şekil".to_string(),
             toc_label: "İÇİNDEKİLER".to_string(),
             table_label: "Tablo".to_string(),
@@ -481,6 +483,12 @@ fn markdown_to_typst_with(markdown: &str, config: &RenderConfig) -> Result<Strin
                         Some(id) => Some(validate_table_id(id, start_line)?),
                         None => None,
                     };
+                    if let Some(value) =
+                        attr(&attrs, "caption_number").or_else(|| attr(&attrs, "number"))
+                    {
+                        table_config.table_number =
+                            !matches!(value.trim().to_lowercase().as_str(), "false" | "0" | "no");
+                    }
                     out.push_str(&markdown_to_typst_with(&inner_markdown, &table_config)?);
                 }
                 other => {
@@ -591,7 +599,10 @@ fn parse_widths(value: &str, line: usize) -> Result<Vec<String>> {
     if !(99.0..=101.0).contains(&sum) {
         return Err(Error::Markdown {
             line,
-            message: format!("table widths must sum to 100%, got {sum}%"),
+            message: format!(
+                "E_TABLE_WIDTHS: table widths ({} columns) sum to {sum}%, expected 100%",
+                widths.len()
+            ),
         });
     }
     Ok(widths)
@@ -756,6 +767,7 @@ struct Renderer {
     table_caption: Option<String>,
     table_source: Option<String>,
     table_id: Option<String>,
+    table_number: bool,
     figure_label: String,
     table_label: String,
 }
@@ -775,6 +787,7 @@ impl Renderer {
             table_caption: config.table_caption.clone(),
             table_source: config.table_source.clone(),
             table_id: config.table_id.clone(),
+            table_number: config.table_number,
             figure_label: config.figure_label.clone(),
             table_label: config.table_label.clone(),
         }
@@ -1065,6 +1078,7 @@ impl Renderer {
                 &self.table_label,
                 self.table_id.as_deref(),
                 glossary,
+                self.table_number,
             ));
         }
         self.out.push_str("\n\n");
@@ -1114,6 +1128,7 @@ fn table_typst(
     table_label: &str,
     id: Option<&str>,
     glossary: bool,
+    number: bool,
 ) -> String {
     let columns = header
         .len()
@@ -1159,8 +1174,9 @@ fn table_typst(
         let caption = caption.map_or_else(|| "none".to_string(), typst_string);
         let source = source.map_or_else(|| "none".to_string(), typst_string);
         format!(
-            "#table_block(caption: {caption}, source: {source}, label: {})[{}]",
+            "#table_block(caption: {caption}, source: {source}, label: {}, number: {})[{}]",
             typst_string(table_label),
+            number,
             out
         )
     } else {
@@ -1266,6 +1282,16 @@ mod tests {
     }
 
     #[test]
+    fn caption_numbering_can_be_disabled_without_dropping_the_id() {
+        let typst = markdown_to_typst(
+            "::: table caption=\"Şekil 2’nin dalları\" caption_number=\"false\" id=\"tab-branches\"\n| A | B |\n|---|---|\n| 1 | 2 |\n:::\n",
+        )
+        .expect("typst");
+        assert!(typst.contains("number: false"));
+        assert!(typst.contains("<tab-branches>"));
+    }
+
+    #[test]
     fn rejects_an_unsafe_table_id() {
         let error =
             markdown_to_typst("::: table id=\"bad id\"\n| A | B |\n|---|---|\n| 1 | 2 |\n:::\n")
@@ -1278,7 +1304,8 @@ mod tests {
         let error =
             markdown_to_typst("::: table widths=\"20,30\"\n| A | B |\n|---|---|\n| 1 | 2 |\n:::\n")
                 .expect_err("must reject");
-        assert!(error.to_string().contains("sum to 100"));
+        assert!(error.to_string().contains("E_TABLE_WIDTHS"));
+        assert!(error.to_string().contains("sum to 50%"));
     }
 
     #[test]

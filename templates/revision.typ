@@ -101,17 +101,19 @@
 }
 
 // ---- tables -------------------------------------------------------------
-#let table_block(caption: none, source: none, label: "Tablo", body) = block(
+#let table_block(caption: none, source: none, label: "Tablo", number: true, body) = block(
   breakable: false,
   above: 3mm,
   below: 4mm,
 )[
   #if caption != none [
     #context {
-      let number = counter("table").get().first() + 1
+      let table_number = counter("table").get().first() + 1
       counter("table").step()
       block(above: 0pt, below: 1.5mm)[
-        #text(font: "Inter", size: caption-size, weight: "semibold", fill: ink)[#label #number]
+        #if number [
+          #text(font: "Inter", size: caption-size, weight: "semibold", fill: ink)[#label #table_number]
+        ]
         #text(font: "Inter", size: caption-size, fill: ink)[ #caption]
       ]
     }

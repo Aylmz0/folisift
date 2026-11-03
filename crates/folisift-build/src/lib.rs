@@ -225,7 +225,96 @@ pub async fn build(workspace: &Workspace, request: BuildRequest) -> Result<Build
     })
 }
 
-fn audit_options_for(workspace: &Workspace, style: &StyleProfile) -> Result<AuditOptions> {
+/// Audit a guide PDF with the guide's own margins and typography.
+pub fn audit_guide(
+    workspace: &Workspace,
+    slug: &str,
+    pdf: Option<&Path>,
+    expected_pages: Option<usize>,
+) -> Result<LayoutAudit> {
+    let guide = Guide::load(workspace, slug)?;
+    let options = audit_options_for(workspace, &guide.style())?;
+    let pdf = pdf.map_or_else(|| guide.output.clone(), Path::to_path_buf);
+    folisift_parse::audit_pdf_with(&pdf, expected_pages, options).map_err(Error::from)
+}
+
+/// One compact release report: build, coverage, audit, visual, cards, claims
+/// and diagram counts. The report never hides a failed gate.
+pub async fn qa(workspace: &Workspace, slug: &str) -> Result<serde_json::Value> {
+    let outcome = build(
+        workspace,
+        BuildRequest {
+            slug: slug.to_string(),
+            content: None,
+            output: None,
+            check: true,
+        },
+    )
+    .await?;
+    let guide = Guide::load(workspace, slug)?;
+    let markdown = outcome.markdown.clone();
+    let claims = folisift_core::claims::extract_claims(&markdown);
+    let cards =
+        folisift_core::cards::cards_from_markdown(&markdown, &guide.slug, &[1, 3, 7, 14, 30]);
+    let diagram_specs = std::fs::read_dir(guide.dir.join("diagrams"))
+        .map(|entries| {
+            entries
+                .filter_map(std::result::Result::ok)
+                .filter(|entry| {
+                    entry.path().extension().and_then(|value| value.to_str()) == Some("json")
+                })
+                .count()
+        })
+        .unwrap_or(0);
+    let diagram_assets = std::fs::read_dir(guide.dir.join("assets"))
+        .map(|entries| {
+            entries
+                .filter_map(std::result::Result::ok)
+                .filter(|entry| {
+                    entry.path().extension().and_then(|value| value.to_str()) == Some("svg")
+                })
+                .count()
+        })
+        .unwrap_or(0);
+    let audit = outcome.layout.clone();
+    let audit_passed = audit.as_ref().is_some_and(|report| report.passed);
+    let underfilled = audit
+        .as_ref()
+        .map_or(0, |report| report.underfilled_pages.len());
+    let passed = outcome.passed.unwrap_or(false) && audit_passed && underfilled == 0;
+    Ok(serde_json::json!({
+        "guide": guide.slug,
+        "passed": passed,
+        "build": {
+            "passed": outcome.passed,
+            "pages": outcome.rendered.pages,
+            "content_hash": outcome.rendered.content_hash,
+            "cache_hit": outcome.rendered.cache_hit,
+            "output": outcome.output.display().to_string(),
+            "warnings": outcome.rendered.warnings,
+        },
+        "coverage": outcome.coverage,
+        "audit": audit,
+        "visual": outcome.visual,
+        "cards": {
+            "count": cards.len(),
+            "warning": if cards.is_empty() { Some("no recall/answer pairs") } else { None },
+        },
+        "claims": {
+            "total": claims.total,
+            "referenced": claims.referenced,
+            "unreferenced": claims.unreferenced,
+            "noise_filtered": claims.noise_filtered,
+        },
+        "diagrams": {
+            "specs": diagram_specs,
+            "assets": diagram_assets,
+        },
+    }))
+}
+
+/// Resolve the audit margins/typography options for a guide style.
+pub fn audit_options_for(workspace: &Workspace, style: &StyleProfile) -> Result<AuditOptions> {
     let loaded = styles::load_with(
         workspace.root(),
         &style.aesthetic,

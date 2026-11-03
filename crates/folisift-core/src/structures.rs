@@ -71,6 +71,13 @@ pub struct Section {
     /// Optional sections are scaffolded but not required by the structure gate.
     #[serde(default = "default_required")]
     pub required: bool,
+    /// Expected Markdown heading level: 2 for `##`, 3 for `###`.
+    #[serde(default = "default_level")]
+    pub level: u8,
+}
+
+fn default_level() -> u8 {
+    2
 }
 
 fn default_required() -> bool {
@@ -114,42 +121,55 @@ pub fn validate(id: &str, language: &str, markdown: &str) -> Result<(), String> 
         ));
     };
     let headings = headings(markdown);
-    let missing = pack
-        .sections
-        .iter()
-        .filter(|section| {
-            if !section.required {
-                return false;
-            }
-            let label = if language == "en" {
-                &section.en
-            } else {
-                &section.tr
-            };
-            let label = normalize(label);
-            !headings.iter().any(|heading| heading.contains(&label))
-        })
-        .map(|section| {
-            if language == "en" {
-                section.en.clone()
-            } else {
-                section.tr.clone()
-            }
-        })
-        .collect::<Vec<_>>();
-    if missing.is_empty() {
+    let mut problems = Vec::new();
+    for section in &pack.sections {
+        if !section.required {
+            continue;
+        }
+        let label = if language == "en" {
+            &section.en
+        } else {
+            &section.tr
+        };
+        let label_text = label.clone();
+        let label = normalize(label);
+        let matching = headings
+            .iter()
+            .filter(|(_, _, heading)| heading.contains(&label))
+            .collect::<Vec<_>>();
+        if matching
+            .iter()
+            .any(|(_, level, _)| usize::from(*level) == usize::from(section.level))
+        {
+            continue;
+        }
+        if let Some((line, level, _)) = matching.first() {
+            problems.push(format!(
+                "{label_text} is at level {level} on line {line}; expected level {} ({})",
+                section.level,
+                "#".repeat(usize::from(section.level))
+            ));
+        } else {
+            problems.push(format!(
+                "{label_text} is missing; expected level {} ({})",
+                section.level,
+                "#".repeat(usize::from(section.level))
+            ));
+        }
+    }
+    if problems.is_empty() {
         Ok(())
     } else {
         Err(format!(
-            "structure {:?} is missing required sections: {}",
+            "structure {:?} validation failed: {}",
             pack.id,
-            missing.join(", ")
+            problems.join("; ")
         ))
     }
 }
 
 /// Required headings for a new guide skeleton.
-pub fn scaffold_sections(id: &str, language: &str) -> Vec<(String, String)> {
+pub fn scaffold_sections(id: &str, language: &str) -> Vec<(String, String, u8)> {
     let Some(pack) = get(id) else {
         return Vec::new();
     };
@@ -165,21 +185,28 @@ pub fn scaffold_sections(id: &str, language: &str) -> Vec<(String, String)> {
                 .hint
                 .clone()
                 .unwrap_or_else(|| "Kaynak içeriği buraya gelecek.".to_string());
-            (title, hint)
+            (title, hint, section.level)
         })
         .collect()
 }
 
-fn headings(markdown: &str) -> Vec<String> {
+fn headings(markdown: &str) -> Vec<(usize, u8, String)> {
     let mut out = Vec::new();
     let mut fenced = false;
-    for line in markdown.lines() {
+    for (index, line) in markdown.lines().enumerate() {
         let trimmed = line.trim();
         if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
             fenced = !fenced;
             continue;
         }
-        if fenced || !trimmed.starts_with("## ") {
+        if fenced || !trimmed.starts_with('#') {
+            continue;
+        }
+        let level = trimmed
+            .chars()
+            .take_while(|character| *character == '#')
+            .count();
+        if !(2..=3).contains(&level) {
             continue;
         }
         let text = trimmed.trim_start_matches('#').trim();
@@ -192,7 +219,7 @@ fn headings(markdown: &str) -> Vec<String> {
                         .all(|character| character.is_ascii_alphanumeric() || character == '.')
             })
             .map_or(text, |(_, rest)| rest);
-        out.push(normalize(text));
+        out.push((index + 1, level as u8, normalize(text)));
     }
     out
 }
@@ -241,6 +268,15 @@ mod tests {
         assert!(validate("imrad", "en", markdown).is_err());
         let markdown = "## Introduction\n\n## Methods\n\n## Results\n\n## Discussion\n";
         assert!(validate("imrad", "en", markdown).is_ok());
+    }
+
+    #[test]
+    fn irac_uses_level_three_sections() {
+        let markdown = "## Dava 1\n\n### Sorun\n\n### Kural\n\n### Uygulama\n\n### Sonuç\n";
+        assert!(validate("irac", "tr", markdown).is_ok());
+        let error = validate("irac", "tr", "## Dava 1\n\n## Sorun\n").expect_err("level");
+        assert!(error.contains("expected level 3"), "{error}");
+        assert!(error.contains("line 3"), "{error}");
     }
 
     #[test]

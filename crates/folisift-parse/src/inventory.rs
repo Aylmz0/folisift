@@ -126,6 +126,47 @@ impl SourceInventory {
 }
 
 impl Inventory {
+    /// Markdown review for ambiguous/reconciled headings. This is a reading
+    /// aid, not a gate: a row means "inspect me", not "wrong".
+    pub fn headings_review(&self) -> String {
+        let mut out = String::from("# Heading review\n\n");
+        out.push_str("| Source | Page | Heading | Level | Status |\n|---|---:|---|---:|---|\n");
+        for source in &self.sources {
+            let mut seen = std::collections::BTreeSet::new();
+            let canonical = source
+                .sections
+                .iter()
+                .map(|section| section.number.as_str())
+                .collect::<std::collections::BTreeSet<_>>();
+            for heading in &source.headings {
+                let number = heading
+                    .heading
+                    .split_whitespace()
+                    .next()
+                    .unwrap_or_default()
+                    .trim_end_matches('.');
+                let mut status = "ok";
+                if !seen.insert(number.to_string()) {
+                    status = "duplicate number";
+                } else if !number.contains('.') {
+                    status = "non-section heading";
+                } else if !canonical.is_empty() && !canonical.contains(number) {
+                    status = "not in TOC";
+                }
+                out.push_str(&format!(
+                    "| {} | {} | {} | {} | {} |\n",
+                    source.filename,
+                    heading.page,
+                    heading.heading.replace('|', "\\|"),
+                    heading.level.unwrap_or(0),
+                    status
+                ));
+            }
+        }
+        out.push_str("\nReview rows are not a coverage claim; fix the source map or add a manual override.\n");
+        out
+    }
+
     pub fn new(low_text_threshold: usize, sources: Vec<SourceInventory>) -> Self {
         let totals = Totals {
             pages: sources.iter().map(|source| source.pages).sum(),

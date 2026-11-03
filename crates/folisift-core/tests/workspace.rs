@@ -239,6 +239,39 @@ fn scaffolds_structure_sections_in_the_requested_language() {
 }
 
 #[test]
+fn scaffolds_ten_irac_cases_before_source_headings() {
+    let root = fixture();
+    let style = folisift_core::StyleProfile {
+        aesthetic: "accessible".to_string(),
+        structure: "irac".to_string(),
+        domain: "law".to_string(),
+        ..folisift_core::StyleProfile::default()
+    };
+    let guide = scaffold(
+        &workspace(root.path()),
+        &ScaffoldOptions {
+            slug: "irac".to_string(),
+            title: "Legal cases".to_string(),
+            course: String::new(),
+            sources: vec![root.path().join("sources/PD0.pdf")],
+            style,
+            output_intent: None,
+            target_pages: None,
+        },
+    )
+    .expect("scaffold");
+    let content = fs::read_to_string(&guide.content).expect("content");
+    assert!(content.contains("## Dava 1"));
+    assert!(content.contains("### Sorun"));
+    assert!(content.contains("### Sonuç"));
+    assert!(!content.contains("## PD0"));
+    let headings = fs::read_to_string(root.path().join("guides/irac/source-headings.md"))
+        .expect("source headings");
+    assert!(headings.contains("PD0"));
+    assert!(folisift_core::structures::validate("irac", "tr", &content).is_ok());
+}
+
+#[test]
 fn rejects_schema_three_style_without_rationale() {
     let root = fixture();
     fs::create_dir_all(root.path().join("guides/unrationaled")).expect("guide");

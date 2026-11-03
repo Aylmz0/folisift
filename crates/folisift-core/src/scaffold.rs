@@ -1,5 +1,5 @@
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::config::{Guide, GuideConfig, StyleProfile};
 use crate::error::{Error, Result, io};
@@ -75,7 +75,7 @@ pub fn scaffold(workspace: &Workspace, options: &ScaffoldOptions) -> Result<Guid
         content: "guide.md".to_string(),
         stylesheet: None,
         output,
-        sources: relative_sources,
+        sources: relative_sources.clone(),
         inventory: Some("data/inventory.json".to_string()),
         coverage: Some("data/coverage.md".to_string()),
         target_pages: options.target_pages.clone(),
@@ -102,9 +102,46 @@ pub fn scaffold(workspace: &Workspace, options: &ScaffoldOptions) -> Result<Guid
 
     let course = options.course.replace('"', "'");
     let title = options.title.replace('"', "'");
+    let source_ids = relative_sources
+        .iter()
+        .filter_map(|path| {
+            Path::new(path)
+                .file_stem()
+                .and_then(|value| value.to_str())
+                .map(ToString::to_string)
+        })
+        .collect::<Vec<_>>();
     let structured_sections =
         crate::structures::scaffold_sections(&options.style.structure, &options.style.language);
-    let sections_markdown = if structured_sections.is_empty() {
+    if options.style.structure == "irac" {
+        let mut headings = String::from("# Source headings\n\n");
+        for source in &relative_sources {
+            let id = Path::new(source)
+                .file_stem()
+                .and_then(|value| value.to_str())
+                .unwrap_or(source);
+            headings.push_str(&format!("## {id}\n\n"));
+            headings
+                .push_str("Run `folisift analyze` or `prepare_guide` to fill source headings.\n\n");
+        }
+        let path = guide_dir.join("source-headings.md");
+        fs::write(&path, headings).map_err(|error| io(&path, error))?;
+    }
+    let sections_markdown = if options.style.structure == "irac" {
+        let mut body = String::new();
+        for case in 1..=10 {
+            if options.style.language == "en" {
+                body.push_str(&format!(
+                    "## Case {case}\n\n### Issue\n\nDescribe the legal issue. [PD0, p. 1]\n\n### Rule\n\nState the applicable rule. [PD0, p. 1]\n\n### Application\n\nApply the rule to the facts. [PD0, p. 1]\n\n### Conclusion\n\nGive the reasoned conclusion. [PD0, p. 1]\n\n"
+                ));
+            } else {
+                body.push_str(&format!(
+                    "## Dava {case}\n\n### Sorun\n\nÇözülecek hukuki soruyu yaz. [PD0, s. 1]\n\n### Kural\n\nUygulanacak norm ve içtihadı yaz. [PD0, s. 1]\n\n### Uygulama\n\nKuralı olaya uygula. [PD0, s. 1]\n\n### Sonuç\n\nGerekçeli sonucu yaz. [PD0, s. 1]\n\n"
+                ));
+            }
+        }
+        body
+    } else if structured_sections.is_empty() {
         if options.style.language == "en" {
             "## 1.1 Introduction\n\nSource content goes here. [PD0, p. 1]\n".to_string()
         } else {
@@ -112,7 +149,7 @@ pub fn scaffold(workspace: &Workspace, options: &ScaffoldOptions) -> Result<Guid
         }
     } else {
         let mut body = String::new();
-        for (index, (section, hint)) in structured_sections.iter().enumerate() {
+        for (index, (section, hint, level)) in structured_sections.iter().enumerate() {
             let hint = if options.style.language == "en" {
                 "Source content goes here."
             } else {
@@ -124,7 +161,8 @@ pub fn scaffold(workspace: &Workspace, options: &ScaffoldOptions) -> Result<Guid
                 "s. 1"
             };
             body.push_str(&format!(
-                "## 1.{} {}\n\n{} [PD0, {source}]\n\n",
+                "{} 1.{} {}\n\n{} [PD0, {source}]\n\n",
+                "#".repeat(usize::from(*level)),
                 index + 1,
                 section,
                 hint
@@ -162,8 +200,9 @@ pub fn scaffold(workspace: &Workspace, options: &ScaffoldOptions) -> Result<Guid
             "Bölüm 1 · Giriş",
         )
     };
+    let sources = format!("[{}]", source_ids.join(", "));
     let guide_content = format!(
-        "---\ntitle: {title:?}\ncourse: {course:?}\nrunning: {running:?}\nlanguage: {language:?}\nsources: []\n---\n\n\
+        "---\ntitle: {title:?}\ncourse: {course:?}\nrunning: {running:?}\nlanguage: {language:?}\nsources: {sources}\n---\n\n\
          {front}\n\n\
          {toc}\n\n\
          ::: chapter part=\"{part}\" side=\"{side}\" kicker=\"{kicker}\" title=\"{chapter_title}\" toc=\"{toc_label}\" running=\"{running_label}\"\n\

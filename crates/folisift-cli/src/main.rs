@@ -15,7 +15,7 @@ use folisift_parse::{
 };
 use folisift_render::{RenderOptions, render, styles};
 use serde::Serialize;
-use serde_json::json;
+use serde_json::{Value, json};
 
 mod diagram_cmd;
 
@@ -44,6 +44,9 @@ enum Command {
         /// Bearer token for HTTP; required for non-loopback binds.
         #[arg(long, env = "FOLISIFT_HTTP_TOKEN", hide_env_values = true)]
         http_token: Option<String>,
+        /// Tool profile: core, source, authoring, review or full.
+        #[arg(long, env = "FOLISIFT_MCP_PROFILE", default_value = "full")]
+        profile: String,
     },
     /// Show workspace root, version and guide count.
     WorkspaceInfo,
@@ -165,6 +168,19 @@ enum Command {
         /// Run the coverage gate and fail on a missing section.
         #[arg(long)]
         check: bool,
+    },
+    /// Per-section page budget with concrete cut/move suggestions.
+    Budget {
+        #[arg(long)]
+        guide: String,
+        /// Optional target such as "22" or "18-22".
+        #[arg(long)]
+        target_pages: Option<String>,
+    },
+    /// One release report: build, coverage, audit, visual, cards, claims and diagrams.
+    Qa {
+        #[arg(long)]
+        guide: String,
     },
     /// Return a bounded extractive brief for one source section.
     SectionBrief {
@@ -325,6 +341,35 @@ enum GraphCommand {
         #[arg(long)]
         guide: String,
     },
+    /// Search graph nodes by label.
+    Query {
+        #[arg(long)]
+        guide: String,
+        #[arg(long)]
+        query: String,
+        #[arg(long, default_value_t = 20)]
+        limit: usize,
+    },
+    /// Find the shortest graph path between two nodes or labels.
+    Path {
+        #[arg(long)]
+        guide: String,
+        #[arg(long)]
+        from: String,
+        #[arg(long)]
+        to: String,
+        #[arg(long, default_value_t = 8)]
+        max_depth: usize,
+    },
+    /// Explain one node and its local edges.
+    Explain {
+        #[arg(long)]
+        guide: String,
+        #[arg(long)]
+        node: String,
+        #[arg(long, default_value_t = 20)]
+        limit: usize,
+    },
 }
 
 #[derive(Debug, Subcommand)]
@@ -416,10 +461,41 @@ enum StylesCommand {
         /// exam-summary, exam-revision, concept-summary, study, deep, reference,
         /// practice or one-page.
         #[arg(long)]
-        intent: String,
+        intent: Option<String>,
+        /// Structure profile for compatibility filtering.
+        #[arg(long)]
+        structure: Option<String>,
+        /// Domain profile for compatibility filtering.
+        #[arg(long)]
+        domain: Option<String>,
         /// Optional page budget override, e.g. "5-8".
         #[arg(long)]
         target_pages: Option<String>,
+    },
+    /// Estimate pages before a full build.
+    Estimate {
+        #[arg(long)]
+        guide: String,
+        /// Optional style override; defaults to the guide style.
+        #[arg(long)]
+        style: Option<String>,
+        /// Optional page budget override.
+        #[arg(long)]
+        target_pages: Option<String>,
+    },
+    /// Change style/palette/fonts without touching guide content.
+    Restyle {
+        #[arg(long)]
+        guide: String,
+        /// Style/layout id.
+        #[arg(long)]
+        style: String,
+        /// Optional palette override.
+        #[arg(long)]
+        palette: Option<String>,
+        /// Optional font-pairing override.
+        #[arg(long)]
+        fonts: Option<String>,
     },
     /// Show one pack, its tokens and labels.
     Info {
@@ -498,6 +574,25 @@ fn write_pdf(path: &std::path::Path, bytes: &[u8]) -> std::io::Result<()> {
     std::fs::rename(&temporary, path)
 }
 
+fn budget_sections(markdown: &str) -> Vec<(String, usize)> {
+    let mut sections: Vec<(String, usize)> = Vec::new();
+    let mut current: Option<usize> = None;
+    for line in markdown.lines() {
+        if let Some(heading) = line.strip_prefix("## ") {
+            sections.push((heading.trim().to_string(), 0));
+            current = Some(sections.len() - 1);
+            continue;
+        }
+        if let Some(index) = current {
+            let line = line.trim();
+            if !line.is_empty() && !line.starts_with("<!--") {
+                sections[index].1 += line.chars().count();
+            }
+        }
+    }
+    sections
+}
+
 fn prose_words(markdown: &str) -> usize {
     markdown
         .lines()
@@ -530,11 +625,21 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
     let workspace = Workspace::open(&cli.root)?;
 
     match cli.command {
-        Command::Mcp { http, http_token } => {
+        Command::Mcp {
+            http,
+            http_token,
+            profile,
+        } => {
             if let Some(address) = http {
-                folisift_mcp::serve_http(workspace.root(), &address, http_token.as_deref()).await?;
+                folisift_mcp::serve_http_profile(
+                    workspace.root(),
+                    &address,
+                    http_token.as_deref(),
+                    Some(&profile),
+                )
+                .await?;
             } else {
-                folisift_mcp::serve(workspace.root()).await?;
+                folisift_mcp::serve_profile(workspace.root(), Some(&profile)).await?;
             }
         }
         Command::WorkspaceInfo => {
@@ -720,7 +825,11 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                     })?
                 }
                 None => folisift_core::cards::normalize_review_intervals(
-                    guide.config.review_intervals.clone().unwrap_or_default(),
+                    guide
+                        .config
+                        .review_intervals
+                        .clone()
+                        .unwrap_or_else(|| vec![1, 3, 7, 14, 30]),
                 )
                 .unwrap_or_default(),
             };
@@ -734,6 +843,11 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 std::fs::create_dir_all(parent)?;
             }
             std::fs::write(&out, folisift_core::cards::to_csv(&cards))?;
+            let warning = if cards.is_empty() {
+                Some("no recall/answer pairs found; add ::: recall and ::: answer blocks")
+            } else {
+                None
+            };
             println!(
                 "{}",
                 serde_json::to_string_pretty(&json!({
@@ -741,6 +855,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                     "output": out.display().to_string(),
                     "cards": cards.len(),
                     "review_intervals_days": intervals,
+                    "warning": warning,
                 }))?
             );
         }
@@ -825,7 +940,34 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                                 .is_none_or(|section| link.from == section || link.to == section)
                         })
                         .take(limit)
-                        .cloned()
+                        .map(|link| {
+                            let from_heading = report
+                                .sections
+                                .iter()
+                                .find(|section| section.id == link.from)
+                                .and_then(|section| section.heading.clone());
+                            let to_heading = report
+                                .sections
+                                .iter()
+                                .find(|section| section.id == link.to)
+                                .and_then(|section| section.heading.clone());
+                            json!({
+                                "from": link.from,
+                                "from_heading": from_heading,
+                                "from_source": link.from_source,
+                                "from_page": link.from_page,
+                                "to": link.to,
+                                "to_heading": to_heading,
+                                "to_source": link.to_source,
+                                "to_page": link.to_page,
+                                "relation": link.relation,
+                                "direction": link.direction,
+                                "confidence": link.confidence,
+                                "cosine": link.cosine,
+                                "lexical": link.lexical,
+                                "score": link.score,
+                            })
+                        })
                         .collect::<Vec<_>>();
                     println!(
                         "{}",
@@ -883,6 +1025,11 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
             let analysis = analyze_sources_with_layout(&sources, low_threshold).await?;
             let inventory = analysis.inventory;
             inventory.write_files(&out, &md)?;
+            let review_path = out
+                .parent()
+                .unwrap_or_else(|| std::path::Path::new("data"))
+                .join("headings.review.md");
+            std::fs::write(&review_path, inventory.headings_review())?;
             let block_paths = write_layouts(&analysis.layouts, &blocks_dir)?;
             let cache = SourceCache::new(workspace.root().join("data/cache"));
             let mut texts = Vec::new();
@@ -898,6 +1045,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
             let value = json!({
                 "inventory": out.display().to_string(),
                 "markdown": md.display().to_string(),
+                "headings_review": review_path.display().to_string(),
                 "blocks": block_paths
                     .iter()
                     .map(|path| path.display().to_string())
@@ -984,8 +1132,13 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 analyze_sources_with_layout(&sources, folisift_parse::LOW_TEXT_THRESHOLD).await?;
             let inventory = analysis.inventory;
             write_layouts(&analysis.layouts, &guide.dir.join("data/blocks"))?;
+            let source_ids = sources
+                .iter()
+                .filter_map(|path| path.file_stem().and_then(|value| value.to_str()))
+                .collect::<Vec<_>>()
+                .join(", ");
             let mut body = format!(
-                "---\ntitle: {title_for_content:?}\nrunning: {title_for_content:?}\nlanguage: {:?}\nsources: []\n---\n\n",
+                "---\ntitle: {title_for_content:?}\nrunning: {title_for_content:?}\nlanguage: {:?}\nsources: [{source_ids}]\n---\n\n",
                 style.language
             );
             if style.language == "en" {
@@ -997,51 +1150,81 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                     "::: front kicker=\"Ön kısım · Okuma notu\" title=\"Bu kitapçık hakkında\" lead=\"Bu kılavuz, kaynak slaytlardan sınav odaklı bir çalışma metni üretir.\"\nBu bölüm host LLM tarafından yazılacaktır.\n:::\n\n::: toc title=\"Kılavuzun haritası\" note=\"Sayfa numaraları bu PDF’e aittir.\"\n:::\n\n",
                 );
             }
-            for (index, source) in inventory.sources.iter().enumerate() {
-                let id = source.filename.trim_end_matches(".pdf");
-                let name = source.title_or_filename().replace('"', "'");
-                body.push_str(&format!(
+            if style.structure == "irac" {
+                let mut headings = String::from("# Source headings\n\n");
+                for source in &inventory.sources {
+                    headings.push_str(&format!(
+                        "## {}\n\n",
+                        source.filename.trim_end_matches(".pdf")
+                    ));
+                    for heading in &source.headings {
+                        headings
+                            .push_str(&format!("- {} (s. {})\n", heading.heading, heading.page));
+                    }
+                    headings.push('\n');
+                }
+                std::fs::write(guide.dir.join("source-headings.md"), headings)?;
+                for case in 1..=10 {
+                    if style.language == "en" {
+                        body.push_str(&format!(
+                            "## Case {case}\n\n### Issue\n\nDescribe the legal issue. [PD0, p. 1]\n\n### Rule\n\nState the applicable rule. [PD0, p. 1]\n\n### Application\n\nApply the rule to the facts. [PD0, p. 1]\n\n### Conclusion\n\nGive the reasoned conclusion. [PD0, p. 1]\n\n"
+                        ));
+                    } else {
+                        body.push_str(&format!(
+                            "## Dava {case}\n\n### Sorun\n\nÇözülecek hukuki soruyu yaz. [PD0, s. 1]\n\n### Kural\n\nUygulanacak norm ve içtihadı yaz. [PD0, s. 1]\n\n### Uygulama\n\nKuralı olaya uygula. [PD0, s. 1]\n\n### Sonuç\n\nGerekçeli sonucu yaz. [PD0, s. 1]\n\n"
+                        ));
+                    }
+                }
+            } else {
+                for (index, source) in inventory.sources.iter().enumerate() {
+                    let id = source.filename.trim_end_matches(".pdf");
+                    let name = source.title_or_filename().replace('"', "'");
+                    body.push_str(&format!(
                     "::: chapter part=\"{part}\" side=\"{side}: {id}\" kicker=\"{kicker} {index}\" title=\"{name}\" toc=\"{name}\" running=\"{name}\" subs=true\n:::\n\n",
                     part = if style.language == "en" { "B · DETAILED REVIEW" } else { "B · AYRINTILI İNCELEME" },
                     side = if style.language == "en" { "SOURCE" } else { "KAYNAK" },
                     kicker = if style.language == "en" { "CHAPTER" } else { "BÖLÜM" },
                 ));
-                for heading in &source.headings {
-                    let number = heading
-                        .heading
-                        .split_whitespace()
-                        .next()
-                        .unwrap_or_default();
-                    if number.matches('.').count() == 1
-                        && number.chars().next().is_some_and(|c| c.is_ascii_digit())
-                    {
-                        let source_label = if style.language == "en" {
-                            "Source"
-                        } else {
-                            "Kaynak"
-                        };
-                        body.push_str(&format!(
-                            "## {}\n\n{source_label}: [{}]\n\n",
-                            heading.heading, source.filename
-                        ));
+                    for heading in &source.headings {
+                        let number = heading
+                            .heading
+                            .split_whitespace()
+                            .next()
+                            .unwrap_or_default();
+                        if number.matches('.').count() == 1
+                            && number.chars().next().is_some_and(|c| c.is_ascii_digit())
+                        {
+                            let source_label = if style.language == "en" {
+                                "Source"
+                            } else {
+                                "Kaynak"
+                            };
+                            body.push_str(&format!(
+                                "## {}\n\n{source_label}: [{}]\n\n",
+                                heading.heading, source.filename
+                            ));
+                        }
                     }
                 }
             }
             let required =
                 folisift_core::structures::scaffold_sections(&style.structure, &style.language);
-            if !required.is_empty() {
+            if !required.is_empty() && style.structure != "irac" {
                 if style.language == "en" {
                     body.push_str("::: chapter part=\"C · STRUCTURE\" side=\"FRAMEWORK\" kicker=\"C\" title=\"Structure checklist\" toc=\"Structure checklist\" running=\"Structure checklist\" subs=false\n:::\n\n");
                 } else {
                     body.push_str("::: chapter part=\"C · YAPI\" side=\"ÇERÇEVE\" kicker=\"C\" title=\"Yapı denetim listesi\" toc=\"Yapı denetim listesi\" running=\"Yapı denetim listesi\" subs=false\n:::\n\n");
                 }
-                for (section, hint) in required {
+                for (section, hint, level) in required {
                     let hint = if style.language == "en" {
                         "Source content goes here.".to_string()
                     } else {
                         hint
                     };
-                    body.push_str(&format!("## {section}\n\n{hint}\n\n"));
+                    body.push_str(&format!(
+                        "{} {section}\n\n{hint}\n\n",
+                        "#".repeat(usize::from(level))
+                    ));
                 }
             }
             if style.language == "en" {
@@ -1074,8 +1257,27 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
             }
             StylesCommand::Recommend {
                 intent,
+                structure,
+                domain,
                 target_pages,
             } => {
+                if let (Some(structure), Some(domain)) = (structure.as_deref(), domain.as_deref()) {
+                    let candidates = styles::compatibility(workspace.root(), structure, domain)?;
+                    let chosen = candidates.iter().find(|item| item.compatible).cloned();
+                    println!(
+                        "{}",
+                        serde_json::to_string_pretty(&json!({
+                            "structure": structure,
+                            "domain": domain,
+                            "target_pages": target_pages,
+                            "chosen": chosen,
+                            "candidates": candidates,
+                        }))?
+                    );
+                    return Ok(());
+                }
+                let intent = intent
+                    .ok_or("recommend requires either --intent or --structure and --domain")?;
                 let mut recommendation =
                     folisift_core::intent::recommend(&intent).ok_or_else(|| {
                         format!(
@@ -1088,6 +1290,67 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                     recommendation.target_pages = target;
                 }
                 println!("{}", serde_json::to_string_pretty(&recommendation)?);
+            }
+            StylesCommand::Estimate {
+                guide,
+                style,
+                target_pages,
+            } => {
+                let guide = Guide::load(&workspace, &guide)?;
+                let markdown = std::fs::read_to_string(&guide.content)?;
+                let style = style.unwrap_or_else(|| guide.style().aesthetic.clone());
+                let target = target_pages.or_else(|| guide.config.target_pages.clone());
+                let estimate = styles::estimate(&style, &markdown, target.as_deref());
+                println!("{}", serde_json::to_string_pretty(&estimate)?);
+            }
+            StylesCommand::Restyle {
+                guide,
+                style,
+                palette,
+                fonts,
+            } => {
+                let guide = Guide::load(&workspace, &guide)?;
+                let before = std::fs::read_to_string(&guide.content)?;
+                let loaded = styles::load_with(
+                    workspace.root(),
+                    &style,
+                    palette.as_deref(),
+                    fonts.as_deref(),
+                )?;
+                let mut profile = guide.style();
+                profile.aesthetic = style.clone();
+                profile.palette = loaded.palette.id.clone();
+                profile.fonts = loaded.fonts.id.clone();
+                styles::validate_profile(&loaded.pack, &profile)?;
+                let config_path = guide.dir.join("config.json");
+                let mut config: Value =
+                    serde_json::from_str(&std::fs::read_to_string(&config_path)?)?;
+                config["style"] = serde_json::to_value(&profile)?;
+                config["theme"] = Value::String(style.clone());
+                config["style_source"] = Value::String("explicit".to_string());
+                config["style_rationale"] = Value::String(format!(
+                    "Restyle chose {}; palette {} and fonts {} were validated against the pack.",
+                    loaded.pack.name, loaded.palette.id, loaded.fonts.id
+                ));
+                std::fs::write(
+                    &config_path,
+                    serde_json::to_string_pretty(&config)?
+                        + "
+",
+                )?;
+                let after = std::fs::read_to_string(&guide.content)?;
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&json!({
+                        "guide": guide.slug,
+                        "style": style,
+                        "palette": loaded.palette.id,
+                        "fonts": loaded.fonts.id,
+                        "content_unchanged": before == after,
+                        "content_hash_before": folisift_render::content_hash(&before),
+                        "content_hash_after": folisift_render::content_hash(&after),
+                    }))?
+                );
             }
             StylesCommand::Info {
                 id,
@@ -1198,6 +1461,74 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 );
             }
         },
+        Command::Budget {
+            guide,
+            target_pages,
+        } => {
+            let guide = Guide::load(&workspace, &guide)?;
+            let markdown = std::fs::read_to_string(&guide.content)?;
+            let sections = budget_sections(&markdown);
+            let total = sections
+                .iter()
+                .map(|(_, chars)| *chars)
+                .sum::<usize>()
+                .max(1);
+            let target = target_pages
+                .or_else(|| guide.config.target_pages.clone())
+                .unwrap_or_else(|| "12".to_string());
+            let target_max = target
+                .split('-')
+                .next_back()
+                .and_then(|value| value.trim().parse::<usize>().ok())
+                .unwrap_or(12)
+                .max(1);
+            let rows = sections
+                .iter()
+                .map(|(heading, chars)| {
+                    let pages = ((*chars as f64 / total as f64) * target_max as f64)
+                        .round()
+                        .max(1.0) as usize;
+                    json!({
+                        "heading": heading,
+                        "body_chars": chars,
+                        "estimated_pages": pages,
+                        "target_words": pages * 400,
+                    })
+                })
+                .collect::<Vec<_>>();
+            let largest = sections
+                .iter()
+                .max_by_key(|(_, chars)| *chars)
+                .map(|(heading, chars)| {
+                    json!({
+                        "heading": heading,
+                        "body_chars": chars,
+                        "suggestion": "largest section; cut or split it first if the build exceeds the target",
+                    })
+                });
+            let estimated = rows
+                .iter()
+                .filter_map(|row| row["estimated_pages"].as_u64())
+                .sum::<u64>() as usize;
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&json!({
+                    "guide": guide.slug,
+                    "target_pages": target,
+                    "estimated_pages": estimated,
+                    "over_budget": estimated > target_max,
+                    "sections": rows,
+                    "largest": largest,
+                }))?
+            );
+        }
+        Command::Qa { guide } => {
+            let report = folisift_build::qa(&workspace, &guide).await?;
+            println!("{}", serde_json::to_string_pretty(&report)?);
+            if !report["passed"].as_bool().unwrap_or(false) {
+                return Err("QA gate failed".into());
+            }
+        }
         Command::Build {
             guide,
             content,
@@ -1368,49 +1699,96 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
         }
-        Command::Graph { command } => {
-            match command {
-                GraphCommand::Build { guide } => {
-                    let guide = Guide::load(&workspace, &guide)?;
-                    let layouts = read_layouts(&guide.dir.join("data/blocks"))?;
-                    if layouts.is_empty() {
-                        return Err("no layout blocks found; run `folisift analyze` or `prepare_guide` first".into());
-                    }
-                    let mut graph = DocumentGraph::build(&layouts);
-                    if let Ok(markdown) = std::fs::read_to_string(&guide.content) {
-                        graph.add_citations(&markdown);
-                    }
-                    let out = guide.dir.join("data/document-graph.json");
-                    graph.write_json(&out)?;
-                    println!(
-                        "{}",
-                        serde_json::to_string_pretty(&json!({
-                            "guide": guide.slug,
-                            "output": out.display().to_string(),
-                            "sources": layouts.len(),
-                            "nodes": graph.nodes.len(),
-                            "edges": graph.edges.len(),
-                            "node_kinds": graph.counts(),
-                        }))?
+        Command::Graph { command } => match command {
+            GraphCommand::Build { guide } => {
+                let guide = Guide::load(&workspace, &guide)?;
+                let layouts = read_layouts(&guide.dir.join("data/blocks"))?;
+                if layouts.is_empty() {
+                    return Err(
+                        "no layout blocks found; run `folisift analyze` or `prepare_guide` first"
+                            .into(),
                     );
                 }
-                GraphCommand::Status { guide } => {
-                    let guide = Guide::load(&workspace, &guide)?;
-                    let path = guide.dir.join("data/document-graph.json");
-                    let graph = DocumentGraph::read_json(&path)?;
-                    println!(
-                        "{}",
-                        serde_json::to_string_pretty(&json!({
-                            "guide": guide.slug,
-                            "output": path.display().to_string(),
-                            "nodes": graph.nodes.len(),
-                            "edges": graph.edges.len(),
-                            "node_kinds": graph.counts(),
-                        }))?
-                    );
+                let mut graph = DocumentGraph::build(&layouts);
+                if let Ok(markdown) = std::fs::read_to_string(&guide.content) {
+                    graph.add_citations(&markdown);
                 }
+                let out = guide.dir.join("data/document-graph.json");
+                graph.write_json(&out)?;
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&json!({
+                        "guide": guide.slug,
+                        "output": out.display().to_string(),
+                        "sources": layouts.len(),
+                        "nodes": graph.nodes.len(),
+                        "edges": graph.edges.len(),
+                        "node_kinds": graph.counts(),
+                    }))?
+                );
             }
-        }
+            GraphCommand::Status { guide } => {
+                let guide = Guide::load(&workspace, &guide)?;
+                let path = guide.dir.join("data/document-graph.json");
+                let graph = DocumentGraph::read_json(&path)?;
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&json!({
+                        "guide": guide.slug,
+                        "output": path.display().to_string(),
+                        "nodes": graph.nodes.len(),
+                        "edges": graph.edges.len(),
+                        "node_kinds": graph.counts(),
+                    }))?
+                );
+            }
+            GraphCommand::Query {
+                guide,
+                query,
+                limit,
+            } => {
+                let guide = Guide::load(&workspace, &guide)?;
+                let graph = DocumentGraph::read_json(&guide.dir.join("data/document-graph.json"))?;
+                let hits = graph.query(&query, limit);
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&json!({
+                        "guide": guide.slug,
+                        "query": query,
+                        "total": hits.len(),
+                        "nodes": hits,
+                    }))?
+                );
+            }
+            GraphCommand::Path {
+                guide,
+                from,
+                to,
+                max_depth,
+            } => {
+                let guide = Guide::load(&workspace, &guide)?;
+                let graph = DocumentGraph::read_json(&guide.dir.join("data/document-graph.json"))?;
+                let path = graph.path(&from, &to, max_depth);
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&json!({
+                        "guide": guide.slug,
+                        "from": from,
+                        "to": to,
+                        "found": !path.is_empty(),
+                        "path": path,
+                    }))?
+                );
+            }
+            GraphCommand::Explain { guide, node, limit } => {
+                let guide = Guide::load(&workspace, &guide)?;
+                let graph = DocumentGraph::read_json(&guide.dir.join("data/document-graph.json"))?;
+                let value = graph
+                    .explain(&node, limit)
+                    .ok_or_else(|| format!("graph node {node:?} not found"))?;
+                println!("{}", serde_json::to_string_pretty(&value)?);
+            }
+        },
         Command::Diagram { command } => match command {
             DiagramCommand::Validate { guide, id, all } => {
                 let value = diagram_cmd::validate(&workspace, &guide, id.as_deref(), all)?;

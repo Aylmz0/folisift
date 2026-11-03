@@ -2,9 +2,33 @@
   "id": "irac",
   "title": "IRAC legal analysis",
   "sections": [
-    { "id": "issue", "tr": "Sorun", "en": "Issue", "hint": "Çözülecek hukuki soru." },
-    { "id": "rule", "tr": "Kural", "en": "Rule", "hint": "Uygulanacak norm ve içtihat." },
-    { "id": "application", "tr": "Uygulama", "en": "Application", "hint": "Kuralın olaya uygulanması." },
-    { "id": "conclusion", "tr": "Sonuç", "en": "Conclusion", "hint": "Gerekçeli sonuç." }
+    {
+      "id": "issue",
+      "tr": "Sorun",
+      "en": "Issue",
+      "hint": "Çözülecek hukuki soru.",
+      "level": 3
+    },
+    {
+      "id": "rule",
+      "tr": "Kural",
+      "en": "Rule",
+      "hint": "Uygulanacak norm ve içtihat.",
+      "level": 3
+    },
+    {
+      "id": "application",
+      "tr": "Uygulama",
+      "en": "Application",
+      "hint": "Kuralın olaya uygulanması.",
+      "level": 3
+    },
+    {
+      "id": "conclusion",
+      "tr": "Sonuç",
+      "en": "Conclusion",
+      "hint": "Gerekçeli sonuç.",
+      "level": 3
+    }
   ]
 }

@@ -385,9 +385,9 @@ pub fn validate_spec(spec: &DiagramSpec) -> Result<()> {
             "alt must describe the takeaway, not say “image of”".to_string(),
         ));
     }
-    if spec.layout != DEFAULT_LAYOUT {
+    if !matches!(spec.layout.as_str(), "tala" | "dagre" | "elk") {
         return Err(Error::Diagram(format!(
-            "unsupported D2 layout {:?}; use {DEFAULT_LAYOUT:?}",
+            "unsupported D2 layout {:?}; use tala, dagre or elk",
             spec.layout
         )));
     }
@@ -1742,6 +1742,11 @@ mod tests {
             })
             .collect();
         spec.edges.clear();
+        for layout in ["tala", "dagre", "elk"] {
+            spec.layout = layout.to_string();
+            assert!(validate_spec(&spec).is_ok(), "{layout}");
+        }
+        spec.layout = "tala".to_string();
         assert!(validate_spec(&spec).is_ok());
         spec.nodes.push(Node {
             id: "extra".to_string(),
@@ -1909,12 +1914,17 @@ mod tests {
     }
 
     #[test]
-    fn rejects_unknown_spec_fields_and_non_tala_layout() {
+    fn accepts_supported_layouts_and_rejects_unknown_ones() {
         let mut value = serde_json::to_value(spec()).expect("value");
         value["engine"] = serde_json::json!("graphviz");
         assert!(spec_from_json(&value.to_string()).is_err());
+        for layout in ["tala", "dagre", "elk"] {
+            let mut value = serde_json::to_value(spec()).expect("value");
+            value["layout"] = serde_json::json!(layout);
+            assert!(spec_from_json(&value.to_string()).is_ok(), "{layout}");
+        }
         let mut value = serde_json::to_value(spec()).expect("value");
-        value["layout"] = serde_json::json!("dagre");
+        value["layout"] = serde_json::json!("unknown");
         assert!(spec_from_json(&value.to_string()).is_err());
     }
 

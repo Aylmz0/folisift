@@ -1,7 +1,7 @@
 # Production feedback remediation plan — 2026-11-03
 
-- **Status:** Active; v0.13.0 ships the P0 trust core and W22, remaining
-  milestones continue below
+- **Status:** Active; v0.14.0 closes the M2/M3 workflow core, M4 depth remains
+  opt-in and partially implemented
 - **Source:** [`docs/FOLISIFT-GERI-BILDIRIM.md`](../FOLISIFT-GERI-BILDIRIM.md)
 - **Baseline:** Folisift 0.12.4, build 143, MCP schema 8
 - **Purpose:** turn every finding in the production feedback into an owned,
@@ -9,26 +9,41 @@
 - **Primary outcome:** “passed” must mean complete, visually continuous and
   machine-diagnosable; context must get cheaper without adding network calls
 
-## 0.1 Release 0.13.0 implementation status
+## 0.1 Release 0.14.0 implementation status
 
-v0.13.0 closes the trust-critical slice that can be verified on the current
-workspace. The register and milestones remain the contract for the rest.
+v0.14.0 closes the trust-critical slice, the M2 workflow core and the M3 context
+core on the current workspace. Items marked **Partial** have a shipped,
+testable subset and a named remaining gap; they are not claimed complete.
 
-| Workstream | Status in v0.13.0 | Evidence |
+| Workstream | Status in v0.14.0 | Evidence / remaining gap |
 |---|---|---|
-| W1 coverage manifest | Shipped | `coverage-manifest` CLI/MCP; build prefers `data/coverage-manifest.json`; unit tests |
-| W2 layout continuity | Partial | `::: glossary` group flow, compact tables and group-heading keep rules; chapter/columns/diagram options remain |
-| W3 diagnostics and draft | Partial | checked builds stage a draft PDF; the typed `Diagnostic` surface remains |
-| W4 D2 decision support | Shipped (core) | 24 nodes, 40 edges, depth 8, `kind: decision`, tests |
-| W9 table/statistics truth | Partial | `stats.tables` now reports markdown/wrapped/captioned/glossary/total |
-| W14a context retrieval | Shipped (core) | `section_brief`, `read_section`, bounded offsets and token estimates |
+| W1 coverage manifest | Shipped | `coverage-manifest` CLI/MCP, manifest-first build, page-accurate coverage report, tests |
+| W2 layout continuity | Partial | glossary group flow, compact tables, role-aware underfill; full chapter/columns/diagram keep options remain |
+| W3 diagnostics and draft | Partial | checked builds stage a draft; typed `Diagnostic` envelope remains |
+| W4 D2 decision support | Shipped (core) | 24 nodes, 40 edges, depth 8, `decision`, `tala/dagre/elk`, tests |
+| W5 Turkish headings | Partial | glued headings `1.İş`/`5.2.İş`/`13.4.Tutulacak`, `headings.review.md`; full TOC reconciliation remains |
+| W6 style compatibility | Shipped (core) | matrix filtering, `irac+law` → reader/accessible, page estimate, restyle, theme/style check |
+| W7 MCP surface and QA | Shipped (core) | `qa_guide`, `audit_guide`, profiles, resources pagination, outline pagination, table extract, 31 tools |
+| W8 IRAC scaffold | Shipped (core) | 10 cases, `###` levels, `source-headings.md`, existing-content preservation |
+| W9 table/statistics truth | Partial | markdown/wrapped/captioned/glossary/total and `E_TABLE_WIDTHS`; caption-number opt-out remains |
+| W10 page roles | Shipped (core) | `PageRole`, TOC/chapter/figure/table exemptions, figure/table-only and chapter-split lists |
+| W11 graph and links | Shipped (core) | heading nodes, `query`/`path`/`explain`, link heading labels |
+| W12 claims and cards | Shipped (core) | section/severity/missing citation, noise filter, default intervals, empty warning, `verify_citations` |
+| W13 page budget UX | Partial | `budget` command, section attribution, capped search context; incremental analysis reuse remains |
+| W14 context retrieval | Shipped (core) | briefs, section read, `source_brief`, `source_topics`, `guide_plan`, `visual_brief`, `citation_snippet`, `cost_report` |
+| W15 LiteParse depth | Partial | complexity/OCR policy and candidates in `source_brief`; typed metadata/vector/structure APIs remain |
+| W16 D2 depth | Partial | `dagre`/`elk` layouts and manifest recording; classes/tooltips/per-container direction remain |
+| W17 Model2Vec/reranker | Partial | local embeddings remain the link default; topic clustering is deterministic term-based, no conditional reranker |
+| W18 OCR policy | Shipped (policy) | OCR off by default, explicit candidates/reasons, no silent OCR |
+| W19 determinism/docs | Shipped (docs) | cookbook, release checklist, versioned gates |
+| W20 agent profiles | Shipped (core) | `fast`/`deep` profiles plus core/source/authoring/review |
+| W21 MCP profiles/resources | Shipped (core) | active profile ≤15 tools, core 10, resource cursor pagination, capabilities resource |
 | W22 four-column glossary | Shipped | `::: glossary`, 18/32/18/32 widths, compact repeated headers, atomic pairs |
-| W5–W8, W10–W13, W15–W21 | Pending | M2–M5; not claimed by this release |
 
-The five exam PDFs pass `make exam-check`, and `make visual`, `make type-check`,
-`make parity`, `make genre-check` and `make d2-pdf-check` pass with the pinned
-D2 binary. These gates are the release evidence; they are not a claim that every
-M2–M5 workstream has landed.
+The five exam PDFs pass `make exam-check`; `make visual`, `make type-check`,
+`make parity`, `make genre-check`, `make d2-pdf-check`, `cargo test`, `clippy`
+and `fmt` pass. The remaining Partial gaps are post-0.14.0 engine-depth work,
+not trust regressions.
 
 ## 0. How to use this plan
 

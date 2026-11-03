@@ -28,7 +28,10 @@ pub struct ReadSourceResult {
 
 #[derive(Debug, Clone, Serialize)]
 pub struct SearchHit {
+    pub rank: usize,
     pub page: usize,
+    pub heading: Option<String>,
+    pub section: Option<String>,
     pub snippet: String,
     pub score: usize,
 }
@@ -220,8 +223,12 @@ pub fn search_from_source(
         if hits.len() >= limit {
             continue;
         }
+        let (heading, section) = page_heading(&page.text);
         hits.push(SearchHit {
+            rank: hits.len() + 1,
             page: page.page,
+            heading,
+            section,
             snippet: snippet(&page.text, &terms, context_chars),
             score,
         });
@@ -284,6 +291,30 @@ fn normalize(text: &str) -> String {
         }
     }
     out.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
+fn page_heading(text: &str) -> (Option<String>, Option<String>) {
+    for line in text
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+        .take(8)
+    {
+        let mut parts = line.splitn(2, char::is_whitespace);
+        let Some(number) = parts.next() else {
+            continue;
+        };
+        let number = number.trim_end_matches('.');
+        if !number.contains('.') || !number.chars().next().is_some_and(|c| c.is_ascii_digit()) {
+            continue;
+        }
+        let title = parts.next().unwrap_or("").trim();
+        if title.is_empty() {
+            continue;
+        }
+        return (Some(format!("{number} {title}")), Some(number.to_string()));
+    }
+    (None, None)
 }
 
 fn snippet(text: &str, terms: &[&str], context_chars: usize) -> String {
@@ -350,10 +381,18 @@ mod tests {
     }
 
     #[test]
-    fn searches_with_page_numbers() {
-        let result = search_from_source(&source(), "tiobe", None, None).expect("search");
+    fn searches_with_page_numbers_and_section_context() {
+        let mut source = source();
+        source.pages[1].text = "2.1 TIOBE indeksi Java".to_string();
+        let result = search_from_source(&source, "tiobe", None, None).expect("search");
         assert_eq!(result.total, 1);
         assert_eq!(result.hits[0].page, 2);
+        assert_eq!(result.hits[0].rank, 1);
+        assert_eq!(result.hits[0].section.as_deref(), Some("2.1"));
+        assert_eq!(
+            result.hits[0].heading.as_deref(),
+            Some("2.1 TIOBE indeksi Java")
+        );
     }
 
     #[test]

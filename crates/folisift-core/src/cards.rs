@@ -14,10 +14,13 @@ pub struct Card {
     pub tags: Vec<String>,
 }
 
-/// Validate and normalize review intervals: 1-10 unique positive day counts.
+/// Validate and normalize review intervals: 0-10 unique positive day counts.
+///
+/// An empty list is an explicit choice: cards are still exported, without
+/// `review-*` tags.
 pub fn normalize_review_intervals(mut intervals: Vec<u32>) -> Result<Vec<u32>, String> {
-    if intervals.is_empty() || intervals.len() > 10 {
-        return Err("review intervals must contain 1-10 entries".to_string());
+    if intervals.len() > 10 {
+        return Err("review intervals must contain at most 10 entries".to_string());
     }
     if intervals.iter().any(|days| *days == 0 || *days > 365) {
         return Err("review intervals must be between 1 and 365 days".to_string());
@@ -167,7 +170,10 @@ mod tests {
             normalize_review_intervals(vec![7, 1, 3, 3]).unwrap(),
             vec![1, 3, 7]
         );
-        assert!(normalize_review_intervals(vec![]).is_err());
+        assert_eq!(
+            normalize_review_intervals(vec![]).unwrap(),
+            Vec::<u32>::new()
+        );
         assert!(normalize_review_intervals(vec![0]).is_err());
         assert!(normalize_review_intervals(vec![366]).is_err());
     }

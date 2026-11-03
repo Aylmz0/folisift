@@ -8,6 +8,32 @@ use serde::Serialize;
 use crate::error::{Error, Result};
 use crate::pdfium;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PageRole {
+    FrontMatter,
+    Toc,
+    ChapterOpener,
+    FigurePage,
+    TablePage,
+    Body,
+    IntentionalBlank,
+}
+
+impl PageRole {
+    fn is_intentional(self) -> bool {
+        !matches!(self, Self::Body)
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct PageRoleEntry {
+    pub page: usize,
+    pub role: PageRole,
+    pub chars: usize,
+    pub visual: bool,
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct PageAudit {
     pub page: usize,
@@ -15,6 +41,7 @@ pub struct PageAudit {
     pub empty: bool,
     pub overflow: bool,
     pub visual: bool,
+    pub role: PageRole,
     pub text_left: f64,
     pub text_top: f64,
     pub text_right: f64,
@@ -98,6 +125,10 @@ pub struct LayoutAudit {
     pub overflow_pages: Vec<usize>,
     pub content_box_pages: Vec<usize>,
     pub underfilled_pages: Vec<UnderfilledPage>,
+    pub page_roles: Vec<PageRoleEntry>,
+    pub figure_only_pages: Vec<usize>,
+    pub table_only_pages: Vec<usize>,
+    pub chapter_split_pages: Vec<usize>,
     pub orphan_heading_pages: Vec<usize>,
     pub bookmark_mismatches: Vec<String>,
     pub image_pages: usize,
@@ -359,12 +390,24 @@ pub fn audit_pdf_with(
         if content_overflow {
             content_box_pages.push(index + 1);
         }
+        let role = classify_page(
+            page_number,
+            chars,
+            !images.is_empty() || captions > 0,
+            &page_text,
+            heading_lines
+                .iter()
+                .map(|(_, size, _)| *size)
+                .fold(0.0, f64::max),
+            body_font_size,
+        );
         page_reports.push(PageAudit {
             page: page_number,
             chars,
             empty: chars < 5,
             overflow,
             visual: !images.is_empty() || captions > 0,
+            role,
             text_left: if touched { left } else { 0.0 },
             text_top: if touched { top } else { 0.0 },
             text_right: if touched { right } else { 0.0 },
@@ -380,6 +423,32 @@ pub fn audit_pdf_with(
     }
 
     let underfilled_pages = detect_underfilled(&page_reports);
+    let page_roles = page_reports
+        .iter()
+        .map(|page| PageRoleEntry {
+            page: page.page,
+            role: page.role,
+            chars: page.chars,
+            visual: page.visual,
+        })
+        .collect::<Vec<_>>();
+    let figure_only_pages = page_roles
+        .iter()
+        .filter(|entry| entry.role == PageRole::FigurePage)
+        .map(|entry| entry.page)
+        .collect::<Vec<_>>();
+    let table_only_pages = page_roles
+        .iter()
+        .filter(|entry| entry.role == PageRole::TablePage)
+        .map(|entry| entry.page)
+        .collect::<Vec<_>>();
+    let chapter_split_pages = page_reports
+        .windows(2)
+        .filter(|pair| {
+            pair[0].role == PageRole::ChapterOpener && pair[1].role == PageRole::ChapterOpener
+        })
+        .map(|pair| pair[1].page)
+        .collect::<Vec<_>>();
     let page_count_ok = expected_pages.is_none_or(|expected| expected == pages);
     let mut sorted_lines = line_lengths;
     sorted_lines.sort_unstable();
@@ -495,6 +564,10 @@ pub fn audit_pdf_with(
         overflow_pages,
         content_box_pages,
         underfilled_pages,
+        page_roles,
+        figure_only_pages,
+        table_only_pages,
+        chapter_split_pages,
         orphan_heading_pages,
         bookmark_mismatches,
         image_pages,
@@ -543,6 +616,42 @@ fn count_figure_captions(page_text: &str) -> usize {
 /// low character count is intentional. The threshold is intentionally
 /// conservative: a page must be below 35% of the median body page to be
 /// reported. This is a review gate, not a claim that every short page is bad.
+fn classify_page(
+    page: usize,
+    chars: usize,
+    visual: bool,
+    text: &str,
+    max_heading_size: f64,
+    body_font_size: f64,
+) -> PageRole {
+    if page == 1 {
+        return PageRole::FrontMatter;
+    }
+    let lower = text.to_lowercase().replace('\u{0307}', "");
+    let head = lower.chars().take(240).collect::<String>();
+    let compact_head = head.split_whitespace().collect::<String>();
+    if page <= 6
+        && chars >= 80
+        && (compact_head.contains("içindekiler") || compact_head.contains("contents"))
+        && (lower.contains("....") || lower.matches(char::is_numeric).count() > 7)
+    {
+        return PageRole::Toc;
+    }
+    if chars < 5 {
+        return PageRole::Body;
+    }
+    if visual && chars < 250 {
+        return PageRole::FigurePage;
+    }
+    if chars < 1500 && max_heading_size >= body_font_size * 1.9 {
+        return PageRole::ChapterOpener;
+    }
+    if lower.contains("tablo") && chars < 500 {
+        return PageRole::TablePage;
+    }
+    PageRole::Body
+}
+
 fn detect_underfilled(pages: &[PageAudit]) -> Vec<UnderfilledPage> {
     let mut counts = pages
         .iter()
@@ -557,7 +666,9 @@ fn detect_underfilled(pages: &[PageAudit]) -> Vec<UnderfilledPage> {
     pages
         .iter()
         .skip(3)
-        .filter(|page| !page.visual && page.chars >= 5 && (page.chars as f64) < threshold)
+        .filter(|page| {
+            !page.role.is_intentional() && page.chars >= 5 && (page.chars as f64) < threshold
+        })
         .map(|page| UnderfilledPage {
             page: page.page,
             chars: page.chars,
@@ -654,6 +765,7 @@ mod tests {
             empty: chars < 5,
             overflow: false,
             visual: false,
+            role: PageRole::Body,
             text_left: 0.0,
             text_top: 0.0,
             text_right: 0.0,
@@ -675,6 +787,30 @@ mod tests {
     }
 
     #[test]
+    fn page_roles_explain_toc_and_figure_pages() {
+        assert_eq!(
+            classify_page(1, 300, false, "Kapak", 0.0, 9.5),
+            PageRole::FrontMatter
+        );
+        assert_eq!(
+            classify_page(2, 900, false, "İÇİNDEKİLER 1 .... 2 .... 3 ....", 0.0, 9.5),
+            PageRole::Toc
+        );
+        assert_eq!(
+            classify_page(3, 200, true, "Şekil 1", 0.0, 9.5),
+            PageRole::FigurePage
+        );
+        assert_eq!(
+            classify_page(4, 500, false, "BÖLÜM 1 Giriş", 24.0, 10.0),
+            PageRole::ChapterOpener
+        );
+        assert_eq!(
+            classify_page(5, 3000, false, "gövde", 10.0, 10.0),
+            PageRole::Body
+        );
+    }
+
+    #[test]
     fn visual_pages_are_not_underfilled() {
         let page = |page: usize, chars: usize, visual: bool| PageAudit {
             page,
@@ -682,6 +818,11 @@ mod tests {
             empty: chars < 5,
             overflow: false,
             visual,
+            role: if visual {
+                PageRole::FigurePage
+            } else {
+                PageRole::Body
+            },
             text_left: 0.0,
             text_top: 0.0,
             text_right: 0.0,

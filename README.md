@@ -5,7 +5,7 @@ PDFs into source-traceable, paper-like study guides with a deterministic build,
 layout audit and local review tools. The engine is shared; each course is a
 self-contained guide bundle.
 
-**Current release: `v0.13.0`** — Linux archive, source builds for macOS and
+**Current release: `v0.14.0`** — Linux archive, source builds for macOS and
 Windows, and a source-available PolyForm Strict license.
 
 - Repository: <https://github.com/Aylmz0/folisift>
@@ -28,8 +28,10 @@ Windows, and a source-available PolyForm Strict license.
   makes the source-heading set authoritative for multi-source guides.
 - Exposes the same build, source, block, link, graph, claim and card operations
   through a CLI and an MCP server for agent hosts such as OpenCode. Section
-  briefs and bounded section reads keep source context small, and `::: glossary`
-  renders dense four-column term tables.
+  briefs, source topics, guide plans, cost reports and bounded section reads
+  keep source context small; `qa` returns one release report; MCP profiles keep
+  the active tool schema small; and `::: glossary` renders dense four-column
+  term tables.
 - Runs offline after installation. The MCP server makes no LLM, network or
   shell calls.
 
@@ -71,8 +73,8 @@ pre-generated SVG and never execute D2.
 ### Manual archive
 
 ```bash
-tar -xzf folisift-v0.13.0-linux-x86_64.tar.gz
-sha256sum -c folisift-v0.13.0-linux-x86_64.tar.gz.sha256
+tar -xzf folisift-v0.14.0-linux-x86_64.tar.gz
+sha256sum -c folisift-v0.14.0-linux-x86_64.tar.gz.sha256
 ./folisift doctor
 ```
 
@@ -119,6 +121,7 @@ The normal review path is:
 ```bash
 folisift coverage-manifest --guide my-course --action build
 folisift build --guide my-course --check
+folisift qa --guide my-course
 folisift audit --pdf output/my-course.pdf --guide my-course --strict
 folisift claims --guide my-course
 folisift cards --guide my-course
@@ -192,12 +195,14 @@ Or declare it directly:
 ```
 
 Ask the host to run `doctor`, prepare the guide, read the sources, write the
-guide, build with the coverage gate and audit the PDF. The MCP exposes 21 tools
-at schema 9; the normal path is `prepare_guide` → `section_brief` /
-`read_section` / `read_source` → host writes `guide.md` → `build_guide` → CLI
-`audit`. `coverage_manifest`, `read_blocks`, `links` and `graph` provide bounded
-review data. The MCP server stays inside the workspace root and never calls a
-network, LLM or shell.
+guide, build with the coverage gate and audit the PDF. The MCP exposes 31 tools
+at schema 10; profiles (`core`, `source`, `authoring`, `review`, `fast`, `deep`)
+hide the rest before `tools/list`, and `core` is ten tools. The normal path is
+`prepare_guide` → `section_brief` / `read_section` / `read_source` → host writes
+`guide.md` → `build_guide` → `qa_guide` (`audit_guide` for the standalone
+check). `coverage_manifest`, `guide_plan`, `source_topics`, `read_blocks`,
+`links` and `graph` provide bounded review data. The MCP server stays inside the
+workspace root and never calls a network, LLM or shell.
 
 ## Common commands
 
@@ -207,6 +212,7 @@ folisift workspace-info
 folisift guide-status my-course
 folisift coverage-manifest --guide my-course --action build
 folisift build --guide my-course --check
+folisift qa --guide my-course
 folisift audit --pdf output/my-course.pdf --guide my-course --strict
 folisift claims --guide my-course
 folisift cards --guide my-course --review-intervals 1,3,7
@@ -215,6 +221,8 @@ folisift search-source --source sources/source-a.pdf --query topic
 folisift read-blocks --guide my-course --source source-a --pages 26-29
 folisift section-brief --guide my-course --source source-a --heading "3.1"
 folisift read-section --guide my-course --source source-a --heading "3.1"
+folisift budget --guide my-course
+folisift styles estimate --guide my-course
 folisift graph build --guide my-course
 folisift links build --guide my-course
 folisift diagram build --guide my-course --id pipeline
@@ -282,6 +290,7 @@ the embedding model keep their own licenses; see
 ## Documentation
 
 - [Install and platforms](docs/install.md)
+- [Cookbook and common errors](docs/cookbook.md)
 - [Architecture](docs/architecture.md)
 - [Authoring](docs/authoring.md)
 - [Authoring specification](docs/authoring-spec.md)

@@ -258,6 +258,165 @@ pub fn load(styles_root: &Path, id: &str) -> Result<LoadedStyle> {
 ///
 /// The layout owns geometry; palette and font pairing are independent token
 /// layers. Empty overrides fall back to the pack defaults in `style.json`.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct StyleCompatibility {
+    pub style: String,
+    pub name: String,
+    pub compatible: bool,
+    pub reason: String,
+    pub page_target: String,
+    pub supported_structures: Vec<String>,
+    pub supported_domains: Vec<String>,
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct StyleEstimate {
+    pub style: String,
+    pub target_pages: Option<String>,
+    pub words: usize,
+    pub tables: usize,
+    pub diagrams: usize,
+    pub estimated_pages: String,
+    pub over_budget: bool,
+    pub reason: String,
+}
+
+/// List every style pack with a compatibility verdict for one structure/domain.
+pub fn compatibility(
+    styles_root: &Path,
+    structure: &str,
+    domain: &str,
+) -> Result<Vec<StyleCompatibility>> {
+    let mut out = Vec::new();
+    for summary in list(styles_root)? {
+        let loaded = load_with(styles_root, &summary.id, None, None)?;
+        let missing_structure = !loaded
+            .pack
+            .supported_structures
+            .iter()
+            .any(|value| value == structure);
+        let missing_domain = !loaded
+            .pack
+            .supported_domains
+            .iter()
+            .any(|value| value == domain);
+        let compatible = !missing_structure && !missing_domain;
+        let reason = if compatible {
+            "structure and domain are supported".to_string()
+        } else if missing_structure {
+            format!(
+                "structure {structure:?} is not supported; use one of {:?}",
+                loaded.pack.supported_structures
+            )
+        } else {
+            format!(
+                "domain {domain:?} is not supported; use one of {:?}",
+                loaded.pack.supported_domains
+            )
+        };
+        out.push(StyleCompatibility {
+            style: loaded.pack.id.clone(),
+            name: loaded.pack.name.clone(),
+            compatible,
+            reason,
+            page_target: loaded.pack.page_target.clone(),
+            supported_structures: loaded.pack.supported_structures.clone(),
+            supported_domains: loaded.pack.supported_domains.clone(),
+        });
+    }
+    out.sort_by_key(|item| (!item.compatible, item.style.clone()));
+    Ok(out)
+}
+
+/// Choose the closest compatible style for a structure/domain pair.
+pub fn closest_compatible(
+    styles_root: &Path,
+    structure: &str,
+    domain: &str,
+) -> Result<Option<StyleCompatibility>> {
+    Ok(compatibility(styles_root, structure, domain)?
+        .into_iter()
+        .find(|item| item.compatible))
+}
+
+/// Estimate pages before a full build. The estimate is deliberately coarse and
+/// deterministic: it uses body words plus table/diagram costs, never a model.
+pub fn estimate(style: &str, markdown: &str, target_pages: Option<&str>) -> StyleEstimate {
+    let body = markdown
+        .lines()
+        .filter(|line| {
+            let line = line.trim();
+            !line.is_empty()
+                && !line.starts_with('#')
+                && !line.starts_with(":::")
+                && !line.starts_with('|')
+                && !line.starts_with("![")
+                && !line.starts_with("<!--")
+        })
+        .collect::<Vec<_>>()
+        .join(" ");
+    let words = body.split_whitespace().count();
+    let tables = markdown
+        .lines()
+        .filter(|line| line.trim_start().starts_with("::: table"))
+        .count();
+    let diagrams = markdown
+        .lines()
+        .filter(|line| line.trim_start().starts_with("::: diagram"))
+        .count();
+    let factor = match style {
+        "accessible" => 1.35,
+        "workbook" => 1.25,
+        "notes" => 1.10,
+        "revision" => 0.55,
+        "reference" => 0.70,
+        "clean" | "paper" | "reader" | "journal" | "brief" => 1.0,
+        _ => 1.0,
+    };
+    let page_words = 300.0;
+    let base = (words as f64 / page_words * factor).ceil().max(1.0);
+    let extra = tables as f64 * 0.20 + diagrams as f64 * 0.35;
+    let low = (base + extra).ceil().max(1.0) as usize;
+    let high = ((base + extra) * 1.20).ceil().max(1.0) as usize;
+    let estimated = if low == high {
+        low.to_string()
+    } else {
+        format!("{low}-{high}")
+    };
+    let over_budget = target_pages
+        .is_some_and(|target| parse_page_target(target).is_some_and(|(_, max)| low > max));
+    let reason = if over_budget {
+        format!(
+            "estimated {estimated} pages exceeds the {target} target; cut or move a section before building",
+            target = target_pages.unwrap_or_default()
+        )
+    } else {
+        format!("{words} words, {tables} wrapped tables, {diagrams} diagrams")
+    };
+    StyleEstimate {
+        style: style.to_string(),
+        target_pages: target_pages.map(ToString::to_string),
+        words,
+        tables,
+        diagrams,
+        estimated_pages: estimated,
+        over_budget,
+        reason,
+    }
+}
+
+fn parse_page_target(value: &str) -> Option<(usize, usize)> {
+    let value = value.trim();
+    if let Some((min, max)) = value.split_once('-') {
+        let min = min.trim().parse().ok()?;
+        let max = max.trim().parse().ok()?;
+        Some((min, max))
+    } else {
+        let pages = value.parse().ok()?;
+        Some((pages, pages))
+    }
+}
+
 pub fn load_with(
     styles_root: &Path,
     id: &str,
@@ -1165,6 +1324,30 @@ fn default_answer_key_label() -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn compatibility_filters_irac_law_to_reader_and_accessible() {
+        let compatible = compatibility(Path::new(""), "irac", "law").expect("compatibility");
+        let styles = compatible
+            .iter()
+            .filter(|item| item.compatible)
+            .map(|item| item.style.as_str())
+            .collect::<Vec<_>>();
+        assert_eq!(styles, vec!["accessible", "reader"]);
+        assert!(
+            !compatible
+                .iter()
+                .any(|item| item.style == "workbook" && item.compatible)
+        );
+    }
+
+    #[test]
+    fn estimate_flags_an_over_budget_accessible_guide() {
+        let markdown = format!("## 1.1 Giriş\n\n{}\n", "kelime ".repeat(4000));
+        let estimate = estimate("accessible", &markdown, Some("2-4"));
+        assert!(estimate.over_budget, "{estimate:?}");
+        assert!(estimate.estimated_pages.starts_with('1'));
+    }
 
     #[test]
     fn loads_all_palettes_and_font_pairings() {

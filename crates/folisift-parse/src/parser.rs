@@ -318,7 +318,7 @@ static TOC_LINE_RE: LazyLock<Regex> = LazyLock::new(|| {
 });
 
 static HEADING_NUMBER_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"^(\d+(?:\.\d+)*)\.?\s*[:.\-]?\s+(.+)$").expect("valid heading number regex")
+    Regex::new(r"^(\d+(?:\.\d+)*)\.?\s*[:.\-]?\s*(.+)$").expect("valid heading number regex")
 });
 
 /// Recover the source's own topic-list sections from the first pages.
@@ -515,6 +515,14 @@ mod tests {
                 .iter()
                 .any(|heading| heading.heading == "1 Layout fixture" && heading.level == Some(1))
         );
+    }
+
+    #[test]
+    fn separated_and_glued_turkish_headings_normalize() {
+        assert_eq!(normalize_heading("1.İş"), "1 İş");
+        assert_eq!(normalize_heading("5.2.İş"), "5.2 İş");
+        assert_eq!(normalize_heading("13.4.Tutulacak"), "13.4 Tutulacak");
+        assert_eq!(normalize_heading("1. Giriş"), "1 Giriş");
     }
 
     #[test]

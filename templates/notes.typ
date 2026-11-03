@@ -86,7 +86,7 @@
   )
 }
 
-#let table_block(caption: none, source: none, label: "Tablo", body) = block(
+#let table_block(caption: none, source: none, label: "Tablo", number: true, body) = block(
   breakable: false,
   above: 3mm,
   below: 4mm,
@@ -95,7 +95,9 @@
     #context {
       counter("table").step()
       block(above: 0pt, below: 1.5mm)[
-        #text(font: "Inter", size: __CAPTION_SIZE__, weight: "semibold", fill: ink)[#label #counter("table").display()]
+        #if number [
+          #text(font: "Inter", size: __CAPTION_SIZE__, weight: "semibold", fill: ink)[#label #counter("table").display()]
+        ]
         #text(font: "Inter", size: __CAPTION_SIZE__, fill: ink)[ #caption]
       ]
     }

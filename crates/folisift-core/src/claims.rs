@@ -32,10 +32,13 @@ pub struct ClaimRef {
 #[derive(Debug, Clone, Serialize)]
 pub struct Claim {
     pub line: usize,
+    pub section: Option<String>,
     pub kind: String,
+    pub severity: String,
     pub text: String,
     pub references: Vec<ClaimRef>,
     pub referenced: bool,
+    pub missing_citation: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -43,6 +46,7 @@ pub struct ClaimReport {
     pub total: usize,
     pub referenced: usize,
     pub unreferenced: usize,
+    pub noise_filtered: usize,
     pub claims: Vec<Claim>,
 }
 
@@ -57,7 +61,7 @@ impl ClaimReport {
             "High-signal claims: **{}** · referenced: **{}** · unreferenced: **{}**\n\n",
             self.total, self.referenced, self.unreferenced
         ));
-        out.push_str("| Line | Kind | Source page(s) | Claim |\n|---:|---|---|---|\n");
+        out.push_str("| Line | Section | Severity | Kind | Source page(s) | Claim |\n|---:|---|---|---|---|---|\n");
         for claim in &self.claims {
             let text = claim.text.replace('|', "\\|");
             let text = text.chars().take(240).collect::<String>();
@@ -75,8 +79,13 @@ impl ClaimReport {
                     .join("; ")
             };
             out.push_str(&format!(
-                "| {} | {} | {} | {} |\n",
-                claim.line, claim.kind, refs, text
+                "| {} | {} | {} | {} | {} | {} |\n",
+                claim.line,
+                claim.section.as_deref().unwrap_or("—"),
+                claim.severity,
+                claim.kind,
+                refs,
+                text
             ));
         }
         out.push_str("\nThis report is a reading aid, not a truth verdict.\n");
@@ -91,15 +100,43 @@ pub fn extract_claims(markdown: &str) -> ClaimReport {
     let mut in_recall = false;
     let mut paragraph = String::new();
     let mut paragraph_line = 0;
+    let mut section: Option<String> = None;
+    let mut noise_filtered = 0usize;
     for (index, raw) in body.lines().enumerate() {
         let line = raw.trim();
         if line.starts_with("```") || line.starts_with("~~~") {
-            flush_paragraph(&mut paragraph, paragraph_line, &mut claims);
+            flush_paragraph(
+                &mut paragraph,
+                paragraph_line,
+                &mut claims,
+                section.as_deref(),
+                &mut noise_filtered,
+            );
             fenced = !fenced;
             continue;
         }
+        if let Some(heading) = line.strip_prefix('#') {
+            flush_paragraph(
+                &mut paragraph,
+                paragraph_line,
+                &mut claims,
+                section.as_deref(),
+                &mut noise_filtered,
+            );
+            let heading = heading.trim_start_matches('#').trim();
+            if !heading.is_empty() {
+                section = Some(heading.to_string());
+            }
+            continue;
+        }
         if let Some(directive) = line.strip_prefix(":::") {
-            flush_paragraph(&mut paragraph, paragraph_line, &mut claims);
+            flush_paragraph(
+                &mut paragraph,
+                paragraph_line,
+                &mut claims,
+                section.as_deref(),
+                &mut noise_filtered,
+            );
             let directive = directive.trim();
             if directive.is_empty() {
                 in_recall = false;
@@ -119,7 +156,13 @@ pub fn extract_claims(markdown: &str) -> ClaimReport {
             || line.starts_with('|')
             || line.starts_with("<!--")
         {
-            flush_paragraph(&mut paragraph, paragraph_line, &mut claims);
+            flush_paragraph(
+                &mut paragraph,
+                paragraph_line,
+                &mut claims,
+                section.as_deref(),
+                &mut noise_filtered,
+            );
             continue;
         }
         if line.starts_with("- ")
@@ -128,8 +171,20 @@ pub fn extract_claims(markdown: &str) -> ClaimReport {
                 prefix.chars().all(|character| character.is_ascii_digit())
             })
         {
-            flush_paragraph(&mut paragraph, paragraph_line, &mut claims);
-            push_claims(line, index + 1, &mut claims);
+            flush_paragraph(
+                &mut paragraph,
+                paragraph_line,
+                &mut claims,
+                section.as_deref(),
+                &mut noise_filtered,
+            );
+            push_claims(
+                line,
+                index + 1,
+                section.as_deref(),
+                &mut claims,
+                &mut noise_filtered,
+            );
             continue;
         }
         if paragraph.is_empty() {
@@ -139,28 +194,54 @@ pub fn extract_claims(markdown: &str) -> ClaimReport {
         }
         paragraph.push_str(line);
     }
-    flush_paragraph(&mut paragraph, paragraph_line, &mut claims);
+    flush_paragraph(
+        &mut paragraph,
+        paragraph_line,
+        &mut claims,
+        section.as_deref(),
+        &mut noise_filtered,
+    );
     let referenced = claims.iter().filter(|claim| claim.referenced).count();
     ClaimReport {
         total: claims.len(),
         referenced,
         unreferenced: claims.len() - referenced,
+        noise_filtered,
         claims,
     }
 }
 
-fn flush_paragraph(paragraph: &mut String, line: usize, claims: &mut Vec<Claim>) {
+fn flush_paragraph(
+    paragraph: &mut String,
+    line: usize,
+    claims: &mut Vec<Claim>,
+    section: Option<&str>,
+    noise_filtered: &mut usize,
+) {
     if paragraph.is_empty() {
         return;
     }
-    push_claims(paragraph, line, claims);
+    push_claims(paragraph, line, section, claims, noise_filtered);
     paragraph.clear();
 }
 
-fn push_claims(text: &str, line: usize, claims: &mut Vec<Claim>) {
+fn push_claims(
+    text: &str,
+    line: usize,
+    section: Option<&str>,
+    claims: &mut Vec<Claim>,
+    noise_filtered: &mut usize,
+) {
     for sentence in split_sentences(text) {
         let text = sentence.trim();
-        if text.chars().count() < 20 || !HIGH_SIGNAL_RE.is_match(text) {
+        if text.chars().count() < 20
+            || text.ends_with('?')
+            || is_transition(text)
+            || !HIGH_SIGNAL_RE.is_match(text)
+        {
+            if !text.is_empty() {
+                *noise_filtered += 1;
+            }
             continue;
         }
         let references = PAGE_REF_RE
@@ -176,13 +257,53 @@ fn push_claims(text: &str, line: usize, claims: &mut Vec<Claim>) {
             })
             .collect::<Vec<_>>();
         let kind = classify(text);
+        let severity = severity(text, &kind);
+        let referenced = !references.is_empty();
         claims.push(Claim {
             line,
+            section: section.map(ToString::to_string),
             kind,
+            severity,
             text: text.to_string(),
-            referenced: !references.is_empty(),
+            referenced,
+            missing_citation: !referenced,
             references,
         });
+    }
+}
+
+fn is_transition(text: &str) -> bool {
+    let lower = text.to_lowercase();
+    let trimmed = lower.trim_start_matches(['-', '*', ' ']);
+    [
+        "ancak ",
+        "ayrıca ",
+        "bu nedenle ",
+        "dolayısıyla ",
+        "öte yandan ",
+        "however ",
+        "therefore ",
+        "moreover ",
+    ]
+    .iter()
+    .any(|prefix| trimmed.starts_with(prefix))
+        && !trimmed.chars().any(|character| character.is_ascii_digit())
+}
+
+fn severity(text: &str, kind: &str) -> String {
+    let lower = text.to_lowercase();
+    if kind == "number/date"
+        || lower.contains('%')
+        || lower.contains("artar")
+        || lower.contains("azalır")
+        || lower.contains("increase")
+        || lower.contains("decrease")
+    {
+        "high".to_string()
+    } else if kind == "comparison" || lower.contains("nedeniyle") || lower.contains("because") {
+        "medium".to_string()
+    } else {
+        "low".to_string()
     }
 }
 
@@ -247,6 +368,29 @@ mod tests {
         assert_eq!(report.referenced, 2);
         let markdown = "Recall improves by 20% after one week.\n";
         assert_eq!(extract_claims(markdown).unreferenced, 1);
+    }
+
+    #[test]
+    fn claims_carry_section_severity_and_missing_citation() {
+        let report = extract_claims(
+            "## 2.1 Sonuçlar\n\nRetention increased by 20% after one week [SRC1, s. 4].\n\nAncak bu sonuç beklenmedikti.\n\nKatılımcılar daha az hata yaptı.\n",
+        );
+        let dated = report
+            .claims
+            .iter()
+            .find(|claim| claim.text.contains("Retention"))
+            .expect("dated claim");
+        assert_eq!(dated.section.as_deref(), Some("2.1 Sonuçlar"));
+        assert_eq!(dated.severity, "high");
+        assert!(!dated.missing_citation);
+        let compared = report
+            .claims
+            .iter()
+            .find(|claim| claim.text.contains("daha az"))
+            .expect("comparison");
+        assert_eq!(compared.severity, "medium");
+        assert!(compared.missing_citation);
+        assert!(report.noise_filtered >= 1);
     }
 
     #[test]

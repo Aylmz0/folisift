@@ -84,9 +84,14 @@ impl DocumentGraph {
                     builder.edge(&previous, &page_id, "next_page");
                 }
                 for block in &page.blocks {
+                    let kind = if block.kind == LayoutBlockKind::Heading {
+                        "heading"
+                    } else {
+                        "block"
+                    };
                     builder.node(GraphNode {
                         id: block.id.clone(),
-                        kind: "block".to_string(),
+                        kind: kind.to_string(),
                         source: source_id.clone(),
                         page: Some(page.page),
                         label: block_label(block),
@@ -210,6 +215,114 @@ static PAGE_REF_RE: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new
     )
     .expect("valid page reference regex")
 });
+
+impl DocumentGraph {
+    /// Case-insensitive label query. Heading nodes rank before blocks.
+    pub fn query(&self, term: &str, limit: usize) -> Vec<&GraphNode> {
+        let needle = term.to_lowercase();
+        let mut hits = self
+            .nodes
+            .iter()
+            .filter(|node| {
+                node.label
+                    .as_deref()
+                    .is_some_and(|label| label.to_lowercase().contains(&needle))
+            })
+            .collect::<Vec<_>>();
+        hits.sort_by_key(|node| {
+            (
+                if node.kind == "heading" { 0 } else { 1 },
+                node.page.unwrap_or(usize::MAX),
+                node.id.clone(),
+            )
+        });
+        hits.truncate(limit.clamp(1, 100));
+        hits
+    }
+
+    /// Breadth-first shortest path between two node ids or labels.
+    pub fn path(&self, from: &str, to: &str, max_depth: usize) -> Vec<String> {
+        let Some(start) = self.resolve_node(from) else {
+            return Vec::new();
+        };
+        let Some(goal) = self.resolve_node(to) else {
+            return Vec::new();
+        };
+        let max_depth = max_depth.clamp(1, 12);
+        let mut queue =
+            std::collections::VecDeque::from([(start.id.clone(), vec![start.id.clone()])]);
+        let mut seen = std::collections::BTreeSet::new();
+        while let Some((current, path)) = queue.pop_front() {
+            if current == goal.id {
+                return path;
+            }
+            if path.len() > max_depth || !seen.insert(current.clone()) {
+                continue;
+            }
+            for edge in self.edges.iter().filter(|edge| edge.from == current) {
+                let mut next = path.clone();
+                next.push(edge.to.clone());
+                queue.push_back((edge.to.clone(), next));
+            }
+            for edge in self.edges.iter().filter(|edge| edge.to == current) {
+                let mut next = path.clone();
+                next.push(edge.from.clone());
+                queue.push_back((edge.from.clone(), next));
+            }
+        }
+        Vec::new()
+    }
+
+    /// Explain one node and its local edges. Returns bounded JSON-ready data.
+    pub fn explain(&self, id: &str, limit: usize) -> Option<serde_json::Value> {
+        let node = self.resolve_node(id)?;
+        let limit = limit.clamp(1, 100);
+        let outgoing = self
+            .edges
+            .iter()
+            .filter(|edge| edge.from == node.id)
+            .take(limit)
+            .map(|edge| {
+                serde_json::json!({
+                    "to": edge.to,
+                    "relation": edge.relation,
+                    "confidence": edge.confidence,
+                    "label": self.nodes.iter().find(|candidate| candidate.id == edge.to).and_then(|candidate| candidate.label.clone()),
+                })
+            })
+            .collect::<Vec<_>>();
+        let incoming = self
+            .edges
+            .iter()
+            .filter(|edge| edge.to == node.id)
+            .take(limit)
+            .map(|edge| {
+                serde_json::json!({
+                    "from": edge.from,
+                    "relation": edge.relation,
+                    "confidence": edge.confidence,
+                    "label": self.nodes.iter().find(|candidate| candidate.id == edge.from).and_then(|candidate| candidate.label.clone()),
+                })
+            })
+            .collect::<Vec<_>>();
+        Some(serde_json::json!({
+            "node": node,
+            "outgoing": outgoing,
+            "incoming": incoming,
+        }))
+    }
+
+    fn resolve_node(&self, query: &str) -> Option<&GraphNode> {
+        self.nodes.iter().find(|node| node.id == query).or_else(|| {
+            let needle = query.to_lowercase();
+            self.nodes.iter().find(|node| {
+                node.label
+                    .as_deref()
+                    .is_some_and(|label| label.to_lowercase().contains(&needle))
+            })
+        })
+    }
+}
 
 #[derive(Default)]
 struct Builder {
@@ -394,6 +507,31 @@ mod tests {
                 .edges
                 .iter()
                 .any(|edge| edge.from == "PD0:p1:b0" && edge.to == "PD0:p1:b1")
+        );
+    }
+
+    #[test]
+    fn heading_nodes_are_queryable_and_explainable() {
+        let graph = DocumentGraph::build(&[layout()]);
+        assert!(
+            graph
+                .nodes
+                .iter()
+                .any(|node| node.kind == "heading" && node.id == "PD0:p1:b0")
+        );
+        let hits = graph.query("giriş", 10);
+        assert_eq!(hits.len(), 1);
+        assert_eq!(hits[0].kind, "heading");
+        let path = graph.path("PD0:p2", "PD0:p1:b0", 8);
+        assert_eq!(path.first().map(String::as_str), Some("PD0:p2"));
+        assert_eq!(path.last().map(String::as_str), Some("PD0:p1:b0"));
+        let explained = graph.explain("PD0:p1:b0", 10).expect("explain");
+        assert_eq!(explained["node"]["kind"], "heading");
+        assert!(
+            !explained["incoming"]
+                .as_array()
+                .expect("incoming")
+                .is_empty()
         );
     }
 

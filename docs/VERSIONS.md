@@ -6,6 +6,7 @@ table.
 
 | Tag | Date | Build | Commit | PDFium | What changed |
 |---|---|---:|---|---|---|
+| `v0.14.0` | 2026-11-04 | 154 | pending | `chromium/8058` | M2/M3 workflow core: QA/audit tools, MCP profiles, style estimate/restyle, IRAC scaffold, page roles, graph query/path/explain, claims severity, guide plan/briefs/topics/cost, D2 dagre/elk, schema 10 with 31 tools |
 | `v0.13.0` | 2026-11-03 | 152 | `afb40ad3b1dbd669297731e5c90dde3d6cac24fe` | `chromium/8058` | Reviewed coverage manifest, section brief/read context tools, D2 24-node/decision support, four-column glossary tables, MCP schema 9 with 21 tools |
 | `v0.12.4` | 2026-11-03 | 143 | `8038559` | `chromium/8058` | Hotfix: revision template accepts per-diagram width; compact figure sizing applies to revision diagrams too |
 | `v0.12.3` | 2026-11-03 | 142 | `8038559` | `chromium/8058` | Repository hygiene: remove the orphaned pre-rotation diagram asset; correct the v0.12.1/v0.12.2 release records |
@@ -29,6 +30,15 @@ table.
 | `v0.1.0` | 2026-10-26 | 16 | `fb7fe59de483f8e4e88d4346cb10f4c91f3445e2` | `chromium/8058` | First Rust/Typst/MCP release; 23-page reference guide, coverage 13/13; Python engine removed |
 
 ## Notes
+
+- `v0.14.0` adds the M2/M3 workflow core: one `qa_guide` release report,
+  `audit_guide`, MCP tool profiles (`core` is ten tools; active profiles stay
+  ≤15), paginated resources, style compatibility/estimate/restyle, IRAC case
+  scaffolds with explicit heading levels, page roles, graph query/path/explain,
+  claim severity and `verify_citations`, page budget, source brief/topics, guide
+  plan, visual brief, citation snippets, cost reports and D2 dagre/elk layouts.
+  MCP schema is 10 with 31 tools. W2/W3/W5/W9/W13/W15–W17 remain partial; their
+  named gaps are recorded in the remediation plan.
 
 - `v0.13.0` adds the reviewed coverage manifest (`coverage-manifest` CLI/MCP),
   bounded `section_brief` / `read_section` retrieval, D2 decision diagrams with

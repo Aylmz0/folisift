@@ -276,10 +276,11 @@ fn every_structure_pack_renders_in_both_languages() {
                 .sections
                 .iter()
                 .map(|section| {
+                    let marker = "#".repeat(usize::from(section.level));
                     if language == "en" {
-                        format!("## {}\n\nText.\n", section.en)
+                        format!("{marker} {}\n\nText.\n", section.en)
                     } else {
-                        format!("## {}\n\nMetin.\n", section.tr)
+                        format!("{marker} {}\n\nMetin.\n", section.tr)
                     }
                 })
                 .collect::<String>();
