@@ -6,7 +6,7 @@ table.
 
 | Tag | Date | Build | Commit | PDFium | What changed |
 |---|---|---:|---|---|---|
-| `v0.16.0` | 2026-11-04 | 179 | pending | `chromium/8058` | TOC include/exclude, structured build failures, doctor MCP, section read modes, definition cards, source-page resources, D2 node metadata; schema 12 with 33 tools |
+| `v0.16.0` | 2026-11-04 | 179 | `5aff3ba036aa8c0ce969e72994cebc4e20b96709` | `chromium/8058` | TOC include/exclude, structured build failures, doctor MCP, section read modes, definition cards, source-page resources, D2 node metadata; schema 12 with 33 tools |
 | `v0.15.1` | 2026-11-04 | 175 | `9137268d889654cbaf127d31fee57f89d23c0a17` | `chromium/8058` | Model2Vec-backed `topics` CLI clustering with heading-term fallback |
 | `v0.15.0` | 2026-11-04 | 172 | `1f99c6bf84385673c6c8b730ba6a63f7badf9a9f` | `chromium/8058` | M5: opt-in LiteParse annotations/forms/structure/vector/complexity insights, D2 sketch rendering, MCP schema 11 with 32 tools |
 | `v0.14.6` | 2026-11-04 | 170 | `9a5c4a13a269db56efbff028bd8fdfd14740d7d5` | `chromium/8058` | Guide summaries expose guide_kind/source_count/case_count; authoring and architecture docs cover manifest, QA, glossary and continuity options |
