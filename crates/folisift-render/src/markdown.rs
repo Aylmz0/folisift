@@ -404,6 +404,13 @@ fn markdown_to_typst_with(markdown: &str, config: &RenderConfig) -> Result<Strin
                         typst_string(&config.toc_label),
                     ));
                 }
+                "glossary" => {
+                    let mut glossary_config = config.clone();
+                    glossary_config.table_kind = Some("glossary".to_string());
+                    let inner_typst = markdown_to_typst_with(&inner_markdown, &glossary_config)?;
+                    out.push_str(&inner_typst);
+                    out.push_str("\n\n");
+                }
                 "columns" => {
                     let inner_typst = markdown_to_typst_with(&inner_markdown, config)?;
                     out.push_str(&format!("#two_col[{inner_typst}]\n\n"));
@@ -788,12 +795,19 @@ impl Renderer {
             Event::Start(Tag::Heading { level, .. }) => {
                 if self.table.is_none() {
                     self.out.push_str("\n\n");
-                    self.out.push_str(&"=".repeat(heading_level(level)));
-                    self.out.push(' ');
+                    if self.table_kind.as_deref() == Some("glossary") {
+                        self.out.push_str("#glossary_group[");
+                    } else {
+                        self.out.push_str(&"=".repeat(heading_level(level)));
+                        self.out.push(' ');
+                    }
                 }
             }
             Event::End(TagEnd::Heading(_)) => {
                 if self.table.is_none() {
+                    if self.table_kind.as_deref() == Some("glossary") {
+                        self.out.push(']');
+                    }
                     self.out.push_str("\n\n");
                 }
             }
@@ -1035,6 +1049,7 @@ impl Renderer {
         let header = table.header.unwrap_or_default();
         let rows = table.rows;
         let facts = self.table_kind.as_deref() == Some("facts");
+        let glossary = self.table_kind.as_deref() == Some("glossary");
         if facts {
             self.out.push_str(&facts_typst(&rows));
             if let Some(id) = &self.table_id {
@@ -1049,6 +1064,7 @@ impl Renderer {
                 self.table_source.as_deref(),
                 &self.table_label,
                 self.table_id.as_deref(),
+                glossary,
             ));
         }
         self.out.push_str("\n\n");
@@ -1088,6 +1104,7 @@ fn figure_parts(alt: &str) -> (Option<String>, String) {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn table_typst(
     header: &[String],
     rows: &[Vec<String>],
@@ -1096,6 +1113,7 @@ fn table_typst(
     source: Option<&str>,
     table_label: &str,
     id: Option<&str>,
+    glossary: bool,
 ) -> String {
     let columns = header
         .len()
@@ -1103,11 +1121,25 @@ fn table_typst(
         .max(1);
     let mut out = String::from("#data_table(\n");
     out.push_str(&format!("  columns: {columns},\n"));
+    let glossary_widths = [
+        "18%".to_string(),
+        "32%".to_string(),
+        "18%".to_string(),
+        "32%".to_string(),
+    ];
+    let widths = widths.or(if glossary {
+        Some(&glossary_widths[..])
+    } else {
+        None
+    });
     if let Some(widths) = widths {
         out.push_str(&format!(
             "  widths: {},\n",
             array_literal(widths.iter().map(|width| width.to_string()).collect())
         ));
+    }
+    if glossary {
+        out.push_str("  compact: true,\n");
     }
     let header_cells = header.iter().map(|cell| format!("[{cell}]")).collect();
     out.push_str(&format!("  header: {},\n", array_literal(header_cells)));
@@ -1264,6 +1296,19 @@ mod tests {
             markdown_to_typst("::: table widths=\"5,95\"\n| A | B |\n|---|---|\n| 1 | 2 |\n:::\n")
                 .expect("typst");
         assert!(typst.contains("widths: (5%, 95%)"));
+    }
+
+    #[test]
+    fn renders_a_glossary_as_a_compact_four_column_table() {
+        let typst = markdown_to_typst(
+            "::: glossary\n\n### Sözdizimi\n\n| Terim | Tanım | Terim | Tanım |\n|---|---|---|---|\n| **A:** | Bir. | **B:** | İki. |\n\n:::",
+        )
+        .expect("typst");
+        assert!(typst.contains("#data_table("));
+        assert!(typst.contains("compact: true"));
+        assert!(typst.contains("widths: (18%, 32%, 18%, 32%)"), "{typst}");
+        assert!(typst.contains("#glossary_group["));
+        assert!(typst.contains("Sözdizimi"));
     }
 
     #[test]

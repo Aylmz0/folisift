@@ -4,11 +4,13 @@
 //! are routed to rendered screenshots for the host agent to inspect.
 
 pub mod audit;
+pub mod brief;
 pub mod coverage;
 pub mod error;
 pub mod graph;
 pub mod inventory;
 pub mod layout;
+pub mod manifest;
 pub mod parser;
 pub mod pdfium;
 pub mod render;
@@ -21,6 +23,9 @@ pub mod visual;
 pub mod visual_audit;
 
 pub use audit::{AuditOptions, LayoutAudit, PageAudit, audit_pdf, audit_pdf_with};
+pub use brief::{
+    SectionBrief, SectionRead, SourceSection, read_section, section_brief, source_sections,
+};
 pub use coverage::{
     CoverageReport, DEFAULT_THRESHOLD, MIN_SECTION_CHARS, check_coverage, guide_body_chars,
 };
@@ -32,6 +37,7 @@ pub use layout::{
     PageLayout, PageLayoutSummary, Rect as LayoutRect, SourceLayout, read_block_view,
     write_layouts,
 };
+pub use manifest::{CoverageManifest, CoverageStatus, ManifestRow};
 pub use parser::{
     Analysis, AnalyzedSource, LiteparseParser, SourceParser, analyze_source, analyze_sources,
     analyze_sources_with_layout, parse_page_list,

@@ -586,66 +586,44 @@ PD2’nin ana çizgisi, dil tasarımının **tek bir doğruya** değil, **ödün
 ::: chapter part="C–G · ORTAK BÖLÜMLER" side="SÖZLÜK · PD2" kicker="C" title="Kavramlar ve tanımlar" toc="C. Kavramlar ve tanımlar" running="C · Kavramlar ve tanımlar" subs=false compact=true lead="PD2’nin sınav açısından kritik terimleri; dillerin tasarım amaçları ve birbirinden ayrıldığı noktalar."
 :::
 
-::: columns
+::: glossary
+
 ### Dil ve tasarım
 
-**Plankalkül:** Konrad Zuse’nin ilk yüksek düzeyli dili; kayan nokta, dizi ve kayıtları öngördü; 1972’de yayımlandı, derleyicisi 1998’de çıktı. [PD2, s. 7–10]
+| Terim | Tanım | Terim | Tanım |
+|---|---|---|---|
+| **Plankalkül:** | Konrad Zuse’nin ilk yüksek düzeyli dili; kayan nokta, dizi ve kayıtları öngördü; 1972’de yayımlandı, derleyicisi 1998’de çıktı. [PD2, s. 7–10] | **Sözdekod (pseudocode):** | Makine kodunun okunaksızlığını azaltan, insan için kısa komutlarla çalışan ara çeviri katmanı. [PD2, s. 11–13] |
+| **Fortran:** | IBM 704 için Backus’un bilimsel hesaplama dili; derlenen ilk yaygın yüksek düzeyli dil. [PD2, s. 15–24] | **LISP:** | McCarthy’nin liste işleme ve sembolik hesaplama dili; kod ve veri aynı biçimdedir. [PD2, s. 26–30] |
+| **ALGOL 60:** | Taşınabilir algoritma dili; blok yapısı, özyineleme, değer/adla parametre geçişi ve BNF ile tanımlanan ilk sözdizimi. [PD2, s. 34–40] | **COBOL:** | İş kayıtları için İngilizce benzeri, veri ve kodu ayıran dil; DoD desteğiyle yaygınlaştı. [PD2, s. 42–48] |
 
-**Sözdekod (pseudocode):** Makine kodunun okunaksızlığını azaltan, insan için kısa komutlarla çalışan ara çeviri katmanı. [PD2, s. 11–13]
-
-**Fortran:** IBM 704 için Backus’un bilimsel hesaplama dili; derlenen ilk yaygın yüksek düzeyli dil. [PD2, s. 15–24]
-
-**LISP:** McCarthy’nin liste işleme ve sembolik hesaplama dili; kod ve veri aynı biçimdedir. [PD2, s. 26–30]
-
-**ALGOL 60:** Taşınabilir algoritma dili; blok yapısı, özyineleme, değer/adla parametre geçişi ve BNF ile tanımlanan ilk sözdizimi. [PD2, s. 34–40]
-
-**COBOL:** İş kayıtları için İngilizce benzeri, veri ve kodu ayıran dil; DoD desteğiyle yaygınlaştı. [PD2, s. 42–48]
 
 ### Diller ve yenilikler
 
-**BASIC:** Zaman paylaşımı için küçük, öğretilebilir dil; 14 komut ve tek sayı tipi. [PD2, s. 50–52]
+| Terim | Tanım | Terim | Tanım |
+|---|---|---|---|
+| **BASIC:** | Zaman paylaşımı için küçük, öğretilebilir dil; 14 komut ve tek sayı tipi. [PD2, s. 50–52] | **PL/I:** | Bilimsel ve ticari uygulamaları tek dilde birleştirme girişimi; ilk istisna işleme, işaretçi ve eşzamanlılık. [PD2, s. 55–60] |
+| **APL / SNOBOL:** | Dinamik tipli ilk diller; APL dizi/matris, SNOBOL string desen eşleştirme. [PD2, s. 61–63] | **SIMULA 67:** | Sınıf, nesne, miras ve eşyordam kavramlarının kaynağı; veri soyutlama. [PD2, s. 64–65] |
+| **ALGOL 68:** | Ortogonal tasarım; kullanıcı tanımlı veri yapıları, referans tipleri, dinamik diziler. [PD2, s. 66–67] |  |  |
 
-**PL/I:** Bilimsel ve ticari uygulamaları tek dilde birleştirme girişimi; ilk istisna işleme, işaretçi ve eşzamanlılık. [PD2, s. 55–60]
-
-**APL / SNOBOL:** Dinamik tipli ilk diller; APL dizi/matris, SNOBOL string desen eşleştirme. [PD2, s. 61–63]
-
-**SIMULA 67:** Sınıf, nesne, miras ve eşyordam kavramlarının kaynağı; veri soyutlama. [PD2, s. 64–65]
-
-**ALGOL 68:** Ortogonal tasarım; kullanıcı tanımlı veri yapıları, referans tipleri, dinamik diziler. [PD2, s. 66–67]
 
 ### Diller ve paradigmalar
 
-**Prolog:** Mantık temelli, kural ve gerçeklerden sonuç çıkaran dil; doğal dil işleme. [PD2, s. 73–74]
+| Terim | Tanım | Terim | Tanım |
+|---|---|---|---|
+| **Prolog:** | Mantık temelli, kural ve gerçeklerden sonuç çıkaran dil; doğal dil işleme. [PD2, s. 73–74] | **Ada:** | Gömülü sistemler için paket, generic, istisna ve görevleme (tasking) sunan dil. [PD2, s. 75–79] |
+| **Smalltalk:** | İlk tamamen OOP dil; veri soyutlama, miras ve dinamik bağlama. [PD2, s. 80–81] | **C++:** | C + SIMULA sınıfları; çoklu miras, şablon, operatör aşırı yükleme. [PD2, s. 82–85] |
+| **Java:** | C++’ın sadeleştirilmiş, taşınabilir (JVM/bytecode) ve yalnız OOP sürümü. [PD2, s. 86–90] | **C#:** | .NET/CLR üzerinde bileşen yönelimli, tür güvenli dil; CTS ve CLS. [PD2, s. 97–99] |
+| **Betik dili:** | Yorumlanan, genellikle dinamik tipli, metin/web odaklı dil (Perl, JavaScript, PHP, Python, Lua, Ruby). [PD2, s. 92–96] | **XSLT / JSP:** | İşaretleme ile programlamayı birleştiren dönüştürme/şablon teknolojileri. [PD2, s. 100] |
 
-**Ada:** Gömülü sistemler için paket, generic, istisna ve görevleme (tasking) sunan dil. [PD2, s. 75–79]
-
-**Smalltalk:** İlk tamamen OOP dil; veri soyutlama, miras ve dinamik bağlama. [PD2, s. 80–81]
-
-**C++:** C + SIMULA sınıfları; çoklu miras, şablon, operatör aşırı yükleme. [PD2, s. 82–85]
-
-**Java:** C++’ın sadeleştirilmiş, taşınabilir (JVM/bytecode) ve yalnız OOP sürümü. [PD2, s. 86–90]
-
-::: columnbreak
-
-**C#:** .NET/CLR üzerinde bileşen yönelimli, tür güvenli dil; CTS ve CLS. [PD2, s. 97–99]
-
-**Betik dili:** Yorumlanan, genellikle dinamik tipli, metin/web odaklı dil (Perl, JavaScript, PHP, Python, Lua, Ruby). [PD2, s. 92–96]
-
-**XSLT / JSP:** İşaretleme ile programlamayı birleştiren dönüştürme/şablon teknolojileri. [PD2, s. 100]
 
 ### Sık karıştırılan ayrımlar
 
-**Fortran / ALGOL 60:** Bilimsel hesaplama ve IBM uyumu / taşınabilir algoritma dili ve BNF.
+| Terim | Tanım | Terim | Tanım |
+|---|---|---|---|
+| **Fortran / ALGOL 60:** | Bilimsel hesaplama ve IBM uyumu / taşınabilir algoritma dili ve BNF. | **COBOL / PL/I:** | Ticari kayıt odaklı, veri-kod ayrımı / bilimsel + ticari birleşim, aşırı genişlik. |
+| **LISP / Prolog:** | Fonksiyonel, liste ve özyineleme / mantıksal, kural ve sorgu. | **Simula / Smalltalk:** | Sınıf ve benzetim / saf nesne ve geliştirme ortamı. |
+| **C++ / Java:** | Çoklu miras, işaretçi, şablon / tekli miras, referans, JVM. | **C# / Java:** | CLR/CTS, bileşen, `struct` ve `unsafe` / JVM, yalnız OOP, taşınabilirlik. |
 
-**COBOL / PL/I:** Ticari kayıt odaklı, veri-kod ayrımı / bilimsel + ticari birleşim, aşırı genişlik.
-
-**LISP / Prolog:** Fonksiyonel, liste ve özyineleme / mantıksal, kural ve sorgu.
-
-**Simula / Smalltalk:** Sınıf ve benzetim / saf nesne ve geliştirme ortamı.
-
-**C++ / Java:** Çoklu miras, işaretçi, şablon / tekli miras, referans, JVM.
-
-**C# / Java:** CLR/CTS, bileşen, `struct` ve `unsafe` / JVM, yalnız OOP, taşınabilirlik.
 :::
 
 ::: chapter part="C–G · ORTAK BÖLÜMLER" side="SÜREÇ KARTLARI" kicker="D" title="Yöntemler ve süreçler" toc="D. Yöntemler ve süreçler" running="D · Yöntemler ve süreçler" subs=false compact=true lead="Dillerin tarih içindeki gelişimini okumayı kolaylaştıran karşılaştırma eksenleri ve tasarım–değerlendirme akışı."

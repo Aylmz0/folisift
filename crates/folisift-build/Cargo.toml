@@ -7,9 +7,9 @@ rust-version.workspace = true
 publish.workspace = true
 
 [dependencies]
-folisift-core = { path = "../folisift-core", version = "0.12.4" }
-folisift-parse = { path = "../folisift-parse", version = "0.12.4" }
-folisift-render = { path = "../folisift-render", version = "0.12.4" }
+folisift-core = { path = "../folisift-core", version = "0.13.0" }
+folisift-parse = { path = "../folisift-parse", version = "0.13.0" }
+folisift-render = { path = "../folisift-render", version = "0.13.0" }
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true

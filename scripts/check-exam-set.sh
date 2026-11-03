@@ -18,7 +18,7 @@ print(f"{sys.argv[1]}: {report['pages']} pages")
 PY
   "$BIN" audit --pdf "$output" --guide "$guide" --expected-pages "$pages" --strict >/tmp/folisift-exam-audit.json
 done <<'EOF'
-pd0-pd1 output/PD0-PD1_Calisma_Ozeti.pdf 22
+pd0-pd1 output/PD0-PD1_Calisma_Ozeti.pdf 23
 pd2 output/PD2_Calisma_Ozeti.pdf 24
 pd3 output/PD3_Calisma_Ozeti.pdf 21
 pd2-rev output/PD2_Revizyon.pdf 4

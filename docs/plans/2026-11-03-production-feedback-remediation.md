@@ -1,12 +1,34 @@
 # Production feedback remediation plan — 2026-11-03
 
-- **Status:** Proposed; requirements captured, implementation not started
+- **Status:** Active; v0.13.0 ships the P0 trust core and W22, remaining
+  milestones continue below
 - **Source:** [`docs/FOLISIFT-GERI-BILDIRIM.md`](../FOLISIFT-GERI-BILDIRIM.md)
 - **Baseline:** Folisift 0.12.4, build 143, MCP schema 8
 - **Purpose:** turn every finding in the production feedback into an owned,
   testable work item without losing the deterministic/local product boundary
 - **Primary outcome:** “passed” must mean complete, visually continuous and
   machine-diagnosable; context must get cheaper without adding network calls
+
+## 0.1 Release 0.13.0 implementation status
+
+v0.13.0 closes the trust-critical slice that can be verified on the current
+workspace. The register and milestones remain the contract for the rest.
+
+| Workstream | Status in v0.13.0 | Evidence |
+|---|---|---|
+| W1 coverage manifest | Shipped | `coverage-manifest` CLI/MCP; build prefers `data/coverage-manifest.json`; unit tests |
+| W2 layout continuity | Partial | `::: glossary` group flow, compact tables and group-heading keep rules; chapter/columns/diagram options remain |
+| W3 diagnostics and draft | Partial | checked builds stage a draft PDF; the typed `Diagnostic` surface remains |
+| W4 D2 decision support | Shipped (core) | 24 nodes, 40 edges, depth 8, `kind: decision`, tests |
+| W9 table/statistics truth | Partial | `stats.tables` now reports markdown/wrapped/captioned/glossary/total |
+| W14a context retrieval | Shipped (core) | `section_brief`, `read_section`, bounded offsets and token estimates |
+| W22 four-column glossary | Shipped | `::: glossary`, 18/32/18/32 widths, compact repeated headers, atomic pairs |
+| W5–W8, W10–W13, W15–W21 | Pending | M2–M5; not claimed by this release |
+
+The five exam PDFs pass `make exam-check`, and `make visual`, `make type-check`,
+`make parity`, `make genre-check` and `make d2-pdf-check` pass with the pinned
+D2 binary. These gates are the release evidence; they are not a claim that every
+M2–M5 workstream has landed.
 
 ## 0. How to use this plan
 

@@ -8,7 +8,7 @@ use folisift_links::{
     write_report,
 };
 use folisift_parse::{
-    DocumentGraph, Inventory, SourceCache, VisualAudit, analyze_sources,
+    CoverageManifest, DocumentGraph, Inventory, SourceCache, VisualAudit, analyze_sources,
     analyze_sources_with_layout, check_coverage as coverage_report, parse_page_list,
     read_block_view, read_source_at as read_source_pages, render_pages as render_page_images,
     search_source as search_source_text, write_layouts,
@@ -76,6 +76,40 @@ pub struct LinksParams {
     pub explore: Option<bool>,
     /// Build with BM25 only; no model is loaded.
     pub no_model: Option<bool>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct SectionBriefParams {
+    /// Guide slug.
+    pub guide: String,
+    /// Source id: filename without .pdf.
+    pub source: String,
+    /// Heading text or number.
+    pub heading: String,
+    /// Maximum summary characters; default 600.
+    pub max_chars: Option<usize>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct ReadSectionParams {
+    /// Guide slug.
+    pub guide: String,
+    /// Source id: filename without .pdf.
+    pub source: String,
+    /// Heading text or number.
+    pub heading: String,
+    /// Maximum characters; default 4000.
+    pub max_chars: Option<usize>,
+    /// Character offset for continuation.
+    pub offset: Option<usize>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct CoverageManifestParams {
+    /// build, read or validate
+    pub action: String,
+    /// Guide slug.
+    pub guide: String,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -1437,6 +1471,135 @@ impl FolisiftServer {
     }
 
     #[tool(
+        description = "Return a bounded extractive brief for one source section",
+        annotations(
+            title = "Section brief",
+            read_only_hint = true,
+            open_world_hint = false
+        )
+    )]
+    async fn section_brief(
+        &self,
+        Parameters(params): Parameters<SectionBriefParams>,
+    ) -> Result<Json<Value>, String> {
+        let guide =
+            Guide::load(&self.workspace, &params.guide).map_err(|error| error.to_string())?;
+        let layout = folisift_parse::SourceLayout::read_json(
+            &guide
+                .dir
+                .join("data/blocks")
+                .join(format!("{}.json", params.source)),
+        )
+        .map_err(|error| error.to_string())?;
+        let brief = folisift_parse::section_brief(
+            &layout,
+            &params.heading,
+            params.max_chars.unwrap_or(600),
+        )
+        .ok_or_else(|| {
+            format!(
+                "section {:?} not found in {}",
+                params.heading, params.source
+            )
+        })?;
+        Ok(Json(
+            serde_json::to_value(brief).map_err(|error| error.to_string())?,
+        ))
+    }
+
+    #[tool(
+        description = "Read one source section with an offset and truncation flag",
+        annotations(title = "Read section", read_only_hint = true, open_world_hint = false)
+    )]
+    async fn read_section(
+        &self,
+        Parameters(params): Parameters<ReadSectionParams>,
+    ) -> Result<Json<Value>, String> {
+        let guide =
+            Guide::load(&self.workspace, &params.guide).map_err(|error| error.to_string())?;
+        let layout = folisift_parse::SourceLayout::read_json(
+            &guide
+                .dir
+                .join("data/blocks")
+                .join(format!("{}.json", params.source)),
+        )
+        .map_err(|error| error.to_string())?;
+        let read = folisift_parse::read_section(
+            &layout,
+            &params.heading,
+            params.max_chars.unwrap_or(4000),
+            params.offset.unwrap_or(0),
+        )
+        .ok_or_else(|| {
+            format!(
+                "section {:?} not found in {}",
+                params.heading, params.source
+            )
+        })?;
+        Ok(Json(
+            serde_json::to_value(read).map_err(|error| error.to_string())?,
+        ))
+    }
+
+    #[tool(
+        description = "Build, read or validate the reviewed coverage manifest",
+        annotations(title = "Coverage manifest", open_world_hint = false)
+    )]
+    async fn coverage_manifest(
+        &self,
+        Parameters(params): Parameters<CoverageManifestParams>,
+    ) -> Result<Json<Value>, String> {
+        let guide =
+            Guide::load(&self.workspace, &params.guide).map_err(|error| error.to_string())?;
+        let path = guide.dir.join("data/coverage-manifest.json");
+        match params.action.as_str() {
+            "build" => {
+                let inventory = self.load_or_analyze_inventory(&guide).await?;
+                let markdown =
+                    std::fs::read_to_string(&guide.content).map_err(|error| error.to_string())?;
+                let manifest = CoverageManifest::build(&inventory, &markdown);
+                manifest
+                    .write_json(&path)
+                    .map_err(|error| error.to_string())?;
+                Ok(Json(json!({
+                    "guide": guide.slug,
+                    "output": path.display().to_string(),
+                    "rows": manifest.rows.len(),
+                })))
+            }
+            "read" => {
+                let manifest =
+                    CoverageManifest::read_json(&path).map_err(|error| error.to_string())?;
+                Ok(Json(json!({
+                    "guide": guide.slug,
+                    "output": path.display().to_string(),
+                    "rows": manifest.rows.len(),
+                    "manifest": manifest,
+                })))
+            }
+            "validate" => {
+                let inventory = self.load_or_analyze_inventory(&guide).await?;
+                let markdown =
+                    std::fs::read_to_string(&guide.content).map_err(|error| error.to_string())?;
+                let manifest =
+                    CoverageManifest::read_json(&path).map_err(|error| error.to_string())?;
+                let report = manifest.report(&inventory, &markdown);
+                Ok(Json(json!({
+                    "guide": guide.slug,
+                    "passed": report.passed,
+                    "total": report.total,
+                    "claimed": report.claimed,
+                    "missing": report.missing_from_gate,
+                    "empty_sections": report.empty_sections,
+                })))
+            }
+            other => Err(format!(
+                "unknown coverage_manifest action {other:?}; use build, read or validate"
+            )),
+        }
+    }
+
+    #[tool(
         description = "Run the Markdown coverage gate for a guide",
         annotations(
             title = "Check coverage",
@@ -1469,7 +1632,14 @@ impl FolisiftServer {
                 "structure": style.structure,
             })));
         }
-        let report = coverage_report(&inventory, &markdown, folisift_parse::DEFAULT_THRESHOLD);
+        let manifest_path = guide.dir.join("data/coverage-manifest.json");
+        let report = if manifest_path.is_file() {
+            CoverageManifest::read_json(&manifest_path)
+                .map_err(|error| error.to_string())?
+                .report(&inventory, &markdown)
+        } else {
+            coverage_report(&inventory, &markdown, folisift_parse::DEFAULT_THRESHOLD)
+        };
         if let Some(path) = &guide.coverage {
             report
                 .write_markdown(path)
@@ -1984,15 +2154,86 @@ fn content_stats(markdown: &str) -> Value {
         .lines()
         .filter(|line| line.trim_start().starts_with("::: diagram"))
         .count();
-    let tables = markdown
-        .lines()
-        .filter(|line| line.trim_start().starts_with("::: table"))
-        .count();
     let figures = markdown
         .lines()
         .filter(|line| line.trim_start().starts_with("!["))
         .count();
-    json!({"figures": figures, "diagrams": diagrams, "tables": tables})
+    let mut wrapped = 0usize;
+    let mut captioned = 0usize;
+    let mut markdown_tables = 0usize;
+    let mut glossary_groups = 0usize;
+    let mut in_glossary = false;
+    let mut in_wrapped = false;
+    let mut glossary_has_table = false;
+    for line in markdown.lines() {
+        let trimmed = line.trim_start();
+        if trimmed == ":::" {
+            if in_glossary {
+                if glossary_groups == 0 && glossary_has_table {
+                    glossary_groups = 1;
+                }
+                in_glossary = false;
+                glossary_has_table = false;
+            }
+            in_wrapped = false;
+            continue;
+        }
+        if trimmed.starts_with("::: glossary") {
+            in_glossary = true;
+            glossary_groups = 0;
+            glossary_has_table = false;
+            continue;
+        }
+        if trimmed.starts_with("::: table") {
+            wrapped += 1;
+            if trimmed.contains("caption=") {
+                captioned += 1;
+            }
+            in_wrapped = true;
+            continue;
+        }
+        if in_glossary {
+            if trimmed.starts_with("### ") {
+                glossary_groups += 1;
+            }
+            if is_markdown_table_header(trimmed) {
+                glossary_has_table = true;
+            }
+            continue;
+        }
+        if !in_wrapped && is_markdown_table_header(trimmed) {
+            markdown_tables += 1;
+        }
+    }
+    if in_glossary && glossary_groups == 0 && glossary_has_table {
+        glossary_groups = 1;
+    }
+    let total = wrapped + markdown_tables + glossary_groups;
+    json!({
+        "figures": figures,
+        "diagrams": diagrams,
+        "tables": {
+            "markdown": markdown_tables,
+            "wrapped": wrapped,
+            "captioned": captioned,
+            "glossary": glossary_groups,
+            "total": total,
+        },
+    })
+}
+
+fn is_markdown_table_header(line: &str) -> bool {
+    let trimmed = line.trim();
+    if !trimmed.starts_with('|') || !trimmed.ends_with('|') {
+        return false;
+    }
+    trimmed.trim_matches('|').split('|').all(|cell| {
+        let cell = cell.trim();
+        !cell.is_empty()
+            && cell
+                .chars()
+                .all(|character| matches!(character, '-' | ':' | ' '))
+    })
 }
 
 #[derive(Debug, Default)]
@@ -2286,10 +2527,24 @@ mod tests {
 
     #[test]
     fn counts_content_components() {
-        let stats = content_stats("::: diagram id=\"x\"\n:::\n\n::: table\n:::\n\n![Fig](a.svg)\n");
+        let stats = content_stats(
+            "::: diagram id=\"x\"\n:::\n\n::: table caption=\"T\"\n| A | B |\n|---|---|\n| 1 | 2 |\n:::\n\n| C | D |\n|---|---|\n| 3 | 4 |\n\n![Fig](a.svg)\n",
+        );
         assert_eq!(stats["diagrams"], 1);
-        assert_eq!(stats["tables"], 1);
         assert_eq!(stats["figures"], 1);
+        assert_eq!(stats["tables"]["wrapped"], 1);
+        assert_eq!(stats["tables"]["captioned"], 1);
+        assert_eq!(stats["tables"]["markdown"], 1);
+        assert_eq!(stats["tables"]["total"], 2);
+    }
+
+    #[test]
+    fn counts_glossary_groups_as_tables() {
+        let stats = content_stats(
+            "::: glossary\n\n### Grup A\n\n| T | D | T | D |\n|---|---|---|---|\n| a | b | c | d |\n\n### Grup B\n\n| T | D | T | D |\n|---|---|---|---|\n| e | f | g | h |\n\n:::",
+        );
+        assert_eq!(stats["tables"]["glossary"], 2);
+        assert_eq!(stats["tables"]["total"], 2);
     }
 
     #[test]

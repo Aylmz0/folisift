@@ -6,6 +6,7 @@ table.
 
 | Tag | Date | Build | Commit | PDFium | What changed |
 |---|---|---:|---|---|---|
+| `v0.13.0` | 2026-11-03 | 150 | pending | `chromium/8058` | Reviewed coverage manifest, section brief/read context tools, D2 24-node/decision support, four-column glossary tables, MCP schema 9 with 21 tools |
 | `v0.12.4` | 2026-11-03 | 143 | `8038559` | `chromium/8058` | Hotfix: revision template accepts per-diagram width; compact figure sizing applies to revision diagrams too |
 | `v0.12.3` | 2026-11-03 | 142 | `8038559` | `chromium/8058` | Repository hygiene: remove the orphaned pre-rotation diagram asset; correct the v0.12.1/v0.12.2 release records |
 | `v0.12.2` | 2026-11-03 | 141 | `4e9c937` | `chromium/8058` | PolyForm Strict 1.0.0, compact figure sizing, per-diagram width control and glossary term spacing |
@@ -28,6 +29,13 @@ table.
 | `v0.1.0` | 2026-10-26 | 16 | `fb7fe59de483f8e4e88d4346cb10f4c91f3445e2` | `chromium/8058` | First Rust/Typst/MCP release; 23-page reference guide, coverage 13/13; Python engine removed |
 
 ## Notes
+
+- `v0.13.0` adds the reviewed coverage manifest (`coverage-manifest` CLI/MCP),
+  bounded `section_brief` / `read_section` retrieval, D2 decision diagrams with
+  24 nodes / 40 edges / depth 8, and the four-column `::: glossary` table with
+  compact headers and atomic term/definition rows. The MCP tool schema is 9 and
+  exposes 21 tools. PD0–PD1 is 23 pages, PD2 24 and PD3 21; all five exam PDFs
+  pass the strict audit, TOC, reading-order and contrast gates.
 
 - `v0.12.4` fixes the revision template so it accepts the per-diagram width
   argument added in v0.12.2; revision diagrams now use the same 90% default and

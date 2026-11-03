@@ -617,72 +617,45 @@ PD3’ün ana çizgisi şudur [PD3, s. 133]:
 ::: chapter flow=true part="C–G · ORTAK BÖLÜMLER" side="SÖZLÜK · PD3" kicker="C" title="Kavramlar ve tanımlar" toc="C. Kavramlar ve tanımlar" running="C · Kavramlar ve tanımlar" subs=false compact=true lead="PD3’ün sınav açısından kritik terimleri; sözdizimi, gramer, türetme ve anlam tanımlama yöntemleri."
 :::
 
-::: columns
+::: glossary
+
 ### Sözdizimi
 
-**Sözdizimi (syntax):** Deyimlerin, ifadelerin ve program birimlerinin biçimsel yapısı. [PD3, s. 4]
+| Terim | Tanım | Terim | Tanım |
+|---|---|---|---|
+| **Sözdizimi (syntax):** | Deyimlerin, ifadelerin ve program birimlerinin biçimsel yapısı. [PD3, s. 4] | **Anlambilim (semantics):** | Aynı birimlerin anlamı. [PD3, s. 4] |
+| **Lexeme:** | Dilin en alt düzey sözdizimsel birimi. [PD3, s. 9, 11] | **Token:** | Lexeme’lerin kategorisi (identifier, keyword, symbol). [PD3, s. 9, 11] |
+| **Soyut sözdizimi:** | Anlamlı bileşenleri gösteren, gösterimden bağımsız yapı. [PD3, s. 7–8] | **Ayrıştırma ağacı (parse tree):** | Türetmenin hiyerarşik gösterimi; yapraklar terminal. [PD3, s. 48] |
 
-**Anlambilim (semantics):** Aynı birimlerin anlamı. [PD3, s. 4]
-
-**Lexeme:** Dilin en alt düzey sözdizimsel birimi. [PD3, s. 9, 11]
-
-**Token:** Lexeme’lerin kategorisi (identifier, keyword, symbol). [PD3, s. 9, 11]
-
-**Soyut sözdizimi:** Anlamlı bileşenleri gösteren, gösterimden bağımsız yapı. [PD3, s. 7–8]
-
-**Ayrıştırma ağacı (parse tree):** Türetmenin hiyerarşik gösterimi; yapraklar terminal. [PD3, s. 48]
 
 ### Gramer
 
-**Metadil:** Başka bir dilin sözdizimini anlatmak için kullanılan dil. [PD3, s. 22]
+| Terim | Tanım | Terim | Tanım |
+|---|---|---|---|
+| **Metadil:** | Başka bir dilin sözdizimini anlatmak için kullanılan dil. [PD3, s. 22] | **BNF:** | Backus–Naur Form; CFG’ye eşdeğer metadil. [PD3, s. 31] |
+| **CFG:** | `A → γ` kurallarıyla tanımlanan, PDA ile kabul edilen dil sınıfı. [PD3, s. 30] | **Terminal / terminal olmayan:** | Atomik sembol / kurallarla tanımlanan ara sembol. [PD3, s. 33] |
+| **Türetme (derivation):** | Başlangıç sembolünden cümleye kuralların uygulanması. [PD3, s. 38] | **Cümlesel biçim / cümle:** | Türetmedeki her sembol dizisi / yalnızca terminallerden oluşan biçim. [PD3, s. 45] |
+| **Belirsizlik (ambiguity):** | Aynı cümlesel biçim için iki veya daha fazla ayrıştırma ağacı. [PD3, s. 51] | **EBNF:** | `[ ]`, `{ }`, `\|` ile BNF’i kısaltan genişletilmiş form. [PD3, s. 55–59] |
 
-**BNF:** Backus–Naur Form; CFG’ye eşdeğer metadil. [PD3, s. 31]
-
-**CFG:** `A → γ` kurallarıyla tanımlanan, PDA ile kabul edilen dil sınıfı. [PD3, s. 30]
-
-**Terminal / terminal olmayan:** Atomik sembol / kurallarla tanımlanan ara sembol. [PD3, s. 33]
-
-**Türetme (derivation):** Başlangıç sembolünden cümleye kuralların uygulanması. [PD3, s. 38]
-
-**Cümlesel biçim / cümle:** Türetmedeki her sembol dizisi / yalnızca terminallerden oluşan biçim. [PD3, s. 45]
-
-**Belirsizlik (ambiguity):** Aynı cümlesel biçim için iki veya daha fazla ayrıştırma ağacı. [PD3, s. 51]
-
-**EBNF:** `[ ]`, `{ }`, `|` ile BNF’i kısaltan genişletilmiş form. [PD3, s. 55–59]
-
-::: columnbreak
 
 ### Anlam
 
-**Özellik grameri (AG):** CFG + özellik kümeleri + semantik fonksiyonlar + predicate’ler. [PD3, s. 64]
+| Terim | Tanım | Terim | Tanım |
+|---|---|---|---|
+| **Özellik grameri (AG):** | CFG + özellik kümeleri + semantik fonksiyonlar + predicate’ler. [PD3, s. 64] | **Sentezlenmiş özellik:** | Çocuklardan ebeveyne akan, `S(X0)=f(...)` ile tanımlanan özellik. [PD3, s. 65] |
+| **Miras alınmış özellik:** | Ebeveynden çocuklara akan, `I(Xj)=f(...)` ile tanımlanan özellik. [PD3, s. 65] | **İşlemsel semantik:** | Anlamı soyut makine durumu ve geçişleriyle açıklama. [PD3, s. 82] |
+| **SOS:** | `(C, ⇒, I, F, O)` beş-tuple’ı ile yapısal işlemsel semantik. [PD3, s. 85] | **Aksiyomatik semantik:** | Önşart/sonşart ve çıkarsama kurallarıyla anlam tanımlama. [PD3, s. 92] |
+| **En zayıf önşart:** | Sonşartı garanti eden asgari önşart. [PD3, s. 93] | **Döngü değişmezi (invariant):** | Döngü boyunca doğru kalan iddia. [PD3, s. 104] |
+| **Denotasyonel semantik:** | Anlamı matematiksel nesne/fonksiyonlarla tanımlama. [PD3, s. 110] | **VARMAP:** | Değişken adı ve durumdan güncel değeri döndüren fonksiyon. [PD3, s. 114] |
 
-**Sentezlenmiş özellik:** Çocuklardan ebeveyne akan, `S(X0)=f(...)` ile tanımlanan özellik. [PD3, s. 65]
-
-**Miras alınmış özellik:** Ebeveynden çocuklara akan, `I(Xj)=f(...)` ile tanımlanan özellik. [PD3, s. 65]
-
-**İşlemsel semantik:** Anlamı soyut makine durumu ve geçişleriyle açıklama. [PD3, s. 82]
-
-**SOS:** `(C, ⇒, I, F, O)` beş-tuple’ı ile yapısal işlemsel semantik. [PD3, s. 85]
-
-**Aksiyomatik semantik:** Önşart/sonşart ve çıkarsama kurallarıyla anlam tanımlama. [PD3, s. 92]
-
-**En zayıf önşart:** Sonşartı garanti eden asgari önşart. [PD3, s. 93]
-
-**Döngü değişmezi (invariant):** Döngü boyunca doğru kalan iddia. [PD3, s. 104]
-
-**Denotasyonel semantik:** Anlamı matematiksel nesne/fonksiyonlarla tanımlama. [PD3, s. 110]
-
-**VARMAP:** Değişken adı ve durumdan güncel değeri döndüren fonksiyon. [PD3, s. 114]
 
 ### Sık karıştırılan ayrımlar
 
-**Sözdizimi / anlambilim:** Biçim / anlam; ikisi birlikte dil tanımını verir.
+| Terim | Tanım | Terim | Tanım |
+|---|---|---|---|
+| **Sözdizimi / anlambilim:** | Biçim / anlam; ikisi birlikte dil tanımını verir. | **Tanıyıcı / üreteç:** | String’in dilde olup olmadığına karar verir / dilin cümlelerini üretir. [PD3, s. 20] |
+| **Soyut / metinsel sözdizimi:** | Anlamlı bileşenlerin ağacı / karakter dizisi gösterimi. [PD3, s. 7–10] | **Belirsiz gramer / belirsiz dil:** | Gramerin özelliği / dilin değil, gramerin belirsizliği. [PD3, s. 51] |
 
-**Tanıyıcı / üreteç:** String’in dilde olup olmadığına karar verir / dilin cümlelerini üretir. [PD3, s. 20]
-
-**Soyut / metinsel sözdizimi:** Anlamlı bileşenlerin ağacı / karakter dizisi gösterimi. [PD3, s. 7–10]
-
-**Belirsiz gramer / belirsiz dil:** Gramerin özelliği / dilin değil, gramerin belirsizliği. [PD3, s. 51]
 :::
 
 ::: chapter part="C–G · ORTAK BÖLÜMLER" side="SÜREÇ KARTLARI" kicker="D" title="Yöntemler ve süreçler" toc="D. Yöntemler ve süreçler" running="D · Yöntemler ve süreçler" subs=false compact=true lead="Sözdizimi tanımlama, türetme, özellik değerlendirme ve anlam tanımlama adımlarının sıralı özeti."

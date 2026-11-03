@@ -7,7 +7,7 @@ unset LD_PRELOAD || true
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 pdf="${1:-$root/output/PD0-PD1_Calisma_Ozeti.pdf}"
 cd "$root"
-expected_pages=22
+expected_pages=23
 
 command -v pdfinfo >/dev/null
 command -v pdftotext >/dev/null
@@ -33,11 +33,11 @@ check_page 4 "Hazırlık"
 check_page 10 "Programlama dillerinin yazılım"
 check_page 11 "Giriş"
 check_page 17 "Programlama platformları"
-check_page 18 "KARŞILAŞTIRMA"
-check_page 19 "Yöntemler ve süreçler"
-check_page 20 "Formüller, kurallar ve olgular"
-check_page 21 "Bağlantılar ve karşılaştırmalar"
-check_page 22 "Kapsam denetimi"
+check_page 19 "KARŞILAŞTIRMA"
+check_page 20 "Yöntemler ve süreçler"
+check_page 21 "Formüller, kurallar ve olgular"
+check_page 22 "Bağlantılar ve karşılaştırmalar"
+check_page 23 "Kapsam denetimi"
 
 cargo run -q -p folisift-cli -- audit --pdf "$pdf" --expected-pages "$expected_pages"
 echo "parity: $pages pages, page map and layout audit pass"

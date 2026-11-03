@@ -166,6 +166,38 @@ enum Command {
         #[arg(long)]
         check: bool,
     },
+    /// Return a bounded extractive brief for one source section.
+    SectionBrief {
+        #[arg(long)]
+        guide: String,
+        #[arg(long)]
+        source: String,
+        #[arg(long)]
+        heading: String,
+        #[arg(long, default_value_t = 600)]
+        max_chars: usize,
+    },
+    /// Read one source section with an offset and truncation flag.
+    ReadSection {
+        #[arg(long)]
+        guide: String,
+        #[arg(long)]
+        source: String,
+        #[arg(long)]
+        heading: String,
+        #[arg(long, default_value_t = 4000)]
+        max_chars: usize,
+        #[arg(long, default_value_t = 0)]
+        offset: usize,
+    },
+    /// Build, read or validate the reviewed coverage manifest.
+    CoverageManifest {
+        #[arg(long)]
+        guide: String,
+        /// build, read or validate.
+        #[arg(long, default_value = "build")]
+        action: String,
+    },
     /// Build or inspect the deterministic document graph.
     Graph {
         #[command(subcommand)]
@@ -1241,6 +1273,101 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
         },
+        Command::SectionBrief {
+            guide,
+            source,
+            heading,
+            max_chars,
+        } => {
+            let guide = Guide::load(&workspace, &guide)?;
+            let layout = folisift_parse::SourceLayout::read_json(
+                &guide.dir.join("data/blocks").join(format!("{source}.json")),
+            )?;
+            let brief = folisift_parse::section_brief(&layout, &heading, max_chars)
+                .ok_or_else(|| format!("section {heading:?} not found in {source}"))?;
+            println!("{}", serde_json::to_string_pretty(&brief)?);
+        }
+        Command::ReadSection {
+            guide,
+            source,
+            heading,
+            max_chars,
+            offset,
+        } => {
+            let guide = Guide::load(&workspace, &guide)?;
+            let layout = folisift_parse::SourceLayout::read_json(
+                &guide.dir.join("data/blocks").join(format!("{source}.json")),
+            )?;
+            let read = folisift_parse::read_section(&layout, &heading, max_chars, offset)
+                .ok_or_else(|| format!("section {heading:?} not found in {source}"))?;
+            println!("{}", serde_json::to_string_pretty(&read)?);
+        }
+        Command::CoverageManifest { guide, action } => {
+            let guide = Guide::load(&workspace, &guide)?;
+            let path = guide.dir.join("data/coverage-manifest.json");
+            match action.as_str() {
+                "build" => {
+                    let inventory = folisift_parse::analyze_sources(
+                        &guide.sources,
+                        folisift_parse::LOW_TEXT_THRESHOLD,
+                    )
+                    .await?;
+                    let markdown = std::fs::read_to_string(&guide.content)?;
+                    let manifest = folisift_parse::CoverageManifest::build(&inventory, &markdown);
+                    manifest.write_json(&path)?;
+                    println!(
+                        "{}",
+                        serde_json::to_string_pretty(&json!({
+                            "guide": guide.slug,
+                            "output": path.display().to_string(),
+                            "rows": manifest.rows.len(),
+                        }))?
+                    );
+                }
+                "read" => {
+                    let manifest = folisift_parse::CoverageManifest::read_json(&path)?;
+                    println!(
+                        "{}",
+                        serde_json::to_string_pretty(&json!({
+                            "guide": guide.slug,
+                            "output": path.display().to_string(),
+                            "rows": manifest.rows.len(),
+                            "manifest": manifest,
+                        }))?
+                    );
+                }
+                "validate" => {
+                    let inventory = folisift_parse::analyze_sources(
+                        &guide.sources,
+                        folisift_parse::LOW_TEXT_THRESHOLD,
+                    )
+                    .await?;
+                    let markdown = std::fs::read_to_string(&guide.content)?;
+                    let manifest = folisift_parse::CoverageManifest::read_json(&path)?;
+                    let report = manifest.report(&inventory, &markdown);
+                    println!(
+                        "{}",
+                        serde_json::to_string_pretty(&json!({
+                            "guide": guide.slug,
+                            "passed": report.passed,
+                            "total": report.total,
+                            "claimed": report.claimed,
+                            "missing": report.missing_from_gate,
+                            "empty_sections": report.empty_sections,
+                        }))?
+                    );
+                    if !report.passed {
+                        std::process::exit(1);
+                    }
+                }
+                other => {
+                    return Err(format!(
+                        "unknown coverage_manifest action {other:?}; use build, read or validate"
+                    )
+                    .into());
+                }
+            }
+        }
         Command::Graph { command } => {
             match command {
                 GraphCommand::Build { guide } => {

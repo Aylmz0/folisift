@@ -108,7 +108,7 @@
 ]
 
 // ---- tables -------------------------------------------------------------
-#let data_table(columns: 1, header: (), rows: (), widths: none) = {
+#let data_table(columns: 1, header: (), rows: (), widths: none, compact: false) = {
   let cols = if widths == none or widths.len() == 0 { columns } else { widths }
   let body = rows.flatten()
   let cells = if header.len() > 0 {
@@ -121,9 +121,9 @@
   } else {
     body
   }
-  block(breakable: false, above: 3mm, below: 4mm)[
-    #set text(size: __TABLE_SIZE__)
-    #set par(leading: 0.55em, spacing: 0pt, justify: false)
+  block(breakable: compact, above: if compact { 2mm } else { 3mm }, below: if compact { 2.5mm } else { 4mm })[
+    #set text(size: if compact { __TABLE_SIZE__ * 0.84 } else { __TABLE_SIZE__ })
+    #set par(leading: if compact { 0.40em } else { 0.55em }, spacing: 0pt, justify: false)
     #table(
       columns: cols,
       stroke: (x, y) => if y == 0 {
@@ -140,11 +140,21 @@
       } else {
         none
       },
-      inset: (x: 1.5mm, y: 2.2mm),
+      inset: if compact { (x: 1.5mm, y: 0.75mm) } else { (x: 1.5mm, y: 2.2mm) },
       ..cells,
     )
   ]
 }
+
+#let glossary_group(body) = block(above: 2.5mm, below: 1.2mm, sticky: true)[
+  #text(
+    font: "Inter",
+    size: __SMALL_SIZE__,
+    weight: "semibold",
+    tracking: 0.12em,
+    fill: sage,
+  )[#ui_upper(body)]
+]
 
 #let facts_table(rows) = block(breakable: false, above: 4mm, below: 5mm)[
   #set text(size: __BOX_SIZE__)

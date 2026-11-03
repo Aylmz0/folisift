@@ -16,9 +16,9 @@ pub const SPEC_SCHEMA_VERSION: u32 = 3;
 pub const SUPPORTED_SPEC_SCHEMA_VERSIONS: &[u32] = &[2, 3];
 pub const POSTPROCESS_VERSION: u32 = 1;
 pub const TALA_SEEDS: &str = "1,2,3";
-pub const MAX_NODES: usize = 12;
-pub const MAX_EDGES: usize = 20;
-pub const MAX_DEPTH: usize = 4;
+pub const MAX_NODES: usize = 24;
+pub const MAX_EDGES: usize = 40;
+pub const MAX_DEPTH: usize = 8;
 pub const MAX_SEQUENCE_ACTORS: usize = 6;
 pub const MAX_SEQUENCE_MESSAGES: usize = 10;
 pub const MAX_CLASSES: usize = 6;
@@ -361,10 +361,10 @@ pub fn validate_spec(spec: &DiagramSpec) -> Result<()> {
     validate_id(&spec.id)?;
     if !matches!(
         spec.kind.as_str(),
-        "flow" | "concept" | "tree" | "sequence" | "class" | "erd"
+        "flow" | "concept" | "tree" | "decision" | "sequence" | "class" | "erd"
     ) {
         return Err(Error::Diagram(format!(
-            "unsupported diagram kind {:?}; use flow, concept, tree, sequence, class or erd",
+            "unsupported diagram kind {:?}; use flow, concept, tree, decision, sequence, class or erd",
             spec.kind
         )));
     }
@@ -399,7 +399,7 @@ pub fn validate_spec(spec: &DiagramSpec) -> Result<()> {
         )));
     }
     match spec.kind.as_str() {
-        "flow" | "concept" | "tree" => validate_graph(spec),
+        "flow" | "concept" | "tree" | "decision" => validate_graph(spec),
         "sequence" if !spec.actors.is_empty() || !spec.messages.is_empty() => {
             validate_sequence(spec)
         }
@@ -1731,9 +1731,9 @@ mod tests {
     }
 
     #[test]
-    fn accepts_twelve_nodes_and_rejects_thirteen() {
+    fn accepts_twenty_four_nodes_and_rejects_twenty_five() {
         let mut spec = spec();
-        spec.nodes = (0..12)
+        spec.nodes = (0..24)
             .map(|index| Node {
                 id: format!("n{index}"),
                 label: format!("Node {index}"),
@@ -1755,7 +1755,7 @@ mod tests {
     #[test]
     fn rejects_too_many_nodes_and_bad_ids() {
         let mut spec = spec();
-        spec.nodes = (0..13)
+        spec.nodes = (0..25)
             .map(|index| Node {
                 id: format!("n{index}"),
                 label: format!("Node {index}"),

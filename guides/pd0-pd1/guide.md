@@ -504,76 +504,57 @@ Yazılım geliştirmede kullanılan araçlar koleksiyonuna **programlama platfor
 ::: chapter part="C–G · ORTAK BÖLÜMLER" side="SÖZLÜK · PD0–PD1" kicker="C" title="Kavramlar ve tanımlar" toc="C. Kavramlar ve tanımlar" running="C · Kavramlar ve tanımlar" subs=false compact=true lead="PD0 ve PD1’in sınav açısından kritik terimleri. Tanımlar kaynak slaytlara dayanır; benzer kavramlar yan yana verilerek ayrımları belirginleştirilir."
 :::
 
-::: columns
+::: glossary
+
 ### Dil ve anlam
 
-**Programlama dili:** Bir problemin çözümünün bilgisayardaki gerçekleştirimini ifade eden, insan ve bilgisayarın ortak anlayacağı kural ve semboller dizisi. [PD0, s. 14]
+| Terim | Tanım | Terim | Tanım |
+|---|---|---|---|
+| **Programlama dili:** | Bir problemin çözümünün bilgisayardaki gerçekleştirimini ifade eden, insan ve bilgisayarın ortak anlayacağı kural ve semboller dizisi. [PD0, s. 14] | **Sözdizimi (syntax):** | Deyimlerin biçimsel geçerliliğini belirleyen dilbilgisi kuralları. [PD0, s. 12] |
+| **Anlambilim (semantics):** | Geçerli bir deyimin ne anlama geldiği; anlam çözümlemenin konusu. [PD0, s. 66] | **Lexeme / token:** | Token’ı belirten alt karakter katarı / sözdizimsel kategori (IDENTIFIER, NUMBER gibi). [PD0, s. 37] |
+| **Sembol tablosu:** | Her tanımlayıcı için indeks, ad ve tip bilgisini tutan, derleme boyunca güncellenen yapı. [PD0, s. 38] |  |  |
 
-**Sözdizimi (syntax):** Deyimlerin biçimsel geçerliliğini belirleyen dilbilgisi kuralları. [PD0, s. 12]
-
-**Anlambilim (semantics):** Geçerli bir deyimin ne anlama geldiği; anlam çözümlemenin konusu. [PD0, s. 66]
-
-**Lexeme / token:** Token’ı belirten alt karakter katarı / sözdizimsel kategori (IDENTIFIER, NUMBER gibi). [PD0, s. 37]
-
-**Sembol tablosu:** Her tanımlayıcı için indeks, ad ve tip bilgisini tutan, derleme boyunca güncellenen yapı. [PD0, s. 38]
 
 ### Çevrim
 
-**Derleyici:** Kaynak programı eşdeğer makine koduna çeviren program. [PD0, s. 28]
+| Terim | Tanım | Terim | Tanım |
+|---|---|---|---|
+| **Derleyici:** | Kaynak programı eşdeğer makine koduna çeviren program. [PD0, s. 28] | **Yorumlayıcı:** | Deyimleri çalışma sırasında birer birer çevirip yürüten program. [PD0, s. 24] |
+| **Kaynak / amaç program:** | Derlemeye giren yüksek düzeyli program / çıkan makine dili programı. [PD0, s. 29] | **Derleme / çalışma zamanı:** | Çevrimin gerçekleştiği zaman / amaç programın yürütüldüğü zaman. [PD0, s. 29] |
+| **Ön uç / arka uç:** | Dile bağımlı analiz ve ara kod üretimi / makineye bağımlı eniyileme ve kod üretimi. [PD0, s. 34, 70] | **Ara kod:** | Kaynak ile amaç dil arasında, soyut bir makine için üretilen gösterim. [PD0, s. 67] |
 
-**Yorumlayıcı:** Deyimleri çalışma sırasında birer birer çevirip yürüten program. [PD0, s. 24]
-
-**Kaynak / amaç program:** Derlemeye giren yüksek düzeyli program / çıkan makine dili programı. [PD0, s. 29]
-
-**Derleme / çalışma zamanı:** Çevrimin gerçekleştiği zaman / amaç programın yürütüldüğü zaman. [PD0, s. 29]
-
-**Ön uç / arka uç:** Dile bağımlı analiz ve ara kod üretimi / makineye bağımlı eniyileme ve kod üretimi. [PD0, s. 34, 70]
-
-**Ara kod:** Kaynak ile amaç dil arasında, soyut bir makine için üretilen gösterim. [PD0, s. 67]
 
 ### Ayrıştırma
 
-**Ayrıştırma ağacı (parse tree):** Token dizisinin gramere göre yapısını gösteren ağaç. [PD0, s. 48]
+| Terim | Tanım | Terim | Tanım |
+|---|---|---|---|
+| **Ayrıştırma ağacı (parse tree):** | Token dizisinin gramere göre yapısını gösteren ağaç. [PD0, s. 48] | **CFG:** | Terminal/terminal olmayan semboller, başlangıç sembolü ve üretim kurallarından oluşan bağlam-bağımsız gramer. [PD0, s. 51] |
+| **Belirsizlik:** | Aynı dizi için iki veya daha fazla ayrıştırma ağacı oluşması. [PD0, s. 61] | **Yukarıdan aşağıya / aşağıdan yukarıya:** | Ağacı kökten token’lara / token’lardan köke kurma. [PD0, s. 52–55] |
 
-**CFG:** Terminal/terminal olmayan semboller, başlangıç sembolü ve üretim kurallarından oluşan bağlam-bağımsız gramer. [PD0, s. 51]
-
-**Belirsizlik:** Aynı dizi için iki veya daha fazla ayrıştırma ağacı oluşması. [PD0, s. 61]
-
-**Yukarıdan aşağıya / aşağıdan yukarıya:** Ağacı kökten token’lara / token’lardan köke kurma. [PD0, s. 52–55]
-
-::: columnbreak
 
 ### Değerlendirme
 
-**Okunabilirlik:** Programların okunma ve anlaşılma kolaylığı. [PD1, s. 17]
+| Terim | Tanım | Terim | Tanım |
+|---|---|---|---|
+| **Okunabilirlik:** | Programların okunma ve anlaşılma kolaylığı. [PD1, s. 17] | **Yazılabilirlik:** | Dilin program yazmada kullanılabilme kolaylığı. [PD1, s. 17] |
+| **Güvenilirlik:** | Programın şartlara uygunluğu; görevi doğru yapması. [PD1, s. 17, 46] | **Maliyet:** | Eğitim, yazma, derleme, yürütme, bakım ve implementasyon dahil toplam maliyet. [PD1, s. 54–56] |
+| **Ortogonallik:** | Az sayıda ilkel yapı ve bunların az sayıda yolla birleştirilmesi; her kombinasyonun yasal olması. [PD1, s. 24] | **Aliasing:** | Aynı bellek hücresine iki veya daha fazla farklı isimle erişilmesi. [PD1, s. 52] |
 
-**Yazılabilirlik:** Dilin program yazmada kullanılabilme kolaylığı. [PD1, s. 17]
-
-**Güvenilirlik:** Programın şartlara uygunluğu; görevi doğru yapması. [PD1, s. 17, 46]
-
-**Maliyet:** Eğitim, yazma, derleme, yürütme, bakım ve implementasyon dahil toplam maliyet. [PD1, s. 54–56]
-
-**Ortogonallik:** Az sayıda ilkel yapı ve bunların az sayıda yolla birleştirilmesi; her kombinasyonun yasal olması. [PD1, s. 24]
-
-**Aliasing:** Aynı bellek hücresine iki veya daha fazla farklı isimle erişilmesi. [PD1, s. 52]
 
 ### Mimari ve yöntem
 
-**Von Neumann mimarisi:** Veri ve komutların aynı bellekte tutulduğu; CPU ile belleğin ayrı olduğu mimari. [PD1, s. 60–61]
+| Terim | Tanım | Terim | Tanım |
+|---|---|---|---|
+| **Von Neumann mimarisi:** | Veri ve komutların aynı bellekte tutulduğu; CPU ile belleğin ayrı olduğu mimari. [PD1, s. 60–61] | **Von Neumann darboğazı:** | Bellek–işlemci bağlantı hızının bilgisayar hızını sınırlaması. [PD1, s. 119] |
+| **Saf yorumlama / hibrit / JIT:** | Çevirisiz yürütme / ara kod üzerinden yürütme / ara kodu çalışma sırasında makine koduna derleme. [PD1, s. 120–124] | **Önişlemci:** | Derlemeden önce makro genişletme ve yorum silme gibi dönüşümler yapan program. [PD1, s. 125] |
 
-**Von Neumann darboğazı:** Bellek–işlemci bağlantı hızının bilgisayar hızını sınırlaması. [PD1, s. 119]
-
-**Saf yorumlama / hibrit / JIT:** Çevirisiz yürütme / ara kod üzerinden yürütme / ara kodu çalışma sırasında makine koduna derleme. [PD1, s. 120–124]
-
-**Önişlemci:** Derlemeden önce makro genişletme ve yorum silme gibi dönüşümler yapan program. [PD1, s. 125]
 
 ### Paradigmalar
 
-**Paradigma:** Bir grubun ortak kararlarını temsil eden, konuya yeni bakış sağlayan kavramsal şema. [PD1, s. 73]
-
-**Imperative / fonksiyonel / mantıksal / OOP:** Sırasıyla işlem dizisi; fonksiyon uygulaması; kural-gerçek sorgusu; nesnelerde veri+işlem birleşimi. [PD1, s. 76–90]
-
-**Markup / SDLC:** İşaretleme dili (XHTML, XML) / gereksinim, tasarım, gerçekleştirim, sınama ve bakım aşamaları. [PD1, s. 90; PD0, s. 116–121]
+| Terim | Tanım | Terim | Tanım |
+|---|---|---|---|
+| **Paradigma:** | Bir grubun ortak kararlarını temsil eden, konuya yeni bakış sağlayan kavramsal şema. [PD1, s. 73] | **Imperative / fonksiyonel / mantıksal / OOP:** | Sırasıyla işlem dizisi; fonksiyon uygulaması; kural-gerçek sorgusu; nesnelerde veri+işlem birleşimi. [PD1, s. 76–90] |
+| **Markup / SDLC:** | İşaretleme dili (XHTML, XML) / gereksinim, tasarım, gerçekleştirim, sınama ve bakım aşamaları. [PD1, s. 90; PD0, s. 116–121] |  |  |
 
 :::
 
@@ -587,6 +568,30 @@ Yazılım geliştirmede kullanılan araçlar koleksiyonuna **programlama platfor
 | Sözdizimi / anlambilim | Biçimsel geçerlilik / anlam; parser ağaç kurar, anlam çözümleyici tipleri denetler. |
 | Ön uç / arka uç | Dile bağımlı analiz ve ara kod / makineye bağımlı eniyileme ve kod üretimi. |
 | Derleme zamanı / çalışma zamanı | Çevrim sırası / amaç programın yürütülmesi. |
+| Düşük düzey / yüksek düzey dil | Makineye yakınlık / soyutlama; ikisi de aynı ifade gücüne sahip olabilir. [PD0, s. 17–18] |
+| Okunabilirlik / yazılabilirlik | Kodu anlama / kodu üretme kolaylığı. [PD1, s. 17] |
+| Güvenilirlik / maliyet | Görevi doğru yapma / eğitim, yazma, derleme, yürütme ve bakım toplamı. [PD1, s. 17, 54–56] |
+| Ortogonallik / aliasing | İlkellerin bağımsız birleşimi / aynı bellek hücresine birden çok adla erişim. [PD1, s. 24, 52] |
+| Paradigma / implementasyon yöntemi | Probleme bakış şeması / çevrim ve yürütme yöntemi. [PD1, s. 73, 109] |
+| Kaynak / amaç program | Girdi yüksek düzeyli program / çıktı makine dili programı. [PD0, s. 29] |
+| Sözdizimi hatası / anlam hatası | Ayrıştırma başarısız / ayrıştırma başarılı ama tip veya işlem geçersiz. [PD0, s. 66] |
+| Derleme / saf yorumlama / hibrit | Önceden makine kodu üretme / her deyimi çalışma sırasında çevirme / ara kod üretip çalışma sırasında tamamlama. [PD1, s. 109, 120–124] |
+| Statik / dinamik tip kontrolü | Derleme zamanında / çalışma zamanında tip denetimi; statik kontrol daha az maliyetlidir. [PD1, s. 49–50] |
+| Makine bağımsız / bağımlı eniyileme | Ara biçim üzerinde / hedef makinenin özelliklerini kullanarak. [PD0, s. 72–75] |
+| Programlama dili / platform | Dilin kuralları ve yapıları / editör, derleyici, bağlayıcı ve dosya sistemi araçları. [PD1, s. 132] |
+| Yüksek düzeyli dil / assembly | Makineden bağımsız soyutlama / makine komutlarının mnemonic gösterimi. [PD0, s. 21] |
+| Düzenli ifade / CFG | Sözcüksel token’ların örüntüsü / sözdizimsel yapıların grameri. [PD0, s. 42, 51] |
+| Sözcüksel / sözdizim analizi | Karakter akışını token dizisine ayırma / token dizisinden ayrıştırma ağacı kurma. [PD0, s. 37, 48] |
+| Eniyileme / kod üretimi | Ara kodu daha etkin hâle getirme / hedef makine kodunu oluşturma. [PD0, s. 70–75] |
+| Derleyici / çapraz derleyici | Aynı hedef için çeviri / kaynak tanımına göre başka bir programlama diline çeviri. [PD0, s. 114] |
+| Assembler / çapraz assembler | Assembly’den makine koduna çeviri / bir assembly dilinden diğerine çeviri. [PD0, s. 114] |
+| Derleyici / derleyici derleyicisi | Programı makine koduna çeviren araç / derleyici üreten program. [PD0, s. 114] |
+| Yukarıdan aşağıya / aşağıdan yukarıya | Ağacı kökten token’lara / token’lardan köke kurma. [PD0, s. 52–55] |
+| Program / algoritma | Bir dilde yazılmış somut yönerge dizisi / çözümün dilden bağımsız adımları. [PD0, s. 3] |
+| Önişlemci / derleyici | Makro genişletme ve yorum silme / kaynak programı makine koduna çevirme. [PD1, s. 125] |
+| Yorumlayıcı / JIT | Her deyimi çalışma sırasında çevirme / ara kodu çalışma sırasında makine koduna derleme. [PD1, s. 120–124] |
+| Assembler / yükleyici-bağlayıcı | Assembly’den makine kodu üretme / nesne dosyalarını kütüphanelerle birleştirip yükleme. [PD1, s. 111] |
+| Platform / IDE | Editör, derleyici ve bağlayıcı gibi araçların koleksiyonu / bunları tek grafik arayüzde birleştiren ortam. [PD1, s. 132] |
 :::
 
 

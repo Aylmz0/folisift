@@ -173,8 +173,13 @@ pub async fn build(workspace: &Workspace, request: BuildRequest) -> Result<Build
                     }
                     visual = Some(report);
                 }
-                let report =
-                    check_coverage(&inventory, &markdown, folisift_parse::DEFAULT_THRESHOLD);
+                let manifest_path = guide.dir.join("data/coverage-manifest.json");
+                let report = if manifest_path.is_file() {
+                    let manifest = folisift_parse::CoverageManifest::read_json(&manifest_path)?;
+                    manifest.report(&inventory, &markdown)
+                } else {
+                    check_coverage(&inventory, &markdown, folisift_parse::DEFAULT_THRESHOLD)
+                };
                 if let Some(path) = &guide.coverage {
                     report.write_markdown(path)?;
                 }

@@ -11,7 +11,7 @@
   ],
   "inventory": "data/source.json",
   "coverage": "data/coverage.md",
-  "target_pages": "22",
+  "target_pages": "23",
   "style": {
     "aesthetic": "paper",
     "structure": "a-g",
