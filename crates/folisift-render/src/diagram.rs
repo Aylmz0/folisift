@@ -145,6 +145,9 @@ pub struct Group {
     pub label: String,
     #[serde(default)]
     pub nodes: Vec<String>,
+    /// Per-container direction; falls back to the diagram direction.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub direction: Option<String>,
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
@@ -475,6 +478,14 @@ fn validate_graph(spec: &DiagramSpec) -> Result<()> {
         if group.label.trim().is_empty() {
             return Err(Error::Diagram(format!(
                 "group {:?} has an empty label",
+                group.id
+            )));
+        }
+        if let Some(direction) = &group.direction
+            && !matches!(direction.as_str(), "right" | "down" | "left" | "up")
+        {
+            return Err(Error::Diagram(format!(
+                "group {:?} has unsupported direction {direction:?}; use right, down, left or up",
                 group.id
             )));
         }
@@ -985,6 +996,9 @@ fn graph_source(spec: &DiagramSpec, theme: &DiagramTheme, out: &mut String) -> R
             group_keys[group.id.as_str()],
             d2_quote(&group.label)
         ));
+        if let Some(direction) = &group.direction {
+            out.push_str(&format!("  direction: {direction}\n"));
+        }
         for node in &group.nodes {
             let Some(node_spec) = spec.nodes.iter().find(|candidate| &candidate.id == node) else {
                 continue;
@@ -1911,6 +1925,24 @@ mod tests {
         assert!(out.contains("<title"));
         assert!(out.contains("<desc"));
         assert!(out.contains("paint-order=\"stroke\""));
+    }
+
+    #[test]
+    fn group_direction_is_written_and_invalid_values_rejected() {
+        let mut spec = spec();
+        let node_id = spec.nodes[0].id.clone();
+        spec.nodes[0].group = Some("g1".to_string());
+        spec.groups.push(Group {
+            id: "g1".to_string(),
+            label: "Worker".to_string(),
+            nodes: vec![node_id],
+            direction: Some("down".to_string()),
+        });
+        let mut out = String::new();
+        graph_source(&spec, &DiagramTheme::default(), &mut out).expect("graph");
+        assert!(out.contains("direction: down"), "{out}");
+        spec.groups[0].direction = Some("diagonal".to_string());
+        assert!(validate_spec(&spec).is_err());
     }
 
     #[test]

@@ -407,12 +407,31 @@ fn markdown_to_typst_with(markdown: &str, config: &RenderConfig) -> Result<Strin
                             message: "toc takes no body".to_string(),
                         });
                     }
-                    out.push_str(&format!(
-                        "#toc_page(title: {}, note: {}, label: {})\n\n",
-                        typst_string(attr(&attrs, "title").unwrap_or("")),
-                        typst_string(attr(&attrs, "note").unwrap_or("")),
-                        typst_string(&config.toc_label),
-                    ));
+                    let mut args = vec![
+                        format!(
+                            "title: {}",
+                            typst_string(attr(&attrs, "title").unwrap_or(""))
+                        ),
+                        format!("note: {}", typst_string(attr(&attrs, "note").unwrap_or(""))),
+                        format!("label: {}", typst_string(&config.toc_label)),
+                    ];
+                    if let Some(value) = attr(&attrs, "subs") {
+                        args.push(format!("subs: {}", value == "true"));
+                    }
+                    if let Some(value) = attr(&attrs, "toc_depth") {
+                        let depth: u8 = value.parse().map_err(|_| Error::Markdown {
+                            line: start_line,
+                            message: format!("toc_depth is not a number: {value}"),
+                        })?;
+                        if !(1..=2).contains(&depth) {
+                            return Err(Error::Markdown {
+                                line: start_line,
+                                message: format!("toc_depth must be 1 or 2, got {value}"),
+                            });
+                        }
+                        args.push(format!("depth: {depth}"));
+                    }
+                    out.push_str(&format!("#toc_page({})\n\n", args.join(", ")));
                 }
                 "glossary" => {
                     let mut glossary_config = config.clone();
@@ -1416,6 +1435,16 @@ mod tests {
         assert!(typst.contains("widths: (18%, 32%, 18%, 32%)"), "{typst}");
         assert!(typst.contains("#glossary_group["));
         assert!(typst.contains("Sözdizimi"));
+    }
+
+    #[test]
+    fn toc_depth_and_subs_are_emitted_or_rejected() {
+        let typst = markdown_to_typst("::: toc title=\"X\" subs=\"false\" toc_depth=\"1\"\n:::")
+            .expect("toc");
+        assert!(typst.contains("subs: false"));
+        assert!(typst.contains("depth: 1"));
+        let error = markdown_to_typst("::: toc toc_depth=\"3\"\n:::").expect_err("depth");
+        assert!(error.to_string().contains("toc_depth"));
     }
 
     #[test]

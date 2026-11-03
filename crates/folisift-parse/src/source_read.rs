@@ -19,6 +19,7 @@ pub struct ReadSourceResult {
     pub chars: usize,
     pub max_chars: usize,
     pub truncated: bool,
+    pub page_complete: bool,
     pub next_pages: Option<String>,
     /// Character offset to resume a page that exceeded `max_chars`.
     pub next_offset: Option<usize>,
@@ -168,6 +169,7 @@ pub fn read_from_source_at(
         chars: used,
         max_chars,
         truncated,
+        page_complete: !truncated,
         next_pages,
         next_offset,
         cache_hit: source.cache_hit,
@@ -377,6 +379,7 @@ mod tests {
     fn reads_a_page_range() {
         let result = read_from_source(&source(), Some("1"), None).expect("read");
         assert_eq!(result.returned_pages, 1);
+        assert!(result.page_complete);
         assert!(result.pages[0].text.contains("Church"));
     }
 
@@ -406,6 +409,7 @@ mod tests {
         source.pages[0].text = "ğ".repeat(1_200);
         let result = read_from_source(&source, Some("1"), Some(1_000)).expect("read");
         assert!(result.truncated);
+        assert!(!result.page_complete);
         assert!(result.chars <= 1_000);
     }
 

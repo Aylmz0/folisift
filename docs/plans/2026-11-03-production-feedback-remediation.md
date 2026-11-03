@@ -1,7 +1,7 @@
 # Production feedback remediation plan — 2026-11-03
 
-- **Status:** Active; v0.14.0 closes the M2/M3 workflow core, W2/W13 and
-  engine-depth W15–W17 remain partial
+- **Status:** Active; v0.14.2 closes W2/W13, engine-depth W15–W17 remain
+  partial
 - **Source:** [`docs/FOLISIFT-GERI-BILDIRIM.md`](../FOLISIFT-GERI-BILDIRIM.md)
 - **Baseline:** Folisift 0.12.4, build 143, MCP schema 8
 - **Purpose:** turn every finding in the production feedback into an owned,
@@ -18,7 +18,7 @@ testable subset and a named remaining gap; they are not claimed complete.
 | Workstream | Status in v0.14.0 | Evidence / remaining gap |
 |---|---|---|
 | W1 coverage manifest | Shipped | `coverage-manifest` CLI/MCP, manifest-first build, page-accurate coverage report, tests |
-| W2 layout continuity | Partial | chapter/columns/table/diagram keep options, glossary flow and role-aware underfill; `toc_depth`/include-exclude and columnbreak semantics remain |
+| W2 layout continuity | Shipped (core) | chapter/columns/table/diagram keep/break options, `toc_depth`/`subs`, glossary flow, role-aware underfill; front/table close order documented |
 | W3 diagnostics and draft | Shipped (core) | `Diagnostic` code/envelope, `E_MARKDOWN` line + directive stack, `_draft.pdf` + `draft_path` |
 | W4 D2 decision support | Shipped (core) | 24 nodes, 40 edges, depth 8, `decision`, `tala/dagre/elk`, tests |
 | W5 Turkish headings | Shipped (core) | glued headings, `headings.review.md`, TOC/body mismatch rows, 1-based public pages |
@@ -29,10 +29,10 @@ testable subset and a named remaining gap; they are not claimed complete.
 | W10 page roles | Shipped (core) | `PageRole`, TOC/chapter/figure/table exemptions, figure/table-only and chapter-split lists |
 | W11 graph and links | Shipped (core) | heading nodes, `query`/`path`/`explain`, link heading labels |
 | W12 claims and cards | Shipped (core) | section/severity/missing citation, noise filter, default intervals, empty warning, `verify_citations` |
-| W13 page budget UX | Partial | `budget` command, section attribution, capped search context and incremental section hashes; parse/brief reuse remains |
+| W13 page budget UX | Shipped (core) | `budget`, section attribution, capped search context, incremental section hashes/report; parse artifacts are still recomputed by design |
 | W14 context retrieval | Shipped (core) | briefs, section read, `source_brief`, `source_topics`, `guide_plan`, `visual_brief`, `citation_snippet`, `cost_report` |
 | W15 LiteParse depth | Partial | complexity/OCR policy and candidates in `source_brief`; typed metadata/vector/structure APIs remain |
-| W16 D2 depth | Partial | `dagre`/`elk` layouts and manifest recording; classes/tooltips/per-container direction remain |
+| W16 D2 depth | Partial | `dagre`/`elk`, manifest layout recording, per-group direction; classes/tooltips/node dimensions remain |
 | W17 Model2Vec/reranker | Partial | local embeddings remain the link default; topic clustering is deterministic term-based, no conditional reranker |
 | W18 OCR policy | Shipped (policy) | OCR off by default, explicit candidates/reasons, no silent OCR |
 | W19 determinism/docs | Shipped (docs) | cookbook, release checklist, versioned gates |

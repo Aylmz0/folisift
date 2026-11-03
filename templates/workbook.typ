@@ -287,7 +287,7 @@
   [],
 )
 
-#let toc_page(title: "", note: "", label: "İÇİNDEKİLER") = page(header: none)[
+#let toc_page(title: "", note: "", label: "İÇİNDEKİLER", subs: true, depth: 2) = page(header: none)[
   #set text(font: "Inter", size: __BODY_SIZE__, fill: ink)
   #text(font: "Inter", size: __MICRO_SIZE__, tracking: 0.2em, fill: brick)[#label]
   #v(2mm)

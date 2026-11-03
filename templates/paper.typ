@@ -312,7 +312,7 @@
   [],
 )
 
-#let toc_page(title: "", note: "", label: "İÇİNDEKİLER") = page(header: none)[
+#let toc_page(title: "", note: "", label: "İÇİNDEKİLER", subs: true, depth: 2) = page(header: none)[
   #set text(font: "Noto Serif", size: __BODY_SIZE__, fill: ink)
   #text(font: "Inter", size: __MICRO_SIZE__, tracking: 0.2em, fill: brick)[#label]
   #v(2mm)
@@ -336,7 +336,7 @@
           value.subs,
           part-rows + (toc_row(value.body, page-number, entry.location()),),
         )
-      } else if value.level == 2 and subs {
+      } else if value.level == 2 and subs and depth >= 2 {
         (last, subs, out + (toc_row(value.body, page-number, entry.location(), sub: true),))
       } else {
         (last, subs, out)

@@ -423,6 +423,7 @@ impl FolisiftServer {
             "mcp_profile": std::env::var("FOLISIFT_MCP_PROFILE").unwrap_or_else(|_| "full".to_string()),
             "mcp_tools": self.tool_router.list_all().len(),
             "guides": guides.len(),
+            "guide_count": guides.len(),
             "source_count": source_count,
             "structures": folisift_core::structures::summary(),
             "pdfium_version": folisift_parse::pdfium::PDFIUM_VERSION,
@@ -1793,6 +1794,8 @@ impl FolisiftServer {
             "ocr": {
                 "policy": "off; auto is explicit opt-in",
                 "needed": needs_ocr,
+                "pages_ocr": 0,
+                "manual_review": needs_ocr,
                 "low_text_ratio": low_ratio,
                 "candidates": source.low_text_pages.iter().take(24).copied().collect::<Vec<_>>(),
                 "reasons": if source.low_text_pages.is_empty() {
