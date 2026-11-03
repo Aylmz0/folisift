@@ -23,7 +23,7 @@ testable subset and a named remaining gap; they are not claimed complete.
 | W4 D2 decision support | Shipped (core) | 24 nodes, 40 edges, depth 8, `decision`, `tala/dagre/elk`, tests |
 | W5 Turkish headings | Shipped (core) | glued headings, `headings.review.md`, TOC/body mismatch rows, 1-based public pages |
 | W6 style compatibility | Shipped (core) | matrix filtering, `irac+law` → reader/accessible, page estimate, restyle, theme/style check |
-| W7 MCP surface and QA | Shipped (core) | `qa_guide`, `audit_guide`, profiles, resources pagination, outline pagination, table extract, 31 tools |
+| W7 MCP surface and QA | Shipped (core) | `qa_guide`, `audit_guide`, profiles, resources pagination, outline pagination, table extract, 32 tools |
 | W8 IRAC scaffold | Shipped (core) | 10 cases, `###` levels, `source-headings.md`, existing-content preservation |
 | W9 table/statistics truth | Shipped (core) | markdown/wrapped/captioned/glossary/total, `E_TABLE_WIDTHS`, caption-number opt-out without dropping ids |
 | W10 page roles | Shipped (core) | `PageRole`, TOC/chapter/figure/table exemptions, figure/table-only and chapter-split lists |
@@ -32,8 +32,8 @@ testable subset and a named remaining gap; they are not claimed complete.
 | W13 page budget UX | Shipped (core) | `budget`, section attribution, capped search context, incremental section hashes/report; parse artifacts are still recomputed by design |
 | W14 context retrieval | Shipped (core) | briefs, section read, `source_brief`, `source_topics`, `guide_plan`, `visual_brief`, `citation_snippet`, `cost_report` |
 | W15 LiteParse depth | Shipped | opt-in `insights` reports annotations, AcroForm fields, tagged structure, vector geometry, image refs and per-page complexity |
-| W16 D2 depth | Shipped | `dagre`/`elk`, per-group direction, manifest layout and opt-in sketch rendering |
-| W17 Model2Vec/reranker | Shipped | local Model2Vec links and `topics` clustering are the default; heading-term clustering is the fallback and the reranker remains opt-in |
+| W16 D2 depth | Shipped (core) | `dagre`/`elk`, per-group direction, manifest layout and opt-in sketch rendering; icon/class/tooltip experiments remain opt-in polish |
+| W17 Model2Vec/reranker | Shipped (core) | local Model2Vec links and `topics` clustering are the default; heading-term clustering is the fallback; conditional reranker is not enabled without a benchmark |
 | W18 OCR policy | Shipped (policy) | OCR off by default, explicit candidates/reasons, no silent OCR |
 | W19 determinism/docs | Shipped (docs) | cookbook, release checklist, versioned gates |
 | W20 agent profiles | Shipped (core) | `fast`/`deep` profiles plus core/source/authoring/review |
@@ -43,8 +43,10 @@ testable subset and a named remaining gap; they are not claimed complete.
 
 The five exam PDFs pass `make exam-check`; `make visual`, `make type-check`,
 `make parity`, `make genre-check`, `make d2-pdf-check`, `cargo test`, `clippy`
-and `fmt` pass. The remaining Partial gaps are post-0.14.0 engine-depth work,
-not trust regressions.
+and `fmt` pass. No workstream is marked Partial. Deliberately opt-in or deferred
+polish: D2 icon/class/tooltip experiments, conditional reranker and true
+parse-artifact reuse. They are not release blockers and do not affect the
+deterministic local boundary.
 
 ## 0. How to use this plan
 
