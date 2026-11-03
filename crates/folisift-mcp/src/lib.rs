@@ -946,6 +946,23 @@ impl FolisiftServer {
     ) -> Result<Json<Value>, String> {
         match params.action.as_str() {
             "list" => {
+                if let Some(slug) = params.guide.as_deref() {
+                    let guide =
+                        Guide::load(&self.workspace, slug).map_err(|error| error.to_string())?;
+                    let profile = guide.style();
+                    let candidates = styles::compatibility(
+                        self.workspace.root(),
+                        &profile.structure,
+                        &profile.domain,
+                    )
+                    .map_err(|error| error.to_string())?;
+                    return Ok(Json(json!({
+                        "guide": guide.slug,
+                        "structure": profile.structure,
+                        "domain": profile.domain,
+                        "styles": candidates,
+                    })));
+                }
                 let packs =
                     styles::list(self.workspace.root()).map_err(|error| error.to_string())?;
                 // MCP `structuredContent` must be a JSON object; a bare array is

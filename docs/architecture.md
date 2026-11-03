@@ -46,7 +46,8 @@ folisift-cli / mcp            CLI and stdio MCP tools
    Markdown + YAML frontmatter, `::: diagram` references and the
    layout/content
    directives (`front`, `toc`, `chapter`, boxes, `must-know`, `synthesis`,
-   `answer`, `organiser`, `table`, `columns`, `columnbreak`, `pagebreak`).
+   `answer`, `organiser`, `table`, `glossary`, `columns`, `columnbreak`,
+   `pagebreak`).
 4. The Typst template renders the PDF with embedded fonts.
 5. `--check` compares the inventory with the Markdown headings and section
    bodies, then writes `data/coverage.md`. Revision sheets use their own
@@ -84,8 +85,7 @@ Rules:
   directory.
 - `sources` are read-only inputs and must stay under `sources/`.
 - No absolute paths. A guide must work after the repository is moved.
-- `schema_version` 1 is rejected; guides must use schema 2 (Markdown) or 3
-  (style profile).
+- `schema_version` 1 is rejected; guides use schema 3 (style profile).
 
 ## Content format
 
@@ -108,7 +108,7 @@ surface is in `docs/authoring.md`.
 | `guides/<slug>/visual-audit.json` | host author | yes; low-text page decisions |
 | `data/cache/` | `folisift analyze` / `read_source` | no; source text cache |
 | `guides/<slug>/data/pages/` | `folisift render-pages` | no; visual cache |
-| `output/*.pdf` | `folisift build` | yes, for review |
+| `output/*.pdf` | `folisift build` | no; local review artifacts |
 | `sources/*.pdf` | instructor/user | **no**; gitignored |
 
 ## Coverage model

@@ -1,7 +1,7 @@
 # Production feedback remediation plan — 2026-11-03
 
-- **Status:** Completed through v0.14.2; M5 optional polish remains out of
-  scope
+- **Status:** Completed through v0.14.3; M5 optional polish is explicitly out
+  of scope by the plan
 - **Source:** [`docs/FOLISIFT-GERI-BILDIRIM.md`](../FOLISIFT-GERI-BILDIRIM.md)
 - **Baseline:** Folisift 0.12.4, build 143, MCP schema 8
 - **Purpose:** turn every finding in the production feedback into an owned,
@@ -9,13 +9,13 @@
 - **Primary outcome:** “passed” must mean complete, visually continuous and
   machine-diagnosable; context must get cheaper without adding network calls
 
-## 0.1 Release 0.14.0 implementation status
+## 0.1 Release 0.14.3 implementation status
 
-v0.14.0 closes the trust-critical slice, the M2 workflow core and the M3 context
-core on the current workspace. Items marked **Partial** have a shipped,
+v0.14.3 closes the trust-critical slice, the M2 workflow core, the M3 context
+core and the M4 core on the current workspace. Items marked **Partial** have a shipped,
 testable subset and a named remaining gap; they are not claimed complete.
 
-| Workstream | Status in v0.14.0 | Evidence / remaining gap |
+| Workstream | Status in v0.14.3 | Evidence / remaining gap |
 |---|---|---|
 | W1 coverage manifest | Shipped | `coverage-manifest` CLI/MCP, manifest-first build, page-accurate coverage report, tests |
 | W2 layout continuity | Shipped (core) | chapter/columns/table/diagram keep/break options, `toc_depth`/`subs`, glossary flow, role-aware underfill; front/table close order documented |

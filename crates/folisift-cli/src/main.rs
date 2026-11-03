@@ -44,7 +44,7 @@ enum Command {
         /// Bearer token for HTTP; required for non-loopback binds.
         #[arg(long, env = "FOLISIFT_HTTP_TOKEN", hide_env_values = true)]
         http_token: Option<String>,
-        /// Tool profile: core, source, authoring, review or full.
+        /// Tool profile: core, source, authoring, review, fast, deep or full.
         #[arg(long, env = "FOLISIFT_MCP_PROFILE", default_value = "full")]
         profile: String,
     },
@@ -450,8 +450,12 @@ enum TableCommand {
 
 #[derive(Debug, Subcommand)]
 enum StylesCommand {
-    /// List style packs.
-    List,
+    /// List style packs, optionally with guide compatibility.
+    List {
+        /// Optional guide slug for a compatibility column.
+        #[arg(long)]
+        guide: Option<String>,
+    },
     /// List semantic palettes.
     Palettes,
     /// List font pairings.
@@ -1247,9 +1251,28 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
             );
         }
         Command::Styles { command } => match command {
-            StylesCommand::List => {
-                let packs = styles::list(workspace.root())?;
-                println!("{}", serde_json::to_string_pretty(&packs)?);
+            StylesCommand::List { guide } => {
+                if let Some(slug) = guide {
+                    let guide = Guide::load(&workspace, &slug)?;
+                    let profile = guide.style();
+                    let candidates = styles::compatibility(
+                        workspace.root(),
+                        &profile.structure,
+                        &profile.domain,
+                    )?;
+                    println!(
+                        "{}",
+                        serde_json::to_string_pretty(&json!({
+                            "guide": guide.slug,
+                            "structure": profile.structure,
+                            "domain": profile.domain,
+                            "styles": candidates,
+                        }))?
+                    );
+                } else {
+                    let packs = styles::list(workspace.root())?;
+                    println!("{}", serde_json::to_string_pretty(&packs)?);
+                }
             }
             StylesCommand::Palettes => {
                 let palettes = styles::list_palettes(workspace.root())?;

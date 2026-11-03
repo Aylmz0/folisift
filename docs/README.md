@@ -15,7 +15,8 @@
 | [Table parity](table-parity-2026-11-03.md) | Layout table blocks vs the legacy native-text extractor |
 | [Accessibility review](accessibility-review-2026-11-03.md) | Tagged-PDF reading order, component contrast and the offline exam copy |
 | [ADRs](adr/) | Architectural decisions and their consequences |
-| [Plans](plans/) | Proposed architecture and migration plans |
+| [Plans](plans/) | Architecture, migration and remediation plans |
+| [Production feedback remediation](plans/2026-11-03-production-feedback-remediation.md) | Exhaustive plan for coverage, layout, diagnostics, D2, MCP, context economics and engine depth |
 | [Agent configuration](agents/) | Issue tracker, triage labels, domain-doc rules, versioning |
 | [Versions](VERSIONS.md) | Released tags, builds and release notes |
 | [Agent rules](../AGENTS.md) | Repo-specific operating rules and commands |
@@ -36,4 +37,3 @@
 - Engine changes must not introduce a course name, source filename or slide
   count into `crates/`.
 - Do not fork `templates/paper.typ` per guide.
-| [Production feedback remediation](plans/2026-11-03-production-feedback-remediation.md) | Exhaustive plan for coverage, layout, diagnostics, D2, MCP, context economics and engine depth |

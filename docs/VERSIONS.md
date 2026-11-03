@@ -6,6 +6,7 @@ table.
 
 | Tag | Date | Build | Commit | PDFium | What changed |
 |---|---|---:|---|---|---|
+| `v0.14.4` | 2026-11-04 | 164 | pending | `chromium/8058` | Guide-aware style compatibility in `styles list`/MCP `style list`; docs audit and architecture/output-artifact corrections |
 | `v0.14.3` | 2026-11-04 | 162 | `bc179f0050e87dfa4991e03e06a1ab4d51f79f02` | `chromium/8058` | Report real source lines for E_MARKDOWN after frontmatter; final plan/gate reconciliation |
 | `v0.14.2` | 2026-11-04 | 159 | `afb574c66c81ecdd732c048993261346116f5b41` | `chromium/8058` | TOC depth/subs, table/diagram placement, per-group D2 direction, page-complete and OCR policy fields; W2/W13 close |
 | `v0.14.1` | 2026-11-04 | 157 | `87614fe25cc6e83ab73d889c223918b4ddc69fb8` | `chromium/8058` | Layout-continuity options, typed Diagnostic envelope, draft persistence, TOC/body heading review, table placement options and incremental section hashes |
@@ -33,6 +34,11 @@ table.
 | `v0.1.0` | 2026-10-26 | 16 | `fb7fe59de483f8e4e88d4346cb10f4c91f3445e2` | `chromium/8058` | First Rust/Typst/MCP release; 23-page reference guide, coverage 13/13; Python engine removed |
 
 ## Notes
+
+- `v0.14.4` adds a guide-aware compatibility column to `styles list
+  --guide <slug>` and MCP `style list`; it also corrects the architecture
+  docs for untracked output PDFs and the schema-3-only contract. No rendered
+  guide content changes.
 
 - `v0.14.3` maps renderer line numbers back to the source Markdown after
   frontmatter, so `E_MARKDOWN` points at the real line. No layout or content
