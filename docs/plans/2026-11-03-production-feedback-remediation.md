@@ -255,6 +255,8 @@ coverage_manifest { slug, action: build|read|update|validate, entries? }
 - Add `ChapterOptions`: `keep_with_next`, `break_before`, `break_after`,
   `allow_split`, `full_page_opener`.
 - Add `ColumnsOptions`: `flow`, `min_rows_before_break`, `keep_with_next`.
+  Glossaries no longer use `columns`; they use the four-column glossary table
+  in W22. `columns` remains for non-glossary side-by-side prose.
 - Add table/diagram placement options: `keep_with_next`, `min_space_mm`,
   `allow_page_break`.
 - Default `keep_with_next=true` for chapter opener plus first content block,
@@ -282,7 +284,8 @@ coverage_manifest { slug, action: build|read|update|validate, entries? }
 **Acceptance**
 
 - Chapter kicker/title/first block stay together or produce `E_CHAPTER_SPLIT`.
-- A long glossary columns block splits at a row/section boundary.
+- A long glossary renders through W22 as a four-column table; a legacy
+  `columns` glossary is migrated or flagged.
 - A table that does not fit moves with its heading, not alone.
 - `width="60%"` changes the rendered bbox by a measurable amount or fails.
 
@@ -463,8 +466,9 @@ coverage_manifest { slug, action: build|read|update|validate, entries? }
 
 **Change**
 
-- Count all Markdown tables, wrapped tables and captioned tables separately:
-  `tables.markdown`, `tables.wrapped`, `tables.captioned`, `tables.total`.
+- Count all Markdown tables, wrapped tables, captioned tables and glossary
+  tables separately: `tables.markdown`, `tables.wrapped`, `tables.captioned`,
+  `tables.glossary`, `tables.total`.
 - Caption numbering has `number=false`/`caption_number=false`; stable `id`
   references remain. Support caption-only labels such as “Şekil 2’nin
   dalları” without inventing a table number.
@@ -727,7 +731,8 @@ coverage_manifest { slug, action: build|read|update|validate, entries? }
 - `docs/authoring-cookbook.md`: minimal example + closing for every directive;
   front+table nesting; `front` auto-close policy; `columnbreak`; flow; subs;
   `toc_depth/include/exclude`; diagram width/status schema; style compatibility
-  matrix; cards 0; table counts; table caption numbering; `theme` vs
+  matrix; cards 0; table counts including glossary; table caption numbering;
+  four-column glossary examples and odd-term rows; `theme` vs
   `style.aesthetic`; counter rules.
 - “Which tool when?” decision tree: prepare vs scaffold, style vs restyle,
   build vs qa, links vs graph.
@@ -862,6 +867,63 @@ Make the agent-first profile explicit and opt-in:
   baseline.
 
 
+### W22 — Glossary as a four-column table
+
+**Findings:** §43 (production layout decision, 2026-11-03).
+
+**Decision**
+
+A glossary is not a two-column prose block. It is a **four-column table**
+holding two term/definition pairs per row:
+
+```text
+| Terim | Tanım | Terim | Tanım |
+```
+
+The source experience is the 66-term İş Hukuku glossary: converting the
+`::: columns` block to a four-column table improved density, kept term/definition
+pairs together and removed the monolithic-column page jump. This becomes the
+default glossary layout for every guide.
+
+**Change**
+
+- Add a `::: glossary` directive (or `::: table kind="glossary"`) that renders
+  the four-column table. Do not model glossaries as `::: columns`.
+- Group glossaries by their existing `###` headings; each group gets one table
+  with a header row and balanced rows.
+- Column widths default to `18,32,18,32`; the term/definition pair is atomic.
+  A row may contain one pair plus a spanning definition, but never a split
+  term/definition pair.
+- Page breaks occur at row boundaries; repeat the header when a table
+  continues on a new page. A `keep_with_next` heading rule prevents a heading
+  from being separated from its first row.
+- Preserve source references inside definition cells. Do not move a citation
+  into a footnote or silently drop it.
+- Sort terms in source/guide order; balancing is presentation only. If the
+  number of terms is odd, the last row uses one pair and leaves the remaining
+  cells empty or spans the definition.
+- Count glossary tables separately in stats: `tables.glossary`, in addition to
+  `tables.markdown`/`tables.wrapped`/`tables.captioned`.
+- The glossary table must keep tagged-table structure (`TH`, `TR`, `TD`) and
+  reading order for screen readers.
+
+**Interface**
+
+The canonical contract is `GlossaryOptions` in §7; this workstream owns its
+rendering and validation, not a second copy of the struct.
+
+**Acceptance**
+
+- A 66-term glossary renders as a four-column table, not a two-column
+  `::: columns` block.
+- No term/definition pair is split across a page or table row.
+- The glossary heading stays with its first row.
+- The table repeats its header on a page break and keeps `TH`/`TD` tagging.
+- `stats.tables.glossary` equals the number of glossary groups, and the total
+  table count includes them.
+- Search/link/graph outputs still point to the original source page, not the
+  table row.
+
 ## 6. API surface
 
 | Tool | Action | Output discipline |
@@ -955,6 +1017,14 @@ struct TocOptions {
     exclude: Vec<String>,
 }
 
+struct GlossaryOptions {
+    columns: u8,           // default 4
+    term_width: f32,       // default 18
+    definition_width: f32, // default 32
+    repeat_header: bool,   // default true
+    balance_rows: bool,    // default true
+}
+
 struct DiagramOptions {
     max_nodes: usize,
     max_edges: usize,
@@ -1029,6 +1099,7 @@ hierarchical briefs reduce source chars read on the benchmark.
 - W11 graph/links.
 - W12 claims/cards.
 - W13 page budget UX.
+- W22 four-column glossary table.
 - W14b `guide_plan`, compact outputs and per-tool field filters.
 
 **Exit:** one `qa_guide` call is the release gate; IRAC scaffold is usable
@@ -1101,7 +1172,7 @@ opt-in flag.
 | A10 | Figure-only page | `figure_page` warning |
 | A11 | Malformed front/table | `E_MARKDOWN` + directive stack + real line |
 | A12 | Build check failure | `_draft.pdf` + `draft_path` |
-| A13 | `tables` | Markdown + wrapped + captioned counts |
+| A13 | `tables` | Markdown + wrapped + captioned + glossary counts |
 | A14 | Page 1 | every public report says page 1 |
 | A15 | IRAC scaffold | 10 cases × 4 sections, sources in frontmatter |
 | A16 | `### Sorun` | accepted or exact “use ##” error |
@@ -1131,6 +1202,11 @@ opt-in flag.
 | A40 | prompt cache stability | same profile has stable tool order; no mid-session churn |
 | A41 | no raw block dump | default read returns brief/Markdown, not full block JSON |
 | A42 | coordinator flow | analyze→topics→plan→brief→read→write→qa→restyle |
+| A43 | 66-term glossary | renders as a four-column table, not `::: columns` |
+| A44 | glossary pair atomicity | no term/definition pair splits across row/page |
+| A45 | glossary continuation | heading stays with first row; header repeats |
+| A46 | glossary stats | `tables.glossary` equals glossary groups and is in total |
+| A47 | glossary accessibility | `TH`/`TR`/`TD` and reading order pass |
 
 ## 9.1 §34 evidence corpus and §35 smoke commands
 
@@ -1834,6 +1910,26 @@ semantic-link, OCR and engine-capability findings are not lost.
 | F-42-24 | Benchmark must compare all-tools baseline vs profile+resources | W0/W21 | P1 | planned |
 
 
+### 10.18 §43 — glossary layout decision
+
+| ID | Finding | Workstream | Priority | Evidence |
+|---|---|---|---|---|
+| F-43-1 | Two-column glossary block jumps as one monolithic unit | W2/W22 | P1 | confirmed |
+| F-43-2 | 66-term İş Hukuku glossary improved after conversion to a four-column table | W22 | P1 | confirmed |
+| F-43-3 | Four-column glossary becomes the default glossary layout | W22 | P1 | planned |
+| F-43-4 | Two term/definition pairs per row: Terim + Tanım + Terim + Tanım | W22 | P1 | planned |
+| F-43-5 | Default widths `18,32,18,32`; pair is atomic | W22 | P1 | planned |
+| F-43-6 | Break only at row boundaries; repeat header on continuation | W22 | P1 | planned |
+| F-43-7 | Heading must keep with the first glossary row | W2/W22 | P1 | planned |
+| F-43-8 | Preserve source references inside definition cells | W22 | P0 | planned |
+| F-43-9 | Odd term count: one pair plus empty/spanning cells, no split | W22 | P2 | planned |
+| F-43-10 | Tagged table structure and reading order required | W22/W10 | P1 | planned |
+| F-43-11 | Count `tables.glossary` separately and include in total | W9/W22 | P1 | planned |
+| F-43-12 | Legacy `::: columns` glossaries migrate or warn | W22/W19 | P1 | planned |
+| F-43-13 | Glossary table affects page budget; report it | W13/W22 | P2 | planned |
+| F-43-14 | Cookbook must show four-column and odd-term examples | W19/W22 | P2 | planned |
+
+
 ## 11. Open questions and risks
 
 1. **Coverage semantics.** Is a “heading” every layout heading block, every
@@ -1887,6 +1983,8 @@ The feedback is closed when:
 - MCP profiles keep the active surface at or below 15 tools and tool schemas at
   or below 5% of the context budget;
 - resources carry page/section/coverage reads; tools carry actions;
+- glossaries use the four-column table with atomic term/definition pairs and
+  correct table tagging;
 - `section_brief`/`read_section`/`source_topics` reduce measured source
   reading without losing coverage;
 - LiteParse/D2/Model2Vec advanced capabilities are opt-in, measured and
@@ -1949,3 +2047,4 @@ finding register.
 | §40 multi-source | §10.15 / §10.16 |
 | §41 engine capabilities | §10.15 / §10.16 |
 | §42 MCP context architecture research | §10.17 |
+| §43 glossary layout decision | §10.18 |
