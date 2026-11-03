@@ -25,6 +25,16 @@ pub use markdown::{
 };
 pub use styles::{LoadedStyle, StylePack, StyleStrings};
 
+fn frontmatter_line_offset(content: &str) -> usize {
+    if !content.starts_with("---\n") {
+        return 0;
+    }
+    content
+        .find("\n---\n")
+        .map(|index| content[..index + 5].lines().count())
+        .unwrap_or(0)
+}
+
 /// Stable content hash used for cross-style parity checks.
 pub fn content_hash(content: &str) -> String {
     blake3::hash(content.as_bytes()).to_hex().to_string()
@@ -123,7 +133,16 @@ pub fn render(content: &str, options: &RenderOptions<'_>) -> Result<Rendered> {
     {
         return Ok(cached);
     }
-    let body = markdown_to_typst_styled_with_strings(&body, &strings, diagram_assets)?;
+    let line_offset = frontmatter_line_offset(content);
+    let body = markdown_to_typst_styled_with_strings(&body, &strings, diagram_assets).map_err(
+        |error| match error {
+            Error::Markdown { line, message } => Error::Markdown {
+                line: line + line_offset,
+                message,
+            },
+            other => other,
+        },
+    )?;
     let (template, document_function) = match loaded.pack.layout.as_str() {
         "paper" => (PAPER_TEMPLATE, "paper"),
         "clean" => (CLEAN_TEMPLATE, "paper"),
