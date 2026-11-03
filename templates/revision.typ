@@ -62,11 +62,12 @@
   tracking: 0.02em,
 )[[#body]])
 
-#let fitted_image(path, alt: none) = layout(size => {
-  let wide = image(path, width: size.width, alt: alt)
+#let fitted_image(path, alt: none, width: 90%) = layout(size => {
+  let target = size.width * width
+  let wide = image(path, width: target, alt: alt)
   block(width: size.width)[
-    #align(center, if measure(wide).height > 16cm {
-      image(path, height: 16cm, alt: alt)
+    #align(center, if measure(wide).height > 14cm {
+      image(path, height: 14cm, alt: alt)
     } else {
       wide
     })

@@ -6,7 +6,8 @@ table.
 
 | Tag | Date | Build | Commit | PDFium | What changed |
 |---|---|---:|---|---|---|
-| `v0.12.3` | 2026-11-03 | 142 | `4e9c937` | `chromium/8058` | Repository hygiene: remove the orphaned pre-rotation diagram asset; correct the v0.12.1/v0.12.2 release records |
+| `v0.12.4` | 2026-11-03 | 143 | `8038559` | `chromium/8058` | Hotfix: revision template accepts per-diagram width; compact figure sizing applies to revision diagrams too |
+| `v0.12.3` | 2026-11-03 | 142 | `8038559` | `chromium/8058` | Repository hygiene: remove the orphaned pre-rotation diagram asset; correct the v0.12.1/v0.12.2 release records |
 | `v0.12.2` | 2026-11-03 | 141 | `4e9c937` | `chromium/8058` | PolyForm Strict 1.0.0, compact figure sizing, per-diagram width control and glossary term spacing |
 | `v0.12.1` | 2026-11-03 | 140 | `804d688` | `chromium/8058` | Accessible monochrome code blocks, strict component-contrast gate and release documentation corrections |
 | `v0.12.0` | 2026-11-03 | 136 | `9b0bfb8a6d12206c935ac8f95ded161fdcb31f4d` | `chromium/8058` | Section-level source scope, deterministic document graph, local semantic links, noncommercial license, output identity and tagged reading-order/contrast checks |
@@ -27,6 +28,10 @@ table.
 | `v0.1.0` | 2026-10-26 | 16 | `fb7fe59de483f8e4e88d4346cb10f4c91f3445e2` | `chromium/8058` | First Rust/Typst/MCP release; 23-page reference guide, coverage 13/13; Python engine removed |
 
 ## Notes
+
+- `v0.12.4` fixes the revision template so it accepts the per-diagram width
+  argument added in v0.12.2; revision diagrams now use the same 90% default and
+  14 cm cap as the other layouts.
 
 - `v0.12.3` removes the orphaned SVG left by the v0.12.2 diagram rotation and
   corrects the tag-target commit records for v0.12.1 and v0.12.2. No rendered
