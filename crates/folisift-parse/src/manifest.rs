@@ -95,6 +95,7 @@ impl CoverageManifest {
     pub fn report(&self, inventory: &Inventory, markdown: &str) -> CoverageReport {
         let headings = heading_index(markdown);
         let covers = covers_index(markdown);
+        let body_chars = crate::coverage::guide_body_chars(markdown);
         let mut by_source: BTreeMap<String, Vec<SectionResult>> = BTreeMap::new();
         let mut total = 0;
         let mut claimed = 0;
@@ -120,9 +121,9 @@ impl CoverageManifest {
                 missing += 1;
                 missing_from_gate.push(row.heading.clone());
             }
-            let empty = row.status == CoverageStatus::Covered
-                && row.guide_heading.is_none()
-                && !covers.contains(&format!("{}:{}", row.source, row_number(&row.heading)));
+            let number = row_number(&row.heading);
+            let chars = body_chars.get(&number).copied().unwrap_or(0);
+            let empty = covered && chars < crate::coverage::MIN_SECTION_CHARS;
             if empty {
                 empty_sections.push(row.heading.clone());
             }
@@ -130,12 +131,12 @@ impl CoverageManifest {
                 .entry(row.source.clone())
                 .or_default()
                 .push(SectionResult {
-                    number: row_number(&row.heading),
-                    title: row.heading.clone(),
+                    number: number.clone(),
+                    title: display_title(&row.heading, &number),
                     page: row.page,
                     score: if covered { 1.0 } else { 0.0 },
                     matched: row.guide_heading.clone().unwrap_or_default(),
-                    body_chars: 0,
+                    body_chars: chars,
                     empty,
                     ok: covered && !empty,
                 });
@@ -240,6 +241,15 @@ fn heading_page(source: &SourceInventory, heading: &str) -> usize {
         .map_or(0, |candidate| candidate.page)
 }
 
+fn display_title(heading: &str, number: &str) -> String {
+    heading
+        .strip_prefix(number)
+        .map(str::trim)
+        .filter(|title| !title.is_empty())
+        .unwrap_or(heading)
+        .to_string()
+}
+
 fn row_number(heading: &str) -> String {
     heading
         .split_whitespace()
@@ -317,10 +327,13 @@ mod tests {
     #[test]
     fn manifest_matches_a_heading_and_fails_a_missing_row() {
         let inventory = inventory();
-        let manifest = CoverageManifest::build(&inventory, "## 2.1 Giriş\n");
+        let body = format!("## 2.1 Giriş\n\n{}\n", "anlamlı gövde metni ".repeat(40));
+        let manifest = CoverageManifest::build(&inventory, &body);
         assert_eq!(manifest.rows.len(), 1);
         assert_eq!(manifest.rows[0].status, CoverageStatus::Covered);
-        assert!(manifest.report(&inventory, "## 2.1 Giriş\n").passed);
+        let report = manifest.report(&inventory, &body);
+        assert!(report.passed, "{report:#?}");
+        assert!(report.sources[0].sections[0].body_chars >= crate::coverage::MIN_SECTION_CHARS);
         let report = manifest.report(&inventory, "");
         assert!(!report.passed);
         assert_eq!(report.missing, 1);
