@@ -1,7 +1,6 @@
 # Production feedback remediation plan — 2026-11-03
 
-- **Status:** Completed through v0.16.0; all milestones, including M5 optional
-  polish, are implemented
+- **Status:** Active; v0.16.0 closes the core and M5, cross-cutting polish remains
 - **Source:** [`docs/FOLISIFT-GERI-BILDIRIM.md`](../FOLISIFT-GERI-BILDIRIM.md)
 - **Baseline:** Folisift 0.12.4, build 143, MCP schema 8
 - **Purpose:** turn every finding in the production feedback into an owned,
