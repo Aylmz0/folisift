@@ -75,8 +75,8 @@ A guide is successful only if all of these are true:
    mechanisms are explained as cause → effect, not as bullet lists.
 5. **Consistency.** Later sections receive the same depth as earlier ones.
 6. **Readability.** A4, paper-like, comfortable leading; the body is
-   single-column and the C glossary may use two columns; no cramped tables, no
-   clipped code, no orphan headings.
+   single-column; the C glossary is a four-column term/definition table; no
+   cramped tables, no clipped code, no orphan headings.
 7. **Auditability.** The final coverage report states exactly what was covered,
    what was image-only, and what was inaccessible.
 8. **No generic quiz padding.** Long-form course guides do not add questions,
@@ -246,6 +246,8 @@ lines. Adjust for source density, not for how tired the writer is.
 
 - One consolidated glossary, alphabetical or grouped by theme.
 - 60–120 terms for a full course; 25–40 for a pilot.
+- Use `::: glossary`; each `###` group becomes a four-column table
+  (`Terim | Tanım | Terim | Tanım`), not a two-column prose block.
 - Each entry: **Turkish term (English term)** — precise definition — source ref.
 - Add a “Sık karıştırılan ayrımlar” table for pairs.
 - Do not duplicate long explanations from B; keep definitions exam-ready.

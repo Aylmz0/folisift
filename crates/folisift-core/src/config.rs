@@ -208,6 +208,9 @@ pub struct GuideSummary {
     pub language: String,
     pub output: String,
     pub sources: usize,
+    pub source_count: usize,
+    pub guide_kind: String,
+    pub case_count: usize,
     pub content_words: usize,
     pub section_count: usize,
     pub valid: bool,
@@ -452,6 +455,15 @@ pub fn list_guides(workspace: &Workspace) -> Result<Vec<GuideSummary>> {
                     language: style.language,
                     output: guide.config.output,
                     sources: guide.sources.len(),
+                    source_count: guide.sources.len(),
+                    guide_kind: style.structure.clone(),
+                    case_count: content
+                        .lines()
+                        .filter(|line| {
+                            let line = line.trim_start();
+                            line.starts_with("## Dava ") || line.starts_with("## Case ")
+                        })
+                        .count(),
                     content_words: prose_words(&content),
                     section_count: content
                         .lines()
@@ -471,6 +483,9 @@ pub fn list_guides(workspace: &Workspace) -> Result<Vec<GuideSummary>> {
                     language: String::new(),
                     output: String::new(),
                     sources: 0,
+                    source_count: 0,
+                    guide_kind: "unknown".to_string(),
+                    case_count: 0,
                     content_words: 0,
                     section_count: 0,
                     valid: false,

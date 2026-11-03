@@ -6,6 +6,7 @@ table.
 
 | Tag | Date | Build | Commit | PDFium | What changed |
 |---|---|---:|---|---|---|
+| `v0.14.6` | 2026-11-04 | 170 | pending | `chromium/8058` | Guide summaries expose guide_kind/source_count/case_count; authoring and architecture docs cover manifest, QA, glossary and continuity options |
 | `v0.14.5` | 2026-11-04 | 167 | `3f8c77564f1ce930f7bea3ab3ce72879fc200029` | `chromium/8058` | QA diagram count uses generated diagram assets only; architecture schema-2/3 wording corrected |
 | `v0.14.4` | 2026-11-04 | 164 | `2993e5f4f1240338f50280a1d8d2154e1e8d5486` | `chromium/8058` | Guide-aware style compatibility in `styles list`/MCP `style list`; docs audit and architecture/output-artifact corrections |
 | `v0.14.3` | 2026-11-04 | 162 | `bc179f0050e87dfa4991e03e06a1ab4d51f79f02` | `chromium/8058` | Report real source lines for E_MARKDOWN after frontmatter; final plan/gate reconciliation |
@@ -35,6 +36,11 @@ table.
 | `v0.1.0` | 2026-10-26 | 16 | `fb7fe59de483f8e4e88d4346cb10f4c91f3445e2` | `chromium/8058` | First Rust/Typst/MCP release; 23-page reference guide, coverage 13/13; Python engine removed |
 
 ## Notes
+
+- `v0.14.6` exposes `guide_kind`, `source_count` and `case_count` in
+  `list-guides`/MCP guide summaries, and updates the authoring/architecture
+  docs for the reviewed manifest, `qa`, four-column glossaries and continuity
+  options. No guide content or page layout changes.
 
 - `v0.14.5` fixes the `qa` diagram count: it now counts only
   `assets/generated/*.svg` diagram assets, not unrelated figures. The

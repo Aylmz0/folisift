@@ -105,6 +105,9 @@ surface is in `docs/authoring.md`.
 | `guides/<slug>/data/blocks/<source>.json` | `folisift analyze` / `prepare_guide` | no; generated layout cache |
 | `guides/<slug>/data/document-graph.json` | `folisift graph build` | no; generated review graph |
 | `guides/<slug>/data/coverage.md` | `folisift build --check` | yes; audit trail |
+| `guides/<slug>/data/coverage-manifest.json` | `folisift coverage-manifest --action build` + host review | yes when reviewed; authoritative gate input |
+| `guides/<slug>/data/headings.review.md` | `folisift analyze` | yes; heading/TOC review aid |
+| `guides/<slug>/data/incremental-sections.json` | `folisift build` | no; section-hash report |
 | `guides/<slug>/visual-audit.json` | host author | yes; low-text page decisions |
 | `data/cache/` | `folisift analyze` / `read_source` | no; source text cache |
 | `guides/<slug>/data/pages/` | `folisift render-pages` | no; visual cache |

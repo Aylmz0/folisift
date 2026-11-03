@@ -313,21 +313,30 @@ The template owns pagination and typography; content uses semantic blocks.
 | `::: synthesis title=...` | one-page synthesis block; revision layout |
 | `::: answer label=...` | separated answer-key block; reader and revision layouts |
 | `::: organiser title=... source=...` | one-page knowledge-organiser page; revision layout |
-| `::: table widths="5,20,35,40" kind="facts" caption="..." source="..." id="..."` | table metadata; wrap the Markdown table |
+| `::: table widths="5,20,35,40" kind="facts" caption="..." source="..." id="..." caption_number="false" keep_with_next="true" allow_page_break="true" min_space_mm="6"` | table metadata and placement; wrap the Markdown table |
+| `::: glossary` | four-column glossary table; group with `###` headings |
 | `::: columns` … `::: columnbreak` … `:::` | two-column region and explicit break |
 | `::: pagebreak` | start the next block on a new page (rare) |
 
 `chapter` attributes: `part`, `side`, `kicker`, `title`, `toc`, `running`,
-`lead`, `range`, `compact`, `subs`. Use `compact=true` for C–G chapters; use
-`subs=false` when a chapter's `##` headings should not appear in the TOC.
+`lead`, `range`, `compact`, `subs`, `flow`, `keep_with_next`, `break_before`,
+`break_after`, `allow_split`, `full_page_opener`. Use `compact=true` for C–G
+chapters; use `subs=false` when a chapter's `##` headings should not appear in
+the TOC. `flow=true` pulls the opener into the previous page's remaining space.
 The first `::: definition` in the front matter may carry
 `toc="A · ÇERÇEVE"` so the box gets a TOC entry.
 
 `::: table` attributes: `widths` is a comma-separated percentage list;
 `kind="facts"` renders a label/value grid instead of a data table; `caption`
-and `source` add a numbered caption and source note. `id` creates a stable
-Typst label such as `tab-derleme`, usable in prose as `@tab-derleme`. Widths
-must be percentages that sum to 100.
+and `source` add a numbered caption and source note. `caption_number="false"`
+keeps the caption without a table number. `id` creates a stable Typst label
+such as `tab-derleme`, usable in prose as `@tab-derleme`. Widths must be
+percentages that sum to 100. `keep_with_next`, `allow_page_break` and
+`min_space_mm` control placement.
+
+Glossaries use one `::: glossary` block; each `###` group becomes a balanced
+four-column table (`Terim | Tanım | Terim | Tanım`) with repeated headers and
+atomic term/definition rows.
 
 ### Diagrams
 
@@ -416,13 +425,22 @@ instead of loading a whole block artifact into the context window.
 ## Build and gate
 
 ```bash
+cargo run -p folisift-cli -- coverage-manifest --guide pd0-pd1 --action build
 cargo run -p folisift-cli -- build --guide pd0-pd1 --check
+cargo run -p folisift-cli -- qa --guide pd0-pd1
 ```
 
-The command fails if a numbered source subsection has no matching heading. The
-coverage report is written to `data/coverage.md`. A passing gate is necessary,
-not sufficient: the G section still needs a human audit of tables, figures,
-examples and low-text pages.
+`coverage-manifest` is optional but authoritative when
+`data/coverage-manifest.json` exists: it lets the host review merged/excluded
+source headings before building. Without it the legacy heading gate remains the
+fallback.
+
+The build fails if a numbered source subsection has no matching heading, an
+empty section, a missing visual decision, or an underfilled body page. The
+coverage report is written to `data/coverage.md`. `qa` runs build, coverage,
+audit, visual, cards, claims and diagram counts in one report. A passing gate is
+necessary, not sufficient: the G section still needs a human audit of tables,
+figures, examples and low-text pages.
 
 ### Visual regression
 
@@ -526,6 +544,7 @@ is a design-system change and needs an ADR (ADR-0002, ADR-0007, ADR-0012).
 - [ ] Low-text pages inspected visually.
 - [ ] Every numbered subsection has a `##` heading.
 - [ ] Source references present; no invented facts.
-- [ ] `build --check` passes.
+- [ ] `coverage-manifest --action validate` passes when a manifest exists.
+- [ ] `build --check` and `qa` pass.
 - [ ] G section records coverage, exclusions and weak spots.
 - [ ] PDF page count and Turkish glyphs checked.

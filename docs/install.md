@@ -35,8 +35,8 @@ inference only and the MCP server makes no network call.
 Manual archive verification:
 
 ```bash
-tar -xzf folisift-v0.14.5-linux-x86_64.tar.gz
-sha256sum -c folisift-v0.14.5-linux-x86_64.tar.gz.sha256
+tar -xzf folisift-v0.14.6-linux-x86_64.tar.gz
+sha256sum -c folisift-v0.14.6-linux-x86_64.tar.gz.sha256
 ./folisift doctor
 ```
 

@@ -53,6 +53,9 @@ fn lists_guides_with_status() {
     assert_eq!(guides.len(), 1);
     assert!(guides[0].valid);
     assert_eq!(guides[0].slug, "demo");
+    assert_eq!(guides[0].source_count, 1);
+    assert_eq!(guides[0].guide_kind, "a-g");
+    assert_eq!(guides[0].case_count, 0);
 }
 
 #[test]
