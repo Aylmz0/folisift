@@ -95,6 +95,11 @@ enum Command {
         #[command(subcommand)]
         command: LinksCommand,
     },
+    /// Extract opt-in LiteParse depth: annotations, forms, structure, vectors, complexity.
+    Insights {
+        #[arg(long)]
+        source: PathBuf,
+    },
     /// Build a source inventory with liteparse.
     Analyze {
         /// Source PDFs, relative to the workspace root.
@@ -1013,6 +1018,11 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                     );
                 }
             }
+        }
+        Command::Insights { source } => {
+            let source = workspace.resolve_read(&source)?;
+            let value = folisift_parse::extract_insights(&source).await?;
+            println!("{}", serde_json::to_string_pretty(&value)?);
         }
         Command::Analyze {
             sources,

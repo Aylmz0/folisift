@@ -16,7 +16,7 @@
 | [Accessibility review](accessibility-review-2026-11-03.md) | Tagged-PDF reading order, component contrast and the offline exam copy |
 | [ADRs](adr/) | Architectural decisions and their consequences |
 | [Plans](plans/) | Architecture, migration and remediation plans |
-| [Production feedback remediation](plans/2026-11-03-production-feedback-remediation.md) | Exhaustive plan for coverage, layout, diagnostics, D2, MCP, context economics and engine depth |
+| [Production feedback remediation](plans/2026-11-03-production-feedback-remediation.md) | Completed remediation plan for coverage, layout, diagnostics, D2, MCP, context economics and engine depth |
 | [Agent configuration](agents/) | Issue tracker, triage labels, domain-doc rules, versioning |
 | [Versions](VERSIONS.md) | Released tags, builds and release notes |
 | [Agent rules](../AGENTS.md) | Repo-specific operating rules and commands |

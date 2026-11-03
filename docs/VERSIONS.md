@@ -6,6 +6,7 @@ table.
 
 | Tag | Date | Build | Commit | PDFium | What changed |
 |---|---|---:|---|---|---|
+| `v0.15.0` | 2026-11-04 | 172 | pending | `chromium/8058` | M5: opt-in LiteParse annotations/forms/structure/vector/complexity insights, D2 sketch rendering, MCP schema 11 with 32 tools |
 | `v0.14.6` | 2026-11-04 | 170 | `9a5c4a13a269db56efbff028bd8fdfd14740d7d5` | `chromium/8058` | Guide summaries expose guide_kind/source_count/case_count; authoring and architecture docs cover manifest, QA, glossary and continuity options |
 | `v0.14.5` | 2026-11-04 | 167 | `3f8c77564f1ce930f7bea3ab3ce72879fc200029` | `chromium/8058` | QA diagram count uses generated diagram assets only; architecture schema-2/3 wording corrected |
 | `v0.14.4` | 2026-11-04 | 164 | `2993e5f4f1240338f50280a1d8d2154e1e8d5486` | `chromium/8058` | Guide-aware style compatibility in `styles list`/MCP `style list`; docs audit and architecture/output-artifact corrections |
@@ -36,6 +37,12 @@ table.
 | `v0.1.0` | 2026-10-26 | 16 | `fb7fe59de483f8e4e88d4346cb10f4c91f3445e2` | `chromium/8058` | First Rust/Typst/MCP release; 23-page reference guide, coverage 13/13; Python engine removed |
 
 ## Notes
+
+- `v0.15.0` closes M5 optional polish. `folisift insights --source` and MCP
+  `source_insights` expose annotations, AcroForm fields, tagged structure,
+  vector geometry, image refs and per-page complexity as read-only diagnostics.
+  D2 specs gain an opt-in `sketch` flag; legal/medical guides keep it off by
+  default. MCP schema is 11 with 32 tools.
 
 - `v0.14.6` exposes `guide_kind`, `source_count` and `case_count` in
   `list-guides`/MCP guide summaries, and updates the authoring/architecture

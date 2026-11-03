@@ -44,6 +44,9 @@ pub struct DiagramSpec {
     pub direction: Option<String>,
     #[serde(default = "default_layout")]
     pub layout: String,
+    /// Opt-in D2 hand-drawn rendering. Off by default.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub sketch: bool,
     #[serde(default)]
     pub nodes: Vec<Node>,
     #[serde(default)]
@@ -222,6 +225,8 @@ pub struct DiagramManifest {
     pub svg: String,
     pub d2_version: String,
     pub layout: String,
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub sketch: bool,
     #[serde(default)]
     pub tala_seeds: String,
     pub salt: String,
@@ -266,6 +271,10 @@ pub struct DiagramStatus {
 
 pub fn default_schema() -> u32 {
     SPEC_SCHEMA_VERSION
+}
+
+fn is_false(value: &bool) -> bool {
+    !*value
 }
 
 pub fn default_layout() -> String {
@@ -1354,6 +1363,7 @@ fn load_assets_filtered(
         }
         if manifest.d2_version != D2_VERSION
             || manifest.postprocess_version != POSTPROCESS_VERSION
+            || manifest.sketch != spec.sketch
             || manifest.tala_seeds != TALA_SEEDS
             || manifest.theme_digest.is_empty()
         {
@@ -1545,6 +1555,7 @@ fn status_for_spec(
     }
     if manifest.d2_version != D2_VERSION
         || manifest.postprocess_version != POSTPROCESS_VERSION
+        || manifest.sketch != spec.sketch
         || manifest.tala_seeds != TALA_SEEDS
         || manifest.theme_digest.is_empty()
     {
@@ -1676,6 +1687,7 @@ mod tests {
             source: "PD0, s. 35".to_string(),
             direction: Some("right".to_string()),
             layout: DEFAULT_LAYOUT.to_string(),
+            sketch: false,
             nodes: vec![
                 Node {
                     id: "src".to_string(),
@@ -1925,6 +1937,22 @@ mod tests {
         assert!(out.contains("<title"));
         assert!(out.contains("<desc"));
         assert!(out.contains("paint-order=\"stroke\""));
+    }
+
+    #[test]
+    fn sketch_is_opt_in_and_changes_the_spec_hash() {
+        let base = spec();
+        let mut sketched = base.clone();
+        sketched.sketch = true;
+        assert_ne!(
+            spec_hash(&base).expect("base"),
+            spec_hash(&sketched).expect("sketch")
+        );
+        let value = serde_json::to_value(&base).expect("spec");
+        assert!(
+            value.get("sketch").is_none(),
+            "false sketch must be omitted"
+        );
     }
 
     #[test]

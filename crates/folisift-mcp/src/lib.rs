@@ -79,6 +79,12 @@ pub struct LinksParams {
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
+pub struct SourceInsightsParams {
+    /// Source PDF path relative to the workspace.
+    pub source: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
 pub struct SourceBriefParams {
     /// Guide slug.
     pub guide: String,
@@ -1767,6 +1773,28 @@ impl FolisiftServer {
     }
 
     #[tool(
+        description = "Opt-in LiteParse depth: annotations, forms, structure, vectors and per-page complexity",
+        annotations(
+            title = "Source insights",
+            read_only_hint = true,
+            open_world_hint = false
+        )
+    )]
+    async fn source_insights(
+        &self,
+        Parameters(params): Parameters<SourceInsightsParams>,
+    ) -> Result<Json<Value>, String> {
+        let source = self
+            .workspace
+            .resolve_read(&params.source)
+            .map_err(|error| error.to_string())?;
+        let value = folisift_parse::extract_insights(&source)
+            .await
+            .map_err(|error| error.to_string())?;
+        Ok(Json(value))
+    }
+
+    #[tool(
         description = "One bounded overview of a source: pages, low-text pages, headings and sections",
         annotations(title = "Source brief", read_only_hint = true, open_world_hint = false)
     )]
@@ -2768,15 +2796,16 @@ fn diagram_schema() -> String {
         "properties": {
             "schema_version": {"const": 2},
             "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$"},
-            "kind": {"enum": ["flow", "concept", "tree", "sequence"]},
+            "kind": {"enum": ["flow", "concept", "tree", "decision", "sequence", "class", "erd"]},
             "title": {"type": "string", "minLength": 1},
             "caption": {"type": "string", "minLength": 1},
             "alt": {"type": "string", "minLength": 1},
             "source": {"type": "string", "minLength": 1},
             "direction": {"enum": ["right", "down", "left", "up"]},
-            "layout": {"const": "tala"},
-            "nodes": {"type": "array", "minItems": 1, "maxItems": 12},
-            "edges": {"type": "array", "maxItems": 20},
+            "layout": {"enum": ["tala", "dagre", "elk"]},
+            "sketch": {"type": "boolean", "default": false},
+            "nodes": {"type": "array", "minItems": 1, "maxItems": 24},
+            "edges": {"type": "array", "maxItems": 40},
             "groups": {"type": "array"}
         },
         "additionalProperties": false
@@ -2785,7 +2814,7 @@ fn diagram_schema() -> String {
 }
 
 fn diagram_rules() -> &'static str {
-    "Diagram rules\n\n- 0-3 diagrams per chapter; one idea per diagram.\n- 1-12 nodes, max 20 edges, tree depth max 4.\n- Use flow for processes, concept for relationships, tree for hierarchy, sequence for messages.\n- No decorative images, stock photos or AI illustrations.\n- Every diagram needs a takeaway caption, an alt text and provenance.\n- The host writes JSON only; D2, SVG and Typst are engine-owned.\n- Builds read pre-generated SVG; the CLI `folisift diagram build` is the only D2 caller."
+    "Diagram rules\n\n- 0-3 diagrams per chapter; one idea per diagram.\n- 1-24 nodes, max 40 edges, tree/decision depth max 8.\n- Use flow for processes, concept for relationships, tree/decision for hierarchy, sequence for messages, class/erd for structural models.\n- Layouts: tala, dagre, elk. Record the layout in the manifest.\n- Sketch rendering is opt-in and off by default for legal/medical guides.\n- No decorative images, stock photos or AI illustrations.\n- Every diagram needs a takeaway caption, an alt text and provenance.\n- The host writes JSON only; D2, SVG and Typst are engine-owned.\n- Builds read pre-generated SVG; the CLI `folisift diagram build` is the only D2 caller."
 }
 
 fn suggested_page_range(inventory: &Inventory, style: &folisift_core::StyleProfile) -> String {

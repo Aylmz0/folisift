@@ -206,7 +206,8 @@ fn build_one(
     }
     let d2_home = guide.dir.join("data/d2-home");
     std::fs::create_dir_all(&d2_home)?;
-    let output = Command::new(d2)
+    let mut command = Command::new(d2);
+    command
         .env_clear()
         .env("PATH", "")
         .env("HOME", &d2_home)
@@ -242,8 +243,11 @@ fn build_one(
         .arg(&d2_path)
         .arg(&temp_svg)
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .output()?;
+        .stderr(Stdio::piped());
+    if spec.sketch {
+        command.arg("--sketch");
+    }
+    let output = command.output()?;
     if !output.status.success() {
         let _ = std::fs::remove_file(&temp_svg);
         let stderr = String::from_utf8_lossy(&output.stderr);
@@ -282,6 +286,7 @@ fn build_one(
         svg: relative.clone(),
         d2_version: D2_VERSION.to_string(),
         layout: spec.layout.clone(),
+        sketch: spec.sketch,
         tala_seeds: TALA_SEEDS.to_string(),
         salt: diagram::salt(&spec_sha),
         fonts: vec![

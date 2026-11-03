@@ -5,7 +5,7 @@ PDFs into source-traceable, paper-like study guides with a deterministic build,
 layout audit and local review tools. The engine is shared; each course is a
 self-contained guide bundle.
 
-**Current release: `v0.14.6`** — Linux archive, source builds for macOS and
+**Current release: `v0.15.0`** — Linux archive, source builds for macOS and
 Windows, and a source-available PolyForm Strict license.
 
 - Repository: <https://github.com/Aylmz0/folisift>
@@ -31,7 +31,9 @@ Windows, and a source-available PolyForm Strict license.
   briefs, source topics, guide plans, cost reports and bounded section reads
   keep source context small; `qa` returns one release report; MCP profiles keep
   the active tool schema small; and `::: glossary` renders dense four-column
-  term tables.
+  term tables. Opt-in `insights` exposes LiteParse annotations, AcroForm
+  fields, tagged structure, vector geometry and per-page complexity without
+  changing the normal inventory.
 - Runs offline after installation. The MCP server makes no LLM, network or
   shell calls.
 
@@ -73,8 +75,8 @@ pre-generated SVG and never execute D2.
 ### Manual archive
 
 ```bash
-tar -xzf folisift-v0.14.6-linux-x86_64.tar.gz
-sha256sum -c folisift-v0.14.6-linux-x86_64.tar.gz.sha256
+tar -xzf folisift-v0.15.0-linux-x86_64.tar.gz
+sha256sum -c folisift-v0.15.0-linux-x86_64.tar.gz.sha256
 ./folisift doctor
 ```
 
@@ -195,8 +197,8 @@ Or declare it directly:
 ```
 
 Ask the host to run `doctor`, prepare the guide, read the sources, write the
-guide, build with the coverage gate and audit the PDF. The MCP exposes 31 tools
-at schema 10; profiles (`core`, `source`, `authoring`, `review`, `fast`, `deep`)
+guide, build with the coverage gate and audit the PDF. The MCP exposes 32 tools
+at schema 11; profiles (`core`, `source`, `authoring`, `review`, `fast`, `deep`)
 hide the rest before `tools/list`, and `core` is ten tools. The normal path is
 `prepare_guide` → `section_brief` / `read_section` / `read_source` → host writes
 `guide.md` → `build_guide` → `qa_guide` (`audit_guide` for the standalone
@@ -223,6 +225,7 @@ folisift section-brief --guide my-course --source source-a --heading "3.1"
 folisift read-section --guide my-course --source source-a --heading "3.1"
 folisift budget --guide my-course
 folisift styles estimate --guide my-course
+folisift insights --source sources/source-a.pdf
 folisift graph build --guide my-course
 folisift links build --guide my-course
 folisift diagram build --guide my-course --id pipeline

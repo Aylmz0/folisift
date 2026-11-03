@@ -45,8 +45,17 @@ cargo run -p folisift-cli -- analyze \
   --md guides/pd0-pd1/data/source.md
 ```
 
-The MCP flow reads source text in bounded chunks with `read_source` and can
-search it with `search_source`; the host LLM writes the prose.
+For an opt-in LiteParse depth pass (comments/highlights, AcroForm fields,
+tagged structure, vector geometry, image refs and per-page complexity):
+
+```bash
+cargo run -p folisift-cli -- insights --source sources/PD0.pdf
+```
+
+The MCP equivalent is `source_insights`. It is read-only diagnostics: it does
+not run OCR, write files, or change coverage. The MCP flow reads source text in
+bounded chunks with `read_source` and can search it with `search_source`; the
+host LLM writes the prose.
 
 ## Choose a style
 
@@ -356,6 +365,7 @@ A diagram is a typed JSON spec under `guides/<slug>/diagrams/<id>.json`:
   "source": "PD0, s. 35",
   "direction": "right",
   "layout": "tala",
+  "sketch": false,
   "nodes": [
     {"id": "src", "label": "Kaynak program"},
     {"id": "lex", "label": "Sözcüksel analiz"},
@@ -374,6 +384,10 @@ Reference it from `guide.md` with an empty directive:
 ::: diagram id="pipeline"
 :::
 ```
+
+`sketch=true` opts into D2 hand-drawn rendering. Keep it off for legal, medical
+and other formal guides unless the guide owner explicitly wants the experiment;
+the manifest records the flag so stale assets are rebuilt.
 
 Build the assets with the CLI; D2 is not called from MCP or `build`:
 

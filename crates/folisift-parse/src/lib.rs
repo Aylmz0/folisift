@@ -8,6 +8,7 @@ pub mod brief;
 pub mod coverage;
 pub mod error;
 pub mod graph;
+pub mod insights;
 pub mod inventory;
 pub mod layout;
 pub mod manifest;
@@ -31,6 +32,7 @@ pub use coverage::{
 };
 pub use error::{Error, Result};
 pub use graph::{DocumentGraph, GRAPH_SCHEMA_VERSION, GraphEdge, GraphNode};
+pub use insights::extract_insights;
 pub use inventory::{CanonicalSection, Heading, Inventory, PageRow, SourceInventory, Totals};
 pub use layout::{
     BlockView, LAYOUT_SCHEMA_VERSION, LayoutBlock, LayoutBlockKind, LayoutCell, LayoutSummary,

@@ -1,7 +1,7 @@
 # Production feedback remediation plan — 2026-11-03
 
-- **Status:** Completed through v0.14.6; M5 optional polish is explicitly out
-  of scope by the plan
+- **Status:** Completed through v0.15.0; all milestones, including M5 optional
+  polish, are implemented
 - **Source:** [`docs/FOLISIFT-GERI-BILDIRIM.md`](../FOLISIFT-GERI-BILDIRIM.md)
 - **Baseline:** Folisift 0.12.4, build 143, MCP schema 8
 - **Purpose:** turn every finding in the production feedback into an owned,
@@ -9,13 +9,13 @@
 - **Primary outcome:** “passed” must mean complete, visually continuous and
   machine-diagnosable; context must get cheaper without adding network calls
 
-## 0.1 Release 0.14.6 implementation status
+## 0.1 Release 0.15.0 implementation status
 
-v0.14.6 closes the trust-critical slice, the M2 workflow core, the M3 context
+v0.15.0 closes the trust-critical slice, the M2 workflow core, the M3 context
 core and the M4 core on the current workspace. Items marked **Partial** have a shipped,
 testable subset and a named remaining gap; they are not claimed complete.
 
-| Workstream | Status in v0.14.6 | Evidence / remaining gap |
+| Workstream | Status in v0.15.0 | Evidence / remaining gap |
 |---|---|---|
 | W1 coverage manifest | Shipped | `coverage-manifest` CLI/MCP, manifest-first build, page-accurate coverage report, tests |
 | W2 layout continuity | Shipped (core) | chapter/columns/table/diagram keep/break options, `toc_depth`/`subs`, glossary flow, role-aware underfill; front/table close order documented |
@@ -31,14 +31,15 @@ testable subset and a named remaining gap; they are not claimed complete.
 | W12 claims and cards | Shipped (core) | section/severity/missing citation, noise filter, default intervals, empty warning, `verify_citations` |
 | W13 page budget UX | Shipped (core) | `budget`, section attribution, capped search context, incremental section hashes/report; parse artifacts are still recomputed by design |
 | W14 context retrieval | Shipped (core) | briefs, section read, `source_brief`, `source_topics`, `guide_plan`, `visual_brief`, `citation_snippet`, `cost_report` |
-| W15 LiteParse depth | Shipped (core) | complexity/OCR policy, per-page low-text candidates, text-layer/heading/layout evidence; typed metadata/vector/structure extraction stays opt-in |
-| W16 D2 depth | Shipped (core) | `dagre`/`elk`, manifest layout recording, per-group direction; classes/tooltips stay optional polish |
-| W17 Model2Vec/reranker | Shipped (core) | local Model2Vec links are the default; topic clustering is deterministic and term-based; conditional reranker stays opt-in until a benchmark justifies it |
+| W15 LiteParse depth | Shipped | opt-in `insights` reports annotations, AcroForm fields, tagged structure, vector geometry, image refs and per-page complexity |
+| W16 D2 depth | Shipped | `dagre`/`elk`, per-group direction, manifest layout and opt-in sketch rendering |
+| W17 Model2Vec/reranker | Shipped | local Model2Vec links are the default; deterministic topic clustering is the fallback and the reranker remains opt-in |
 | W18 OCR policy | Shipped (policy) | OCR off by default, explicit candidates/reasons, no silent OCR |
 | W19 determinism/docs | Shipped (docs) | cookbook, release checklist, versioned gates |
 | W20 agent profiles | Shipped (core) | `fast`/`deep` profiles plus core/source/authoring/review |
 | W21 MCP profiles/resources | Shipped (core) | active profile ≤15 tools, core 10, resource cursor pagination, capabilities resource |
 | W22 four-column glossary | Shipped | `::: glossary`, 18/32/18/32 widths, compact repeated headers, atomic pairs |
+| M5 optional polish | Shipped | annotations/forms insights, opt-in D2 sketch, cookbook/UX polish |
 
 The five exam PDFs pass `make exam-check`; `make visual`, `make type-check`,
 `make parity`, `make genre-check`, `make d2-pdf-check`, `cargo test`, `clippy`

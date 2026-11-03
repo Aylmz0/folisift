@@ -129,6 +129,7 @@ fn embeds_a_prebuilt_diagram_and_rejects_inline_blocks() {
         source: "PD0, s. 35".to_string(),
         direction: Some("right".to_string()),
         layout: "tala".to_string(),
+        sketch: false,
         nodes: vec![
             Node {
                 id: "src".to_string(),
@@ -187,6 +188,7 @@ fn embeds_a_prebuilt_diagram_and_rejects_inline_blocks() {
         svg: format!("assets/generated/{svg_hash}.svg"),
         d2_version: D2_VERSION.to_string(),
         layout: "tala".to_string(),
+        sketch: false,
         tala_seeds: folisift_render::diagram::TALA_SEEDS.to_string(),
         salt: folisift_render::diagram::salt(&spec_sha),
         fonts: vec!["Inter-Regular.ttf".to_string()],
