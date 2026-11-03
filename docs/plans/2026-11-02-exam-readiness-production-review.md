@@ -32,7 +32,7 @@
 | `cargo test --workspace` | 173 tests pass |
 | `cargo clippy -D warnings` | pass |
 | `cargo fmt --check` | pass |
-| PD0–PD1 / PD2 / PD3 | 22 / 24 / 22 pages |
+| PD0–PD1 / PD2 / PD3 | 22 / 24 / 21 pages |
 | Revision / organiser | 4 / 1 pages |
 | Cold build (PD2) | 18.17 s |
 | Warm cached build (PD2) | 0.89 s, `cache_hit: true` |

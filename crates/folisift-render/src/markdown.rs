@@ -426,9 +426,23 @@ fn markdown_to_typst_with(markdown: &str, config: &RenderConfig) -> Result<Strin
                             "diagram {id:?} has no built asset; run `folisift diagram build --guide <slug> --id {id}`"
                         ),
                     })?;
+                    let width = attr(&attrs, "width").unwrap_or("90%").trim();
+                    let valid_width = width
+                        .strip_suffix('%')
+                        .and_then(|value| value.parse::<u8>().ok())
+                        .is_some_and(|value| (50..=100).contains(&value));
+                    if !valid_width {
+                        return Err(Error::Markdown {
+                            line: start_line,
+                            message: format!(
+                                "diagram width must be a percentage from 50% to 100%, got {width:?}"
+                            ),
+                        });
+                    }
                     out.push_str(&format!(
-                        "#figure(fitted_image({}, alt: {}), caption: [{}], supplement: [{}], numbering: \"1\")\n\n",
+                        "#figure(fitted_image({}, width: {}, alt: {}), caption: [{}], supplement: [{}], numbering: \"1\")\n\n",
                         typst_string(&asset.path),
+                        width,
                         typst_string(&asset.alt),
                         caption_typst(&asset.caption),
                         typst_string(&config.figure_label),

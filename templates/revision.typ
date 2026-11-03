@@ -448,6 +448,8 @@
 #let two_col(body) = block[
   #set text(size: table-size)
   #set par(justify: false, leading: 0.66em, spacing: 2mm)
+  #show block: set block(above: 2.8mm, below: 0pt)
+  #show heading.where(level: 3): set block(above: 4.5mm, below: 5mm)
   #columns(2, gutter: 8mm)[#body]
 ]
 

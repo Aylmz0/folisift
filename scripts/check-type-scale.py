@@ -19,7 +19,7 @@ BINARY = ROOT / "target/debug/folisift"
 CASES = [
     ("output/PD0-PD1_Calisma_Ozeti.pdf", "pd0-pd1", 22, 0.0, 0),
     ("output/PD2_Calisma_Ozeti.pdf", "pd2", 24, 0.90, 0),
-    ("output/PD3_Calisma_Ozeti.pdf", "pd3", 22, 0.90, 0),
+    ("output/PD3_Calisma_Ozeti.pdf", "pd3", 21, 0.90, 0),
     ("output/PD2_Revizyon.pdf", "pd2-rev", 4, 0.90, 82),
     ("output/PD2_LISP_Bilgi_Organizatoru.pdf", "pd2-ko", 1, 0.0, 90),
 ]

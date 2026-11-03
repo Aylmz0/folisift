@@ -20,7 +20,7 @@ PY
 done <<'EOF'
 pd0-pd1 output/PD0-PD1_Calisma_Ozeti.pdf 22
 pd2 output/PD2_Calisma_Ozeti.pdf 24
-pd3 output/PD3_Calisma_Ozeti.pdf 22
+pd3 output/PD3_Calisma_Ozeti.pdf 21
 pd2-rev output/PD2_Revizyon.pdf 4
 pd2-ko output/PD2_LISP_Bilgi_Organizatoru.pdf 1
 EOF

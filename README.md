@@ -5,12 +5,12 @@ PDFs into source-traceable, paper-like study guides with a deterministic build,
 layout audit and local review tools. The engine is shared; each course is a
 self-contained guide bundle.
 
-**Current release: `v0.12.1`** — Linux archive, source builds for macOS and
+**Current release: `v0.12.2`** — Linux archive, source builds for macOS and
 Windows, and a noncommercial license.
 
 - Repository: <https://github.com/Aylmz0/folisift>
 - Documentation: [`docs/`](docs/)
-- License: [PolyForm Noncommercial 1.0.0](LICENSE)
+- License: [PolyForm Strict 1.0.0](LICENSE)
 
 ## What it does
 
@@ -68,8 +68,8 @@ pre-generated SVG and never execute D2.
 ### Manual archive
 
 ```bash
-tar -xzf folisift-v0.12.1-linux-x86_64.tar.gz
-sha256sum -c folisift-v0.12.1-linux-x86_64.tar.gz.sha256
+tar -xzf folisift-v0.12.2-linux-x86_64.tar.gz
+sha256sum -c folisift-v0.12.2-linux-x86_64.tar.gz.sha256
 ./folisift doctor
 ```
 
@@ -259,9 +259,11 @@ See [architecture](docs/architecture.md) for boundaries and data contracts.
 
 ## License
 
-Folisift is source-available under the **PolyForm Noncommercial License 1.0.0**.
+Folisift is source-available under the **PolyForm Strict License 1.0.0**.
 Personal, educational, research and other noncommercial use is permitted.
-**Commercial use requires prior written permission** from the copyright holder.
+The license does **not** grant distribution, modification, derivative works,
+forks or maintenance rights. **Commercial use and any redistribution or
+maintenance require prior written permission** from the copyright holder.
 See [`LICENSE`](LICENSE).
 
 This is not an OSI-approved open source license. Bundled PDFium, D2, fonts and

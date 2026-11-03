@@ -27,7 +27,7 @@ Result:
 |---|---:|---:|---:|---:|---:|---|
 | `PD0-PD1` | 22 | 1623 | 55 | 5 | 71 | monotonic |
 | `PD2` | 24 | 1935 | 59 | 4 | 82 | monotonic |
-| `PD3` | 22 | 1785 | 50 | 6 | 58 | monotonic |
+| `PD3` | 21 | 1785 | 50 | 6 | 58 | monotonic |
 | Revision | 4 | 234 | 1 | 1 | 9 | monotonic |
 | Organiser | 1 | 128 | 5 | 0 | 5 | monotonic |
 

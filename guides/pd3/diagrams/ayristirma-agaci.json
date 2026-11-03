@@ -6,7 +6,7 @@
   "caption": "Atama deyiminin hiyerarşik ayrıştırma ağacı; kök program, dallar deyimler ve ifade, yapraklar terminal sembollerdir.",
   "alt": "Program, deyimler, deyim, değişken, ifade ve terminal sembollerden oluşan ayrıştırma ağacı.",
   "source": "PD3, s. 48–49",
-  "direction": "down",
+  "direction": "right",
   "layout": "tala",
   "nodes": [
     {"id": "program", "label": "<program>"},

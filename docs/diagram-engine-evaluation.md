@@ -67,7 +67,8 @@ this was a close decision. They are addressed in the D2 pipeline by:
 - `*.style.font-size: 28` and connection-label font size 22;
 - `--pad 20` to remove default whitespace;
 - a post-process background stroke behind edge labels;
-- the existing 17 cm figure cap and centering.
+- a 14 cm figure-height cap, 90% default width and centering; a diagram may
+  request 50–100% width explicitly.
 
 ## Activity evidence
 
@@ -204,7 +205,7 @@ job is small: produce JSON, then call one CLI command.
 | D2 output changes between versions | pin exact version; golden SVG + visual baselines |
 | Edge-label line collision | TALA + background stroke; regression test |
 | No accessibility metadata | deterministic post-processor + tests |
-| Wide canvas / small text | tuned font sizes, pad, split rule, 17 cm cap |
+| Wide canvas / small text | tuned font sizes, pad, split rule, 14 cm cap and width control |
 | Extra 18 MB binary | compress in release; D2 is optional at authoring time, not needed to build PDFs |
 | MPL-2.0 | distribute unmodified binary + notice; no source modifications |
 | Render cannot run in MCP | CLI authoring + embed-only MCP; `diagram_render_plan` guides the host |

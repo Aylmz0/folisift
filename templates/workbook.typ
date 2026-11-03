@@ -43,11 +43,12 @@
   tracking: 0.02em,
 )[[#body]])
 
-#let fitted_image(path, alt: none) = layout(size => {
-  let wide = image(path, width: size.width, alt: alt)
+#let fitted_image(path, alt: none, width: 90%) = layout(size => {
+  let target = size.width * width
+  let wide = image(path, width: target, alt: alt)
   block(width: size.width)[
-    #align(center, if measure(wide).height > 17cm {
-      image(path, height: 17cm, alt: alt)
+    #align(center, if measure(wide).height > 14cm {
+      image(path, height: 14cm, alt: alt)
     } else {
       wide
     })
@@ -373,7 +374,8 @@
 #let two_col(body) = block[
   #set text(size: __TWO_COL_SIZE__)
   #set par(justify: true, leading: 0.60em, spacing: 2.6mm, linebreaks: "optimized")
-  #show heading.where(level: 3): it => block(above: 2.4mm, below: 0.9mm)[
+  #show block: set block(above: 2.8mm, below: 0pt)
+  #show heading.where(level: 3): it => block(above: 4.5mm, below: 5mm)[
     #text(
       font: "Inter",
       size: __SMALL_SIZE__,

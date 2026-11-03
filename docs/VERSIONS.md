@@ -6,6 +6,7 @@ table.
 
 | Tag | Date | Build | Commit | PDFium | What changed |
 |---|---|---:|---|---|---|
+| `v0.12.2` | 2026-11-03 | 141 | `804d688` | `chromium/8058` | PolyForm Strict 1.0.0, compact figure sizing, per-diagram width control and glossary term spacing |
 | `v0.12.1` | 2026-11-03 | 140 | `c97fe65` | `chromium/8058` | Accessible monochrome code blocks, strict component-contrast gate and release documentation corrections |
 | `v0.12.0` | 2026-11-03 | 136 | `9b0bfb8a6d12206c935ac8f95ded161fdcb31f4d` | `chromium/8058` | Section-level source scope, deterministic document graph, local semantic links, noncommercial license, output identity and tagged reading-order/contrast checks |
 | `v0.9.0` | 2026-10-30 | 100 | `2a601794355690176dc0de2d87105a088a473a2a` | `chromium/8058` | Reader/professional styles, linked TOC, canonical/visual gates, adaptive ranges |
@@ -25,6 +26,14 @@ table.
 | `v0.1.0` | 2026-10-26 | 16 | `fb7fe59de483f8e4e88d4346cb10f4c91f3445e2` | `chromium/8058` | First Rust/Typst/MCP release; 23-page reference guide, coverage 13/13; Python engine removed |
 
 ## Notes
+
+- `v0.12.2` moves the project from PolyForm Noncommercial to PolyForm Strict
+  1.0.0. Noncommercial use remains permitted; distribution, modification,
+  derivative works, forks, maintenance and commercial use require prior written
+  permission. Earlier releases keep the license they were published with.
+  Figures now use 90% of the content width by default with a 14 cm height cap,
+  diagrams can request 50–100% width, and glossary terms get explicit block
+  spacing under their headings.
 
 - `v0.12.1` disables Typst's default raw syntax-highlighting colours so code
   keeps the body ink contrast, makes the component-contrast check strict in

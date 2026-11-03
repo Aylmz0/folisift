@@ -352,7 +352,7 @@ Ada’da bir prosedürün `end` üzerindeki adının prosedür adıyla aynı olm
 **Sentezlenmiş / miras alınmış:** Sentezlenmiş özellik çocuklardan ebeveyne **yukarı** akar; miras alınmış özellik ebeveynden çocuklara **aşağı** akar. `actual_type` sentezlenmiş, `expected_type` miras alınmıştır; bu yüzden tip denetimi iki yönlü bir hesaplama gerektirir.
 :::
 
-::: diagram id="ozellik-akisi"
+::: diagram id="ozellik-akisi" width="75%"
 :::
 
 <!-- covers: PD3:3.5 -->
@@ -364,7 +364,7 @@ Sözdizimsel olarak doğru olan bütün programların bir anlamı olmayabilir. B
 
 Anlamsal tanımlama için var olan yöntemler oldukça karmaşıktır ve hiçbiri BNF kadar yaygın kullanıma ulaşmamıştır. Dil yapılarının Türkçe gibi bir doğal dilde açıklanması mümkündür; ancak doğal dil açıklamaları **açık ve kesin olmaz**. Resmî anlam tanımlama için kullanılacak metadil, iyi anlaşılmış **sayısal kavramlara** dayanmalıdır [PD3, s. 79–81]. Üç yaklaşım vardır: **işlemsel (operational)**, **kurala dayalı (axiomatic)** ve **fonksiyonel (denotational)** semantik.
 
-::: diagram id="anlam-yontemleri"
+::: diagram id="anlam-yontemleri" width="75%"
 :::
 
 ### İşlemsel (operational) semantik

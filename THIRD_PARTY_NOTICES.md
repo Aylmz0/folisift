@@ -1,8 +1,10 @@
 # Licensing and third-party notices
 
-Folisift itself is source-available under the **PolyForm Noncommercial License
-1.0.0** (`LICENSE`). Commercial use needs prior written permission from the
-copyright holder. The third-party components below keep their own licenses.
+Folisift itself is source-available under the **PolyForm Strict License 1.0.0**
+(`LICENSE`). Noncommercial use is permitted; distribution, modification,
+derivative works, forks, maintenance and commercial use need prior written
+permission from the copyright holder. The third-party components below keep
+their own licenses.
 
 
 ## D2

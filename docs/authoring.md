@@ -388,9 +388,12 @@ rejected; move the JSON to `diagrams/<id>.json` and use the directive. The
 only exception is a manually supplied SVG/PNG asset under `assets/`; it still
 passes the sanitizer and needs a takeaway caption with provenance.
 
-The figure helper measures the rendered image. A tall SVG is capped at 17 cm
-and centered instead of overflowing the page; wide images keep the full content
-width. This applies to both `paper` and `clean`.
+The figure helper measures the rendered image. Figures use 90% of the content
+width by default, a tall figure is capped at 14 cm and everything is centered
+instead of overflowing the page. A `diagram` directive accepts an optional
+`width="50%"`–`width="100%"` for a specific figure, for example
+`::: diagram id="flow" width="75%"`. This applies to every layout that renders
+figures.
 
 ### Layout blocks
 
