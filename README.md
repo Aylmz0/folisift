@@ -282,5 +282,6 @@ the embedding model keep their own licenses; see
 - [Diagram engine decision](docs/diagram-engine-evaluation.md)
 - [Accessibility review](docs/accessibility-review-2026-11-03.md)
 - [OpenCode production loop](docs/agents/opencode-guide.md)
+- [Production feedback remediation](docs/plans/2026-11-03-production-feedback-remediation.md)
 - [Versioning and releases](docs/agents/versioning.md)
 - [Release history](docs/VERSIONS.md)

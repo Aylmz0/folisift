@@ -36,3 +36,4 @@
 - Engine changes must not introduce a course name, source filename or slide
   count into `crates/`.
 - Do not fork `templates/paper.typ` per guide.
+| [Production feedback remediation](plans/2026-11-03-production-feedback-remediation.md) | Exhaustive plan for coverage, layout, diagnostics, D2, MCP, context economics and engine depth |
