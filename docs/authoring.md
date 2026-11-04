@@ -502,16 +502,28 @@ cargo run -p folisift-cli -- qa --guide pd0-pd1
 
 `coverage-manifest` is authoritative in this order:
 
-1. `data/coverage-manifest.review.json` — host-reviewed; every canonical row
-   must be resolved (`covered`, `merged` or `excluded`);
-2. `data/coverage-manifest.generated.json` — machine-built skeleton;
-3. `data/coverage-manifest.json` — legacy combined file;
+1. `data/coverage-manifest.json` — adopted combined file; this is what
+   `adopt:true` writes from a reviewed manifest;
+2. `data/coverage-manifest.review.json` — host-reviewed candidate, used only
+   when every row is `covered`, `merged` or `excluded`;
+3. `data/coverage-manifest.generated.json` — machine-built skeleton; advisory
+   by default. Select it explicitly with `manifest:"generated"` or opt in with
+   `"audit": {"manifest_gate": "generated"}`;
 4. the legacy heading gate.
 
 `build` writes a generated skeleton and never overwrites a review file. A
-review file with `missing` rows is reported but ignored by `qa`/`build`; fix the
-review before treating it as the gate. `empty_sections` means no substantive
-body at all; a short section is reported as `weak_sections`, not empty.
+review file with `missing` rows is reported but not used as the gate. Generated
+rows are body-free candidates: headings first, TOC fallback, with `origin`
+(`heading`, `toc`, `inline`, `review`, `manual`). A review may add a manual row
+that the source never exposes as a heading; that row stays review-only.
+
+`empty_sections` means `body_chars == 0`; a section with 1–399 characters is
+`weak_sections`, not empty. The default weak threshold is 400 characters and is
+reported as `weak_section_chars`.
+
+A failed `build --check` writes `output/<slug>_draft.pdf` and returns
+`draft_path`; the normal output PDF is not overwritten. Review the draft, then
+delete it. `qa` follows the same rule.
 
 The build fails if a numbered source subsection has no matching heading, an
 empty section, a missing visual decision, or an underfilled body page. The
@@ -642,7 +654,8 @@ IRAC case bodies use level-3 headings:
 
 `## Olay/Case/Dava` headings are case rows; source headings belong in
 `source-headings.md`, not in `guide.md`. `prepare_guide` writes ten case blocks
-for a new IRAC guide and refuses to overwrite an existing IRAC guide without
+for a new IRAC guide, uses the real source id in placeholder citations, writes
+`source-headings.md`, and refuses to overwrite an existing IRAC guide without
 case headings.
 
 ### Source crops

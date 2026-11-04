@@ -29,15 +29,19 @@ pub use audit::{
     image_boxes, outline_pages,
 };
 pub use brief::{
-    SectionBrief, SectionRead, SourceSection, read_section, read_section_mode, section_brief,
-    section_brief_cached, source_sections,
+    BRIEF_CACHE_VERSION, BriefSection, SectionBrief, SectionRead, SourceSection, chapter_brief,
+    find_section, read_section, read_section_mode, section_brief, section_brief_cached,
+    source_sections,
 };
 pub use coverage::{
     CoverageReport, DEFAULT_THRESHOLD, MIN_SECTION_CHARS, check_coverage, guide_body_chars,
 };
 pub use error::{Error, Result};
 pub use graph::{DocumentGraph, GRAPH_SCHEMA_VERSION, GraphEdge, GraphNode};
-pub use hint::{CoverageHint, coverage_hints};
+pub use hint::{
+    CoverageHint, coverage_hints, coverage_hints_with_manifest, heading_has_range,
+    heading_range_contains,
+};
 pub use insights::extract_insights;
 pub use inventory::{CanonicalSection, Heading, Inventory, PageRow, SourceInventory, Totals};
 pub use layout::{

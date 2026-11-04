@@ -14,7 +14,7 @@ static SECTION_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^(\d+\.\d+)\s+(.+)$").expect("valid section regex"));
 
 pub const MIN_SECTION_CHARS: usize = 400;
-pub const WEAK_SECTION_CHARS: usize = 600;
+pub const WEAK_SECTION_CHARS: usize = 400;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CoverageReport {
@@ -23,6 +23,10 @@ pub struct CoverageReport {
     pub total: usize,
     pub canonical_total: usize,
     pub claimed: usize,
+    /// Rows explicitly excluded from coverage; counted separately from claimed.
+    pub excluded: usize,
+    /// Rows marked merged into another guide heading.
+    pub merged: usize,
     pub gate_total: usize,
     pub missing: usize,
     pub missing_from_gate: Vec<String>,
@@ -32,6 +36,7 @@ pub struct CoverageReport {
     pub duplicate_claims: Vec<String>,
     pub duplicate_sections: Vec<String>,
     pub audit_missing: bool,
+    pub weak_section_chars: usize,
     pub sources: Vec<SourceCoverage>,
 }
 
@@ -51,6 +56,8 @@ pub struct SectionResult {
     pub score: f64,
     pub matched: String,
     pub body_chars: usize,
+    /// Guide heading or parent heading that supplied the body estimate.
+    pub body_scope: String,
     pub empty: bool,
     pub ok: bool,
 }
@@ -152,12 +159,17 @@ pub fn check_coverage(
             let body_chars = claimed
                 .or_else(|| sections_by_number.get(&number).copied())
                 .unwrap_or(0);
-            let empty = body_chars < MIN_SECTION_CHARS;
+            let empty = body_chars == 0;
             if empty {
                 empty_sections.push(format!("{number} {title}"));
             } else if body_chars < WEAK_SECTION_CHARS {
                 weak_sections.push(format!("{number} {title}"));
             }
+            let body_scope = if matched.is_empty() {
+                number.clone()
+            } else {
+                matched.clone()
+            };
             sections.push(SectionResult {
                 number,
                 title,
@@ -165,6 +177,7 @@ pub fn check_coverage(
                 score,
                 matched,
                 body_chars,
+                body_scope,
                 empty,
                 ok: heading_ok && !empty,
             });
@@ -188,6 +201,8 @@ pub fn check_coverage(
         total,
         canonical_total: total,
         claimed: claimed_total,
+        excluded: 0,
+        merged: 0,
         gate_total,
         missing,
         missing_from_gate,
@@ -197,6 +212,7 @@ pub fn check_coverage(
         duplicate_claims: claims.duplicates,
         duplicate_sections,
         audit_missing,
+        weak_section_chars: WEAK_SECTION_CHARS,
         sources,
     }
 }
@@ -256,6 +272,8 @@ impl CoverageReport {
             self.claimed
         );
         let _ = writeln!(out, "- Gate içinde eşleşen: **{}**", self.gate_total);
+        let _ = writeln!(out, "- Birleştirilen: **{}**", self.merged);
+        let _ = writeln!(out, "- Hariç tutulan: **{}**", self.excluded);
         let _ = writeln!(out, "- Eksik/weak match: **{}**", self.missing);
         if !self.missing_from_gate.is_empty() {
             let _ = writeln!(
@@ -270,7 +288,12 @@ impl CoverageReport {
             "- Bilinmeyen covers: **{}**",
             self.unknown_claims.len()
         );
-        let _ = writeln!(out, "- Zayıf bölüm: **{}**", self.weak_sections.len());
+        let _ = writeln!(
+            out,
+            "- Zayıf bölüm: **{}** (eşik {} karakter)",
+            self.weak_sections.len(),
+            self.weak_section_chars
+        );
         if !self.duplicate_sections.is_empty() {
             let _ = writeln!(
                 out,

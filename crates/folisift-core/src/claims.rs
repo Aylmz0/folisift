@@ -15,6 +15,11 @@ static PAGE_REF_RE: LazyLock<Regex> = LazyLock::new(|| {
     )
     .expect("valid page reference regex")
 });
+static CITATION_GROUP_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?i)\[\s*([\p{L}\p{N}_.-]+)\s*,\s*(?:s|p)\.\s*([0-9\s,–-]+)\]")
+        .expect("valid citation group regex")
+});
+
 static HIGH_SIGNAL_RE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(
         r"(?i)(\d|%|artar|azalır|daha (az|çok|fazla)|önce|sonra|çünkü|bu yüzden|nedeniyle|before|after|more|less|increase|decrease|because|therefore|percent|between|since)",
@@ -22,7 +27,7 @@ static HIGH_SIGNAL_RE: LazyLock<Regex> = LazyLock::new(|| {
     .expect("valid claim regex")
 });
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct ClaimRef {
     pub source: String,
     pub page: usize,
@@ -91,6 +96,57 @@ impl ClaimReport {
         out.push_str("\nThis report is a reading aid, not a truth verdict.\n");
         std::fs::write(path, out).map_err(|error| crate::error::io(path, error))
     }
+}
+
+fn claim_references(text: &str) -> Vec<ClaimRef> {
+    let mut refs = Vec::new();
+    for capture in CITATION_GROUP_RE.captures_iter(text) {
+        let Some(source) = capture.get(1).map(|value| value.as_str().to_string()) else {
+            continue;
+        };
+        let Some(ranges) = capture.get(2).map(|value| value.as_str()) else {
+            continue;
+        };
+        for part in ranges.split(',') {
+            let part = part.trim();
+            if part.is_empty() {
+                continue;
+            }
+            let (page, end_page) = if let Some((start, end)) = part.split_once(['–', '-']) {
+                let (Ok(start), Ok(end)) = (start.trim().parse(), end.trim().parse()) else {
+                    continue;
+                };
+                (start, Some(end))
+            } else if let Ok(page) = part.parse() {
+                (page, None)
+            } else {
+                continue;
+            };
+            let reference = ClaimRef {
+                source: source.clone(),
+                page,
+                end_page,
+            };
+            if !refs.contains(&reference) {
+                refs.push(reference);
+            }
+        }
+    }
+    if refs.is_empty() {
+        refs = PAGE_REF_RE
+            .captures_iter(text)
+            .filter_map(|capture| {
+                Some(ClaimRef {
+                    source: capture.get(1)?.as_str().to_string(),
+                    page: capture.get(2)?.as_str().parse().ok()?,
+                    end_page: capture
+                        .get(3)
+                        .and_then(|value| value.as_str().parse::<usize>().ok()),
+                })
+            })
+            .collect();
+    }
+    refs
 }
 
 pub fn extract_claims(markdown: &str) -> ClaimReport {
@@ -244,18 +300,7 @@ fn push_claims(
             }
             continue;
         }
-        let references = PAGE_REF_RE
-            .captures_iter(text)
-            .filter_map(|capture| {
-                Some(ClaimRef {
-                    source: capture.get(1)?.as_str().to_string(),
-                    page: capture.get(2)?.as_str().parse().ok()?,
-                    end_page: capture
-                        .get(3)
-                        .and_then(|value| value.as_str().parse::<usize>().ok()),
-                })
-            })
-            .collect::<Vec<_>>();
+        let references = claim_references(text);
         let kind = classify(text);
         let severity = severity(text, &kind);
         let referenced = !references.is_empty();
@@ -398,6 +443,19 @@ mod tests {
         let report = extract_claims("Retention increased by 20% [Ders_Notu_1_VİZE, s. 4].\n");
         assert_eq!(report.referenced, 1);
         assert_eq!(report.claims[0].references[0].source, "Ders_Notu_1_VİZE");
+    }
+
+    #[test]
+    fn parses_comma_separated_reference_ranges() {
+        let report = extract_claims(
+            "Bu sentez üç katmanlıdır ve sosyal güvenlik kamusal ayağıdır [is-hukuku, s. 1–3, 93–95].\n",
+        );
+        let refs = &report.claims[0].references;
+        assert_eq!(refs.len(), 2, "{refs:?}");
+        assert_eq!(refs[0].page, 1);
+        assert_eq!(refs[0].end_page, Some(3));
+        assert_eq!(refs[1].page, 93);
+        assert_eq!(refs[1].end_page, Some(95));
     }
 
     #[test]

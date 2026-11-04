@@ -4,6 +4,9 @@ set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$root"
 
+# acceptance validates the checkout, not a previously installed release.
+export FOLISIFT_BIN="${FOLISIFT_BIN:-$root/target/debug/folisift}"
+
 json=()
 record() {
   json+=("{\"check\":\"$1\",\"ok\":$2,\"detail\":\"$3\"}")
@@ -47,5 +50,6 @@ run doctor cargo run -q -p folisift-cli -- doctor
 run coverage-hint cargo run -q -p folisift-cli -- coverage-hint --guide pd3
 run diagram-status cargo run -q -p folisift-cli -- diagram status --guide pd3
 run feedback-v3 python3 scripts/check-feedback-v3.py
+run feedback-v4 python3 scripts/check-feedback-v4.py
 
 printf '{"acceptance":true,"checks":[%s]}\n' "$(IFS=,; echo "${json[*]}")"

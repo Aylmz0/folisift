@@ -175,6 +175,7 @@ impl SourceParser for LiteparseParser {
             }
         }
 
+        layout_headings.extend(recover_inline_headings(&layout_pages));
         let numbered_layout_headings = layout_headings
             .iter()
             .filter(|heading| is_navigational_heading(&heading.heading))
@@ -240,6 +241,56 @@ fn normalize_heading(heading: &str) -> String {
         return heading.to_string();
     };
     format!("{} {}", captures[1].trim(), captures[2].trim())
+}
+
+static INLINE_HEADING_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?:^|[.!?]\s+)(\d+(?:\.\d+){1,})\.?\s+([A-ZÇĞİÖŞÜ][^.;!?]{2,120})")
+        .expect("valid inline heading regex")
+});
+
+/// Some sources put a heading inside a paragraph (for example
+/// `... sayar. 4.4.4. Asıl İşveren - Alt İşveren`). Recover only a
+/// multi-level number followed by a title-like phrase; never a bare
+/// cross-reference such as `bkz. 10.2`.
+fn recover_inline_headings(pages: &[PageLayout]) -> Vec<Heading> {
+    let mut out = Vec::new();
+    for page in pages {
+        for block in &page.blocks {
+            if !matches!(
+                block.kind,
+                LayoutBlockKind::Paragraph | LayoutBlockKind::ListItem | LayoutBlockKind::Unknown
+            ) {
+                continue;
+            }
+            let Some(text) = block.text.as_deref() else {
+                continue;
+            };
+            for capture in INLINE_HEADING_RE.captures_iter(text) {
+                let number = capture
+                    .get(1)
+                    .map(|value| value.as_str())
+                    .unwrap_or_default();
+                let title = capture
+                    .get(2)
+                    .map(|value| value.as_str().trim().trim_end_matches(['-', '–', ':']))
+                    .unwrap_or_default();
+                if number.is_empty() || title.is_empty() {
+                    continue;
+                }
+                let heading = normalize_heading(&format!("{number} {title}"));
+                if !is_navigational_heading(&heading) {
+                    continue;
+                }
+                out.push(Heading {
+                    heading,
+                    page: page.page,
+                    level: Some(2),
+                    block_id: Some(block.id.clone()),
+                });
+            }
+        }
+    }
+    out
 }
 
 fn is_navigational_heading(heading: &str) -> bool {
@@ -336,13 +387,31 @@ fn canonical_sections(pages: &[(usize, &str)], prefix: Option<&str>) -> Vec<Cano
     });
 
     for (_page_number, text) in pages {
-        let looks_like_toc = ["Konular", "Contents", "İçindekiler", "Chapter ", "Bölüm "]
+        let lines = text.lines().map(str::trim).collect::<Vec<_>>();
+        let numbered = lines
             .iter()
-            .any(|marker| text.contains(marker));
-        if !looks_like_toc {
+            .filter(|line| {
+                TOC_LINE_RE
+                    .captures(line)
+                    .and_then(|captures| captures.get(3))
+                    .is_some_and(|title| title.as_str().chars().count() <= 160)
+            })
+            .count();
+        let marker = lines.iter().any(|line| {
+            matches!(
+                line.to_lowercase()
+                    .trim_matches(|character: char| !character.is_alphanumeric()),
+                "konular" | "içindekiler" | "contents" | "table of contents"
+            )
+        }) || lines
+            .iter()
+            .any(|line| line.starts_with("Bölüm ") || line.starts_with("Chapter "));
+        // A body page can contain the word "Konular" or numbered legal text;
+        // require either a real TOC marker plus several entries, or a dense
+        // numbered list. This prevents body prose from becoming a TOC title.
+        if !((marker && numbered >= 3) || numbered >= 8) {
             continue;
         }
-        let lines = text.lines().collect::<Vec<_>>();
         let mut index = 0;
         while index < lines.len() {
             let line = lines[index].trim();
@@ -378,21 +447,26 @@ fn canonical_sections(pages: &[(usize, &str)], prefix: Option<&str>) -> Vec<Cano
                 },
             };
             let mut title = captures[3].trim().to_string();
-            // Join continuation lines until the next numbered item or a
-            // page/section header. This keeps wrapped TOC titles useful for
-            // fuzzy matching without inventing content.
+            // Only join a continuation that looks like a wrapped title, not
+            // body prose. A body sentence normally starts uppercase; a
+            // wrapped TOC line continues lowercase or punctuation.
             let mut lookahead = index + 1;
             let mut joins = 0;
-            while lookahead < lines.len() && joins < 4 {
+            while lookahead < lines.len() && joins < 3 {
                 let next = lines[lookahead].trim();
-                if next.is_empty() {
-                    break;
-                }
-                if TOC_LINE_RE.is_match(next)
+                if next.is_empty()
+                    || TOC_LINE_RE.is_match(next)
                     || next.chars().all(|character| character.is_ascii_digit())
                     || next.starts_with("Bölüm ")
                     || next.starts_with("Chapter ")
+                    || !next
+                        .chars()
+                        .next()
+                        .is_some_and(|character| !character.is_uppercase())
                 {
+                    break;
+                }
+                if title.chars().count() + next.chars().count() + 1 > 160 {
                     break;
                 }
                 title.push(' ');
@@ -401,7 +475,7 @@ fn canonical_sections(pages: &[(usize, &str)], prefix: Option<&str>) -> Vec<Cano
                 joins += 1;
             }
             index = lookahead;
-            if title.is_empty() || !seen.insert(number.clone()) {
+            if title.is_empty() || title.chars().count() > 160 || !seen.insert(number.clone()) {
                 continue;
             }
             sections.push(CanonicalSection {

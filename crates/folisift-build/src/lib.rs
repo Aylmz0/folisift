@@ -5,7 +5,7 @@
 
 use std::path::{Path, PathBuf};
 
-use folisift_core::{Guide, StyleProfile, Workspace, gates};
+use folisift_core::{Guide, StyleProfile, Workspace, gates, version};
 use folisift_parse::{
     AuditOptions, CoverageManifest, GuideVisualReport, Inventory, LayoutAudit, VisualAudit,
     analyze_sources, check_coverage,
@@ -195,6 +195,21 @@ pub async fn build(workspace: &Workspace, request: BuildRequest) -> Result<Build
 
         let coverage_gate = gates::uses_course_coverage(&style.structure)
             || gates::uses_revision_coverage(&style.structure);
+        let manifest_gate = guide
+            .config
+            .audit
+            .as_ref()
+            .and_then(|policy| policy.manifest_gate.as_deref());
+        if let Some(gate) = manifest_gate
+            && !matches!(gate, "combined" | "review" | "generated" | "legacy")
+        {
+            return Err(fail_with_draft(
+                format!(
+                    "unknown manifest_gate {gate:?}; use combined, review, generated or legacy"
+                ),
+                &mut staged,
+            ));
+        }
         let visual_gate = guide
             .config
             .audit
@@ -287,10 +302,16 @@ pub async fn build(workspace: &Workspace, request: BuildRequest) -> Result<Build
                 }
                 revision_coverage = true;
             } else {
-                let (manifest, source, warning) = load_coverage_manifest(&guide)?;
-                coverage_source = Some(source);
-                coverage_warning = warning;
-                let report = if let Some(manifest) = manifest {
+                let allow_generated = guide
+                    .config
+                    .audit
+                    .as_ref()
+                    .and_then(|policy| policy.manifest_gate.as_deref())
+                    == Some("generated");
+                let selected = select_coverage_manifest(&guide, None, allow_generated)?;
+                coverage_source = Some(selected.source);
+                coverage_warning = selected.warning;
+                let report = if let Some(manifest) = selected.manifest {
                     manifest.report(inventory, &markdown)
                 } else {
                     check_coverage(inventory, &markdown, folisift_parse::DEFAULT_THRESHOLD)
@@ -516,6 +537,17 @@ pub async fn qa(workspace: &Workspace, slug: &str) -> Result<serde_json::Value> 
         .as_ref()
         .map_or(0, |report| report.underfilled_pages.len());
     let passed = outcome.passed.unwrap_or(false) && audit_passed && underfilled == 0;
+    let source_digests = inventory
+        .sources
+        .iter()
+        .map(|source| {
+            serde_json::json!({
+                "filename": source.filename,
+                "digest": source.source_digest,
+                "pages": source.pages,
+            })
+        })
+        .collect::<Vec<_>>();
     Ok(serde_json::json!({
         "guide": guide.slug,
         "passed": passed,
@@ -528,6 +560,17 @@ pub async fn qa(workspace: &Workspace, slug: &str) -> Result<serde_json::Value> 
             "warnings": outcome.rendered.warnings,
             "section_pages": outcome.section_pages,
             "parse_cache_hit": outcome.parse_cache_hit,
+        },
+        "determinism": {
+            "version": version::VERSION,
+            "build": version::BUILD,
+            "mcp_tool_schema_version": version::MCP_TOOL_SCHEMA_VERSION,
+            "content_hash": outcome.rendered.content_hash,
+            "source_digests": source_digests,
+            "style": outcome.style,
+            "seed": "deterministic-page-order-v1",
+            "ocr": "off; explicit opt-in",
+            "reranker": "off; benchmark-gated",
         },
         "outline": outcome.outline,
         "cost": {
@@ -610,16 +653,63 @@ pub fn audit_options_for(workspace: &Workspace, style: &StyleProfile) -> Result<
     Ok(AuditOptions::from_tokens(&loaded.tokens))
 }
 
-fn load_coverage_manifest(
+#[derive(Debug, Clone)]
+pub struct SelectedCoverageManifest {
+    pub manifest: Option<CoverageManifest>,
+    pub path: PathBuf,
+    pub source: String,
+    pub warning: Option<String>,
+}
+
+/// One manifest selector for CLI and MCP.
+///
+/// Precedence: explicit selector, adopted combined, eligible review,
+/// generated (only when opted in), legacy. Generated manifests are advisory by
+/// default; a guide opts in with `audit.manifest_gate="generated"`.
+pub fn select_coverage_manifest(
     guide: &Guide,
-) -> Result<(Option<CoverageManifest>, String, Option<String>)> {
+    selector: Option<&str>,
+    allow_generated: bool,
+) -> Result<SelectedCoverageManifest> {
     let review = guide.dir.join("data/coverage-manifest.review.json");
     let generated = guide.dir.join("data/coverage-manifest.generated.json");
     let combined = guide.dir.join("data/coverage-manifest.json");
+    if let Some(selector) = selector {
+        let (path, source) = match selector {
+            "review" => (review.clone(), "review"),
+            "generated" => (generated.clone(), "generated"),
+            "combined" => (combined.clone(), "combined"),
+            other => (guide.dir.join(other), "path"),
+        };
+        let manifest = CoverageManifest::read_json(&path)?;
+        return Ok(SelectedCoverageManifest {
+            manifest: Some(manifest),
+            path,
+            source: source.to_string(),
+            warning: (source == "generated").then(|| {
+                "generated manifest is a machine skeleton; review it before adopting".to_string()
+            }),
+        });
+    }
+    if combined.is_file() {
+        let manifest = CoverageManifest::read_json(&combined)?;
+        let warning = review_warning(&review);
+        return Ok(SelectedCoverageManifest {
+            manifest: Some(manifest),
+            path: combined,
+            source: "combined".to_string(),
+            warning,
+        });
+    }
     if review.is_file() {
         let manifest = CoverageManifest::read_json(&review)?;
         if manifest.review_eligible() {
-            return Ok((Some(manifest), "review".to_string(), None));
+            return Ok(SelectedCoverageManifest {
+                manifest: Some(manifest),
+                path: review,
+                source: "review".to_string(),
+                warning: None,
+            });
         }
         let missing = manifest
             .rows
@@ -629,37 +719,63 @@ fn load_coverage_manifest(
         let warning = format!(
             "review manifest ignored: {missing} row(s) still marked missing; using generated/legacy"
         );
-        if generated.is_file() {
-            return Ok((
-                Some(CoverageManifest::read_json(&generated)?),
-                "generated".to_string(),
-                Some(warning),
-            ));
+        if generated.is_file() && allow_generated {
+            return Ok(SelectedCoverageManifest {
+                manifest: Some(CoverageManifest::read_json(&generated)?),
+                path: generated,
+                source: "generated".to_string(),
+                warning: Some(format!("{warning}; generated gate is explicitly enabled")),
+            });
         }
-        if combined.is_file() {
-            return Ok((
-                Some(CoverageManifest::read_json(&combined)?),
-                "combined".to_string(),
-                Some(warning),
-            ));
-        }
-        return Ok((None, "legacy".to_string(), Some(warning)));
+        return Ok(SelectedCoverageManifest {
+            manifest: None,
+            path: review,
+            source: "legacy".to_string(),
+            warning: Some(warning),
+        });
     }
     if generated.is_file() {
-        return Ok((
-            Some(CoverageManifest::read_json(&generated)?),
-            "generated".to_string(),
-            None,
-        ));
+        if allow_generated {
+            return Ok(SelectedCoverageManifest {
+                manifest: Some(CoverageManifest::read_json(&generated)?),
+                path: generated,
+                source: "generated".to_string(),
+                warning: Some(
+                    "generated manifest is a machine skeleton; generated gate is explicitly enabled"
+                        .to_string(),
+                ),
+            });
+        }
+        return Ok(SelectedCoverageManifest {
+            manifest: None,
+            path: generated,
+            source: "legacy".to_string(),
+            warning: Some(
+                "generated manifest exists but is advisory; pass manifest=generated or set audit.manifest_gate=generated"
+                    .to_string(),
+            ),
+        });
     }
-    if combined.is_file() {
-        return Ok((
-            Some(CoverageManifest::read_json(&combined)?),
-            "combined".to_string(),
-            None,
-        ));
-    }
-    Ok((None, "legacy".to_string(), None))
+    Ok(SelectedCoverageManifest {
+        manifest: None,
+        path: combined,
+        source: "legacy".to_string(),
+        warning: None,
+    })
+}
+
+fn review_warning(path: &Path) -> Option<String> {
+    let review = CoverageManifest::read_json(path).ok()?;
+    let missing = review
+        .rows
+        .iter()
+        .filter(|row| matches!(row.status, folisift_parse::CoverageStatus::Missing))
+        .count();
+    (missing > 0).then(|| {
+        format!(
+            "review manifest has {missing} unresolved row(s); combined manifest is authoritative"
+        )
+    })
 }
 
 async fn load_inventory(guide: &Guide) -> Result<(Inventory, bool)> {

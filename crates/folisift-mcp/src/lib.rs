@@ -2310,46 +2310,86 @@ impl FolisiftServer {
             return Err(format!("source {:?} not found in inventory", params.source));
         };
         let max = params.max_headings.unwrap_or(30).clamp(1, 200);
-        let mut heading_rows = source
-            .headings
-            .iter()
-            .map(|heading| json!({"heading": heading.heading, "page": heading.page}))
-            .collect::<Vec<_>>();
+        let selected = select_coverage_manifest(&guide, None).map_err(|error| error.to_string())?;
+        let manifest_rows = selected
+            .manifest
+            .as_ref()
+            .map(|manifest| {
+                manifest
+                    .rows
+                    .iter()
+                    .filter(|row| row.source == params.source)
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
+        let inventory_heading_count = source.headings.len();
         let mut review_added = 0usize;
-        if let Ok(value) =
-            std::fs::read_to_string(guide.dir.join("data/coverage-manifest.review.json"))
-            && let Ok(review) = serde_json::from_str::<Value>(&value)
-            && let Some(rows) = review["rows"].as_array()
-        {
-            for row in rows {
-                if row["source"].as_str() != Some(params.source.as_str()) {
-                    continue;
-                }
-                let Some(heading) = row["heading"].as_str() else {
-                    continue;
-                };
-                if heading_rows.iter().any(|item| {
-                    item["heading"]
-                        .as_str()
-                        .is_some_and(|existing| heading_key(existing) == heading_key(heading))
-                }) {
-                    continue;
-                }
-                let page = row["page"].as_u64().unwrap_or(0) as usize;
-                heading_rows.push(json!({"heading": heading, "page": page}));
-                review_added += 1;
-            }
+        let mut heading_rows = if manifest_rows.is_empty() {
+            source
+                .headings
+                .iter()
+                .map(|heading| {
+                    json!({
+                        "heading": heading.heading,
+                        "page": heading.page,
+                        "heading_source": "inventory"
+                    })
+                })
+                .collect::<Vec<_>>()
+        } else {
+            manifest_rows
+                .iter()
+                .map(|row| {
+                    let in_inventory = source.headings.iter().any(|heading| {
+                        heading_key(&heading.heading) == heading_key(&row.heading)
+                            || heading_number_key(&heading.heading)
+                                == heading_number_key(&row.heading)
+                    });
+                    if !in_inventory {
+                        review_added += 1;
+                    }
+                    json!({
+                        "heading": row.heading,
+                        "page": row.page,
+                        "heading_source": if in_inventory { "inventory" } else { "manifest" }
+                    })
+                })
+                .collect::<Vec<_>>()
+        };
+        if heading_rows.is_empty() {
+            heading_rows = source
+                .headings
+                .iter()
+                .map(|heading| {
+                    json!({
+                        "heading": heading.heading,
+                        "page": heading.page,
+                        "heading_source": "inventory"
+                    })
+                })
+                .collect();
         }
         heading_rows.sort_by_key(|row| row["page"].as_u64().unwrap_or(u64::MAX));
         let headings_total = heading_rows.len();
         let headings = heading_rows.into_iter().take(max).collect::<Vec<_>>();
+        let headings_returned = headings.len();
+        let sections_total = source.sections.len();
+        let sections = source.sections.iter().take(20).cloned().collect::<Vec<_>>();
         let low_ratio = if source.pages == 0 {
             0.0
         } else {
             source.low_text_pages.len() as f64 / source.pages as f64
         };
         let needs_ocr = source.pages > 0 && low_ratio > 0.25;
-        Ok(Json(shape_response(
+        let response = OutputOptions {
+            // source_brief owns its pagination; the generic summary pass would
+            // replace the headings array with four rows while leaving the
+            // counters at the pre-pagination value.
+            detail: Some("full".to_string()),
+            max_tokens: params.response.max_tokens,
+            fields: params.response.fields.clone(),
+        };
+        let mut value = shape_response(
             json!({
                 "source": source.filename.trim_end_matches(".pdf"),
                 "title": source.title,
@@ -2357,13 +2397,19 @@ impl FolisiftServer {
                 "chars": source.chars,
                 "words": source.words,
                 "low_text_pages": source.low_text_pages,
-                "heading_count": source.headings.len(),
+                "heading_count": inventory_heading_count,
+                "inventory_heading_count": inventory_heading_count,
+                "manifest_heading_count": manifest_rows.len(),
+                "manifest_review_added": review_added,
                 "headings_total": headings_total,
-                "headings_returned": headings.len(),
+                "headings_returned": headings_returned,
+                "sections_total": sections_total,
+                "sections_returned": sections.len(),
                 "review_added": review_added,
+                "manifest_source": selected.source,
                 "headings": headings,
-                "sections": source.sections,
-                "truncated": headings_total > max,
+                "sections": sections,
+                "truncated": headings_total > max || sections_total > 20,
                 "next": (headings_total > max).then_some(max),
                 "ocr": {
                     "policy": "off; auto is explicit opt-in",
@@ -2379,8 +2425,25 @@ impl FolisiftServer {
                     },
                 },
             }),
-            &params.response,
-        )))
+            &response,
+        );
+        if let Some(object) = value.as_object_mut() {
+            let returned = object
+                .get("headings")
+                .and_then(Value::as_array)
+                .map(|rows| {
+                    rows.iter()
+                        .filter(|row| row.is_object() && row.get("heading").is_some())
+                        .count()
+                })
+                .unwrap_or(0);
+            object.insert("headings_returned".to_string(), json!(returned));
+            if returned < headings_total {
+                object.insert("truncated".to_string(), Value::Bool(true));
+                object.insert("next".to_string(), json!(returned));
+            }
+        }
+        Ok(Json(value))
     }
 
     #[tool(
@@ -2719,25 +2782,45 @@ impl FolisiftServer {
             .iter()
             .take(max)
             .map(|claim| {
-                let reference = claim.references.first();
-                let verification = reference.and_then(|reference| {
-                    pages
-                        .get(&reference.source)
-                        .and_then(|pages| pages.get(&reference.page))
-                        .and_then(|text| verify_claim(text, &claim.text))
-                });
+                let mut reference_rows = Vec::new();
+                for reference in &claim.references {
+                    let start_page = reference.page;
+                    let end_page = reference.end_page.unwrap_or(start_page).max(start_page);
+                    for page in start_page..=end_page.min(start_page.saturating_add(19)) {
+                        let verification = pages
+                            .get(&reference.source)
+                            .and_then(|pages| pages.get(&page))
+                            .and_then(|text| verify_claim(text, &claim.text));
+                        reference_rows.push(json!({
+                            "source": reference.source,
+                            "page": page,
+                            "end_page": reference.end_page,
+                            "snippet": verification.as_ref().and_then(|value| value.snippet.clone()),
+                            "match_terms": verification.as_ref().map_or_else(Vec::new, |value| value.match_terms.clone()),
+                            "confidence": verification.as_ref().map(|value| value.confidence.clone()),
+                            "verified": verification.as_ref().is_some_and(|value| value.verified),
+                            "reason": verification.as_ref().and_then(|value| value.reason.clone()),
+                        }));
+                    }
+                }
+                let best = reference_rows
+                    .iter()
+                    .max_by_key(|row| verification_rank(row))
+                    .cloned();
                 json!({
                     "line": claim.line,
                     "section": claim.section,
                     "severity": claim.severity,
                     "text": claim.text,
                     "missing_citation": claim.missing_citation,
-                    "reference": reference,
-                    "snippet": verification.as_ref().and_then(|value| value.snippet.clone()),
-                    "match_terms": verification.as_ref().map_or_else(Vec::new, |value| value.match_terms.clone()),
-                    "confidence": verification.as_ref().map(|value| value.confidence.clone()),
-                    "verified": verification.as_ref().is_some_and(|value| value.verified),
-                    "reason": verification.as_ref().and_then(|value| value.reason.clone()),
+                    "reference": claim.references.first(),
+                    "reference_count": claim.references.len(),
+                    "references": reference_rows,
+                    "snippet": best.as_ref().and_then(|row| row["snippet"].as_str()).map(ToString::to_string),
+                    "match_terms": best.as_ref().and_then(|row| row["match_terms"].as_array()).cloned().unwrap_or_default(),
+                    "confidence": best.as_ref().and_then(|row| row["confidence"].as_str()).map(ToString::to_string),
+                    "verified": reference_rows.iter().any(|row| row["verified"].as_bool() == Some(true)),
+                    "reason": best.as_ref().and_then(|row| row["reason"].as_str()).map(ToString::to_string),
                 })
             })
             .collect::<Vec<_>>();
@@ -2994,7 +3077,7 @@ impl FolisiftServer {
         &self,
         Parameters(params): Parameters<SectionBriefParams>,
     ) -> Result<Json<Value>, String> {
-        self.brief_for(params, 240).await
+        self.brief_for(params, 240, "section").await
     }
 
     #[tool(
@@ -3009,7 +3092,7 @@ impl FolisiftServer {
         &self,
         Parameters(params): Parameters<SectionBriefParams>,
     ) -> Result<Json<Value>, String> {
-        self.brief_for(params, 480).await
+        self.brief_for(params, 480, "chapter").await
     }
 
     #[tool(
@@ -3024,7 +3107,7 @@ impl FolisiftServer {
         &self,
         Parameters(params): Parameters<SectionBriefParams>,
     ) -> Result<Json<Value>, String> {
-        self.brief_for(params, 120).await
+        self.brief_for(params, 120, "heading").await
     }
 
     #[tool(
@@ -3093,11 +3176,7 @@ impl FolisiftServer {
                 let review_eligible = review
                     .as_ref()
                     .is_some_and(CoverageManifest::review_eligible);
-                if review.is_none() {
-                    generated
-                        .write_json(&combined_path)
-                        .map_err(|error| error.to_string())?;
-                } else if review_eligible
+                if review_eligible
                     && params.adopt.unwrap_or(false)
                     && let Some(review) = &review
                 {
@@ -3116,34 +3195,46 @@ impl FolisiftServer {
                         .iter()
                         .map(|row| format!("{}:{}", row.source, row.normalized_heading))
                         .collect::<std::collections::BTreeSet<_>>();
+                    let only_in_review = review_keys
+                        .difference(&generated_keys)
+                        .cloned()
+                        .collect::<Vec<_>>();
+                    let only_in_generated = generated_keys
+                        .difference(&review_keys)
+                        .cloned()
+                        .collect::<Vec<_>>();
                     json!({
                         "review_rows": review.rows.len(),
                         "generated_rows": generated.rows.len(),
-                        "only_in_review": review_keys.difference(&generated_keys).cloned().collect::<Vec<_>>(),
-                        "only_in_generated": generated_keys.difference(&review_keys).cloned().collect::<Vec<_>>(),
+                        "only_in_review_total": only_in_review.len(),
+                        "only_in_review": only_in_review.iter().take(20).cloned().collect::<Vec<_>>(),
+                        "only_in_generated_total": only_in_generated.len(),
+                        "only_in_generated": only_in_generated.iter().take(20).cloned().collect::<Vec<_>>(),
                         "eligible": review_eligible,
                     })
                 });
-                Ok(Json(json!({
-                    "guide": guide.slug,
-                    "output": generated_path.display().to_string(),
-                    "combined": combined_path.display().to_string(),
-                    "review": review_path.display().to_string(),
-                    "rows": generated.rows.len(),
-                    "review_diff": review_diff,
-                    "review_eligible": review_eligible,
-                    "adopted": review_eligible && params.adopt.unwrap_or(false),
-                })))
+                Ok(Json(shape_response(
+                    json!({
+                        "guide": guide.slug,
+                        "output": generated_path.display().to_string(),
+                        "combined": combined_path.display().to_string(),
+                        "review": review_path.display().to_string(),
+                        "rows": generated.rows.len(),
+                        "canonical_total": generated.canonical_total,
+                        "review_diff": review_diff,
+                        "review_eligible": review_eligible,
+                        "adopted": review_eligible && params.adopt.unwrap_or(false),
+                    }),
+                    &OutputOptions {
+                        detail: params.detail.clone(),
+                        max_tokens: params.max_tokens,
+                        fields: params.fields.clone(),
+                    },
+                )))
             }
             action @ ("read" | "validate") => {
-                let selected = select_coverage_manifest(
-                    &guide,
-                    params.manifest.as_deref(),
-                    &review_path,
-                    &generated_path,
-                    &combined_path,
-                )
-                .map_err(|error| error.to_string())?;
+                let selected = select_coverage_manifest(&guide, params.manifest.as_deref())
+                    .map_err(|error| error.to_string())?;
                 let Some(manifest) = selected.manifest else {
                     return Err(
                         "no coverage manifest found; run coverage_manifest build".to_string()
@@ -3183,19 +3274,46 @@ impl FolisiftServer {
                 let markdown =
                     std::fs::read_to_string(&guide.content).map_err(|error| error.to_string())?;
                 let report = manifest.report(&inventory, &markdown);
-                Ok(Json(json!({
-                    "guide": guide.slug,
-                    "coverage_source": selected.source,
-                    "manifest": selected.path.display().to_string(),
-                    "warning": selected.warning,
-                    "passed": report.passed,
-                    "total": report.total,
-                    "canonical_total": report.canonical_total,
-                    "claimed": report.claimed,
-                    "missing": report.missing_from_gate,
-                    "empty_sections": report.empty_sections,
-                    "per_source": report.sources,
-                })))
+                let origin_counts = manifest.rows.iter().fold(
+                    std::collections::BTreeMap::<String, usize>::new(),
+                    |mut counts, row| {
+                        *counts.entry(row.origin.clone()).or_default() += 1;
+                        counts
+                    },
+                );
+                let missing_total = report.missing_from_gate.len();
+                let empty_total = report.empty_sections.len();
+                let weak_total = report.weak_sections.len();
+                Ok(Json(shape_response(
+                    json!({
+                        "guide": guide.slug,
+                        "coverage_source": selected.source,
+                        "manifest": selected.path.display().to_string(),
+                        "warning": selected.warning,
+                        "passed": report.passed,
+                        "total": report.total,
+                        "canonical_total": report.canonical_total,
+                        "claimed": report.claimed,
+                        "excluded": report.excluded,
+                        "merged": report.merged,
+                        "gate_total": report.gate_total,
+                        "threshold": report.threshold,
+                        "weak_section_chars": report.weak_section_chars,
+                        "missing_total": missing_total,
+                        "missing": report.missing_from_gate.iter().take(40).cloned().collect::<Vec<_>>(),
+                        "empty_total": empty_total,
+                        "empty_sections": report.empty_sections.iter().take(20).cloned().collect::<Vec<_>>(),
+                        "weak_total": weak_total,
+                        "weak_sections": report.weak_sections.iter().take(20).cloned().collect::<Vec<_>>(),
+                        "origin_counts": origin_counts,
+                        "per_source": report.sources,
+                    }),
+                    &OutputOptions {
+                        detail: params.detail.clone(),
+                        max_tokens: params.max_tokens,
+                        fields: params.fields.clone(),
+                    },
+                )))
             }
             "review" => {
                 let selector = if params.manifest.is_none() && review_path.is_file() {
@@ -3203,14 +3321,8 @@ impl FolisiftServer {
                 } else {
                     params.manifest.as_deref()
                 };
-                let selected = select_coverage_manifest(
-                    &guide,
-                    selector,
-                    &review_path,
-                    &generated_path,
-                    &combined_path,
-                )
-                .map_err(|error| error.to_string())?;
+                let selected = select_coverage_manifest(&guide, selector)
+                    .map_err(|error| error.to_string())?;
                 let Some(manifest) = selected.manifest else {
                     return Err(
                         "no coverage manifest to review; run coverage_manifest build".to_string(),
@@ -3220,6 +3332,16 @@ impl FolisiftServer {
                     .rows
                     .iter()
                     .filter(|row| matches!(row.status, folisift_parse::CoverageStatus::Missing))
+                    .count();
+                let merged = manifest
+                    .rows
+                    .iter()
+                    .filter(|row| matches!(row.status, folisift_parse::CoverageStatus::Merged))
+                    .count();
+                let excluded = manifest
+                    .rows
+                    .iter()
+                    .filter(|row| matches!(row.status, folisift_parse::CoverageStatus::Excluded))
                     .count();
                 let rows = manifest
                     .rows
@@ -3244,6 +3366,8 @@ impl FolisiftServer {
                         "reviewed_by": manifest.reviewed_by,
                         "rows": rows.len(),
                         "missing": missing,
+                        "merged": merged,
+                        "excluded": excluded,
                         "review_required": missing > 0,
                         "rows_preview": rows,
                     }),
@@ -3258,15 +3382,43 @@ impl FolisiftServer {
                 let inventory = self.load_or_analyze_inventory(&guide).await?;
                 let markdown =
                     std::fs::read_to_string(&guide.content).map_err(|error| error.to_string())?;
-                let hints = folisift_parse::coverage_hints(&inventory, &markdown);
-                Ok(Json(json!({
-                    "guide": guide.slug,
-                    "advisory": true,
-                    "total": hints.len(),
-                    "covered": hints.iter().filter(|hint| hint.status == "covered").count(),
-                    "likely_missing": hints.iter().filter(|hint| hint.status == "likely-missing").count(),
-                    "hints": hints,
-                })))
+                let selected =
+                    select_coverage_manifest(&guide, None).map_err(|error| error.to_string())?;
+                let manifest_rows = selected
+                    .manifest
+                    .as_ref()
+                    .map(|manifest| manifest.rows.as_slice())
+                    .unwrap_or(&[]);
+                let hints = folisift_parse::coverage_hints_with_manifest(
+                    &inventory,
+                    &markdown,
+                    manifest_rows,
+                );
+                let merged_hits = hints
+                    .iter()
+                    .filter(|hint| hint.status == "covered")
+                    .filter(|hint| {
+                        hint.guide_heading
+                            .as_deref()
+                            .is_some_and(folisift_parse::heading_has_range)
+                    })
+                    .count();
+                Ok(Json(shape_response(
+                    json!({
+                        "guide": guide.slug,
+                        "advisory": true,
+                        "total": hints.len(),
+                        "covered": hints.iter().filter(|hint| hint.status == "covered").count(),
+                        "likely_missing": hints.iter().filter(|hint| hint.status == "likely-missing").count(),
+                        "merged_heading_hits": merged_hits,
+                        "hints": hints,
+                    }),
+                    &OutputOptions {
+                        detail: params.detail.clone(),
+                        max_tokens: params.max_tokens,
+                        fields: params.fields.clone(),
+                    },
+                )))
             }
             other => Err(format!(
                 "unknown coverage_manifest action {other:?}; use build, read, validate, review or hint"
@@ -3307,11 +3459,11 @@ impl FolisiftServer {
                 "structure": style.structure,
             })));
         }
-        let manifest_path = guide.dir.join("data/coverage-manifest.json");
-        let report = if manifest_path.is_file() {
-            CoverageManifest::read_json(&manifest_path)
-                .map_err(|error| error.to_string())?
-                .report(&inventory, &markdown)
+        let selected = select_coverage_manifest(&guide, None).map_err(|error| error.to_string())?;
+        let coverage_source = selected.source.clone();
+        let coverage_warning = selected.warning.clone();
+        let report = if let Some(manifest) = selected.manifest {
+            manifest.report(&inventory, &markdown)
         } else {
             coverage_report(&inventory, &markdown, folisift_parse::DEFAULT_THRESHOLD)
         };
@@ -3344,15 +3496,20 @@ impl FolisiftServer {
             None
         };
         Ok(Json(json!({
+            "coverage_source": coverage_source,
+            "coverage_warning": coverage_warning,
             "passed": report.passed,
             "total": report.total,
             "canonical_total": report.canonical_total,
             "claimed": report.claimed,
+            "excluded": report.excluded,
+            "merged": report.merged,
             "gate_total": report.gate_total,
             "missing": report.missing,
             "missing_from_gate": report.missing_from_gate,
             "empty_sections": report.empty_sections,
             "weak_sections": report.weak_sections,
+            "weak_section_chars": report.weak_section_chars,
             "sources": report.sources,
             "visual": visual,
         })))
@@ -3855,87 +4012,21 @@ struct SelectedCoverageManifest {
 fn select_coverage_manifest(
     guide: &Guide,
     selector: Option<&str>,
-    review: &Path,
-    generated: &Path,
-    combined: &Path,
 ) -> Result<SelectedCoverageManifest, String> {
-    let load = |path: &Path| CoverageManifest::read_json(path).map_err(|error| error.to_string());
-    if let Some(selector) = selector {
-        let (path, source) = match selector {
-            "review" => (review.to_path_buf(), "review"),
-            "generated" => (generated.to_path_buf(), "generated"),
-            "combined" => (combined.to_path_buf(), "combined"),
-            other => (guide.dir.join(other), "path"),
-        };
-        return Ok(SelectedCoverageManifest {
-            manifest: Some(load(&path)?),
-            path,
-            source: source.to_string(),
-            warning: None,
-        });
-    }
-    if review.is_file() {
-        let manifest = load(review)?;
-        if manifest.review_eligible() {
-            return Ok(SelectedCoverageManifest {
-                manifest: Some(manifest),
-                path: review.to_path_buf(),
-                source: "review".to_string(),
-                warning: None,
-            });
-        }
-        let missing = manifest
-            .rows
-            .iter()
-            .filter(|row| matches!(row.status, folisift_parse::CoverageStatus::Missing))
-            .count();
-        let warning = format!(
-            "review manifest ignored: {missing} row(s) still marked missing; using generated/legacy"
-        );
-        if generated.is_file() {
-            return Ok(SelectedCoverageManifest {
-                manifest: Some(load(generated)?),
-                path: generated.to_path_buf(),
-                source: "generated".to_string(),
-                warning: Some(warning),
-            });
-        }
-        if combined.is_file() {
-            return Ok(SelectedCoverageManifest {
-                manifest: Some(load(combined)?),
-                path: combined.to_path_buf(),
-                source: "combined".to_string(),
-                warning: Some(warning),
-            });
-        }
-        return Ok(SelectedCoverageManifest {
-            manifest: None,
-            path: review.to_path_buf(),
-            source: "legacy".to_string(),
-            warning: Some(warning),
-        });
-    }
-    if generated.is_file() {
-        return Ok(SelectedCoverageManifest {
-            manifest: Some(load(generated)?),
-            path: generated.to_path_buf(),
-            source: "generated".to_string(),
-            warning: None,
-        });
-    }
-    if combined.is_file() {
-        return Ok(SelectedCoverageManifest {
-            manifest: Some(load(combined)?),
-            path: combined.to_path_buf(),
-            source: "combined".to_string(),
-            warning: None,
-        });
-    }
+    let allow_generated = selector == Some("generated")
+        || guide
+            .config
+            .audit
+            .as_ref()
+            .and_then(|policy| policy.manifest_gate.as_deref())
+            == Some("generated");
+    let selected = folisift_build::select_coverage_manifest(guide, selector, allow_generated)
+        .map_err(|error| error.to_string())?;
     Ok(SelectedCoverageManifest {
-        manifest: None,
-        path: review.to_path_buf(),
-        source: "none".to_string(),
-        warning: None,
+        manifest: selected.manifest,
+        path: selected.path,
+        source: selected.source,
+        warning: selected.warning,
     })
 }
 
@@ -4230,6 +4321,18 @@ struct ClaimVerification {
     reason: Option<String>,
 }
 
+fn verification_rank(row: &Value) -> (u8, u8, usize) {
+    let verified = u8::from(row["verified"].as_bool() == Some(true));
+    let confidence = match row["confidence"].as_str() {
+        Some("high") => 3,
+        Some("medium") => 2,
+        Some("low") => 1,
+        _ => 0,
+    };
+    let terms = row["match_terms"].as_array().map_or(0, Vec::len);
+    (verified, confidence, terms)
+}
+
 fn verify_claim(text: &str, claim: &str) -> Option<ClaimVerification> {
     let terms = claim_terms(claim);
     if terms.is_empty() {
@@ -4374,15 +4477,23 @@ fn shape_response(mut value: Value, options: &OutputOptions) -> Value {
     if let Some(fields) = &options.fields
         && let Some(object) = value.as_object()
     {
-        let kept = object
+        let mut paths = fields
             .iter()
-            .filter(|(key, _)| {
-                fields.iter().any(|field| field == *key)
-                    || matches!(key.as_str(), "ok" | "passed" | "guide" | "slug")
+            .map(|field| {
+                field
+                    .split('.')
+                    .map(ToString::to_string)
+                    .collect::<Vec<_>>()
             })
-            .map(|(key, value)| (key.clone(), value.clone()))
-            .collect::<serde_json::Map<_, _>>();
-        value = Value::Object(kept);
+            .collect::<Vec<_>>();
+        for key in ["ok", "passed", "guide", "slug"] {
+            let path = vec![key.to_string()];
+            if !paths.contains(&path) {
+                paths.push(path);
+            }
+        }
+        let kept = project_value(&Value::Object(object.clone()), &paths);
+        value = kept;
     }
     if options.detail.as_deref().unwrap_or("summary") == "summary" {
         summarize_arrays(&mut value, 4);
@@ -4403,6 +4514,44 @@ fn shape_response(mut value: Value, options: &OutputOptions) -> Value {
         }
     }
     value
+}
+
+fn project_value(value: &Value, paths: &[Vec<String>]) -> Value {
+    if paths.is_empty() {
+        return value.clone();
+    }
+    match value {
+        Value::Object(object) => {
+            let mut out = serde_json::Map::new();
+            for (key, child) in object {
+                let mut exact = false;
+                let mut nested = Vec::new();
+                for path in paths {
+                    if path.first().is_none_or(|part| part != key) {
+                        continue;
+                    }
+                    if path.len() == 1 {
+                        exact = true;
+                    } else {
+                        nested.push(path[1..].to_vec());
+                    }
+                }
+                if exact {
+                    out.insert(key.clone(), child.clone());
+                } else if !nested.is_empty() {
+                    out.insert(key.clone(), project_value(child, &nested));
+                }
+            }
+            Value::Object(out)
+        }
+        Value::Array(items) => Value::Array(
+            items
+                .iter()
+                .map(|item| project_value(item, paths))
+                .collect(),
+        ),
+        _ => value.clone(),
+    }
 }
 
 fn summarize_arrays(value: &mut Value, keep: usize) {
@@ -4439,7 +4588,10 @@ fn shrink_to_budget(value: &mut Value, budget: usize) {
         }
         let (path, length) = largest_array(value, Vec::new()).unwrap_or((Vec::new(), 0));
         if !path.is_empty() && length > 0 {
-            let keep = (length / 2).max(1);
+            // A two-item array cannot make progress with keep=1 plus an
+            // omitted marker (it becomes two items again). Collapse it to the
+            // marker instead of looping forever.
+            let keep = if length <= 2 { 0 } else { length / 2 };
             if let Some(array) = value_at_mut(value, &path).and_then(Value::as_array_mut)
                 && array.len() > keep
             {
@@ -4582,6 +4734,22 @@ fn heading_key(value: &str) -> String {
         }
     }
     out
+}
+
+fn heading_number_key(value: &str) -> String {
+    let token = value
+        .split_whitespace()
+        .next()
+        .unwrap_or_default()
+        .trim_end_matches('.');
+    if token
+        .chars()
+        .all(|character| character.is_ascii_digit() || character == '.')
+    {
+        token.to_string()
+    } else {
+        String::new()
+    }
 }
 
 fn content_stats(markdown: &str) -> Value {
@@ -4828,6 +4996,14 @@ fn skeleton_markdown(
     } else {
         body.push_str("::: chapter part=\"DENETİM\" side=\"KALİTE\" kicker=\"DENETİM\" title=\"Kapsam denetimi\" toc=\"Kapsam denetimi\" running=\"Kapsam denetimi\" subs=false\n:::\n\n## Kapsam\n\nKaynak kapsamı ve sınırlamalar burada raporlanacaktır.\n");
     }
+    let citation_source = inventory
+        .sources
+        .first()
+        .map(|source| source.filename.trim_end_matches(".pdf"))
+        .unwrap_or("SOURCE");
+    body = body
+        .replace("[PD0, s. 1]", &format!("[{citation_source}, s. 1]"))
+        .replace("[PD0, p. 1]", &format!("[{citation_source}, p. 1]"));
     body
 }
 fn apply_profile(router: &mut ToolRouter<FolisiftServer>, profile: &str) {
@@ -4925,6 +5101,7 @@ impl FolisiftServer {
         &self,
         params: SectionBriefParams,
         default_chars: usize,
+        mode: &str,
     ) -> Result<Json<Value>, String> {
         let guide =
             Guide::load(&self.workspace, &params.guide).map_err(|error| error.to_string())?;
@@ -4940,20 +5117,29 @@ impl FolisiftServer {
             .map(|tokens| tokens.saturating_mul(4))
             .or(params.max_chars)
             .unwrap_or_else(|| default_chars.saturating_mul(4));
-        let brief = folisift_parse::section_brief_cached(
-            &guide.dir.join("data/briefs"),
-            &layout,
-            &params.heading,
-            max_chars,
-        )
-        .map(|(brief, _)| brief)
-        .or_else(|| folisift_parse::section_brief(&layout, &params.heading, max_chars))
+        let mut brief = if mode == "chapter" {
+            folisift_parse::chapter_brief(&layout, &params.heading, max_chars)
+        } else {
+            folisift_parse::section_brief_cached(
+                &guide.dir.join("data/briefs"),
+                &layout,
+                &params.heading,
+                max_chars,
+            )
+            .map(|(brief, _)| brief)
+            .or_else(|| folisift_parse::section_brief(&layout, &params.heading, max_chars))
+        }
         .ok_or_else(|| {
             format!(
                 "section {:?} not found in {}",
                 params.heading, params.source
             )
         })?;
+        brief.mode = mode.to_string();
+        brief.requested_tokens = params
+            .max_tokens
+            .unwrap_or_else(|| max_chars.div_ceil(4))
+            .max(1);
         Ok(Json(
             serde_json::to_value(brief).map_err(|error| error.to_string())?,
         ))
@@ -5270,6 +5456,25 @@ mod tests {
         );
         assert_eq!(projected["guide"], "demo");
         assert!(projected.get("links").is_none());
+        let nested = shape_response(
+            serde_json::json!({
+                "guide": "demo",
+                "passed": true,
+                "per_source": [{"filename": "a.pdf", "sections": [{"number": "1.1", "title": "x", "body_chars": 400}]}],
+            }),
+            &OutputOptions {
+                detail: Some("full".to_string()),
+                fields: Some(vec!["per_source.sections.number".to_string()]),
+                max_tokens: None,
+            },
+        );
+        assert_eq!(nested["per_source"][0]["sections"][0]["number"], "1.1");
+        assert!(
+            nested["per_source"][0]["sections"][0]
+                .get("title")
+                .is_none()
+        );
+        assert!(nested["per_source"][0].get("filename").is_none());
         let truncated = shape_response(
             value,
             &OutputOptions {
@@ -5281,6 +5486,16 @@ mod tests {
         assert_eq!(truncated["truncated"], true);
         assert_eq!(truncated["max_tokens"], 100);
         assert!(truncated["links"].as_array().expect("links").len() < 100);
+        let two = shape_response(
+            serde_json::json!({"items": [{"a": 1}, {"a": 2}], "note": "x".repeat(400)}),
+            &OutputOptions {
+                detail: Some("full".to_string()),
+                fields: None,
+                max_tokens: Some(80),
+            },
+        );
+        assert_eq!(two["truncated"], true);
+        assert!(two["items"].as_array().expect("items").len() <= 2);
     }
 
     #[test]
@@ -5289,6 +5504,16 @@ mod tests {
         assert!(body.contains("sources: [PD0]"), "{body}");
         assert_eq!(body.matches("## Dava ").count(), 10);
         assert_eq!(body.matches("### Sorun").count(), 10);
+    }
+
+    #[test]
+    fn irac_skeleton_uses_the_real_source_id() {
+        let mut inventory = inventory(10, 0, 1);
+        inventory.sources[0].filename = "is-hukuku.pdf".to_string();
+        let body = super::skeleton_markdown("Demo", "tr", "irac", &inventory);
+        assert!(body.contains("sources: [is-hukuku]"), "{body}");
+        assert!(body.contains("[is-hukuku, s. 1]"), "{body}");
+        assert!(!body.contains("[PD0"), "{body}");
     }
 
     #[test]

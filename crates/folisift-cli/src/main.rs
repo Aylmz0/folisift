@@ -640,49 +640,27 @@ struct GuideStatus {
 fn select_coverage_manifest(
     guide: &Guide,
     selector: Option<&str>,
-    review: &Path,
-    generated: &Path,
-    combined: &Path,
+    _review: &Path,
+    _generated: &Path,
+    _combined: &Path,
 ) -> Result<(PathBuf, String, Option<String>), Box<dyn std::error::Error>> {
-    if let Some(selector) = selector {
-        let (path, source) = match selector {
-            "review" => (review.to_path_buf(), "review"),
-            "generated" => (generated.to_path_buf(), "generated"),
-            "combined" => (combined.to_path_buf(), "combined"),
-            other => (guide.dir.join(other), "path"),
-        };
-        return Ok((path, source.to_string(), None));
+    let allow_generated = selector == Some("generated")
+        || guide
+            .config
+            .audit
+            .as_ref()
+            .and_then(|policy| policy.manifest_gate.as_deref())
+            == Some("generated");
+    let selected = folisift_build::select_coverage_manifest(guide, selector, allow_generated)?;
+    match selected.manifest {
+        Some(_) => Ok((selected.path, selected.source, selected.warning)),
+        None => Err(selected
+            .warning
+            .unwrap_or_else(|| {
+                "no eligible coverage manifest; run coverage-manifest build".to_string()
+            })
+            .into()),
     }
-    if review.is_file() {
-        let manifest = folisift_parse::CoverageManifest::read_json(review)?;
-        if manifest.review_eligible() {
-            return Ok((review.to_path_buf(), "review".to_string(), None));
-        }
-        let missing = manifest
-            .rows
-            .iter()
-            .filter(|row| matches!(row.status, folisift_parse::CoverageStatus::Missing))
-            .count();
-        let warning = Some(format!(
-            "review manifest ignored: {missing} row(s) still marked missing; using generated/legacy"
-        ));
-        if generated.is_file() {
-            return Ok((generated.to_path_buf(), "generated".to_string(), warning));
-        }
-        if combined.is_file() {
-            return Ok((combined.to_path_buf(), "combined".to_string(), warning));
-        }
-        return Err(
-            "review manifest has unresolved rows and no generated/combined fallback".into(),
-        );
-    }
-    if generated.is_file() {
-        return Ok((generated.to_path_buf(), "generated".to_string(), None));
-    }
-    if combined.is_file() {
-        return Ok((combined.to_path_buf(), "combined".to_string(), None));
-    }
-    Err("no coverage manifest found; run coverage-manifest build".into())
 }
 
 fn audit_options_for(
@@ -1451,6 +1429,14 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
             } else {
                 body.push_str("<!-- audit -->\n::: chapter part=\"DENETİM\" side=\"KALİTE\" kicker=\"DENETİM\" title=\"Kapsam denetimi\" toc=\"Kapsam denetimi\" running=\"Kapsam denetimi\" subs=false\n:::\n\n## Kapsam\n\nKaynak kapsamı ve sınırlamalar burada raporlanacaktır.\n");
             }
+            let citation_source = inventory
+                .sources
+                .first()
+                .map(|source| source.filename.trim_end_matches(".pdf"))
+                .unwrap_or("SOURCE");
+            body = body
+                .replace("[PD0, s. 1]", &format!("[{citation_source}, s. 1]"))
+                .replace("[PD0, p. 1]", &format!("[{citation_source}, p. 1]"));
             std::fs::write(&guide.content, body)?;
             println!(
                 "{}",
@@ -1823,11 +1809,14 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                     "total": report.total,
                     "canonical_total": report.canonical_total,
                     "claimed": report.claimed,
+                    "excluded": report.excluded,
+                    "merged": report.merged,
                     "gate_total": report.gate_total,
                     "missing": report.missing,
                     "missing_from_gate": report.missing_from_gate,
                     "empty_sections": report.empty_sections.len(),
                     "weak_sections": report.weak_sections.len(),
+                    "weak_section_chars": report.weak_section_chars,
                     "duplicate_sections": report.duplicate_sections,
                 })
             });
@@ -1947,9 +1936,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                     let review_eligible = review_manifest
                         .as_ref()
                         .is_some_and(folisift_parse::CoverageManifest::review_eligible);
-                    if review_manifest.is_none() {
-                        manifest.write_json(&combined)?;
-                    } else if adopt
+                    if adopt
                         && review_eligible
                         && let Some(review_manifest) = &review_manifest
                     {
@@ -1963,6 +1950,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                             "combined": combined.display().to_string(),
                             "review": review.display().to_string(),
                             "rows": manifest.rows.len(),
+                            "canonical_total": manifest.canonical_total,
                             "review_eligible": review_eligible,
                             "adopted": adopt && review_eligible,
                         }))?
@@ -1997,6 +1985,13 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                         .await?;
                         let markdown = std::fs::read_to_string(&guide.content)?;
                         let report = manifest.report(&inventory, &markdown);
+                        let origin_counts = manifest.rows.iter().fold(
+                            std::collections::BTreeMap::<String, usize>::new(),
+                            |mut counts, row| {
+                                *counts.entry(row.origin.clone()).or_default() += 1;
+                                counts
+                            },
+                        );
                         println!(
                             "{}",
                             serde_json::to_string_pretty(&json!({
@@ -2008,8 +2003,15 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                                 "total": report.total,
                                 "canonical_total": report.canonical_total,
                                 "claimed": report.claimed,
+                                "excluded": report.excluded,
+                                "merged": report.merged,
+                                "gate_total": report.gate_total,
+                                "threshold": report.threshold,
+                                "weak_section_chars": report.weak_section_chars,
                                 "missing": report.missing_from_gate,
                                 "empty_sections": report.empty_sections,
+                                "weak_sections": report.weak_sections,
+                                "origin_counts": origin_counts,
                                 "per_source": report.sources,
                             }))?
                         );
@@ -2054,6 +2056,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 "warning": report.warning,
                 "model_signature": report.model_signature,
                 "inventory_digest": report.inventory_digest,
+                "label_source": report.label_source,
                 "k": k,
                 "topics": report.topics,
             });

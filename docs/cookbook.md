@@ -49,20 +49,29 @@ folisift mcp --profile fast
 
 ## Coverage manifest
 
-Precedence is `coverage-manifest.review.json` → `coverage-manifest.generated.json`
-→ `coverage-manifest.json` → legacy gate:
+Precedence is `coverage-manifest.json` (adopted combined) →
+`coverage-manifest.review.json` (eligible review) →
+`coverage-manifest.generated.json` (advisory) → legacy gate:
 
 ```bash
 folisift coverage-manifest --guide <slug> --action build
 # review data/coverage-manifest.review.json; never edit the generated skeleton
 folisift coverage-manifest --guide <slug> --action validate --manifest review
+folisift coverage-manifest --guide <slug> --action build --adopt
 folisift build --guide <slug> --check
 ```
 
-`build` writes the generated skeleton and never overwrites a review file. A
-review file with any `missing` row is reported and ignored by `qa`/`build`; fix
-the review before trusting `coverage_source=review`. `empty_sections` means no
-substantive body; a short body is `weak_sections`.
+`build` writes the generated skeleton and never overwrites a review file.
+`adopt` promotes an eligible review to combined. Generated manifests are
+advisory by default; use `--manifest generated` or
+`"audit": {"manifest_gate": "generated"}` only when you deliberately want that
+hard gate. A failed check writes `output/<slug>_draft.pdf`; it does not replace
+the normal output. `empty_sections` means zero body characters; a section with
+1–399 characters is `weak_sections` (threshold `weak_section_chars`).
+
+`coverage_manifest hint` is advisory. Merged guide headings such as
+`## 2.1–2.2 ...` cover every source number in the range with score `1.0`;
+`fields` and `max_tokens` trim the hint response like any other tool.
 
 ## IRAC scaffold
 
@@ -73,14 +82,16 @@ folisift scaffold --slug law-101 --title "Law 101" \
 ```
 
 The scaffold writes ten `## Dava N` placeholders with `### Sorun`, `### Kural`,
-`### Uygulama`, `### Sonuç` and puts raw source headings in
-`guides/<slug>/source-headings.md`. Existing guides are preserved unless a new
-slug is used.
+`### Uygulama`, `### Sonuç`, uses the real source id in placeholder citations,
+and puts raw source headings in `guides/<slug>/source-headings.md`. Existing
+guides are preserved unless a new slug is used.
 
 ## Context briefs
 
 `section_brief`, `chapter_brief` and `heading_brief` accept `max_tokens`.
-The budget applies to the returned JSON, not just the summary:
+The budget applies to content (`estimated_tokens`: summary + selected arrays),
+not to the JSON envelope; `response_tokens` reports the full response separately.
+A minimum useful summary is kept even at a tiny budget:
 
 ```bash
 folisift section-brief --guide <slug> --source <id> --heading 4.4.3 --max-tokens 50
@@ -88,8 +99,10 @@ folisift read-section --guide <slug> --source <id> --heading 4.4.3 --mode summar
 ```
 
 A small budget returns `truncated: true`, `next_offset` and `full_chars`; it
-never returns the full 3,000-character section silently. `chapter_brief` uses
-exact number matching: `4` selects `4 ...`, not `1.4 ...`.
+never returns the full 3,000-character section silently and never returns an
+empty summary for a non-empty section. `chapter_brief` uses exact chapter
+matching (`4` selects `4 ...`, not `1.4 ...`) and returns the parent body plus
+one bounded summary per immediate child section.
 
 ## D2 diagrams
 

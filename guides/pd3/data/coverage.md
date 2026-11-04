@@ -20,10 +20,12 @@ Alt bölüm: **5** · Düşük metinli slayt: **18**
 - Kanonik toplam: **5**
 - Kılavuzda başlığı/claim'i olan: **5**
 - Gate içinde eşleşen: **5**
+- Birleştirilen: **0**
+- Hariç tutulan: **0**
 - Eksik/weak match: **0**
 - Boş bölüm: **0**
 - Bilinmeyen covers: **0**
-- Zayıf bölüm: **0**
+- Zayıf bölüm: **0** (eşik 400 karakter)
 - Sonuç: **GEÇTİ**
 
 Not: Bu otomatik denetim başlık düzeyindedir. Tablo, şekil, formül ve örnek kapsamı ayrıca G bölümünde elle doğrulanmalıdır.

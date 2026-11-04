@@ -30,6 +30,8 @@ pub struct TopicReport {
     pub warning: Option<String>,
     pub model_signature: Option<String>,
     pub inventory_digest: String,
+    /// How cluster labels were chosen; currently the first heading.
+    pub label_source: String,
     pub topics: Vec<TopicCluster>,
 }
 
@@ -47,6 +49,7 @@ pub fn topic_report(
             warning: None,
             model_signature: None,
             inventory_digest: digest,
+            label_source: "heading".to_string(),
             topics: Vec::new(),
         });
     }
@@ -57,6 +60,7 @@ pub fn topic_report(
             warning: None,
             model_signature: None,
             inventory_digest: digest,
+            label_source: "heading".to_string(),
             topics: heading_terms(&rows, k),
         });
     };
@@ -107,6 +111,7 @@ pub fn topic_report(
         warning: None,
         model_signature: Some(embedder.signature()?),
         inventory_digest: digest,
+        label_source: "heading".to_string(),
         topics,
     })
 }
@@ -123,6 +128,7 @@ pub fn heading_term_report(
         warning,
         model_signature: None,
         inventory_digest: inventory_digest(inventory),
+        label_source: "heading".to_string(),
         topics: if rows.is_empty() {
             Vec::new()
         } else {

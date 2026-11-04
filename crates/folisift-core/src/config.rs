@@ -196,6 +196,9 @@ pub struct AuditPolicy {
     /// off, warn or required for pages with figure/table evidence.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub visual_gate: Option<String>,
+    /// combined, review, generated or legacy; generated is advisory by default.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub manifest_gate: Option<String>,
     /// Optional human-readable reasons, keyed by 1-based page number.
     #[serde(default)]
     pub layout_exceptions: BTreeMap<usize, String>,

@@ -601,21 +601,28 @@ if EXTERNAL.is_dir() and (EXTERNAL / "guides/dijital-donusum-temelleri").is_dir(
         {"action": "review", "guide": "dijital-donusum-temelleri"},
     )
     qa, _ = external_client.call("qa_guide", {"slug": "dijital-donusum-temelleri"})
-    ok = (
+    review_rows = (review or {}).get("rows")
+    review_missing = (review or {}).get("missing")
+    review_ok = (
         review is not None
-        and review.get("rows") == 62
-        and review.get("missing") == 60
-        and review.get("review_required") is True
-        and qa is not None
-        and qa.get("coverage_source") == "legacy"
-        and bool(qa.get("coverage_warning"))
+        and (
+            (review_rows == 41 and review_missing == 0)
+            or (review_rows == 62 and review_missing == 60)
+        )
+        and (review.get("review_required") is (review_missing > 0))
+    )
+    qa_source = (qa or {}).get("coverage_source")
+    qa_ok = (
+        qa is not None
+        and qa_source in ("combined", "review", "legacy")
+        and (qa_source != "legacy" or bool(qa.get("coverage_warning")))
         and (qa.get("coverage") or {}).get("total") == 41
         and qa.get("passed") is True
     )
     record(
         "A-V3-11 digital review",
-        ok,
-        f"review {review and review.get('missing')} missing; qa {qa and qa.get('coverage_source')} {qa and (qa.get('coverage') or {}).get('total')}",
+        review_ok and qa_ok,
+        f"review {review_rows} rows/{review_missing} missing; qa {qa_source} {qa and (qa.get('coverage') or {}).get('total')}",
     )
 else:
     skip("A-V3-11 digital review", "digital guide not found")

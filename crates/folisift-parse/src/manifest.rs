@@ -37,6 +37,9 @@ pub struct ManifestRow {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub guide_sections: Vec<String>,
     pub status: CoverageStatus,
+    /// How the row entered the manifest: heading, toc, inline, review, manual.
+    #[serde(default = "default_origin")]
+    pub origin: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub evidence: Option<String>,
     #[serde(default = "default_confidence")]
@@ -62,7 +65,7 @@ impl CoverageManifest {
         let mut rows = Vec::new();
         for source in &inventory.sources {
             let source_id = source.filename.trim_end_matches(".pdf");
-            for (number, title, page) in candidates(source) {
+            for (number, title, page, origin) in candidates(source) {
                 let heading = if number.is_empty() {
                     title.clone()
                 } else {
@@ -70,14 +73,7 @@ impl CoverageManifest {
                 };
                 let normalized = normalize(&heading);
                 let key = format!("{source_id}:{number}");
-                let guide_heading = headings
-                    .iter()
-                    .find(|candidate| {
-                        normalize(candidate) == normalize(&title)
-                            || normalize(candidate) == normalized
-                            || normalize(candidate).starts_with(&format!("{} ", normalize(&number)))
-                    })
-                    .cloned();
+                let guide_heading = guide_heading_for(&headings, &number, &title);
                 let covered = covers.contains(&key) || guide_heading.is_some();
                 rows.push(ManifestRow {
                     source: source_id.to_string(),
@@ -91,16 +87,18 @@ impl CoverageManifest {
                     } else {
                         CoverageStatus::Missing
                     },
+                    origin,
                     evidence: None,
                     confidence: 1.0,
                 });
             }
         }
+        let canonical_total = rows.len();
         Self {
             schema_version: MANIFEST_SCHEMA_VERSION,
             reviewed_at: None,
             reviewed_by: None,
-            canonical_total: None,
+            canonical_total: Some(canonical_total),
             rows,
         }
     }
@@ -112,6 +110,8 @@ impl CoverageManifest {
         let mut by_source: BTreeMap<String, Vec<SectionResult>> = BTreeMap::new();
         let mut total = 0;
         let mut claimed = 0;
+        let mut excluded = 0;
+        let mut merged = 0;
         let mut missing = 0;
         let mut missing_from_gate = Vec::new();
         let mut empty_sections = Vec::new();
@@ -146,19 +146,34 @@ impl CoverageManifest {
                 CoverageStatus::Merged | CoverageStatus::Excluded => true,
                 CoverageStatus::Missing => false,
             };
-            if covered {
+            let counted = match row.status {
+                CoverageStatus::Covered => present,
+                CoverageStatus::Merged => true,
+                CoverageStatus::Excluded | CoverageStatus::Missing => false,
+            };
+            if counted {
                 claimed += 1;
-            } else {
+            }
+            if matches!(row.status, CoverageStatus::Excluded) {
+                excluded += 1;
+            }
+            if matches!(row.status, CoverageStatus::Merged) {
+                merged += 1;
+            }
+            if !covered {
                 missing += 1;
                 missing_from_gate.push(row.heading.clone());
             }
             let chars = mapped_body_chars;
             // Empty means no substantive body at all. A short body is weak,
             // not empty; the old 400-character floor conflated the two.
-            let empty = covered && chars == 0;
+            let empty = covered && !matches!(row.status, CoverageStatus::Excluded) && chars == 0;
             if empty {
                 empty_sections.push(row.heading.clone());
-            } else if covered && chars < crate::coverage::MIN_SECTION_CHARS {
+            } else if covered
+                && !matches!(row.status, CoverageStatus::Excluded)
+                && chars < crate::coverage::MIN_SECTION_CHARS
+            {
                 weak_sections.push(row.heading.clone());
             }
             by_source
@@ -171,6 +186,11 @@ impl CoverageManifest {
                     score: if covered { 1.0 } else { 0.0 },
                     matched: row.guide_heading.clone().unwrap_or_default(),
                     body_chars: chars,
+                    body_scope: row
+                        .guide_heading
+                        .clone()
+                        .or_else(|| row.guide_sections.first().cloned())
+                        .unwrap_or_else(|| parent.clone()),
                     empty,
                     ok: covered && !empty,
                 });
@@ -196,6 +216,8 @@ impl CoverageManifest {
             // Legacy canonical sections are reported by check_coverage instead.
             canonical_total: total,
             claimed,
+            excluded,
+            merged,
             gate_total: claimed,
             missing,
             missing_from_gate,
@@ -205,6 +227,7 @@ impl CoverageManifest {
             duplicate_claims: Vec::new(),
             duplicate_sections: Vec::new(),
             audit_missing: false,
+            weak_section_chars: crate::coverage::WEAK_SECTION_CHARS,
             sources: source_rows,
         }
     }
@@ -241,20 +264,38 @@ fn default_confidence() -> f32 {
     1.0
 }
 
-fn candidates(source: &SourceInventory) -> Vec<(String, String, usize)> {
-    let mut rows: BTreeMap<String, (String, String, usize)> = BTreeMap::new();
-    for section in &source.sections {
-        let page = source
-            .headings
-            .iter()
-            .find(|heading| heading.heading.starts_with(&section.number))
-            .map_or(0, |heading| heading.page);
-        rows.entry(section.number.clone()).or_insert((
-            section.number.clone(),
-            section.title.clone(),
-            page,
-        ));
+fn guide_heading_for(headings: &[String], number: &str, title: &str) -> Option<String> {
+    let normalized = normalize(title);
+    let normalized_number = normalize(number);
+    if let Some(exact) = headings.iter().find(|candidate| {
+        normalize(candidate) == normalized
+            || normalize(candidate) == normalized_number
+            || normalize(candidate).starts_with(&format!("{normalized_number} "))
+    }) {
+        return Some(exact.clone());
     }
+    // Generated manifests are skeletons: a subheading is covered when the
+    // guide has its parent section. The reviewed manifest still wins for
+    // precise mapping and evidence.
+    let mut parts = number.split('.').collect::<Vec<_>>();
+    while parts.len() > 1 {
+        parts.pop();
+        let parent = parts.join(".");
+        let normalized_parent = normalize(&parent);
+        if let Some(found) = headings.iter().find(|candidate| {
+            normalize(candidate) == normalized_parent
+                || normalize(candidate).starts_with(&format!("{normalized_parent} "))
+        }) {
+            return Some(found.clone());
+        }
+    }
+    None
+}
+
+fn candidates(source: &SourceInventory) -> Vec<(String, String, usize, String)> {
+    let mut rows: BTreeMap<String, (String, String, usize, String)> = BTreeMap::new();
+    // Real heading blocks are the cleanest source: they never contain body
+    // prose. The TOC/section list is a fallback for rows the layout missed.
     for heading in &source.headings {
         let heading = heading.heading.trim();
         let Some(number) = heading.split_whitespace().next() else {
@@ -267,14 +308,81 @@ fn candidates(source: &SourceInventory) -> Vec<(String, String, usize)> {
         {
             continue;
         }
-        let title = heading[number.len()..].trim().to_string();
+        let title = clean_heading_title(heading[number.len()..].trim());
+        if !title_like(&title) {
+            continue;
+        }
         rows.entry(number.to_string()).or_insert((
             number.to_string(),
             title,
             heading_page(source, heading),
+            "heading".to_string(),
+        ));
+    }
+    for section in &source.sections {
+        if rows.contains_key(&section.number) || !title_like(&section.title) {
+            continue;
+        }
+        let page = source
+            .headings
+            .iter()
+            .find(|heading| heading.heading.starts_with(&section.number))
+            .map_or(0, |heading| heading.page);
+        rows.entry(section.number.clone()).or_insert((
+            section.number.clone(),
+            section.title.clone(),
+            page,
+            "toc".to_string(),
         ));
     }
     rows.into_values().collect()
+}
+
+fn clean_heading_title(value: &str) -> String {
+    const CONNECTORS: &[&str] = &["ve", "veya", "ile", "için", "ve/veya"];
+    let words = value.split_whitespace().collect::<Vec<_>>();
+    if words.len() > 8 {
+        for index in 3..words.len().saturating_sub(1) {
+            let current = words[index];
+            let next = words[index + 1];
+            if CONNECTORS.contains(&current.to_lowercase().as_str()) {
+                continue;
+            }
+            let current_upper = current.chars().next().is_some_and(char::is_uppercase);
+            let next_lower = next.chars().next().is_some_and(char::is_lowercase);
+            if (current_upper && next_lower)
+                || current.chars().next().is_some_and(char::is_lowercase)
+            {
+                return words[..index].join(" ");
+            }
+        }
+    }
+    value.to_string()
+}
+
+fn title_like(value: &str) -> bool {
+    let value = value.trim();
+    let words = value.split_whitespace().count();
+    !value.is_empty()
+        && value.chars().count() <= 160
+        && words <= 24
+        && !value.ends_with("...")
+        && !value.ends_with(',')
+        && !value.ends_with(';')
+        && !(value.contains(',') && words > 8)
+        && !matches!(
+            value
+                .split_whitespace()
+                .next()
+                .unwrap_or_default()
+                .to_lowercase()
+                .as_str(),
+            "ve" | "veya" | "ile" | "için" | "daha" | "gibi"
+        )
+}
+
+fn default_origin() -> String {
+    "review".to_string()
 }
 
 fn heading_page(source: &SourceInventory, heading: &str) -> usize {
@@ -437,6 +545,28 @@ mod tests {
             .collect();
         let manifest = CoverageManifest::build(&inventory, "");
         assert_eq!(manifest.rows.len(), 141);
+    }
+
+    #[test]
+    fn excluded_rows_are_counted_and_do_not_fail_the_report() {
+        let inventory = inventory();
+        let body = format!("## 2.1 Giriş\n\n{}\n", "anlamlı gövde metni ".repeat(40));
+        let mut manifest = CoverageManifest::build(&inventory, &body);
+        manifest.rows[0].status = CoverageStatus::Excluded;
+        manifest.rows[0].guide_heading = None;
+        manifest.rows[0].guide_sections.clear();
+        let report = manifest.report(&inventory, &body);
+        assert!(report.passed, "{report:#?}");
+        assert_eq!(report.total, 1);
+        assert_eq!(report.claimed, 0);
+        assert_eq!(report.excluded, 1);
+        assert_eq!(report.missing, 0);
+        assert!(manifest.review_eligible());
+        manifest.rows[0].status = CoverageStatus::Merged;
+        let report = manifest.report(&inventory, &body);
+        assert!(report.passed, "{report:#?}");
+        assert_eq!(report.claimed, 1);
+        assert_eq!(report.merged, 1);
     }
 
     #[test]

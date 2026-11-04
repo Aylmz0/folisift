@@ -11,13 +11,26 @@ use serde::{Deserialize, Serialize};
 
 use crate::layout::{LayoutBlock, LayoutBlockKind, SourceLayout};
 
-pub const BRIEF_CACHE_VERSION: u32 = 2;
+pub const BRIEF_CACHE_VERSION: u32 = 3;
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct BriefSection {
+    pub heading: String,
+    pub page_start: usize,
+    pub page_end: usize,
+    pub summary: String,
+    pub estimated_tokens: usize,
+}
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SectionBrief {
     pub source: String,
     pub heading: String,
     pub level: String,
+    #[serde(default = "default_mode")]
+    pub mode: String,
+    #[serde(default)]
+    pub sections: Vec<BriefSection>,
     pub page_start: usize,
     pub page_end: usize,
     pub summary: String,
@@ -32,6 +45,10 @@ pub struct SectionBrief {
     pub budget_tokens: usize,
     #[serde(default)]
     pub budget_chars: usize,
+    #[serde(default)]
+    pub requested_tokens: usize,
+    #[serde(default)]
+    pub response_tokens: usize,
     #[serde(default)]
     pub truncated: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -79,7 +96,7 @@ pub fn source_sections(layout: &SourceLayout) -> Vec<SourceSection> {
                     continue;
                 }
                 if let Some(section) = current.take()
-                    && !section.text.trim().is_empty()
+                    && (!section.heading.trim().is_empty() || !section.text.trim().is_empty())
                 {
                     sections.push(section);
                 }
@@ -87,7 +104,7 @@ pub fn source_sections(layout: &SourceLayout) -> Vec<SourceSection> {
                     heading: heading.to_string(),
                     page_start: page.page,
                     page_end: page.page,
-                    text: heading.to_string(),
+                    text: String::new(),
                     table_rows: Vec::new(),
                 });
                 continue;
@@ -114,7 +131,7 @@ pub fn source_sections(layout: &SourceLayout) -> Vec<SourceSection> {
         }
     }
     if let Some(section) = current
-        && !section.text.trim().is_empty()
+        && (!section.heading.trim().is_empty() || !section.text.trim().is_empty())
     {
         sections.push(section);
     }
@@ -144,11 +161,7 @@ fn resolve_section<'a>(
     let mut candidates = Vec::new();
     for section in sections {
         let heading = normalize(&section.heading);
-        let number = heading
-            .split_whitespace()
-            .next()
-            .unwrap_or_default()
-            .trim_end_matches('.');
+        let number = heading_number(&section.heading);
         let rank = if heading == query || number == query_number {
             0
         } else if heading.starts_with(&format!("{query} "))
@@ -234,12 +247,14 @@ pub fn section_brief(layout: &SourceLayout, query: &str, max_chars: usize) -> Op
     let resolution = resolve_section(&sections, query)?;
     let section = resolution.section;
     let max_chars = max_chars.clamp(40, 4000);
-    let text = section.text.trim();
+    let text = body_text(section);
     let full_chars = text.chars().count();
     let brief = SectionBrief {
         source: layout.source.clone(),
         heading: section.heading.clone(),
         level: section_level(&section.heading).to_string(),
+        mode: "section".to_string(),
+        sections: Vec::new(),
         page_start: section.page_start,
         page_end: section.page_end,
         summary: summary(text, max_chars),
@@ -251,6 +266,8 @@ pub fn section_brief(layout: &SourceLayout, query: &str, max_chars: usize) -> Op
         full_chars,
         budget_tokens: max_chars.div_ceil(4),
         budget_chars: max_chars,
+        requested_tokens: max_chars.div_ceil(4),
+        response_tokens: 0,
         truncated: false,
         next_offset: None,
         candidates: resolution.candidates,
@@ -260,33 +277,213 @@ pub fn section_brief(layout: &SourceLayout, query: &str, max_chars: usize) -> Op
     Some(apply_budget(brief, max_chars))
 }
 
+/// Hierarchical chapter brief: the parent body plus one bounded summary per
+/// immediate child section. It is still extractive; no generated prose.
+pub fn chapter_brief(layout: &SourceLayout, query: &str, max_chars: usize) -> Option<SectionBrief> {
+    let sections = source_sections(layout);
+    let resolution = resolve_section(&sections, query)?;
+    let chapter = resolution.section;
+    let chapter_number = heading_number(&chapter.heading);
+    let child_depth = chapter_number.matches('.').count() + 1;
+    let children = sections
+        .iter()
+        .filter(|section| {
+            let number = heading_number(&section.heading);
+            number.starts_with(&format!("{chapter_number}."))
+                && number.matches('.').count() == child_depth
+        })
+        .collect::<Vec<_>>();
+    let mut parts = Vec::new();
+    let chapter_body = body_text(chapter);
+    if !chapter_body.is_empty() {
+        parts.push(chapter_body.to_string());
+    }
+    for child in &children {
+        let body = body_text(child);
+        if !body.is_empty() {
+            parts.push(body.to_string());
+        }
+    }
+    let text = parts.join("\n").trim().to_string();
+    let full_chars = text.chars().count();
+    let max_chars = max_chars.clamp(80, 6000);
+    let child_budget = (max_chars / children.len().max(1)).max(80);
+    let brief_sections = children
+        .iter()
+        .map(|child| {
+            let body = body_text(child);
+            let child_summary = summary(body, child_budget);
+            BriefSection {
+                heading: child.heading.clone(),
+                page_start: child.page_start,
+                page_end: child.page_end,
+                estimated_tokens: estimate_tokens(&child_summary),
+                summary: child_summary,
+            }
+        })
+        .collect::<Vec<_>>();
+    let page_end = children
+        .iter()
+        .map(|child| child.page_end)
+        .max()
+        .unwrap_or(chapter.page_end);
+    let brief = SectionBrief {
+        source: layout.source.clone(),
+        heading: chapter.heading.clone(),
+        level: "chapter".to_string(),
+        mode: "chapter".to_string(),
+        sections: brief_sections,
+        page_start: chapter.page_start,
+        page_end,
+        summary: summary(&text, max_chars),
+        numbers: numbers(&text),
+        table_rows: chapter
+            .table_rows
+            .iter()
+            .chain(children.iter().flat_map(|child| child.table_rows.iter()))
+            .take(8)
+            .cloned()
+            .collect(),
+        citations: citations(&text),
+        chars: full_chars,
+        estimated_tokens: 0,
+        full_chars,
+        budget_tokens: max_chars.div_ceil(4),
+        budget_chars: max_chars,
+        requested_tokens: max_chars.div_ceil(4),
+        response_tokens: 0,
+        truncated: false,
+        next_offset: None,
+        candidates: resolution.candidates,
+        ambiguous: resolution.ambiguous,
+        cache_hit: false,
+    };
+    Some(apply_budget(brief, max_chars))
+}
+
+fn body_text(section: &SourceSection) -> &str {
+    let text = section.text.trim();
+    text.strip_prefix(section.heading.trim())
+        .map(str::trim)
+        .unwrap_or(text)
+}
+
+fn heading_number(heading: &str) -> String {
+    static NUMBER_RE: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+        Regex::new(r"^\s*(\d+(?:\.\d+)*)\.?").expect("valid heading number regex")
+    });
+    NUMBER_RE
+        .captures(heading)
+        .and_then(|captures| captures.get(1))
+        .map_or_else(String::new, |capture| capture.as_str().to_string())
+}
+
 fn apply_budget(mut brief: SectionBrief, max_chars: usize) -> SectionBrief {
-    let budget = max_chars.max(40);
-    let summary_budget = (budget * 3 / 4).max(40);
-    brief.summary = brief.summary.chars().take(summary_budget).collect();
-    brief.full_chars = brief.full_chars.max(brief.summary.chars().count());
-    brief.budget_chars = budget;
-    brief.budget_tokens = budget.div_ceil(4);
+    let budget = max_chars.div_ceil(4).max(10);
+    brief.budget_chars = max_chars.max(40);
+    brief.budget_tokens = budget;
     brief.estimated_tokens = 0;
-    let mut truncated = brief.summary.chars().count() < brief.chars;
-    if serialized_tokens(&brief) > brief.budget_tokens {
+    let summary_limit = max_chars.max(40);
+    if brief.summary.chars().count() > summary_limit {
+        brief.summary = brief.summary.chars().take(summary_limit).collect();
+        brief.truncated = true;
+    }
+    let mut truncated = brief.truncated || brief.summary.chars().count() < brief.chars;
+    if content_tokens(&brief) > budget {
+        brief.table_rows.clear();
+        brief.citations.clear();
+        truncated = true;
+    }
+    if content_tokens(&brief) > budget {
+        brief.numbers.truncate(4);
+        truncated = true;
+    }
+    while content_tokens(&brief) > budget && !brief.sections.is_empty() {
+        let mut changed = false;
+        for section in &mut brief.sections {
+            let length = section.summary.chars().count();
+            if length > 40 {
+                let target = (length / 2).max(40);
+                section.summary = section.summary.chars().take(target).collect();
+                section.estimated_tokens = section.summary.chars().count().div_ceil(4);
+                changed = true;
+            }
+        }
+        if !changed {
+            break;
+        }
+        truncated = true;
+    }
+    while content_tokens(&brief) > budget && brief.sections.len() > 1 {
+        brief.sections.pop();
+        truncated = true;
+    }
+    if content_tokens(&brief) > budget {
+        let min_chars = if brief.chars == 0 {
+            0
+        } else {
+            40.min(brief.chars)
+        };
+        let target = (budget * 4)
+            .max(min_chars)
+            .min(brief.summary.chars().count());
+        if brief.summary.chars().count() > target {
+            brief.summary = brief.summary.chars().take(target).collect();
+            truncated = true;
+        }
+    }
+    if content_tokens(&brief) > budget {
+        brief.sections.clear();
         brief.numbers.clear();
         brief.table_rows.clear();
         brief.citations.clear();
         truncated = true;
     }
-    if serialized_tokens(&brief) > brief.budget_tokens {
-        brief.summary = brief.summary.chars().take((budget / 2).max(20)).collect();
+    // At the minimum content budget, keep a short useful summary rather than
+    // returning an empty string.
+    if brief.summary.is_empty() && brief.chars > 0 {
+        let fallback = brief
+            .sections
+            .first()
+            .map(|section| section.summary.clone())
+            .unwrap_or_else(|| brief.heading.clone());
+        brief.summary = fallback.chars().take(40).collect();
         truncated = true;
     }
-    if budget <= 120 {
-        brief.summary.clear();
+    if content_tokens(&brief) > budget {
+        let target = (budget * 4).max(1);
+        brief.summary = brief.summary.chars().take(target).collect();
         truncated = true;
     }
     brief.truncated = truncated;
-    brief.next_offset = truncated.then_some(brief.summary.chars().count());
-    brief.estimated_tokens = serialized_tokens(&brief);
+    brief.next_offset = if truncated && !brief.summary.is_empty() {
+        Some(brief.summary.chars().count())
+    } else {
+        None
+    };
+    brief.response_tokens = serialized_tokens(&brief);
+    brief.estimated_tokens = content_tokens(&brief);
     brief
+}
+
+fn content_tokens(brief: &SectionBrief) -> usize {
+    let mut chars = brief.summary.chars().count();
+    for section in &brief.sections {
+        chars += section.summary.chars().count() + section.heading.chars().count();
+    }
+    for value in brief
+        .numbers
+        .iter()
+        .chain(&brief.table_rows)
+        .chain(&brief.citations)
+    {
+        chars += value.chars().count();
+    }
+    chars.div_ceil(4)
+}
+
+fn default_mode() -> String {
+    "section".to_string()
 }
 
 fn serialized_tokens(brief: &SectionBrief) -> usize {
@@ -344,7 +541,7 @@ pub fn read_section_mode(
 }
 
 fn section_level(heading: &str) -> &'static str {
-    let number = heading.split_whitespace().next().unwrap_or_default();
+    let number = heading_number(heading);
     match number.matches('.').count() {
         0 => "chapter",
         1 => "section",
