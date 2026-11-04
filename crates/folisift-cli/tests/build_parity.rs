@@ -114,7 +114,8 @@ fn cli_and_mcp_builds_agree_on_pages_and_content_hash() {
     reader.read_line(&mut line).expect("build");
     let mcp: serde_json::Value = serde_json::from_str(&line).expect("mcp JSON");
     let mcp = &mcp["result"]["structuredContent"];
-    assert_eq!(mcp["passed"], true, "{mcp}");
+    assert_eq!(mcp["checked"], false, "{mcp}");
+    assert_eq!(mcp["passed"], false, "{mcp}");
 
     drop(stdin);
     let status = child.wait().expect("wait");

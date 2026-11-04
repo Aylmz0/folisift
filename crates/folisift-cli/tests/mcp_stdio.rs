@@ -106,7 +106,7 @@ X is Y. [PD0, p. 1]
         .iter()
         .filter_map(|tool| tool["name"].as_str())
         .collect::<Vec<_>>();
-    assert_eq!(tools.len(), 33);
+    assert_eq!(tools.len(), 35);
     for expected in [
         "read_source",
         "search_source",
@@ -116,6 +116,8 @@ X is Y. [PD0, p. 1]
         "cards",
         "read_blocks",
         "section_brief",
+        "chapter_brief",
+        "heading_brief",
         "read_section",
         "links",
         "graph",

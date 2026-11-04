@@ -17,7 +17,8 @@ pub mod structures;
 pub mod version;
 
 pub use config::{
-    Guide, GuideConfig, GuideSummary, SUPPORTED_SCHEMA_VERSIONS, StyleProfile, list_guides,
+    AuditPolicy, Guide, GuideConfig, GuideSummary, SUPPORTED_SCHEMA_VERSIONS, StyleProfile,
+    list_guides,
 };
 pub use diagnostic::{Diagnostic, ErrorCode};
 pub use error::{Error, Result};

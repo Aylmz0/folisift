@@ -8,6 +8,7 @@ pub mod brief;
 pub mod coverage;
 pub mod error;
 pub mod graph;
+pub mod hint;
 pub mod insights;
 pub mod inventory;
 pub mod layout;
@@ -23,16 +24,19 @@ pub mod text;
 pub mod visual;
 pub mod visual_audit;
 
-pub use audit::{AuditOptions, LayoutAudit, PageAudit, audit_pdf, audit_pdf_with};
+pub use audit::{
+    AuditOptions, LayoutAudit, OutlinePage, PageAudit, audit_pdf, audit_pdf_with, outline_pages,
+};
 pub use brief::{
     SectionBrief, SectionRead, SourceSection, read_section, read_section_mode, section_brief,
-    source_sections,
+    section_brief_cached, source_sections,
 };
 pub use coverage::{
     CoverageReport, DEFAULT_THRESHOLD, MIN_SECTION_CHARS, check_coverage, guide_body_chars,
 };
 pub use error::{Error, Result};
 pub use graph::{DocumentGraph, GRAPH_SCHEMA_VERSION, GraphEdge, GraphNode};
+pub use hint::{CoverageHint, coverage_hints};
 pub use insights::extract_insights;
 pub use inventory::{CanonicalSection, Heading, Inventory, PageRow, SourceInventory, Totals};
 pub use layout::{

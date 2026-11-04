@@ -5,7 +5,7 @@ PDFs into source-traceable, paper-like study guides with a deterministic build,
 layout audit and local review tools. The engine is shared; each course is a
 self-contained guide bundle.
 
-**Current release: `v0.16.0`** — Linux archive, source builds for macOS and
+**Current release: `v0.17.0`** — Linux archive, source builds for macOS and
 Windows, and a source-available PolyForm Strict license.
 
 - Repository: <https://github.com/Aylmz0/folisift>
@@ -75,8 +75,8 @@ pre-generated SVG and never execute D2.
 ### Manual archive
 
 ```bash
-tar -xzf folisift-v0.16.0-linux-x86_64.tar.gz
-sha256sum -c folisift-v0.16.0-linux-x86_64.tar.gz.sha256
+tar -xzf folisift-v0.17.0-linux-x86_64.tar.gz
+sha256sum -c folisift-v0.17.0-linux-x86_64.tar.gz.sha256
 ./folisift doctor
 ```
 
@@ -197,8 +197,8 @@ Or declare it directly:
 ```
 
 Ask the host to run `doctor`, prepare the guide, read the sources, write the
-guide, build with the coverage gate and audit the PDF. The MCP exposes 33 tools
-at schema 12; profiles (`core`, `source`, `authoring`, `review`, `fast`, `deep`)
+guide, build with the coverage gate and audit the PDF. The MCP exposes 35 tools
+at schema 13; profiles (`core`, `source`, `authoring`, `review`, `fast`, `deep`)
 hide the rest before `tools/list`, and `core` is ten tools. The normal path is
 `prepare_guide` → `section_brief` / `read_section` / `read_source` → host writes
 `guide.md` → `build_guide` → `qa_guide` (`audit_guide` for the standalone

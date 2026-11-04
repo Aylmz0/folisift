@@ -44,6 +44,36 @@ pub struct DiagramSpec {
     pub direction: Option<String>,
     #[serde(default = "default_layout")]
     pub layout: String,
+    /// Layout hint. When `direction` is absent, a portrait ratio selects
+    /// `down` and a landscape ratio selects `right`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub aspect_ratio: Option<f32>,
+    /// Permit a diagram that is estimated to take more than one page.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub allow_page_span: bool,
+    /// Optional size contract consumed by diagram fit/preview reporting.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub width: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub height: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_width: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_height: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fit: Option<String>,
+    /// Root grid container dimensions; both are optional, at least one is set.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub grid: Option<GridSpec>,
+    /// D2 `vars` map for repeated palette values.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub vars: BTreeMap<String, String>,
+    /// Local D2 import paths, relative to `data/d2`.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub imports: Vec<String>,
+    /// D2 class styles used by `node_meta.<id>.class`.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub class_styles: BTreeMap<String, ClassStyle>,
     /// Opt-in D2 hand-drawn rendering. Off by default.
     #[serde(default, skip_serializing_if = "is_false")]
     pub sketch: bool,
@@ -77,13 +107,46 @@ pub struct NodeMeta {
     /// Local icon path or data URI; remote URLs are rejected for offline builds.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub icon: Option<String>,
+    /// Named D2 class from `class_styles`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub class: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub width: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub height: Option<String>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct GridSpec {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rows: Option<u8>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub columns: Option<u8>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub gap: Option<u8>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct ClassStyle {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fill: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stroke: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub font_color: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Node {
     pub id: String,
+    #[serde(default)]
     pub label: String,
+    /// Explicit line breaks; mutually exclusive with a non-empty `label`.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub label_lines: Vec<String>,
     #[serde(default)]
     pub group: Option<String>,
     #[serde(default)]
@@ -155,7 +218,7 @@ pub struct Column {
     pub constraint: Option<String>,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Group {
     pub id: String,
@@ -165,6 +228,10 @@ pub struct Group {
     /// Per-container direction; falls back to the diagram direction.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub direction: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub width: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub height: Option<String>,
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
@@ -239,6 +306,12 @@ pub struct DiagramManifest {
     pub svg: String,
     pub d2_version: String,
     pub layout: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub direction: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub aspect_ratio: Option<f32>,
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub allow_page_span: bool,
     #[serde(default, skip_serializing_if = "is_false")]
     pub sketch: bool,
     #[serde(default)]
@@ -259,6 +332,11 @@ pub struct DiagramAsset {
     pub caption: String,
     pub alt: String,
     pub source: String,
+    /// Spec-level defaults; directive attributes override them.
+    pub width: Option<String>,
+    pub max_width: Option<String>,
+    pub max_height: Option<String>,
+    pub fit: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
@@ -281,6 +359,132 @@ pub struct DiagramStatus {
     pub svg: Option<String>,
     pub command: String,
     pub message: Option<String>,
+}
+
+/// One stable result envelope shared by CLI and MCP diagram actions.
+///
+/// `state` is the single state field. `cache_hit`/`status` are compatibility
+/// aliases for one release; new hosts should read `state`, `ok` and `cached`.
+pub const DIAGRAM_RESULT_SCHEMA_VERSION: u32 = 1;
+
+pub fn result_item(
+    id: &str,
+    state: DiagramState,
+    cached: bool,
+    svg: Option<String>,
+    errors: Vec<String>,
+    warnings: Vec<String>,
+    extra: serde_json::Value,
+) -> serde_json::Value {
+    let ok = state == DiagramState::Ok;
+    let mut value = serde_json::json!({
+        "id": id,
+        "ok": ok,
+        "state": state,
+        "cached": cached,
+        "cache_hit": cached,
+        "status": state,
+        "svg": svg,
+        "errors": errors,
+        "warnings": warnings,
+        "schema_version": DIAGRAM_RESULT_SCHEMA_VERSION,
+    });
+    if let (Some(target), Some(extra)) = (value.as_object_mut(), extra.as_object()) {
+        for (key, item) in extra {
+            target.insert(key.clone(), item.clone());
+        }
+    }
+    value
+}
+
+pub fn status_value(status: &DiagramStatus) -> serde_json::Value {
+    result_item(
+        &status.id,
+        status.state.clone(),
+        status.state == DiagramState::Ok,
+        status.svg.clone(),
+        status.message.clone().into_iter().collect(),
+        Vec::new(),
+        serde_json::json!({
+            "spec": status.spec,
+            "manifest": status.manifest,
+            "command": status.command,
+        }),
+    )
+}
+
+/// Estimate whether a rendered diagram fits one content page.
+///
+/// The estimate is geometric (SVG aspect ratio + requested width) and is
+/// deliberately conservative: it reports the page share and never runs D2.
+pub fn fit_report(
+    id: &str,
+    spec: &DiagramSpec,
+    svg: &str,
+    content_width_mm: f64,
+    content_height_mm: f64,
+    width_percent: f64,
+) -> Result<serde_json::Value> {
+    let (source_width, source_height) = svg_size(svg).ok_or_else(|| {
+        Error::Diagram(format!("diagram {id:?} SVG has no width/height or viewBox"))
+    })?;
+    let aspect = source_width / source_height.max(1.0);
+    let rendered_width_mm = content_width_mm * (width_percent / 100.0);
+    let rendered_height_mm = rendered_width_mm / aspect.max(0.01);
+    let page_share = rendered_height_mm / content_height_mm.max(1.0);
+    let fits_one_page = page_share <= 1.0;
+    let allow_page_span = spec.allow_page_span;
+    let fits = fits_one_page || allow_page_span;
+    let mut warnings = Vec::new();
+    if !fits_one_page && !allow_page_span {
+        warnings.push(format!(
+            "estimated height {rendered_height_mm:.1} mm exceeds the {content_height_mm:.1} mm content height; set allow_page_span=true or reduce width"
+        ));
+    }
+    Ok(serde_json::json!({
+        "id": id,
+        "ok": fits,
+        "state": if fits { "ok" } else { "invalid" },
+        "cached": true,
+        "status": if fits { "ok" } else { "invalid" },
+        "schema_version": DIAGRAM_RESULT_SCHEMA_VERSION,
+        "width_percent": width_percent,
+        "source_width": source_width,
+        "source_height": source_height,
+        "aspect_ratio": aspect,
+        "rendered_width_mm": rendered_width_mm,
+        "rendered_height_mm": rendered_height_mm,
+        "page_share": page_share,
+        "fits_one_page": fits_one_page,
+        "allow_page_span": allow_page_span,
+        "warnings": warnings,
+        "errors": Vec::<String>::new(),
+        "svg": null,
+    }))
+}
+
+fn svg_size(svg: &str) -> Option<(f64, f64)> {
+    let start = svg.find("<svg")?;
+    let end = svg[start..].find('>')? + start;
+    let root = &svg[start..end];
+    let attribute = |name: &str| -> Option<f64> {
+        let needle = format!("{name}=\"");
+        let value_start = root.find(&needle)? + needle.len();
+        let value = &root[value_start..];
+        let value_end = value.find('"')?;
+        value[..value_end].trim_end_matches("px").parse().ok()
+    };
+    if let (Some(width), Some(height)) = (attribute("width"), attribute("height")) {
+        return Some((width, height));
+    }
+    let view_box = root.find("viewBox=\"")? + "viewBox=\"".len();
+    let view_box = &root[view_box..];
+    let view_box = &view_box[..view_box.find('"')?];
+    let values = view_box
+        .split_whitespace()
+        .filter_map(|value| value.parse::<f64>().ok())
+        .collect::<Vec<_>>();
+    (values.len() == 4 && values[2] > 0.0 && values[3] > 0.0).then(|| (values[2], values[3]))
 }
 
 pub fn default_schema() -> u32 {
@@ -332,24 +536,61 @@ pub fn spec_hash(spec: &DiagramSpec) -> Result<String> {
     let mut value = serde_json::to_value(spec)
         .map_err(|error| Error::Diagram(format!("diagram spec hash: {error}")))?;
     if let Some(object) = value.as_object_mut() {
-        for key in ["actors", "messages", "notes", "classes", "tables"] {
-            if object
-                .get(key)
-                .and_then(serde_json::Value::as_array)
-                .is_some_and(Vec::is_empty)
-            {
+        for key in [
+            "actors",
+            "messages",
+            "notes",
+            "classes",
+            "tables",
+            "imports",
+            "class_styles",
+            "vars",
+        ] {
+            let empty = object.get(key).is_some_and(|value| {
+                value.as_array().is_some_and(Vec::is_empty)
+                    || value.as_object().is_some_and(serde_json::Map::is_empty)
+            });
+            if empty {
                 object.remove(key);
             }
+        }
+        for key in [
+            "aspect_ratio",
+            "width",
+            "height",
+            "max_width",
+            "max_height",
+            "fit",
+            "grid",
+            "node_meta",
+        ] {
+            if object.get(key).is_some_and(serde_json::Value::is_null) {
+                object.remove(key);
+            }
+        }
+        if object
+            .get("allow_page_span")
+            .and_then(serde_json::Value::as_bool)
+            == Some(false)
+        {
+            object.remove("allow_page_span");
         }
         if let Some(nodes) = object
             .get_mut("nodes")
             .and_then(serde_json::Value::as_array_mut)
         {
             for node in nodes {
-                if let Some(node) = node.as_object_mut()
-                    && node.get("shape").is_some_and(serde_json::Value::is_null)
-                {
-                    node.remove("shape");
+                if let Some(node) = node.as_object_mut() {
+                    if node.get("shape").is_some_and(serde_json::Value::is_null) {
+                        node.remove("shape");
+                    }
+                    if node
+                        .get("label_lines")
+                        .and_then(serde_json::Value::as_array)
+                        .is_some_and(Vec::is_empty)
+                    {
+                        node.remove("label_lines");
+                    }
                 }
             }
         }
@@ -424,6 +665,90 @@ pub fn validate_spec(spec: &DiagramSpec) -> Result<()> {
             "unsupported direction {direction:?}; use right, down, left or up"
         )));
     }
+    if let Some(ratio) = spec.aspect_ratio
+        && (!ratio.is_finite() || !(0.2..=5.0).contains(&ratio))
+    {
+        return Err(Error::Diagram(format!(
+            "aspect_ratio must be between 0.2 and 5.0, got {ratio}"
+        )));
+    }
+    for (name, value) in [
+        ("width", &spec.width),
+        ("height", &spec.height),
+        ("max_width", &spec.max_width),
+        ("max_height", &spec.max_height),
+    ] {
+        if let Some(value) = value {
+            validate_dimension(name, value)?;
+        }
+    }
+    if let Some(fit) = &spec.fit
+        && !matches!(fit.as_str(), "contain" | "width" | "height")
+    {
+        return Err(Error::Diagram(format!(
+            "unsupported fit {fit:?}; use contain, width or height"
+        )));
+    }
+    if let Some(grid) = &spec.grid {
+        if grid.rows.is_none() && grid.columns.is_none() {
+            return Err(Error::Diagram("grid needs rows or columns".to_string()));
+        }
+        for (name, value) in [("rows", grid.rows), ("columns", grid.columns)] {
+            if let Some(value) = value
+                && !(1..=6).contains(&value)
+            {
+                return Err(Error::Diagram(format!(
+                    "grid {name} must be between 1 and 6, got {value}"
+                )));
+            }
+        }
+        if grid.gap.is_some_and(|gap| gap > 100) {
+            return Err(Error::Diagram("grid gap must be at most 100".to_string()));
+        }
+    }
+    if spec.vars.len() > 20 {
+        return Err(Error::Diagram("too many vars (max 20)".to_string()));
+    }
+    for (name, value) in &spec.vars {
+        validate_id(name)?;
+        if value.chars().count() > 200 {
+            return Err(Error::Diagram(format!(
+                "var {name:?} is longer than 200 characters"
+            )));
+        }
+    }
+    if spec.imports.len() > 8 {
+        return Err(Error::Diagram("too many imports (max 8)".to_string()));
+    }
+    for import in &spec.imports {
+        let path = Path::new(import);
+        if path.is_absolute()
+            || path
+                .components()
+                .any(|component| !matches!(component, std::path::Component::Normal(_)))
+            || path.extension().and_then(|value| value.to_str()) != Some("d2")
+        {
+            return Err(Error::Diagram(format!(
+                "import {import:?} must be a relative .d2 path under data/d2"
+            )));
+        }
+    }
+    for (name, style) in &spec.class_styles {
+        validate_id(name)?;
+        for (field, value) in [
+            ("fill", &style.fill),
+            ("stroke", &style.stroke),
+            ("font_color", &style.font_color),
+        ] {
+            if let Some(value) = value
+                && !is_hex_color(value)
+            {
+                return Err(Error::Diagram(format!(
+                    "class {name:?} {field} must be a #RRGGBB colour, got {value:?}"
+                )));
+            }
+        }
+    }
     match spec.kind.as_str() {
         "flow" | "concept" | "tree" | "decision" => validate_graph(spec),
         "sequence" if !spec.actors.is_empty() || !spec.messages.is_empty() => {
@@ -436,6 +761,47 @@ pub fn validate_spec(spec: &DiagramSpec) -> Result<()> {
     }
 }
 
+fn validate_dimension(name: &str, value: &str) -> Result<()> {
+    let value = value.trim();
+    let valid = if let Some(percent) = value.strip_suffix('%') {
+        percent
+            .parse::<f32>()
+            .is_ok_and(|number| (10.0..=100.0).contains(&number))
+    } else if let Some(number) = value
+        .strip_suffix("cm")
+        .or_else(|| value.strip_suffix("mm"))
+        .or_else(|| value.strip_suffix("in"))
+        .or_else(|| value.strip_suffix("pt"))
+    {
+        number.parse::<f32>().is_ok_and(|number| number > 0.0)
+    } else {
+        value.parse::<f32>().is_ok_and(|number| number > 0.0)
+    };
+    if !valid {
+        return Err(Error::Diagram(format!(
+            "{name} must be a percentage (10%-100%), a positive number or a cm/mm/in/pt length; got {value:?}"
+        )));
+    }
+    Ok(())
+}
+
+fn is_hex_color(value: &str) -> bool {
+    let bytes = value.as_bytes();
+    bytes.len() == 7 && bytes[0] == b'#' && bytes[1..].iter().all(u8::is_ascii_hexdigit)
+}
+
+fn diagram_direction(spec: &DiagramSpec) -> &str {
+    if let Some(direction) = &spec.direction {
+        return direction;
+    }
+    match spec.aspect_ratio {
+        Some(ratio) if ratio < 0.9 => "down",
+        Some(ratio) if ratio > 1.1 => "right",
+        _ if spec.kind == "tree" => "down",
+        _ => DEFAULT_DIRECTION,
+    }
+}
+
 fn validate_graph(spec: &DiagramSpec) -> Result<()> {
     for (id, meta) in &spec.node_meta {
         if !spec.nodes.iter().any(|node| &node.id == id) {
@@ -443,12 +809,34 @@ fn validate_graph(spec: &DiagramSpec) -> Result<()> {
                 "node_meta references unknown node {id:?}"
             )));
         }
-        if let Some(icon) = &meta.icon
-            && (icon.starts_with("http://") || icon.starts_with("https://"))
+        if let Some(icon) = &meta.icon {
+            if icon.starts_with("http://") || icon.starts_with("https://") {
+                return Err(Error::Diagram(
+                    "remote icon URLs are rejected; use a local path under the guide".to_string(),
+                ));
+            }
+            let path = Path::new(icon);
+            if path.is_absolute()
+                || path
+                    .components()
+                    .any(|component| !matches!(component, std::path::Component::Normal(_)))
+            {
+                return Err(Error::Diagram(format!(
+                    "icon {icon:?} must be a relative path inside the guide"
+                )));
+            }
+        }
+        if let Some(class) = &meta.class
+            && !spec.class_styles.contains_key(class)
         {
-            return Err(Error::Diagram(
-                "remote icon URLs are rejected; use a local path under the guide".to_string(),
-            ));
+            return Err(Error::Diagram(format!(
+                "node_meta {id:?} uses unknown class {class:?}"
+            )));
+        }
+        for (name, value) in [("width", &meta.width), ("height", &meta.height)] {
+            if let Some(value) = value {
+                validate_dimension(name, value)?;
+            }
         }
     }
     if spec.nodes.is_empty() || spec.nodes.len() > MAX_NODES {
@@ -472,11 +860,31 @@ fn validate_graph(spec: &DiagramSpec) -> Result<()> {
         return Err(Error::Diagram("duplicate node id".to_string()));
     }
     for node in &spec.nodes {
-        if node.label.trim().is_empty() {
+        if node.label.trim().is_empty() && node.label_lines.is_empty() {
             return Err(Error::Diagram(format!(
                 "node {:?} has an empty label",
                 node.id
             )));
+        }
+        if !node.label.trim().is_empty() && !node.label_lines.is_empty() {
+            return Err(Error::Diagram(format!(
+                "node {:?} has both label and label_lines; choose one",
+                node.id
+            )));
+        }
+        if node.label_lines.len() > 4 {
+            return Err(Error::Diagram(format!(
+                "node {:?} has too many label_lines (max 4)",
+                node.id
+            )));
+        }
+        for line in &node.label_lines {
+            if line.chars().count() > 80 {
+                return Err(Error::Diagram(format!(
+                    "node {:?} label line is longer than 80 characters",
+                    node.id
+                )));
+            }
         }
         if let Some(shape) = &node.shape
             && !matches!(
@@ -525,6 +933,11 @@ fn validate_graph(spec: &DiagramSpec) -> Result<()> {
                 "group {:?} has unsupported direction {direction:?}; use right, down, left or up",
                 group.id
             )));
+        }
+        for (name, value) in [("width", &group.width), ("height", &group.height)] {
+            if let Some(value) = value {
+                validate_dimension(name, value)?;
+            }
         }
         let mut local_nodes = HashSet::new();
         for id in &group.nodes {
@@ -862,19 +1275,7 @@ pub fn d2_source(spec: &DiagramSpec, theme: &DiagramTheme) -> Result<String> {
 fn ensure_source_allowlist(source: &str) -> Result<()> {
     for line in source.lines() {
         let trimmed = line.trim_start();
-        for forbidden in [
-            "import ",
-            "icon:",
-            "link:",
-            "tooltip:",
-            "vars:",
-            "layers:",
-            "scenarios:",
-            "steps:",
-            "animate",
-            "near:",
-            "far:",
-        ] {
+        for forbidden in ["layers:", "scenarios:", "steps:", "animate"] {
             if trimmed.starts_with(forbidden) {
                 return Err(Error::Diagram(format!(
                     "generated D2 source contains forbidden directive {forbidden:?}"
@@ -919,8 +1320,8 @@ fn sequence_source(spec: &DiagramSpec, out: &mut String) -> Result<()> {
 }
 
 fn class_source(spec: &DiagramSpec, theme: &DiagramTheme, out: &mut String) -> Result<()> {
-    let direction = spec.direction.as_deref().unwrap_or(DEFAULT_DIRECTION);
-    out.push_str(&format!("direction: {direction}\n"));
+    write_imports_vars(spec, out);
+    out.push_str(&format!("direction: {}\n", diagram_direction(spec)));
     let keys = spec
         .classes
         .iter()
@@ -956,8 +1357,8 @@ fn class_source(spec: &DiagramSpec, theme: &DiagramTheme, out: &mut String) -> R
 }
 
 fn erd_source(spec: &DiagramSpec, theme: &DiagramTheme, out: &mut String) -> Result<()> {
-    let direction = spec.direction.as_deref().unwrap_or(DEFAULT_DIRECTION);
-    out.push_str(&format!("direction: {direction}\n"));
+    write_imports_vars(spec, out);
+    out.push_str(&format!("direction: {}\n", diagram_direction(spec)));
     let keys = spec
         .tables
         .iter()
@@ -1001,6 +1402,7 @@ fn erd_source(spec: &DiagramSpec, theme: &DiagramTheme, out: &mut String) -> Res
 }
 
 fn graph_source(spec: &DiagramSpec, theme: &DiagramTheme, out: &mut String) -> Result<()> {
+    write_imports_vars(spec, out);
     let node_keys = spec
         .nodes
         .iter()
@@ -1016,12 +1418,18 @@ fn graph_source(spec: &DiagramSpec, theme: &DiagramTheme, out: &mut String) -> R
     if spec.kind == "sequence" {
         out.push_str("shape: sequence_diagram\n");
     } else {
-        let direction = spec.direction.as_deref().unwrap_or(if spec.kind == "tree" {
-            "down"
-        } else {
-            DEFAULT_DIRECTION
-        });
-        out.push_str(&format!("direction: {direction}\n"));
+        out.push_str(&format!("direction: {}\n", diagram_direction(spec)));
+    }
+    if let Some(grid) = &spec.grid {
+        if let Some(rows) = grid.rows {
+            out.push_str(&format!("grid-rows: {rows}\n"));
+        }
+        if let Some(columns) = grid.columns {
+            out.push_str(&format!("grid-columns: {columns}\n"));
+        }
+        if let Some(gap) = grid.gap {
+            out.push_str(&format!("grid-gap: {gap}\n"));
+        }
     }
     let mut grouped: HashMap<&str, &str> = HashMap::new();
     for group in &spec.groups {
@@ -1035,6 +1443,11 @@ fn graph_source(spec: &DiagramSpec, theme: &DiagramTheme, out: &mut String) -> R
         ));
         if let Some(direction) = &group.direction {
             out.push_str(&format!("  direction: {direction}\n"));
+        }
+        for (name, value) in [("width", &group.width), ("height", &group.height)] {
+            if let Some(value) = value {
+                out.push_str(&format!("  {name}: {value}\n"));
+            }
         }
         for node in &group.nodes {
             let Some(node_spec) = spec.nodes.iter().find(|candidate| &candidate.id == node) else {
@@ -1062,6 +1475,7 @@ fn graph_source(spec: &DiagramSpec, theme: &DiagramTheme, out: &mut String) -> R
             spec.node_meta.get(&node.id),
         );
     }
+    write_class_styles(spec, out);
     for edge in &spec.edges {
         write_edge(
             out,
@@ -1074,10 +1488,57 @@ fn graph_source(spec: &DiagramSpec, theme: &DiagramTheme, out: &mut String) -> R
     Ok(())
 }
 
+fn write_imports_vars(spec: &DiagramSpec, out: &mut String) {
+    for import in &spec.imports {
+        out.push_str(&format!("...@{import}\n"));
+    }
+    if !spec.vars.is_empty() {
+        out.push_str("vars: {\n");
+        for (name, value) in &spec.vars {
+            out.push_str(&format!("  {name}: {}\n", d2_quote(value)));
+        }
+        out.push_str("}\n");
+    }
+}
+
+fn write_class_styles(spec: &DiagramSpec, out: &mut String) {
+    if spec.class_styles.is_empty() {
+        return;
+    }
+    out.push_str("classes: {\n");
+    for (name, style) in &spec.class_styles {
+        out.push_str(&format!("  {name}: {{\n    style: {{\n"));
+        for (field, value) in [
+            ("fill", &style.fill),
+            ("stroke", &style.stroke),
+            ("font-color", &style.font_color),
+        ] {
+            if let Some(value) = value {
+                out.push_str(&format!("      {field}: {}\n", d2_quote(value)));
+            }
+        }
+        out.push_str("    }\n  }\n");
+    }
+    out.push_str("}\n");
+}
+
 fn write_node(out: &mut String, indent: &str, key: &str, node: &Node, meta: Option<&NodeMeta>) {
-    let has_block = node.shape.is_some() || meta.is_some();
+    let label = if node.label_lines.is_empty() {
+        node.label.clone()
+    } else {
+        node.label_lines.join("\n")
+    };
+    let has_block = node.shape.is_some()
+        || meta.is_some_and(|meta| {
+            meta.tooltip.is_some()
+                || meta.link.is_some()
+                || meta.icon.is_some()
+                || meta.class.is_some()
+                || meta.width.is_some()
+                || meta.height.is_some()
+        });
     if has_block {
-        out.push_str(&format!("{indent}{key}: {} {{\n", d2_quote(&node.label)));
+        out.push_str(&format!("{indent}{key}: {} {{\n", d2_quote(&label)));
         if let Some(shape) = &node.shape {
             out.push_str(&format!("{indent}  shape: {shape}\n"));
         }
@@ -1091,10 +1552,18 @@ fn write_node(out: &mut String, indent: &str, key: &str, node: &Node, meta: Opti
             if let Some(icon) = &meta.icon {
                 out.push_str(&format!("{indent}  icon: {}\n", d2_quote(icon)));
             }
+            if let Some(class) = &meta.class {
+                out.push_str(&format!("{indent}  class: {class}\n"));
+            }
+            for (name, value) in [("width", &meta.width), ("height", &meta.height)] {
+                if let Some(value) = value {
+                    out.push_str(&format!("{indent}  {name}: {value}\n"));
+                }
+            }
         }
         out.push_str(&format!("{indent}}}\n"));
     } else {
-        out.push_str(&format!("{indent}{key}: {}\n", d2_quote(&node.label)));
+        out.push_str(&format!("{indent}{key}: {}\n", d2_quote(&label)));
     }
 }
 
@@ -1293,6 +1762,15 @@ pub fn write_d2_source(
             source: error,
         })?;
     }
+    for import in &spec.imports {
+        let import_path = path.parent().unwrap_or_else(|| Path::new(".")).join(import);
+        if !import_path.is_file() {
+            return Err(Error::Diagram(format!(
+                "diagram {:?} import {import:?} is missing under data/d2",
+                spec.id
+            )));
+        }
+    }
     std::fs::write(&path, d2_source(spec, theme)?).map_err(|error| Error::Io {
         path: path.clone(),
         source: error,
@@ -1455,6 +1933,10 @@ fn load_assets_filtered(
                 caption: compose_caption(&spec),
                 alt: spec.alt.clone(),
                 source: spec.source.clone(),
+                width: spec.width.clone(),
+                max_width: spec.max_width.clone(),
+                max_height: spec.max_height.clone().or_else(|| spec.height.clone()),
+                fit: spec.fit.clone(),
             },
         );
     }
@@ -1740,23 +2222,37 @@ mod tests {
             source: "PD0, s. 35".to_string(),
             direction: Some("right".to_string()),
             layout: DEFAULT_LAYOUT.to_string(),
+            aspect_ratio: None,
+            allow_page_span: false,
+            width: None,
+            height: None,
+            max_width: None,
+            max_height: None,
+            fit: None,
+            grid: None,
+            vars: BTreeMap::new(),
+            imports: Vec::new(),
+            class_styles: BTreeMap::new(),
             sketch: false,
             nodes: vec![
                 Node {
                     id: "src".to_string(),
                     label: "Kaynak program".to_string(),
+                    label_lines: Vec::new(),
                     group: None,
                     shape: None,
                 },
                 Node {
                     id: "lex".to_string(),
                     label: "Sözcüksel analiz".to_string(),
+                    label_lines: Vec::new(),
                     group: None,
                     shape: None,
                 },
                 Node {
                     id: "code".to_string(),
                     label: "Kod üretimi".to_string(),
+                    label_lines: Vec::new(),
                     group: None,
                     shape: None,
                 },
@@ -1817,6 +2313,7 @@ mod tests {
             .map(|index| Node {
                 id: format!("n{index}"),
                 label: format!("Node {index}"),
+                label_lines: Vec::new(),
                 group: None,
                 shape: None,
             })
@@ -1831,6 +2328,7 @@ mod tests {
         spec.nodes.push(Node {
             id: "extra".to_string(),
             label: "Extra".to_string(),
+            label_lines: Vec::new(),
             group: None,
             shape: None,
         });
@@ -1844,6 +2342,7 @@ mod tests {
             .map(|index| Node {
                 id: format!("n{index}"),
                 label: format!("Node {index}"),
+                label_lines: Vec::new(),
                 group: None,
                 shape: None,
             })
@@ -2002,12 +2501,127 @@ mod tests {
                 tooltip: Some("kaynak".to_string()),
                 link: Some("https://example.invalid".to_string()),
                 icon: Some("assets/source.svg".to_string()),
+                ..NodeMeta::default()
             },
         );
-        let mut out = String::new();
-        graph_source(&spec, &DiagramTheme::default(), &mut out).expect("graph");
+        let out = d2_source(&spec, &DiagramTheme::default()).expect("d2");
         assert!(out.contains("tooltip: \"kaynak\""));
         assert!(out.contains("icon: \"assets/source.svg\""));
+    }
+
+    #[test]
+    fn label_lines_are_joined_with_explicit_breaks() {
+        let mut spec = spec();
+        spec.nodes[0].label.clear();
+        spec.nodes[0].label_lines = vec!["Haklı neden?".to_string(), "m.24".to_string()];
+        let out = d2_source(&spec, &DiagramTheme::default()).expect("d2");
+        assert!(out.contains("Haklı neden?\\nm.24"), "{out}");
+        spec.nodes[0].label = "both".to_string();
+        assert!(validate_spec(&spec).is_err());
+    }
+
+    #[test]
+    fn aspect_ratio_resolves_direction_when_absent() {
+        let mut spec = spec();
+        spec.direction = None;
+        spec.aspect_ratio = Some(0.5);
+        assert!(
+            d2_source(&spec, &DiagramTheme::default())
+                .expect("portrait")
+                .contains("direction: down")
+        );
+        spec.aspect_ratio = Some(2.0);
+        assert!(
+            d2_source(&spec, &DiagramTheme::default())
+                .expect("landscape")
+                .contains("direction: right")
+        );
+    }
+
+    #[test]
+    fn d2_classes_grid_vars_imports_and_dimensions_are_emitted() {
+        let mut spec = spec();
+        spec.imports = vec!["theme/base.d2".to_string()];
+        spec.vars
+            .insert("branch".to_string(), "#e8f5e9".to_string());
+        spec.grid = Some(GridSpec {
+            rows: Some(2),
+            columns: Some(2),
+            gap: Some(10),
+        });
+        spec.class_styles.insert(
+            "valid".to_string(),
+            ClassStyle {
+                fill: Some("#e8f5e9".to_string()),
+                stroke: Some("#2e7d32".to_string()),
+                font_color: Some("#211E19".to_string()),
+            },
+        );
+        spec.node_meta.insert(
+            "src".to_string(),
+            NodeMeta {
+                class: Some("valid".to_string()),
+                width: Some("120".to_string()),
+                height: Some("60".to_string()),
+                ..NodeMeta::default()
+            },
+        );
+        spec.groups.push(Group {
+            id: "g1".to_string(),
+            label: "Worker".to_string(),
+            nodes: vec!["src".to_string()],
+            direction: Some("down".to_string()),
+            width: Some("160".to_string()),
+            height: Some("120".to_string()),
+        });
+        spec.nodes[0].group = Some("g1".to_string());
+        let out = d2_source(&spec, &DiagramTheme::default()).expect("d2");
+        assert!(out.contains("...@theme/base.d2"));
+        assert!(out.contains("vars: {"));
+        assert!(out.contains("grid-rows: 2"));
+        assert!(out.contains("classes: {"));
+        assert!(out.contains("class: valid"));
+        assert!(out.contains("width: 120"));
+        assert!(out.contains("height: 60"));
+        assert!(out.contains("width: 160"));
+    }
+
+    #[test]
+    fn fit_report_rejects_a_tall_diagram_without_page_span() {
+        let spec = spec();
+        let svg = r#"<svg width="100" height="400" viewBox="0 0 100 400"></svg>"#;
+        let report = fit_report("tall", &spec, svg, 175.0, 250.0, 90.0).expect("fit");
+        assert_eq!(report["fits_one_page"], false);
+        assert_eq!(report["ok"], false);
+        let mut allowed = spec.clone();
+        allowed.allow_page_span = true;
+        let report = fit_report("tall", &allowed, svg, 175.0, 250.0, 90.0).expect("fit");
+        assert_eq!(report["ok"], true);
+    }
+
+    #[test]
+    fn width_changes_the_geometric_page_share() {
+        let spec = spec();
+        let svg = r#"<svg width="100" height="100" viewBox="0 0 100 100"></svg>"#;
+        let narrow = fit_report("wide", &spec, svg, 175.0, 250.0, 60.0).expect("narrow");
+        let wide = fit_report("wide", &spec, svg, 175.0, 250.0, 90.0).expect("wide");
+        assert!(narrow["page_share"].as_f64().unwrap() < wide["page_share"].as_f64().unwrap());
+    }
+
+    #[test]
+    fn invalid_fit_and_remote_icon_are_rejected() {
+        let mut spec = spec();
+        spec.fit = Some("stretch".to_string());
+        assert!(validate_spec(&spec).is_err());
+        spec.fit = None;
+        spec.node_meta.insert(
+            "src".to_string(),
+            NodeMeta {
+                icon: Some("https://example.invalid/icon.svg".to_string()),
+                ..NodeMeta::default()
+            },
+        );
+        assert!(validate_spec(&spec).is_err());
     }
 
     #[test]
@@ -2045,6 +2659,7 @@ mod tests {
             label: "Worker".to_string(),
             nodes: vec![node_id],
             direction: Some("down".to_string()),
+            ..Group::default()
         });
         let mut out = String::new();
         graph_source(&spec, &DiagramTheme::default(), &mut out).expect("graph");

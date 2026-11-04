@@ -345,7 +345,15 @@ The template owns pagination and typography; content uses semantic blocks.
 chapters; use `subs=false` when a chapter's `##` headings should not appear in
 the TOC. `flow=true` pulls the opener into the previous page's remaining space.
 The `::: toc` directive accepts `subs`, `toc_depth`, `include` and `exclude`
-(comma-separated heading text).
+(comma-separated heading text). `include`/`exclude` match both chapter titles
+and `##` headings; a filtered chapter still supplies its `subs` state to its
+subsections.
+
+`::: columns` is a two-column prose region. `::: columnbreak` starts the next
+column; use it only inside `::: columns`. With `flow=true` the container may
+continue on the next page at a block boundary, but a table row, glossary pair
+or figure is never split by the break. Use `min_rows_before_break` only with
+`0`; non-zero values are rejected rather than ignored.
 The first `::: definition` in the front matter may carry
 `toc="A · ÇERÇEVE"` so the box gets a TOC entry.
 
@@ -370,7 +378,7 @@ A diagram is a typed JSON spec under `guides/<slug>/diagrams/<id>.json`:
 
 ```json
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "id": "pipeline",
   "kind": "flow",
   "title": "Derleme hattı",
@@ -379,10 +387,15 @@ A diagram is a typed JSON spec under `guides/<slug>/diagrams/<id>.json`:
   "source": "PD0, s. 35",
   "direction": "right",
   "layout": "tala",
+  "aspect_ratio": 1.8,
+  "allow_page_span": false,
+  "width": "90%",
+  "max_height": "14cm",
+  "fit": "contain",
   "sketch": false,
   "nodes": [
     {"id": "src", "label": "Kaynak program"},
-    {"id": "lex", "label": "Sözcüksel analiz"},
+    {"id": "lex", "label_lines": ["Sözcüksel", "analiz"]},
     {"id": "code", "label": "Kod üretimi"}
   ],
   "edges": [
@@ -399,6 +412,13 @@ Reference it from `guide.md` with an empty directive:
 :::
 ```
 
+`aspect_ratio` is a direction hint only when `direction` is absent.
+`label_lines` is preferred over escaped `\n`. `class_styles` plus
+`node_meta.<id>.class` colour outcome branches; `grid`, `vars`, local `imports`
+under `data/d2`, and node/group `width`/`height` are supported. `allow_page_span`
+is required when the geometric page share exceeds one; `diagram fit` reports the
+share before a build.
+
 `sketch=true` opts into D2 hand-drawn rendering. Keep it off for legal, medical
 and other formal guides unless the guide owner explicitly wants the experiment;
 the manifest records the flag so stale assets are rebuilt.
@@ -408,6 +428,7 @@ Build the assets with the CLI; D2 is not called from MCP or `build`:
 ```bash
 cargo run -p folisift-cli -- diagram build --guide pd0-pd1 --id pipeline
 cargo run -p folisift-cli -- diagram status --guide pd0-pd1
+cargo run -p folisift-cli -- diagram fit --guide pd0-pd1 --id pipeline --width 75
 ```
 
 Generated and audited files:
@@ -419,18 +440,23 @@ data/diagrams/<id>.json            # manifest: hashes, engine, version
 assets/generated/<svg-hash>.svg    # committed, embed-only
 ```
 
-Supported kinds: `flow`, `concept`, `tree`, `sequence`. Limits: 12 nodes /
-20 edges, tree depth 4; no decorative images. Inline ` ```diagram ` blocks are
+Supported kinds: `flow`, `concept`, `tree`, `decision`, `sequence`, `class`,
+`erd`. Limits: 24 nodes / 40 edges, tree and decision depth 8; no decorative
+images. Inline ` ```diagram ` blocks are
 rejected; move the JSON to `diagrams/<id>.json` and use the directive. The
 only exception is a manually supplied SVG/PNG asset under `assets/`; it still
 passes the sanitizer and needs a takeaway caption with provenance.
 
 The figure helper measures the rendered image. Figures use 90% of the content
-width by default, a tall figure is capped at 14 cm and everything is centered
-instead of overflowing the page. A `diagram` directive accepts an optional
-`width="50%"`–`width="100%"` for a specific figure, for example
-`::: diagram id="flow" width="75%"`. This applies to every layout that renders
-figures.
+width by default; the height cap scales with the requested width, so
+`width="60%"` and `width="90%"` stay visibly different. A `diagram` directive
+accepts `width="50%"`–`width="100%"`, a `max_height` length (`10cm`, `90mm`),
+and `fit="contain|width|height"`:
+`::: diagram id="flow" width="75%" max_height="9cm" fit="contain"`. A spec can
+set the same defaults with `width`, `max_height`, `height` and `fit`; directive
+attributes win. `allow_page_span=true` is required when the geometric fit is
+taller than one page; `folisift diagram fit` reports the page share before a
+build.
 
 ### Layout blocks
 
@@ -557,6 +583,21 @@ cargo run -p folisift-cli -- scaffold \
 
 The MCP `scaffold_guide` tool performs the same operation and generates
 headings from the source inventory.
+
+Which tool when:
+
+| Task | CLI | MCP |
+|---|---|---|
+| Analyze a source and write inventory/blocks | `analyze` | `analyze_source` |
+| Create a new guide bundle | `scaffold` | `scaffold_guide` |
+| Analyze + scaffold + outline + visual targets in one call | — | `prepare_guide` |
+| Build and gate a guide | `build --check` | `build_guide` |
+| One release report | `qa` | `qa_guide` |
+| Strict PDF audit | `audit --strict` | `audit_guide` |
+| Change style without touching content | `style apply` | `style` (`action=restyle`) |
+| Inspect or preview styles | `styles` | `style` |
+| Validate/build/status D2 | `diagram` | `diagram` (`build` stays CLI-only) |
+| Read one source section | `read-section` | `read_section` / `section_brief` |
 
 ## Design changes
 

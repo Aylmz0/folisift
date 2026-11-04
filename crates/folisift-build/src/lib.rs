@@ -67,6 +67,16 @@ pub struct BuildOutcome {
     pub genre_passed: bool,
     pub passed: Option<bool>,
     pub incremental: Option<serde_json::Value>,
+    pub outline: Vec<folisift_parse::OutlinePage>,
+    pub section_pages: Vec<SectionPage>,
+    pub parse_cache_hit: bool,
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct SectionPage {
+    pub heading: String,
+    pub page: usize,
+    pub matched_outline: String,
 }
 
 fn fail_with_draft(message: String, staged: &mut Option<StagedPdf>) -> Error {
@@ -140,6 +150,7 @@ pub async fn build(workspace: &Workspace, request: BuildRequest) -> Result<Build
     let mut coverage = None;
     let mut visual = None;
     let mut revision_coverage = false;
+    let mut parse_cache_hit = false;
     let genre_ok = true;
     let mut visual_passed = None;
     if request.check {
@@ -154,7 +165,8 @@ pub async fn build(workspace: &Workspace, request: BuildRequest) -> Result<Build
                 &mut staged,
             ));
         }
-        let audit_options = audit_options_for(workspace, &style)?;
+        let mut audit_options = audit_options_for(workspace, &style)?;
+        apply_audit_policy(&mut audit_options, &guide);
         let report = folisift_parse::audit_pdf_with(audit_path, None, audit_options)?;
         if !report.underfilled_pages.is_empty() {
             let pages = report
@@ -180,7 +192,8 @@ pub async fn build(workspace: &Workspace, request: BuildRequest) -> Result<Build
         if gates::uses_course_coverage(&style.structure)
             || gates::uses_revision_coverage(&style.structure)
         {
-            let inventory = load_inventory(&guide).await?;
+            let (inventory, cached) = load_inventory(&guide).await?;
+            parse_cache_hit = cached;
             if gates::uses_revision_coverage(&style.structure) {
                 let report = folisift_parse::revision_coverage_report(&inventory, &markdown);
                 if let Some(path) = &guide.coverage {
@@ -256,6 +269,13 @@ pub async fn build(workspace: &Workspace, request: BuildRequest) -> Result<Build
     if let Some(staged) = staged {
         staged.commit()?;
     }
+    let (outline, section_pages) = if request.check {
+        let outline = folisift_parse::outline_pages(&output_path).unwrap_or_default();
+        let section_pages = attribute_sections(&markdown, &outline);
+        (outline, section_pages)
+    } else {
+        (Vec::new(), Vec::new())
+    };
     Ok(BuildOutcome {
         output: output_path,
         rendered,
@@ -269,7 +289,48 @@ pub async fn build(workspace: &Workspace, request: BuildRequest) -> Result<Build
         genre_passed: genre_ok,
         passed,
         incremental: Some(incremental),
+        outline,
+        section_pages,
+        parse_cache_hit,
     })
+}
+
+fn attribute_sections(markdown: &str, outline: &[folisift_parse::OutlinePage]) -> Vec<SectionPage> {
+    let normalize = |value: &str| {
+        value
+            .chars()
+            .filter(|character| character.is_alphanumeric())
+            .flat_map(char::to_lowercase)
+            .collect::<String>()
+    };
+    let mut rows = Vec::new();
+    for line in markdown.lines() {
+        let Some(heading) = line.strip_prefix("## ") else {
+            continue;
+        };
+        let heading = heading.trim();
+        let key = normalize(heading);
+        if key.is_empty() {
+            continue;
+        }
+        let matched = outline
+            .iter()
+            .find(|entry| normalize(&entry.title) == key)
+            .or_else(|| {
+                outline.iter().find(|entry| {
+                    let title = normalize(&entry.title);
+                    !title.is_empty() && (title.contains(&key) || key.contains(&title))
+                })
+            });
+        if let Some(entry) = matched {
+            rows.push(SectionPage {
+                heading: heading.to_string(),
+                page: entry.page,
+                matched_outline: entry.title.clone(),
+            });
+        }
+    }
+    rows
 }
 
 fn incremental_report(guide: &Guide, markdown: &str) -> Result<serde_json::Value> {
@@ -331,7 +392,8 @@ pub fn audit_guide(
     expected_pages: Option<usize>,
 ) -> Result<LayoutAudit> {
     let guide = Guide::load(workspace, slug)?;
-    let options = audit_options_for(workspace, &guide.style())?;
+    let mut options = audit_options_for(workspace, &guide.style())?;
+    apply_audit_policy(&mut options, &guide);
     let pdf = pdf.map_or_else(|| guide.output.clone(), Path::to_path_buf);
     folisift_parse::audit_pdf_with(&pdf, expected_pages, options).map_err(Error::from)
 }
@@ -381,7 +443,10 @@ pub async fn qa(workspace: &Workspace, slug: &str) -> Result<serde_json::Value> 
             "cache_hit": outcome.rendered.cache_hit,
             "output": outcome.output.display().to_string(),
             "warnings": outcome.rendered.warnings,
+            "section_pages": outcome.section_pages,
+            "parse_cache_hit": outcome.parse_cache_hit,
         },
+        "outline": outcome.outline,
         "coverage": outcome.coverage,
         "audit": audit,
         "visual": outcome.visual,
@@ -422,6 +487,16 @@ fn count_files(path: &Path, extension: &str) -> usize {
 }
 
 /// Resolve the audit margins/typography options for a guide style.
+pub fn apply_audit_policy(options: &mut AuditOptions, guide: &Guide) {
+    if let Some(policy) = &guide.config.audit {
+        options
+            .intentional_pages
+            .extend(policy.intentional_pages.iter().copied());
+        options.intentional_pages.sort_unstable();
+        options.intentional_pages.dedup();
+    }
+}
+
 pub fn audit_options_for(workspace: &Workspace, style: &StyleProfile) -> Result<AuditOptions> {
     let loaded = styles::load_with(
         workspace.root(),
@@ -432,7 +507,7 @@ pub fn audit_options_for(workspace: &Workspace, style: &StyleProfile) -> Result<
     Ok(AuditOptions::from_tokens(&loaded.tokens))
 }
 
-async fn load_inventory(guide: &Guide) -> Result<Inventory> {
+async fn load_inventory(guide: &Guide) -> Result<(Inventory, bool)> {
     if let Some(path) = &guide.inventory
         && path.exists()
     {
@@ -440,12 +515,13 @@ async fn load_inventory(guide: &Guide) -> Result<Inventory> {
         let inventory = serde_json::from_slice::<Inventory>(&bytes)
             .map_err(|error| Error::Message(format!("inventory JSON: {error}")))?;
         if inventory.matches_sources(&guide.sources) {
-            return Ok(inventory);
+            return Ok((inventory, true));
         }
     }
-    analyze_sources(&guide.sources, folisift_parse::LOW_TEXT_THRESHOLD)
+    let inventory = analyze_sources(&guide.sources, folisift_parse::LOW_TEXT_THRESHOLD)
         .await
-        .map_err(Error::from)
+        .map_err(Error::from)?;
+    Ok((inventory, false))
 }
 
 fn write_pdf(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
@@ -518,7 +594,28 @@ impl Drop for StagedPdf {
 
 #[cfg(test)]
 mod tests {
-    use super::count_files;
+    use super::{attribute_sections, count_files};
+
+    #[test]
+    fn attributes_sections_to_actual_pdf_pages() {
+        let markdown = "## 3.1 Giriş\n\ntext\n\n## 3.2 Sonuç\n";
+        let outline = vec![
+            folisift_parse::OutlinePage {
+                level: 2,
+                title: "3.1 Giriş".to_string(),
+                page: 4,
+            },
+            folisift_parse::OutlinePage {
+                level: 2,
+                title: "3.2 Sonuç".to_string(),
+                page: 7,
+            },
+        ];
+        let rows = attribute_sections(markdown, &outline);
+        assert_eq!(rows.len(), 2);
+        assert_eq!(rows[0].page, 4);
+        assert_eq!(rows[1].page, 7);
+    }
 
     #[test]
     fn counts_nested_assets_by_extension() {

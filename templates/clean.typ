@@ -43,14 +43,17 @@
   tracking: 0.02em,
 )[[#body]])
 
-#let fitted_image(path, alt: none, width: 90%) = layout(size => {
+#let fitted_image(path, alt: none, width: 90%, max_height: 14cm, fit: "contain") = layout(size => {
   let target = size.width * width
   let wide = image(path, width: target, alt: alt)
+  // Scale the cap with the requested width so width=60% and width=90% are
+  // visibly different even when both would hit the page-height guard.
+  let cap = if fit == "width" { 1000cm } else { max_height * (width / 90%) }
   block(width: size.width)[
-    #align(center, if measure(wide).height > 14cm {
-      image(path, height: 14cm, alt: alt)
-    } else {
+    #align(center, if fit != "height" and measure(wide).height <= cap {
       wide
+    } else {
+      image(path, height: cap, alt: alt)
     })
   ]
 })
@@ -62,12 +65,13 @@
   fill: brick,
 )[#upper(word + " " + number)]
 
-#let toc_entry(level: 1, body: none, part: none, subs: true) = [
+#let toc_entry(level: 1, body: none, part: none, subs: true, key: "") = [
   #metadata((
     level: level,
     body: body,
     part: part,
     subs: subs,
+    key: key,
   )) <toc-entry>
 ]
 
@@ -307,11 +311,13 @@
     let state = entries.fold((none, false, ()), ((last, subs, out), entry) => {
       let value = entry.value
       let page-number = counter(page).at(entry.location()).first()
-      let text = if value.level == 1 { value.body } else { "" }
-      let included = toc_include.len() == 0 or toc_include.any(term => text.contains(term))
-      let excluded = toc_exclude.any(term => text.contains(term))
-      if not included or excluded {
-        (last, subs, out)
+      let text = value.key
+      let included = if toc_include.len() == 0 { true } else { toc_include.any(term => text.contains(term)) }
+      let excluded = if toc_exclude.len() == 0 { false } else { toc_exclude.any(term => text.contains(term)) }
+      if not included {
+        if value.level == 1 { (value.part, value.subs, out) } else { (last, subs, out) }
+      } else if excluded {
+        if value.level == 1 { (value.part, value.subs, out) } else { (last, subs, out) }
       } else if value.level == 1 {
         let part-rows = if value.part != none and value.part != last {
           out + (toc_part(value.part),)
@@ -356,7 +362,7 @@
     pagebreak(weak: not (break_before or full_page_opener))
   }
   running_entry(running)
-  toc_entry(level: 1, body: if toc == none { title } else { toc }, part: part, subs: subs)
+  toc_entry(level: 1, body: if toc == none { title } else { toc }, part: part, subs: subs, key: repr(if toc == none { title } else { toc }))
   block(
     above: if flow { 9mm } else if compact { 3mm } else { 0pt },
     below: 8mm,
@@ -503,8 +509,8 @@
   ]
 
   show heading.where(level: 2): it => {
-    toc_entry(level: 2, body: it.body)
     let raw = it.body.text
+    toc_entry(level: 2, body: it.body, key: repr(it.body))
     let head = if raw == none {
       it.body
     } else {

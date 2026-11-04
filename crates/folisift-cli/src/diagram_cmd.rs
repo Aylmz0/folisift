@@ -27,19 +27,28 @@ pub fn validate(
     let items = specs
         .iter()
         .map(|spec| {
-            json!({
-                "id": spec.id,
-                "ok": true,
-                "kind": spec.kind,
-                "nodes": spec.nodes.len(),
-                "edges": spec.edges.len(),
-                "spec": diagram::spec_path(&guide.dir, &spec.id).display().to_string(),
-            })
+            diagram::result_item(
+                &spec.id,
+                DiagramState::Ok,
+                false,
+                None,
+                Vec::new(),
+                Vec::new(),
+                json!({
+                    "kind": spec.kind,
+                    "nodes": spec.nodes.len(),
+                    "edges": spec.edges.len(),
+                    "spec": diagram::spec_path(&guide.dir, &spec.id).display().to_string(),
+                    "spec_sha256": diagram::spec_hash(spec).ok(),
+                    "layout": spec.layout,
+                }),
+            )
         })
         .collect::<Vec<_>>();
     Ok(json!({
         "guide": guide.slug,
         "ok": true,
+        "schema_version": diagram::DIAGRAM_RESULT_SCHEMA_VERSION,
         "items": items,
     }))
 }
@@ -73,6 +82,7 @@ pub fn build(
         "guide": guide.slug,
         "d2": d2.display().to_string(),
         "d2_version": D2_VERSION,
+        "schema_version": diagram::DIAGRAM_RESULT_SCHEMA_VERSION,
         "items": items,
     }))
 }
@@ -85,8 +95,56 @@ pub fn status(workspace: &Workspace, guide_slug: &str) -> CliResult<Value> {
         "guide": guide.slug,
         "ok": ok,
         "d2_version": D2_VERSION,
-        "items": statuses,
+        "schema_version": diagram::DIAGRAM_RESULT_SCHEMA_VERSION,
+        "items": statuses.iter().map(diagram::status_value).collect::<Vec<_>>(),
     }))
+}
+
+pub fn fit(
+    workspace: &Workspace,
+    guide_slug: &str,
+    id: &str,
+    width_percent: f64,
+) -> CliResult<Value> {
+    let guide = Guide::load(workspace, guide_slug)?;
+    let spec = diagram::read_spec(&guide.dir, id)?;
+    let manifest = diagram::read_manifest(&guide.dir, id)?
+        .ok_or_else(|| format!("diagram {id:?} has no manifest; run `folisift diagram build`"))?;
+    let svg_path = guide.dir.join(&manifest.svg);
+    let svg = std::fs::read_to_string(&svg_path)?;
+    let (content_width_mm, content_height_mm) = content_box(workspace, &guide)?;
+    diagram::fit_report(
+        id,
+        &spec,
+        &svg,
+        content_width_mm,
+        content_height_mm,
+        width_percent,
+    )
+    .map_err(Into::into)
+}
+
+fn content_box(workspace: &Workspace, guide: &Guide) -> CliResult<(f64, f64)> {
+    let style = guide.style();
+    let loaded = styles::load_with(
+        workspace.root(),
+        &style.aesthetic,
+        Some(style.palette.as_str()),
+        Some(style.fonts.as_str()),
+    )?;
+    let layout = loaded.tokens.get("layout");
+    let get = |key: &str, default: f64| {
+        layout
+            .and_then(|value| value.get(key))
+            .and_then(Value::as_f64)
+            .unwrap_or(default)
+    };
+    let page_width = get("page_width_mm", 210.0);
+    let page_height = get("page_height_mm", 297.0);
+    let side = get("margin_side_mm", 16.2);
+    let top = get("margin_top_mm", 18.3);
+    let bottom = get("margin_bottom_mm", 15.9);
+    Ok((page_width - 2.0 * side, page_height - top - bottom))
 }
 
 pub fn clean(workspace: &Workspace, guide_slug: &str) -> CliResult<Value> {
@@ -187,12 +245,22 @@ fn build_one(
                 .map(|bytes| blake3::hash(&bytes).to_hex().to_string() == manifest.svg_sha256)
                 .unwrap_or(false);
         if valid {
-            return Ok(json!({
-                "id": spec.id,
-                "cache_hit": true,
-                "svg": manifest.svg,
-                "manifest": manifest_path.display().to_string(),
-            }));
+            return Ok(diagram::result_item(
+                &spec.id,
+                DiagramState::Ok,
+                true,
+                Some(manifest.svg.clone()),
+                Vec::new(),
+                Vec::new(),
+                json!({
+                    "manifest": manifest_path.display().to_string(),
+                    "svg_sha256": manifest.svg_sha256,
+                    "layout": manifest.layout,
+                    "direction": manifest.direction,
+                    "aspect_ratio": manifest.aspect_ratio,
+                    "allow_page_span": manifest.allow_page_span,
+                }),
+            ));
         }
     }
 
@@ -265,6 +333,44 @@ fn build_one(
     let _ = std::fs::remove_file(&temp_svg);
     let key = &spec_sha[..12.min(spec_sha.len())];
     let svg = diagram::postprocess_svg(&raw, &spec.title, &spec.alt, &theme.paper, key)?;
+    let (content_width, content_height) = content_box(workspace, guide)?;
+    let requested_width = spec
+        .width
+        .as_deref()
+        .and_then(|value| value.strip_suffix('%'))
+        .and_then(|value| value.parse::<f64>().ok())
+        .unwrap_or(90.0);
+    let max_width = spec
+        .max_width
+        .as_deref()
+        .and_then(|value| value.strip_suffix('%'))
+        .and_then(|value| value.parse::<f64>().ok())
+        .unwrap_or(100.0);
+    let width_percent = requested_width.min(max_width);
+    let fit = diagram::fit_report(
+        &spec.id,
+        spec,
+        &svg,
+        content_width,
+        content_height,
+        width_percent,
+    )?;
+    if fit["ok"].as_bool() != Some(true) {
+        return Err(format!(
+            "diagram {:?} does not fit one page (estimated share {:.2}); set allow_page_span=true or reduce width: {}",
+            spec.id,
+            fit["page_share"].as_f64().unwrap_or(0.0),
+            fit["warnings"]
+                .as_array()
+                .map(|warnings| warnings
+                    .iter()
+                    .filter_map(|warning| warning.as_str())
+                    .collect::<Vec<_>>()
+                    .join("; "))
+                .unwrap_or_default()
+        )
+        .into());
+    }
     let svg_hash = blake3::hash(svg.as_bytes()).to_hex().to_string();
     let asset = diagram::write_asset(&guide.dir, &svg_hash, &svg)?;
     let relative = asset
@@ -286,6 +392,9 @@ fn build_one(
         svg: relative.clone(),
         d2_version: D2_VERSION.to_string(),
         layout: spec.layout.clone(),
+        direction: spec.direction.clone(),
+        aspect_ratio: spec.aspect_ratio,
+        allow_page_span: spec.allow_page_span,
         sketch: spec.sketch,
         tala_seeds: TALA_SEEDS.to_string(),
         salt: diagram::salt(&spec_sha),
@@ -301,13 +410,22 @@ fn build_one(
         postprocess_version: POSTPROCESS_VERSION,
     };
     let manifest_path = diagram::write_manifest(&guide.dir, &manifest)?;
-    Ok(json!({
-        "id": spec.id,
-        "cache_hit": false,
-        "svg": relative,
-        "svg_sha256": svg_hash,
-        "manifest": manifest_path.display().to_string(),
-    }))
+    Ok(diagram::result_item(
+        &spec.id,
+        DiagramState::Ok,
+        false,
+        Some(relative.clone()),
+        Vec::new(),
+        Vec::new(),
+        json!({
+            "svg_sha256": svg_hash,
+            "manifest": manifest_path.display().to_string(),
+            "layout": manifest.layout,
+            "direction": manifest.direction,
+            "aspect_ratio": manifest.aspect_ratio,
+            "allow_page_span": manifest.allow_page_span,
+        }),
+    ))
 }
 
 fn font_digest(fonts: &Path) -> CliResult<String> {

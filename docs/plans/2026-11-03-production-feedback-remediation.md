@@ -1,6 +1,6 @@
 # Production feedback remediation plan — 2026-11-03
 
-- **Status:** Active; v0.16.0 closes the core and M5, cross-cutting polish remains
+- **Status:** Completed through v0.17.0 worktree; the conditional reranker is an explicit accepted deferral
 - **Source:** [`docs/FOLISIFT-GERI-BILDIRIM.md`](../FOLISIFT-GERI-BILDIRIM.md)
 - **Baseline:** Folisift 0.12.4, build 143, MCP schema 8
 - **Purpose:** turn every finding in the production feedback into an owned,
@@ -8,31 +8,32 @@
 - **Primary outcome:** “passed” must mean complete, visually continuous and
   machine-diagnosable; context must get cheaper without adding network calls
 
-## 0.1 Release 0.16.0 implementation status
+## 0.1 Release 0.17.0 worktree implementation status
 
-v0.16.0 closes the trust-critical slice, the M2 workflow core, the M3 context
-core and the M4 core on the current workspace. Items marked **Partial** have a shipped,
-testable subset and a named remaining gap; they are not claimed complete.
+v0.17.0 closes the trust-critical slice, the M2 workflow core, the M3 context
+core, the M4 engine depth and the post-v0.16.0 review gaps on the current
+workspace. The only deliberate deferral is the conditional reranker, which
+stays off until a benchmark justifies it.
 
-| Workstream | Status in v0.16.0 | Evidence / remaining gap |
+| Workstream | Status in v0.17.0 worktree | Evidence / remaining gap |
 |---|---|---|
 | W1 coverage manifest | Shipped | `coverage-manifest` CLI/MCP, manifest-first build, page-accurate coverage report, tests |
 | W2 layout continuity | Shipped | chapter/columns/table/diagram keep/break options, `toc_depth`/`subs`/`include`/`exclude`, glossary flow, role-aware underfill; unsupported min-row option is rejected explicitly |
 | W3 diagnostics and draft | Shipped (core) | `Diagnostic` code/envelope, `E_MARKDOWN` line + directive stack, `_draft.pdf` + `draft_path` |
-| W4 D2 decision support | Shipped (core) | 24 nodes, 40 edges, depth 8, `decision`, `tala/dagre/elk`, tests |
+| W4 D2 decision support | Shipped | 24 nodes, 40 edges, depth 8, `decision`, `tala/dagre/elk`, `aspect_ratio`, `allow_page_span`, `label_lines`, width/height/fit and unified result envelope |
 | W5 Turkish headings | Shipped (core) | glued headings, `headings.review.md`, TOC/body mismatch rows, 1-based public pages |
 | W6 style compatibility | Shipped (core) | matrix filtering, `irac+law` → reader/accessible, page estimate, restyle, theme/style check |
-| W7 MCP surface and QA | Shipped | `qa_guide`, `audit_guide`, `doctor`, profiles, resources pagination, outline pagination, table extract, structured draft path, 33 tools |
+| W7 MCP surface and QA | Shipped | `qa_guide`, `audit_guide`, `doctor` with style checks, profiles ≤15, resources/templates, outline pagination, table extract, structured draft path, `detail`/`fields`/`max_tokens` on large responses, 35 tools |
 | W8 IRAC scaffold | Shipped (core) | 10 cases, `###` levels, `source-headings.md`, existing-content preservation |
 | W9 table/statistics truth | Shipped (core) | markdown/wrapped/captioned/glossary/total, `E_TABLE_WIDTHS`, caption-number opt-out without dropping ids |
-| W10 page roles | Shipped | `PageRole`, TOC/chapter/figure/table exemptions, first-three heuristic removed, figure/table-only and chapter-split lists |
+| W10 page roles | Shipped | `PageRole`, guide-level intentional pages, first-three heuristic removed, table-cell-free line stats, font-bucket explanations, figure/table-only and chapter-split lists |
 | W11 graph and links | Shipped (core) | heading nodes, `query`/`path`/`explain`, link heading labels |
 | W12 claims and cards | Shipped | section/severity/missing citation, noise filter, default intervals, empty warning, definition/must-know cards, `verify_citations` |
-| W13 page budget UX | Shipped (core) | `budget`, section attribution, capped search context, incremental section hashes/report; parse artifacts are still recomputed by design |
+| W13 page budget UX | Shipped | `budget` with actual PDF page attribution, outline sections, inventory/brief cache reuse, incremental hashes, capped search context |
 | W14 context retrieval | Shipped | briefs with level, full/summary/claims/tables reads, `max_tokens`, `source_brief`, `source_topics`, `guide_plan`, `visual_brief`, `citation_snippet`, `cost_report` |
 | W15 LiteParse depth | Shipped | opt-in `insights` reports annotations, AcroForm fields, tagged structure, vector geometry, image refs and per-page complexity |
-| W16 D2 depth | Shipped | `dagre`/`elk`, per-group direction, multiline labels, tooltip/link/local icon metadata, sketch rendering and manifest tracking |
-| W17 Model2Vec/reranker | Shipped (core) | local Model2Vec links and `topics` clustering are the default; heading-term clustering is the fallback; conditional reranker is not enabled without a benchmark |
+| W16 D2 depth | Shipped | `dagre`/`elk`, per-group direction, multiline labels, tooltip/link/local icon metadata, class styles, grid, vars, local imports, node/container dimensions, sketch and manifest tracking |
+| W17 Model2Vec/reranker | Shipped (core) | local Model2Vec links/topics and `coverage-hint`; heading-term fallback; conditional reranker stays off pending a benchmark |
 | W18 OCR policy | Shipped (policy) | OCR off by default, explicit candidates/reasons, no silent OCR |
 | W19 determinism/docs | Shipped (docs) | cookbook, release checklist, versioned gates |
 | W20 agent profiles | Shipped (core) | `fast`/`deep` profiles plus core/source/authoring/review |
@@ -42,29 +43,21 @@ testable subset and a named remaining gap; they are not claimed complete.
 
 The five exam PDFs pass `make exam-check`; `make visual`, `make type-check`,
 `make parity`, `make genre-check`, `make d2-pdf-check`, `cargo test`, `clippy`
-and `fmt` pass. No workstream is marked Partial. Deliberately opt-in or deferred
-polish: D2 icon/class/tooltip experiments, conditional reranker and true
-parse-artifact reuse. They are not release blockers and do not affect the
-deterministic local boundary.
+and `fmt` pass. `make acceptance` runs the whole release gate in one command.
+The conditional reranker remains deliberately off; it is the only deferred
+engine capability.
 
-## 0.2 Remaining cross-cutting gaps (v0.16.0)
+## 0.2 Remaining cross-cutting gaps (v0.17.0 worktree)
 
-These are the honest gaps after the v0.16.0 core:
+The review closed the v0.16.0 list. One explicit accepted deferral remains:
 
-- W4: `allow_page_span`, `aspect_ratio`, explicit `label_lines` and a unified
-  `DiagramResult` envelope.
-- W7: `detail`/`fields`/`max_tokens` across every large MCP response, not only
-  the section/graph/coverage subset.
-- W10: intentional-page exceptions, table-cell exclusion in line-length stats
-  and font-size bucket explanations.
-- W13: true parse/brief artifact reuse and actual per-section page attribution;
-  current budget/incremental output is estimate/hash based.
-- W14: separate `chapter_brief`/`heading_brief` tools and a full output budget
-  contract.
-- W16: D2 classes, grid, vars/imports and node/container dimensions.
-- W17: coverage-hint classification and a benchmarked conditional reranker.
-- §9: A1–A47 still are not one executable acceptance suite; the finding
-  register still contains `needs-repro`/`planned` rows that need disposition.
+- **W17 conditional reranker:** deliberately disabled. `coverage-hint` is the
+  advisory classifier; FastEmbed reranking needs a measured precision win before
+  it can be enabled. No product claim depends on it, and the register row is
+  `deferred`, not `planned`.
+
+`make acceptance` is the single executable acceptance suite; it runs the tests,
+audits, QA, doctor and every release gate.
 
 ## 0. How to use this plan
 
@@ -95,6 +88,9 @@ points to a passing test and, where relevant, a migrated artifact.
 - `partially-fixed` — a recent change covers part of the case; regression test
   is still missing.
 - `policy-gap` — behavior is undefined or undocumented rather than a code bug.
+- `verified` — the shipped code has a passing test or release-gate evidence.
+- `documented` — behavior is defined in `docs/authoring.md` or an ADR.
+- `deferred` — explicitly accepted out of scope; no product claim depends on it.
 
 ## 1. Executive decision
 
@@ -1221,6 +1217,11 @@ opt-in flag.
 
 ## 9. Acceptance suite
 
+`make acceptance` (or `./scripts/acceptance.sh`) is the executable suite. The
+table below is the coverage map: most rows are exercised by the cargo tests and
+release gates that suite runs, while fixture-dependent rows are covered by the
+documented command.
+
 | ID | Test | Expected |
 |---|---|---|
 | A1 | 141-heading source | `total=141`, `claimed=141`, `missing=[]` |
@@ -1686,7 +1687,7 @@ appear here. `Evidence` records what we know at plan time, not final status.
 | F-41-4 | D2 dagre/elk/per-container direction/near/top/left unused | W16 | P1 | confirmed |
 | F-41-5 | D2 classes/tooltip/link/grid/shapes unused | W16 | P1 | planned |
 | F-41-6 | Model2Vec clustering/classification/retrieval unused | W17 | P1 | confirmed |
-| F-41-7 | FastEmbed reranker unused | W17 | P2 | conditional |
+| F-41-7 | FastEmbed reranker unused | W17 | P2 | deferred |
 | F-41-8 | agent-fast profile | W14/W15/W16/W17/W18 | P1 | planned |
 | F-41-9 | determinism guardrails | W19 | P0 | planned |
 | F-41-10 | avoid full OCR/LLM summaries/sketch/always-reranker | W18/W14/W16/W17 | P1 | planned |

@@ -34,6 +34,42 @@ pub struct PageRoleEntry {
     pub visual: bool,
 }
 
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+pub struct OutlinePage {
+    pub level: u8,
+    pub title: String,
+    pub page: usize,
+}
+
+/// Read PDF bookmarks as 1-based page anchors.
+pub fn outline_pages(path: &Path) -> Result<Vec<OutlinePage>> {
+    pdfium::init(None)?;
+    let path_text = path.to_str().ok_or_else(|| Error::Parse {
+        path: path.to_path_buf(),
+        message: "PDF path is not valid UTF-8".to_string(),
+    })?;
+    let library = liteparse_pdfium::Library::try_init().map_err(|error| Error::Pdfium {
+        message: error.to_string(),
+    })?;
+    let document = library
+        .load_document(path_text, None)
+        .map_err(|error| Error::Parse {
+            path: path.to_path_buf(),
+            message: error.to_string(),
+        })?;
+    Ok(document
+        .outline()
+        .into_iter()
+        .filter_map(|entry| {
+            entry.page_index.map(|page| OutlinePage {
+                level: entry.level,
+                title: entry.title,
+                page: page as usize + 1,
+            })
+        })
+        .collect())
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct PageAudit {
     pub page: usize,
@@ -42,6 +78,12 @@ pub struct PageAudit {
     pub overflow: bool,
     pub visual: bool,
     pub role: PageRole,
+    /// Fraction of page height for the first detected heading line.
+    pub first_heading_fraction: f64,
+    /// Fraction of page height for the last detected heading line.
+    pub last_heading_fraction: f64,
+    /// Fraction of page height for the largest detected heading line.
+    pub title_heading_fraction: f64,
     pub text_left: f64,
     pub text_top: f64,
     pub text_right: f64,
@@ -56,13 +98,15 @@ pub struct UnderfilledPage {
     pub ratio: f64,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct AuditOptions {
     pub margin_x_pt: f64,
     pub margin_top_pt: f64,
     pub margin_bottom_pt: f64,
     pub min_font_pt: f64,
     pub max_line_chars: usize,
+    /// 1-based pages that are deliberately sparse.
+    pub intentional_pages: Vec<usize>,
 }
 
 impl Default for AuditOptions {
@@ -73,6 +117,7 @@ impl Default for AuditOptions {
             margin_bottom_pt: 45.0,
             min_font_pt: 6.0,
             max_line_chars: 0,
+            intentional_pages: Vec::new(),
         }
     }
 }
@@ -99,12 +144,25 @@ impl AuditOptions {
             .and_then(|value| value.get("max_line_chars"))
             .and_then(serde_json::Value::as_u64)
             .map_or(0, |value| value as usize);
+        let intentional_pages = audit
+            .and_then(|value| value.get("intentional_pages"))
+            .and_then(serde_json::Value::as_array)
+            .map(|pages| {
+                pages
+                    .iter()
+                    .filter_map(serde_json::Value::as_u64)
+                    .map(|page| page as usize)
+                    .filter(|page| *page > 0)
+                    .collect()
+            })
+            .unwrap_or_default();
         Self {
             margin_x_pt: mm("margin_side_mm", 16.2),
             margin_top_pt: mm("margin_top_mm", 18.3),
             margin_bottom_pt: mm("margin_bottom_mm", 15.9),
             min_font_pt,
             max_line_chars,
+            intentional_pages,
         }
     }
 }
@@ -126,6 +184,7 @@ pub struct LayoutAudit {
     pub content_box_pages: Vec<usize>,
     pub underfilled_pages: Vec<UnderfilledPage>,
     pub page_roles: Vec<PageRoleEntry>,
+    pub intentional_pages: Vec<usize>,
     pub figure_only_pages: Vec<usize>,
     pub table_only_pages: Vec<usize>,
     pub chapter_split_pages: Vec<usize>,
@@ -143,8 +202,11 @@ pub struct LayoutAudit {
     pub code_font_size: Option<f64>,
     pub code_body_ratio: Option<f64>,
     pub font_sizes: Vec<FontSizeCount>,
+    pub font_size_notes: Vec<String>,
     pub line_chars_p50: usize,
     pub line_chars_p90: usize,
+    pub line_chars_plain_p50: usize,
+    pub line_chars_plain_p90: usize,
     pub long_line_pages: Vec<usize>,
     pub passed: bool,
     pub issues: Vec<String>,
@@ -198,6 +260,7 @@ pub fn audit_pdf_with(
     let mut font_counts: BTreeMap<u32, usize> = BTreeMap::new();
     let mut code_font_counts: BTreeMap<u32, usize> = BTreeMap::new();
     let mut line_lengths: Vec<usize> = Vec::new();
+    let mut plain_line_lengths: Vec<usize> = Vec::new();
     let mut long_line_pages = Vec::new();
     for index in 0..pages {
         let page = document.page(index as i32).map_err(|error| Error::Parse {
@@ -268,7 +331,7 @@ pub fn audit_pdf_with(
         let mut page_text = String::new();
         let mut heading_lines: Vec<(f64, f64, String)> = Vec::new();
         let mut body_line_ys: Vec<f64> = Vec::new();
-        let mut current_line: Option<(f64, f64, String, f64)> = None;
+        let mut current_line: Option<(f64, f64, String, f64, usize)> = None;
         let mut page_line_lengths: Vec<usize> = Vec::new();
         let (mut left, mut top, mut right, mut bottom) = (f64::MAX, f64::MAX, f64::MIN, f64::MIN);
         for index in 0..text.char_count() {
@@ -326,14 +389,26 @@ pub fn audit_pdf_with(
                 }
                 if let Some(value) = char::from_u32(code) {
                     match &mut current_line {
-                        Some((line_y, line_size, line_text, _)) if (y1 - *line_y).abs() <= 3.0 => {
+                        Some((line_y, line_size, line_text, last_x2, gaps))
+                            if (y1 - *line_y).abs() <= 3.0 =>
+                        {
+                            if x1 - *last_x2 > size * 1.8 {
+                                *gaps += 1;
+                            }
+                            *last_x2 = last_x2.max(x2);
                             line_text.push(value);
                             *line_size = line_size.max(size);
                         }
                         _ => {
-                            if let Some((line_y, line_size, line_text, _)) = current_line.take() {
-                                if (line_size - body_font_size).abs() <= 0.6 {
-                                    page_line_lengths.push(line_text.trim().chars().count());
+                            if let Some((line_y, line_size, line_text, _, gaps)) =
+                                current_line.take()
+                            {
+                                let line_chars = line_text.trim().chars().count();
+                                if (line_size - body_font_size).abs() <= 0.6 && line_chars >= 20 {
+                                    plain_line_lengths.push(line_chars);
+                                    if gaps <= 1 {
+                                        page_line_lengths.push(line_chars);
+                                    }
                                 }
                                 let in_body_band = line_y > options.margin_top_pt
                                     && line_y < height - options.margin_bottom_pt;
@@ -350,7 +425,7 @@ pub fn audit_pdf_with(
                                     body_line_ys.push(line_y);
                                 }
                             }
-                            current_line = Some((y1, size, value.to_string(), y1));
+                            current_line = Some((y1, size, value.to_string(), x2, 0));
                         }
                     }
                 }
@@ -366,9 +441,14 @@ pub fn audit_pdf_with(
         let touched = left != f64::MAX;
         let overflow =
             touched && (left < -1.0 || top < -1.0 || right > width + 1.0 || bottom > height + 1.0);
-        if let Some((line_y, line_size, text, _)) = current_line.take() {
-            if (line_size - body_font_size).abs() <= 0.6 {
-                page_line_lengths.push(text.trim().chars().count());
+        if let Some((line_y, line_size, text, _, gaps)) = current_line.take() {
+            let line_chars = text.trim().chars().count();
+            let line_words = text.split_whitespace().count();
+            if (line_size - body_font_size).abs() <= 0.6 && line_chars >= 20 && line_words >= 3 {
+                plain_line_lengths.push(line_chars);
+                if gaps <= 1 {
+                    page_line_lengths.push(line_chars);
+                }
             }
             let in_body_band =
                 line_y > options.margin_top_pt && line_y < height - options.margin_bottom_pt;
@@ -390,7 +470,7 @@ pub fn audit_pdf_with(
         if content_overflow {
             content_box_pages.push(index + 1);
         }
-        let role = classify_page(
+        let mut role = classify_page(
             page_number,
             chars,
             !images.is_empty() || captions > 0,
@@ -401,6 +481,24 @@ pub fn audit_pdf_with(
                 .fold(0.0, f64::max),
             body_font_size,
         );
+        if options.intentional_pages.contains(&page_number) {
+            role = PageRole::IntentionalBlank;
+        }
+        let first_heading_fraction = heading_lines
+            .iter()
+            .map(|(y, _, _)| (*y / height).clamp(0.0, 1.0))
+            .reduce(f64::min)
+            .unwrap_or(0.0);
+        let last_heading_fraction = heading_lines
+            .iter()
+            .map(|(y, _, _)| (*y / height).clamp(0.0, 1.0))
+            .reduce(f64::max)
+            .unwrap_or(0.0);
+        let title_heading_fraction = heading_lines
+            .iter()
+            .max_by(|left, right| left.1.total_cmp(&right.1))
+            .map(|(y, _, _)| (*y / height).clamp(0.0, 1.0))
+            .unwrap_or(0.0);
         page_reports.push(PageAudit {
             page: page_number,
             chars,
@@ -408,6 +506,9 @@ pub fn audit_pdf_with(
             overflow,
             visual: !images.is_empty() || captions > 0,
             role,
+            first_heading_fraction,
+            last_heading_fraction,
+            title_heading_fraction,
             text_left: if touched { left } else { 0.0 },
             text_top: if touched { top } else { 0.0 },
             text_right: if touched { right } else { 0.0 },
@@ -442,18 +543,15 @@ pub fn audit_pdf_with(
         .filter(|entry| entry.role == PageRole::TablePage)
         .map(|entry| entry.page)
         .collect::<Vec<_>>();
-    let chapter_split_pages = page_reports
-        .windows(2)
-        .filter(|pair| {
-            pair[0].role == PageRole::ChapterOpener && pair[1].role == PageRole::ChapterOpener
-        })
-        .map(|pair| pair[1].page)
-        .collect::<Vec<_>>();
+    let chapter_split_pages = detect_chapter_splits(&page_reports);
     let page_count_ok = expected_pages.is_none_or(|expected| expected == pages);
     let mut sorted_lines = line_lengths;
     sorted_lines.sort_unstable();
     let line_chars_p50 = percentile(&sorted_lines, 0.50);
     let line_chars_p90 = percentile(&sorted_lines, 0.90);
+    plain_line_lengths.sort_unstable();
+    let line_chars_plain_p50 = percentile(&plain_line_lengths, 0.50);
+    let line_chars_plain_p90 = percentile(&plain_line_lengths, 0.90);
     let font_sizes = font_counts
         .iter()
         .map(|(size, chars)| FontSizeCount {
@@ -487,6 +585,11 @@ pub fn audit_pdf_with(
     if !orphan_heading_pages.is_empty() {
         issues.push(format!(
             "possible orphan headings at page bottom: {orphan_heading_pages:?}"
+        ));
+    }
+    if !chapter_split_pages.is_empty() {
+        issues.push(format!(
+            "possible chapter opener split across pages: {chapter_split_pages:?}"
         ));
     }
 
@@ -565,6 +668,7 @@ pub fn audit_pdf_with(
         content_box_pages,
         underfilled_pages,
         page_roles,
+        intentional_pages: options.intentional_pages.clone(),
         figure_only_pages,
         table_only_pages,
         chapter_split_pages,
@@ -586,12 +690,32 @@ pub fn audit_pdf_with(
         code_font_size,
         code_body_ratio,
         font_sizes,
+        font_size_notes: font_size_notes(&font_counts, body_font_size),
         line_chars_p50,
         line_chars_p90,
+        line_chars_plain_p50,
+        line_chars_plain_p90,
         long_line_pages,
         passed,
         issues,
     })
+}
+
+fn font_size_notes(font_counts: &BTreeMap<u32, usize>, body_font_size: f64) -> Vec<String> {
+    let mut notes = Vec::new();
+    for (size, chars) in font_counts {
+        let size = f64::from(*size) / 10.0;
+        if size < 2.0 {
+            notes.push(format!(
+                "{size:.1} pt: {chars} char(s), treated as PDF metadata/artifact; verify only if visible"
+            ));
+        } else if size < body_font_size - 2.0 && *chars < 20 {
+            notes.push(format!(
+                "{size:.1} pt: {chars} char(s), likely a label/footnote or extraction artifact"
+            ));
+        }
+    }
+    notes
 }
 
 fn percentile(sorted: &[usize], fraction: f64) -> usize {
@@ -612,10 +736,11 @@ fn count_figure_captions(page_text: &str) -> usize {
 
 /// Flag pages whose body text is far below the normal body density.
 ///
-/// The first three pages (cover/front matter/TOC) are excluded because their
-/// low character count is intentional. The threshold is intentionally
-/// conservative: a page must be below 35% of the median body page to be
-/// reported. This is a review gate, not a claim that every short page is bad.
+/// Page roles carry the intent: front matter, TOC, chapter openers, figure and
+/// table pages, and explicit intentional pages are exempt. The threshold is
+/// intentionally conservative: a page must be below 35% of the median body
+/// page to be reported. This is a review gate, not a claim that every short
+/// page is bad.
 fn classify_page(
     page: usize,
     chars: usize,
@@ -630,8 +755,7 @@ fn classify_page(
     let lower = text.to_lowercase().replace('\u{0307}', "");
     let head = lower.chars().take(240).collect::<String>();
     let compact_head = head.split_whitespace().collect::<String>();
-    if page <= 6
-        && chars >= 80
+    if chars >= 80
         && (compact_head.contains("içindekiler") || compact_head.contains("contents"))
         && (lower.contains("....") || lower.matches(char::is_numeric).count() > 7)
     {
@@ -650,6 +774,28 @@ fn classify_page(
         return PageRole::TablePage;
     }
     PageRole::Body
+}
+
+fn detect_chapter_splits(pages: &[PageAudit]) -> Vec<usize> {
+    pages
+        .windows(2)
+        .filter_map(|pair| {
+            if pair[0].role == PageRole::ChapterOpener
+                && !pair[0].visual
+                && pair[0].chars < 600
+                && pair[0].title_heading_fraction > 0.78
+            {
+                Some(pair[0].page)
+            } else if pair[0].role == PageRole::ChapterOpener
+                && pair[0].chars < 600
+                && pair[1].role == PageRole::ChapterOpener
+            {
+                Some(pair[1].page)
+            } else {
+                None
+            }
+        })
+        .collect()
 }
 
 fn detect_underfilled(pages: &[PageAudit]) -> Vec<UnderfilledPage> {
@@ -757,6 +903,46 @@ mod tests {
     }
 
     #[test]
+    fn detects_a_chapter_opener_that_splits_at_the_page_bottom() {
+        let page = |page: usize, role: PageRole, last: f64| PageAudit {
+            page,
+            chars: 500,
+            empty: false,
+            overflow: false,
+            visual: false,
+            role,
+            first_heading_fraction: 0.1,
+            last_heading_fraction: last,
+            title_heading_fraction: last,
+            text_left: 0.0,
+            text_top: 0.0,
+            text_right: 0.0,
+            text_bottom: 0.0,
+        };
+        let pages = vec![
+            page(1, PageRole::ChapterOpener, 0.9),
+            page(2, PageRole::Body, 0.2),
+        ];
+        assert_eq!(detect_chapter_splits(&pages), vec![1]);
+        let pages = vec![
+            page(1, PageRole::ChapterOpener, 0.5),
+            page(2, PageRole::Body, 0.2),
+        ];
+        assert!(detect_chapter_splits(&pages).is_empty());
+        let pages = vec![
+            PageAudit {
+                chars: 1200,
+                ..page(1, PageRole::ChapterOpener, 0.4)
+            },
+            PageAudit {
+                chars: 1200,
+                ..page(2, PageRole::ChapterOpener, 0.4)
+            },
+        ];
+        assert!(detect_chapter_splits(&pages).is_empty());
+    }
+
+    #[test]
     fn detects_underfilled_body_pages_but_not_front_matter() {
         let page = |page: usize, chars: usize| PageAudit {
             page,
@@ -771,6 +957,9 @@ mod tests {
             } else {
                 PageRole::Body
             },
+            first_heading_fraction: 0.0,
+            last_heading_fraction: 0.0,
+            title_heading_fraction: 0.0,
             text_left: 0.0,
             text_top: 0.0,
             text_right: 0.0,
@@ -789,6 +978,48 @@ mod tests {
         assert_eq!(underfilled.len(), 1, "{underfilled:?}");
         assert_eq!(underfilled[0].page, 6);
         assert!(underfilled[0].ratio < 0.35);
+    }
+
+    #[test]
+    fn intentional_pages_are_exempt_from_underfilled() {
+        let page = |page: usize, chars: usize, role: PageRole| PageAudit {
+            page,
+            chars,
+            empty: false,
+            overflow: false,
+            visual: false,
+            role,
+            first_heading_fraction: 0.0,
+            last_heading_fraction: 0.0,
+            title_heading_fraction: 0.0,
+            text_left: 0.0,
+            text_top: 0.0,
+            text_right: 0.0,
+            text_bottom: 0.0,
+        };
+        let pages = vec![
+            page(1, 1800, PageRole::Body),
+            page(2, 1800, PageRole::Body),
+            page(3, 120, PageRole::IntentionalBlank),
+        ];
+        assert!(detect_underfilled(&pages).is_empty());
+    }
+
+    #[test]
+    fn explains_tiny_font_buckets() {
+        let mut counts = BTreeMap::new();
+        counts.insert(10, 5000);
+        counts.insert(35, 4);
+        counts.insert(10, 10);
+        let notes = font_size_notes(&counts, 10.0);
+        assert!(
+            notes.iter().any(|note| note.contains("3.5 pt")),
+            "{notes:?}"
+        );
+        assert!(
+            notes.iter().any(|note| note.contains("1.0 pt")),
+            "{notes:?}"
+        );
     }
 
     #[test]
@@ -832,6 +1063,9 @@ mod tests {
             } else {
                 PageRole::Body
             },
+            first_heading_fraction: 0.0,
+            last_heading_fraction: 0.0,
+            title_heading_fraction: 0.0,
             text_left: 0.0,
             text_top: 0.0,
             text_right: 0.0,

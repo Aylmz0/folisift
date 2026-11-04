@@ -43,3 +43,4 @@ models/
 # Local graphify knowledge graph; rebuild with `graphify update .`.
 graphify-out/
 guides/*/data/topics.json
+guides/*/data/briefs/

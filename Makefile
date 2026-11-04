@@ -11,9 +11,10 @@ VISUAL_BASELINE ?= tests/baselines/pd0-pd1.pdf
 CLEAN_BASELINE ?= tests/baselines/clean-preview.pdf
 VISUAL_PAGES ?= 1,4,8,12,18,23
 
-.PHONY: help build check verify audit dep-audit toc-check reading-order-check component-contrast-check component-contrast-strict production-report revision revision-check type-check palette-check style-audit exam-check genre-check genre-visual genre-capture d2-pdf-check d2-pdf-capture package-check doctor parity parity-capture visual visual-capture diagram diagram-status package test fmt clippy analyze pages scaffold offline-exam
+.PHONY: acceptance help build check verify audit dep-audit toc-check reading-order-check component-contrast-check component-contrast-strict production-report revision revision-check type-check palette-check style-audit exam-check genre-check genre-visual genre-capture d2-pdf-check d2-pdf-capture package-check doctor parity parity-capture visual visual-capture diagram diagram-status package test fmt clippy analyze pages scaffold offline-exam
 
 help:
+	@echo "make acceptance # one-command release gate (tests, audits, QA, doctor)"
 	@echo "make build      # guide PDF"
 	@echo "make check      # build + coverage gate"
 	@echo "make verify     # check + layout audit + pdfinfo"
@@ -46,6 +47,9 @@ help:
 	@echo "make analyze    # source inventory (SOURCES=...)"
 	@echo "make pages      # low-text page screenshots (SOURCE=...)"
 	@echo "make scaffold   # new guide (SLUG=... TITLE=... SOURCES=...)"
+
+acceptance:
+	./scripts/acceptance.sh
 
 build:
 	cargo run -p folisift-cli -- build --guide $(GUIDE)

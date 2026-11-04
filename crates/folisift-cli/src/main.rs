@@ -194,6 +194,11 @@ enum Command {
         #[arg(long)]
         target_pages: Option<String>,
     },
+    /// Advisory source-heading to guide-heading coverage hints.
+    CoverageHint {
+        #[arg(long)]
+        guide: String,
+    },
     /// One release report: build, coverage, audit, visual, cards, claims and diagrams.
     Qa {
         #[arg(long)]
@@ -438,6 +443,16 @@ enum DiagramCommand {
         #[arg(long)]
         guide: String,
     },
+    /// Estimate page share from a built SVG without running D2.
+    Fit {
+        #[arg(long)]
+        guide: String,
+        #[arg(long)]
+        id: String,
+        /// Rendered width as a percentage of the content box; default 90.
+        #[arg(long, default_value_t = 90.0)]
+        width: f64,
+    },
     /// Remove unreferenced generated D2/SVG files.
     Clean {
         #[arg(long)]
@@ -636,6 +651,34 @@ fn budget_sections(markdown: &str) -> Vec<(String, usize)> {
     sections
 }
 
+fn page_attribution(
+    markdown: &str,
+    outline: &[folisift_parse::OutlinePage],
+) -> Vec<serde_json::Value> {
+    let normalize = |value: &str| {
+        value
+            .chars()
+            .filter(|character| character.is_alphanumeric())
+            .flat_map(char::to_lowercase)
+            .collect::<String>()
+    };
+    let mut rows = Vec::new();
+    for line in markdown.lines() {
+        let Some(heading) = line.strip_prefix("## ") else {
+            continue;
+        };
+        let heading = heading.trim();
+        let key = normalize(heading);
+        let matched = outline.iter().find(|entry| normalize(&entry.title) == key);
+        rows.push(json!({
+            "heading": heading,
+            "page": matched.map(|entry| entry.page),
+            "matched_outline": matched.map(|entry| entry.title.clone()),
+        }));
+    }
+    rows
+}
+
 fn topic_rows(inventory: &folisift_parse::Inventory) -> Vec<(String, usize, String)> {
     let mut rows = Vec::new();
     for source in &inventory.sources {
@@ -821,6 +864,8 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 "build": version::BUILD,
                 "mcp_tool_schema_version": version::MCP_TOOL_SCHEMA_VERSION,
                 "guides": guides.len(),
+                "guide_count": guides.len(),
+                "source_count": guides.iter().map(|guide| guide.source_count).sum::<usize>(),
                 "structures": folisift_core::structures::summary(),
             });
             println!("{}", serde_json::to_string_pretty(&value)?);
@@ -854,11 +899,31 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
             let model_verified = model
                 .as_ref()
                 .is_some_and(|path| verify_model_dir(path).is_ok());
+            let mut style_issues = Vec::new();
+            for summary in &guides {
+                if !summary.valid {
+                    continue;
+                }
+                if let Ok(guide) = Guide::load(&workspace, &summary.slug) {
+                    let style = guide.style();
+                    if let Ok(pack) = styles::load_with(
+                        workspace.root(),
+                        &style.aesthetic,
+                        Some(style.palette.as_str()),
+                        Some(style.fonts.as_str()),
+                    ) && let Err(error) = styles::validate_profile(&pack.pack, &style)
+                    {
+                        style_issues.push(format!("{}: {error}", guide.slug));
+                    }
+                }
+            }
             let checks = vec![
                 json!({"name": "pdfium", "ok": pdfium.is_ok(), "detail": pdfium.as_ref().err().map(ToString::to_string).unwrap_or_else(|| folisift_parse::pdfium::PDFIUM_VERSION.to_string())}),
                 json!({"name": "cache", "ok": cache_ok, "detail": cache.display().to_string()}),
                 json!({"name": "output", "ok": output_ok, "detail": output.display().to_string()}),
                 json!({"name": "guides", "ok": invalid_guides == 0, "detail": format!("{} guide(s), {invalid_guides} invalid", guides.len()), "warning": if guides.is_empty() { Some("no guides yet") } else { None }}),
+                json!({"name": "styles", "ok": style_issues.is_empty(), "detail": if style_issues.is_empty() { format!("{} guide style(s) compatible", guides.len()) } else { style_issues.join("; ") }}),
+                json!({"name": "style-authority", "ok": true, "detail": "schema-3 style.aesthetic is authoritative; legacy theme must match"}),
                 json!({"name": "fonts", "ok": font_count > 0, "detail": format!("{font_count} embedded face(s)")}),
                 json!({"name": "structures", "ok": !folisift_core::structures::packs().is_empty(), "detail": format!("{} pack(s)", folisift_core::structures::packs().len())}),
                 json!({"name": "semantic-model", "ok": true, "available": model.is_some(), "verified": model_verified, "required": false, "detail": model_detail}),
@@ -890,7 +955,15 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
             let options = match guide {
                 Some(slug) => {
                     let guide = Guide::load(&workspace, &slug)?;
-                    audit_options_for(&workspace, &guide.style())?
+                    let mut options = audit_options_for(&workspace, &guide.style())?;
+                    if let Some(policy) = &guide.config.audit {
+                        options
+                            .intentional_pages
+                            .extend(policy.intentional_pages.iter().copied());
+                        options.intentional_pages.sort_unstable();
+                        options.intentional_pages.dedup();
+                    }
+                    options
                 }
                 None => folisift_parse::AuditOptions::default(),
             };
@@ -1721,15 +1794,49 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 .iter()
                 .filter_map(|row| row["estimated_pages"].as_u64())
                 .sum::<u64>() as usize;
+            let outline = folisift_parse::outline_pages(&guide.output).unwrap_or_default();
+            let actual_pages =
+                u64::from(outline.iter().map(|entry| entry.page).max().unwrap_or(0) as u32);
+            let attribution = page_attribution(&markdown, &outline);
+            let measured = if outline.is_empty() {
+                estimated
+            } else {
+                actual_pages as usize
+            };
             println!(
                 "{}",
                 serde_json::to_string_pretty(&json!({
                     "guide": guide.slug,
                     "target_pages": target,
                     "estimated_pages": estimated,
-                    "over_budget": estimated > target_max,
+                    "actual_pages": if outline.is_empty() { None } else { Some(actual_pages) },
+                    "measured_pages": measured,
+                    "over_budget": measured > target_max,
                     "sections": rows,
+                    "page_attribution": attribution,
                     "largest": largest,
+                }))?
+            );
+        }
+        Command::CoverageHint { guide } => {
+            let guide = Guide::load(&workspace, &guide)?;
+            let markdown = std::fs::read_to_string(&guide.content)?;
+            let inventory = if let Some(path) = &guide.inventory {
+                serde_json::from_slice::<folisift_parse::Inventory>(&std::fs::read(path)?)?
+            } else {
+                folisift_parse::analyze_sources(&guide.sources, folisift_parse::LOW_TEXT_THRESHOLD)
+                    .await?
+            };
+            let hints = folisift_parse::coverage_hints(&inventory, &markdown);
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&json!({
+                    "guide": guide.slug,
+                    "advisory": true,
+                    "total": hints.len(),
+                    "covered": hints.iter().filter(|hint| hint.status == "covered").count(),
+                    "likely_missing": hints.iter().filter(|hint| hint.status == "likely-missing").count(),
+                    "hints": hints,
                 }))?
             );
         }
@@ -1783,6 +1890,9 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                     "warnings": outcome.rendered.warnings.len(),
                     "revision_coverage": outcome.revision_coverage.then_some(true),
                     "coverage": coverage,
+                    "section_pages": outcome.section_pages,
+                    "outline": outcome.outline,
+                    "parse_cache_hit": outcome.parse_cache_hit,
                 }))?
             );
         }
@@ -1828,8 +1938,13 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 &guide.dir.join("data/blocks").join(format!("{source}.json")),
             )?;
             let max_chars = max_tokens.map_or(max_chars, |tokens| tokens.saturating_mul(4));
-            let brief = folisift_parse::section_brief(&layout, &heading, max_chars)
-                .ok_or_else(|| format!("section {heading:?} not found in {source}"))?;
+            let (brief, _) = folisift_parse::section_brief_cached(
+                &guide.dir.join("data/briefs"),
+                &layout,
+                &heading,
+                max_chars,
+            )
+            .ok_or_else(|| format!("section {heading:?} not found in {source}"))?;
             println!("{}", serde_json::to_string_pretty(&brief)?);
         }
         Command::ReadSection {
@@ -2058,6 +2173,13 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
             DiagramCommand::Status { guide } => {
                 let value = diagram_cmd::status(&workspace, &guide)?;
                 println!("{}", serde_json::to_string_pretty(&value)?);
+            }
+            DiagramCommand::Fit { guide, id, width } => {
+                let value = diagram_cmd::fit(&workspace, &guide, &id, width)?;
+                println!("{}", serde_json::to_string_pretty(&value)?);
+                if value.get("ok").and_then(Value::as_bool) != Some(true) {
+                    std::process::exit(1);
+                }
             }
             DiagramCommand::Clean { guide } => {
                 let value = diagram_cmd::clean(&workspace, &guide)?;

@@ -502,7 +502,10 @@ fn markdown_to_typst_with(markdown: &str, config: &RenderConfig) -> Result<Strin
                             "diagram {id:?} has no built asset; run `folisift diagram build --guide <slug> --id {id}`"
                         ),
                     })?;
-                    let width = attr(&attrs, "width").unwrap_or("90%").trim();
+                    let width = attr(&attrs, "width")
+                        .or(asset.width.as_deref())
+                        .unwrap_or("90%")
+                        .trim();
                     let valid_width = width
                         .strip_suffix('%')
                         .and_then(|value| value.parse::<u8>().ok())
@@ -515,10 +518,62 @@ fn markdown_to_typst_with(markdown: &str, config: &RenderConfig) -> Result<Strin
                             ),
                         });
                     }
+                    let max_width = attr(&attrs, "max_width")
+                        .or(asset.max_width.as_deref())
+                        .unwrap_or("100%")
+                        .trim();
+                    let valid_max_width = max_width
+                        .strip_suffix('%')
+                        .and_then(|value| value.parse::<u8>().ok())
+                        .is_some_and(|value| (50..=100).contains(&value));
+                    if !valid_max_width {
+                        return Err(Error::Markdown {
+                            line: start_line,
+                            message: format!(
+                                "diagram max_width must be a percentage from 50% to 100%, got {max_width:?}"
+                            ),
+                        });
+                    }
+                    let requested = width
+                        .strip_suffix('%')
+                        .and_then(|value| value.parse::<u8>().ok())
+                        .unwrap_or(90);
+                    let cap = max_width
+                        .strip_suffix('%')
+                        .and_then(|value| value.parse::<u8>().ok())
+                        .unwrap_or(100);
+                    let width = format!("{}%", requested.min(cap));
+                    let max_height = attr(&attrs, "max_height")
+                        .or_else(|| attr(&attrs, "height"))
+                        .or(asset.max_height.as_deref())
+                        .unwrap_or("14cm")
+                        .trim();
+                    if !valid_css_length(max_height) {
+                        return Err(Error::Markdown {
+                            line: start_line,
+                            message: format!(
+                                "diagram max_height must be a cm/mm/in/pt length, got {max_height:?}"
+                            ),
+                        });
+                    }
+                    let fit = attr(&attrs, "fit")
+                        .or(asset.fit.as_deref())
+                        .unwrap_or("contain")
+                        .trim();
+                    if !matches!(fit, "contain" | "width" | "height") {
+                        return Err(Error::Markdown {
+                            line: start_line,
+                            message: format!(
+                                "diagram fit must be contain, width or height, got {fit:?}"
+                            ),
+                        });
+                    }
                     let figure = format!(
-                        "#figure(fitted_image({}, width: {}, alt: {}), caption: [{}], supplement: [{}], numbering: \"1\")",
+                        "#figure(fitted_image({}, width: {}, max_height: {}, fit: {}, alt: {}), caption: [{}], supplement: [{}], numbering: \"1\")",
                         typst_string(&asset.path),
                         width,
+                        max_height,
+                        typst_string(fit),
                         typst_string(&asset.alt),
                         caption_typst(&asset.caption),
                         typst_string(&config.figure_label),
@@ -651,6 +706,15 @@ fn chapter_call(attrs: &BTreeMap<String, String>) -> String {
         }
     }
     format!("#chapter({})", args.join(", "))
+}
+
+fn valid_css_length(value: &str) -> bool {
+    ["cm", "mm", "in", "pt"].iter().any(|unit| {
+        value
+            .strip_suffix(unit)
+            .and_then(|number| number.trim().parse::<f32>().ok())
+            .is_some_and(|number| number > 0.0 && number < 1000.0)
+    })
 }
 
 fn markdown_table_columns(markdown: &str) -> usize {
@@ -1394,6 +1458,55 @@ mod tests {
         )
         .expect("typst");
         assert!(typst.contains("<tab-derleme>"));
+    }
+
+    #[test]
+    fn diagram_size_options_are_explicit_and_validated() {
+        let asset = DiagramAsset {
+            id: "d1".to_string(),
+            path: "assets/generated/d1.svg".to_string(),
+            caption: "Karar".to_string(),
+            alt: "Karar ağacı".to_string(),
+            source: "PD3, s. 3".to_string(),
+            width: Some("70%".to_string()),
+            max_width: Some("80%".to_string()),
+            max_height: Some("10cm".to_string()),
+            fit: Some("contain".to_string()),
+        };
+        let mut assets = HashMap::new();
+        assets.insert("d1".to_string(), asset);
+        let typst = markdown_to_typst_styled_with_diagrams(
+            "::: diagram id=\"d1\"\n:::",
+            "Şekil",
+            "İÇİNDEKİLER",
+            "Tablo",
+            assets,
+        )
+        .expect("diagram");
+        assert!(typst.contains("width: 70%"), "{typst}");
+        assert!(typst.contains("max_height: 10cm"));
+        let error = markdown_to_typst_styled_with_diagrams(
+            "::: diagram id=\"d1\" fit=\"stretch\"\n:::",
+            "Şekil",
+            "İÇİNDEKİLER",
+            "Tablo",
+            HashMap::from([(
+                "d1".to_string(),
+                DiagramAsset {
+                    id: "d1".to_string(),
+                    path: "assets/generated/d1.svg".to_string(),
+                    caption: "Karar".to_string(),
+                    alt: "Karar ağacı".to_string(),
+                    source: "PD3, s. 3".to_string(),
+                    width: None,
+                    max_width: None,
+                    max_height: None,
+                    fit: None,
+                },
+            )]),
+        )
+        .expect_err("fit");
+        assert!(error.to_string().contains("fit"));
     }
 
     #[test]

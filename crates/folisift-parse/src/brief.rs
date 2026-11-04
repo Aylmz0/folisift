@@ -4,10 +4,14 @@
 //! turn stored layout blocks into a small, page-anchored answer before the host
 //! asks for the full section.
 
+use std::path::Path;
+
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
 use crate::layout::{LayoutBlock, LayoutBlockKind, SourceLayout};
+
+pub const BRIEF_CACHE_VERSION: u32 = 1;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SectionBrief {
@@ -22,6 +26,8 @@ pub struct SectionBrief {
     pub citations: Vec<String>,
     pub chars: usize,
     pub estimated_tokens: usize,
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub cache_hit: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -108,6 +114,48 @@ pub fn find_section<'a>(sections: &'a [SourceSection], query: &str) -> Option<&'
         .find(|section| normalize(&section.heading).contains(&query))
 }
 
+/// Read a deterministic brief artifact or compute and store it.
+///
+/// The key is the layout digest + heading + character budget + brief version,
+/// so an unchanged source layout is not re-extracted on every call.
+pub fn section_brief_cached(
+    cache_dir: &Path,
+    layout: &SourceLayout,
+    query: &str,
+    max_chars: usize,
+) -> Option<(SectionBrief, bool)> {
+    let bytes = serde_json::to_vec(layout).ok()?;
+    let layout_digest = blake3::hash(&bytes).to_hex().to_string();
+    let key = blake3::hash(
+        format!(
+            "{BRIEF_CACHE_VERSION}\n{layout_digest}\n{}\n{max_chars}",
+            query.trim().to_lowercase()
+        )
+        .as_bytes(),
+    )
+    .to_hex()
+    .to_string();
+    let path = cache_dir.join(format!("{key}.json"));
+    if let Ok(text) = std::fs::read_to_string(&path)
+        && let Ok(mut brief) = serde_json::from_str::<SectionBrief>(&text)
+    {
+        brief.cache_hit = true;
+        return Some((brief, true));
+    }
+    let mut brief = section_brief(layout, query, max_chars)?;
+    if std::fs::create_dir_all(cache_dir).is_ok()
+        && let Ok(text) = serde_json::to_string_pretty(&brief)
+    {
+        let _ = std::fs::write(path, text + "\n");
+    }
+    brief.cache_hit = false;
+    Some((brief, false))
+}
+
+fn is_false(value: &bool) -> bool {
+    !*value
+}
+
 pub fn section_brief(layout: &SourceLayout, query: &str, max_chars: usize) -> Option<SectionBrief> {
     let sections = source_sections(layout);
     let section = find_section(&sections, query)?;
@@ -126,6 +174,7 @@ pub fn section_brief(layout: &SourceLayout, query: &str, max_chars: usize) -> Op
         citations: citations(text),
         chars: text.chars().count(),
         estimated_tokens: estimate_tokens(text),
+        cache_hit: false,
     })
 }
 
@@ -402,6 +451,19 @@ mod tests {
         assert!(brief.numbers.iter().any(|value| value == "2026"));
         assert!(brief.citations.iter().any(|value| value.contains("PD3")));
         assert!(brief.table_rows.iter().any(|value| value.contains("Ad")));
+    }
+
+    #[test]
+    fn brief_artifacts_are_reused_for_an_unchanged_layout() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let layout = layout();
+        let (first, first_hit) =
+            section_brief_cached(dir.path(), &layout, "3.1", 300).expect("first");
+        let (second, second_hit) =
+            section_brief_cached(dir.path(), &layout, "3.1", 300).expect("second");
+        assert!(!first_hit);
+        assert!(second_hit);
+        assert_eq!(first.summary, second.summary);
     }
 
     #[test]

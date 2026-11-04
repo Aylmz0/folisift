@@ -181,8 +181,21 @@ pub struct GuideConfig {
     /// `explicit`, `default-reader` or another host-provided provenance.
     #[serde(default)]
     pub style_source: Option<String>,
+    /// Deliberate layout exceptions for the strict audit.
+    #[serde(default)]
+    pub audit: Option<AuditPolicy>,
     #[serde(flatten)]
     pub extra: BTreeMap<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub struct AuditPolicy {
+    /// Pages that are intentionally short (divider, full-page figure, TOC).
+    #[serde(default)]
+    pub intentional_pages: Vec<usize>,
+    /// Optional human-readable reasons, keyed by 1-based page number.
+    #[serde(default)]
+    pub layout_exceptions: BTreeMap<usize, String>,
 }
 
 /// A validated guide bundle.

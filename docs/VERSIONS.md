@@ -6,6 +6,7 @@ table.
 
 | Tag | Date | Build | Commit | PDFium | What changed |
 |---|---|---:|---|---|---|
+| `v0.17.0` | 2026-11-04 | pending | pending | `chromium/8058` | Review close-out: D2 classes/grid/vars/imports/dimensions, allow_page_span/aspect_ratio/label_lines, unified DiagramResult, audit intentional pages and table-free line stats, actual section pages, brief cache, chapter/heading briefs, coverage hints, output budget contract, doctor style checks; schema 13 with 35 tools |
 | `v0.16.0` | 2026-11-04 | 179 | `5aff3ba036aa8c0ce969e72994cebc4e20b96709` | `chromium/8058` | TOC include/exclude, structured build failures, doctor MCP, section read modes, definition cards, source-page resources, D2 node metadata; schema 12 with 33 tools |
 | `v0.15.1` | 2026-11-04 | 175 | `9137268d889654cbaf127d31fee57f89d23c0a17` | `chromium/8058` | Model2Vec-backed `topics` CLI clustering with heading-term fallback |
 | `v0.15.0` | 2026-11-04 | 172 | `1f99c6bf84385673c6c8b730ba6a63f7badf9a9f` | `chromium/8058` | M5: opt-in LiteParse annotations/forms/structure/vector/complexity insights, D2 sketch rendering, MCP schema 11 with 32 tools |
