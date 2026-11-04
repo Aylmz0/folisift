@@ -149,9 +149,14 @@ text preview when no table block exists.
 
 `source_insights` reports `ocr_evidence`: policy, pages OCRed/skipped, candidate
 pages and reasons. The default is off; `ocr=true` or `--ocr` is an explicit
-opt-in. `source_brief` reports the same policy and low-text candidates.
+opt-in. `source_brief` reports the same policy and low-text candidates. OCR is
+advisory by decision; see
+[ADR-0014](adr/0014-ocr-advisory-policy.md). It never becomes a coverage gate
+or an authoritative numeric source.
 
-Run `make feedback-v2` for the external acceptance matrix (A-V2-01…18).
+Run `make feedback-v2` for the external A-V2 matrix (A-V2-01…18),
+`make feedback-v3` for visual/chart A-V3, and `make feedback-v4` for the final
+contract A-V4 checks.
 
 `qa` includes an `environment` block with version, build, PDFium, LiteParse, D2,
 model signature, OCR/reranker policy and the topic seed. Two runs with the same

@@ -1,6 +1,6 @@
 # Final feedback v3 remediation plan — 2026-11-05
 
-- **Status:** Active — M1 (0.21.0) implemented; acceptance green; release pending
+- **Status:** Active — M1/M2 implemented; A-V4 green; release pending
 - **Source:** [`docs/FOLISIFT-GERI-BILDIRIM-v3.md`](../FOLISIFT-GERI-BILDIRIM-v3.md)
   (0.20.0, build 195, score 9.2/10)
 - **Previous plans:**
@@ -15,10 +15,10 @@
 - **Decision:** keep the deterministic/local boundary. No chart renderer, no
   reranker, no cloud call. Fix the tool contract before adding new surface.
   Do not ship an ambiguous `0.20.1` patch: all P0/P1 work lands in `0.21.0`.
-- **Implementation note:** E1–E8 and the A-V4 harness are in the worktree;
-  `make acceptance`, A-V2, A-V3 and A-V4 pass against the checkout. E9 is
-  limited to the determinism/topic-label work; OCR/D2/graph documentation
-  remains release-note work.
+- **Implementation note:** E1–E9 and the A-V4 harness are in the worktree;
+  `make acceptance`, A-V2, A-V3 and A-V4 pass against the checkout. OCR is
+  documented as advisory in ADR-0014; D2/graph limits are in the cookbook;
+  determinism and topic-label provenance are in QA. Release/tag is pending.
 
 ## 0. Executive reading
 

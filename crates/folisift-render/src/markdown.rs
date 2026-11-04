@@ -964,6 +964,11 @@ struct ImageState {
     alt: String,
 }
 
+enum GlossaryRow {
+    Group(String),
+    Cells(Vec<String>),
+}
+
 struct Renderer {
     out: String,
     list_stack: Vec<bool>,
@@ -983,6 +988,10 @@ struct Renderer {
     table_min_space_mm: Option<f32>,
     figure_label: String,
     table_label: String,
+    glossary_header: Option<Vec<String>>,
+    glossary_rows: Vec<GlossaryRow>,
+    glossary_pending_group: Option<String>,
+    glossary_heading: Option<String>,
 }
 
 impl Renderer {
@@ -1006,6 +1015,10 @@ impl Renderer {
             table_min_space_mm: config.table_min_space_mm,
             figure_label: config.figure_label.clone(),
             table_label: config.table_label.clone(),
+            glossary_header: None,
+            glossary_rows: Vec::new(),
+            glossary_pending_group: None,
+            glossary_heading: None,
         }
     }
 
@@ -1023,10 +1036,10 @@ impl Renderer {
             }
             Event::Start(Tag::Heading { level, .. }) => {
                 if self.table.is_none() {
-                    self.out.push_str("\n\n");
                     if self.table_kind.as_deref() == Some("glossary") {
-                        self.out.push_str("#glossary_group[");
+                        self.glossary_heading = Some(String::new());
                     } else {
+                        self.out.push_str("\n\n");
                         self.out.push_str(&"=".repeat(heading_level(level)));
                         self.out.push(' ');
                     }
@@ -1035,9 +1048,15 @@ impl Renderer {
             Event::End(TagEnd::Heading(_)) => {
                 if self.table.is_none() {
                     if self.table_kind.as_deref() == Some("glossary") {
-                        self.out.push(']');
+                        if let Some(heading) = self.glossary_heading.take() {
+                            let heading = heading.trim();
+                            if !heading.is_empty() {
+                                self.glossary_pending_group = Some(heading.to_string());
+                            }
+                        }
+                    } else {
+                        self.out.push_str("\n\n");
                     }
-                    self.out.push_str("\n\n");
                 }
             }
             Event::Start(Tag::Strong) => self.push("#strong["),
@@ -1095,12 +1114,18 @@ impl Renderer {
                 }
             }
             Event::Start(Tag::Table(_)) => {
-                self.out.push_str("\n\n");
+                if self.table_kind.as_deref() != Some("glossary") {
+                    self.out.push_str("\n\n");
+                }
                 self.table = Some(TableState::default());
             }
             Event::End(TagEnd::Table) => {
                 if let Some(table) = self.table.take() {
-                    self.emit_table(table);
+                    if self.table_kind.as_deref() == Some("glossary") {
+                        self.collect_glossary_table(table);
+                    } else {
+                        self.emit_table(table);
+                    }
                 }
             }
             Event::Start(Tag::TableHead) => {
@@ -1226,13 +1251,22 @@ impl Renderer {
 
     fn finish(mut self) -> String {
         if let Some(table) = self.table.take() {
-            self.emit_table(table);
+            if self.table_kind.as_deref() == Some("glossary") {
+                self.collect_glossary_table(table);
+            } else {
+                self.emit_table(table);
+            }
+        }
+        if self.table_kind.as_deref() == Some("glossary") && !self.glossary_rows.is_empty() {
+            self.out.push_str(&self.glossary_typst());
         }
         self.out
     }
 
     fn push(&mut self, value: &str) {
-        if let Some(table) = &mut self.table
+        if let Some(heading) = &mut self.glossary_heading {
+            heading.push_str(value);
+        } else if let Some(table) = &mut self.table
             && let Some(cell) = &mut table.cell
         {
             cell.push_str(value);
@@ -1272,6 +1306,64 @@ impl Renderer {
         if trailing {
             self.push(" ");
         }
+    }
+
+    fn collect_glossary_table(&mut self, table: TableState) {
+        if self.glossary_header.is_none() {
+            self.glossary_header = table.header;
+        }
+        if let Some(group) = self.glossary_pending_group.take() {
+            self.glossary_rows.push(GlossaryRow::Group(group));
+        }
+        for row in table.rows {
+            self.glossary_rows.push(GlossaryRow::Cells(row));
+        }
+    }
+
+    fn glossary_typst(&self) -> String {
+        let columns = self
+            .glossary_header
+            .as_ref()
+            .map_or(4, Vec::len)
+            .max(
+                self.glossary_rows
+                    .iter()
+                    .filter_map(|row| match row {
+                        GlossaryRow::Cells(cells) => Some(cells.len()),
+                        GlossaryRow::Group(_) => None,
+                    })
+                    .max()
+                    .unwrap_or(4),
+            )
+            .max(1);
+        let header = self
+            .glossary_header
+            .as_ref()
+            .map(|cells| {
+                cells
+                    .iter()
+                    .map(|cell| format!("[{cell}]"))
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
+        let body = self
+            .glossary_rows
+            .iter()
+            .map(|row| match row {
+                GlossaryRow::Group(group) => format!(
+                    "table.cell(colspan: {columns}, fill: sage.lighten(88%), inset: (x: 1.5mm, y: 1.0mm))[#glossary_row[{group}]]"
+                ),
+                GlossaryRow::Cells(cells) => (0..columns)
+                    .map(|index| format!("[{}]", cells.get(index).map_or("", String::as_str)))
+                    .collect::<Vec<_>>()
+                    .join(", "),
+            })
+            .collect::<Vec<_>>();
+        format!(
+            "#glossary_table(\n  columns: {columns},\n  widths: (18%, 32%, 18%, 32%),\n  header: ({header}),\n  body: ({body}),\n)\n\n",
+            header = header.join(", "),
+            body = body.join(",\n  "),
+        )
     }
 
     fn emit_table(&mut self, table: TableState) {
@@ -1624,6 +1716,17 @@ mod tests {
     }
 
     #[test]
+    fn glossary_groups_share_one_table() {
+        let typst = markdown_to_typst(
+            "::: glossary\n\n### Bir\n\n| Terim | Tanım | Terim | Tanım |\n|---|---|---|---|\n| **A:** | Bir. | **B:** | İki. |\n\n### İki\n\n| Terim | Tanım | Terim | Tanım |\n|---|---|---|---|\n| **C:** | Üç. | **D:** | Dört. |\n\n:::",
+        )
+        .expect("glossary");
+        assert_eq!(typst.matches("#glossary_table(").count(), 1, "{typst}");
+        assert_eq!(typst.matches("#glossary_row[").count(), 2, "{typst}");
+        assert_eq!(typst.matches("#data_table(").count(), 0, "{typst}");
+    }
+
+    #[test]
     fn renders_table_widths() {
         let typst =
             markdown_to_typst("::: table widths=\"5,95\"\n| A | B |\n|---|---|\n| 1 | 2 |\n:::\n")
@@ -1637,10 +1740,11 @@ mod tests {
             "::: glossary\n\n### Sözdizimi\n\n| Terim | Tanım | Terim | Tanım |\n|---|---|---|---|\n| **A:** | Bir. | **B:** | İki. |\n\n:::",
         )
         .expect("typst");
-        assert!(typst.contains("#data_table("));
-        assert!(typst.contains("compact: true"));
         assert!(typst.contains("widths: (18%, 32%, 18%, 32%)"), "{typst}");
-        assert!(typst.contains("#glossary_group["));
+        assert!(typst.contains("#glossary_table("), "{typst}");
+        assert!(typst.contains("#glossary_row["), "{typst}");
+        assert!(!typst.contains("#data_table("), "{typst}");
+        assert!(!typst.contains("#glossary_group["), "{typst}");
         assert!(typst.contains("Sözdizimi"));
     }
 

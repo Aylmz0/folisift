@@ -349,7 +349,7 @@ The template owns pagination and typography; content uses semantic blocks.
 | `::: answer label=...` | separated answer-key block; reader and revision layouts |
 | `::: organiser title=... source=...` | one-page knowledge-organiser page; revision layout |
 | `::: table widths="5,20,35,40" kind="facts" caption="..." source="..." id="..." caption_number="false" keep_with_next="true" allow_page_break="true" min_space_mm="6"` | table metadata and placement; wrap the Markdown table |
-| `::: glossary` | four-column glossary table; group with `###` headings |
+| `::: glossary` | one four-column glossary table; `###` headings become full-width tinted group rows |
 | `::: columns` … `::: columnbreak` … `:::` | two-column region and explicit break |
 | `::: pagebreak` | start the next block on a new page (rare) |
 

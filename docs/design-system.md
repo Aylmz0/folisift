@@ -233,6 +233,7 @@ They are experimental until their snapshots pass.
 | Note | Source caveat or added clarification | Gold left rule, small text |
 | Answer key | Separated recall answer | Cream fill, sage left rule |
 | Data table | Comparisons, criteria, facts | No vertical lines; dark top/bottom; light header |
+| Glossary | Term/definition pairs | One four-column table; `###` groups are full-width pale-sage rows |
 | Figure | Diagram | Simple SVG; caption below; figure number |
 | Code block | Code / grammar / regex | Sand background, gold left rule, wrap long lines |
 | Source ref | Traceability | Small caps, `[SOURCE, s. 3]` |

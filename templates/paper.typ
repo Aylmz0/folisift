@@ -163,6 +163,50 @@
   )[#ui_upper(body)]
 ]
 
+#let glossary_row(body) = text(
+  font: "Inter",
+  size: __SMALL_SIZE__,
+  weight: "semibold",
+  tracking: 0.12em,
+  fill: sage,
+)[#ui_upper(body)]
+
+#let glossary_table(columns: 1, header: (), body: (), widths: none) = {
+  let cols = if widths == none or widths.len() == 0 { columns } else { widths }
+  let head = if header.len() > 0 {
+    (table.header(..header.map(cell => text(
+      font: "Inter",
+      size: __LABEL_SIZE__,
+      weight: "semibold",
+      tracking: 0.09em,
+    )[#ui_upper(cell)])),)
+  } else {
+    ()
+  }
+  block(breakable: true, above: 2mm, below: 2.5mm)[
+    #set text(size: __TABLE_SIZE__ * 0.84)
+    #set par(leading: 0.40em, spacing: 0pt, justify: false)
+    #table(
+      columns: cols,
+      stroke: (x, y) => if y == 0 {
+        (top: 1pt + ink, bottom: 0.5pt + ink)
+      } else {
+        (bottom: 0.35pt + linen)
+      },
+      fill: (x, y) => if y == 0 {
+        headerfill
+      } else if calc.even(y) {
+        zebra
+      } else {
+        none
+      },
+      inset: (x: 1.5mm, y: 0.9mm),
+      ..head,
+      ..body,
+    )
+  ]
+}
+
 #let facts_table(rows) = block(breakable: false, above: 4mm, below: 5mm)[
   #set text(size: __BOX_SIZE__)
   #table(
