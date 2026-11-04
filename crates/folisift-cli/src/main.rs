@@ -575,9 +575,9 @@ enum StylesCommand {
     Restyle {
         #[arg(long)]
         guide: String,
-        /// Style/layout id.
+        /// Style/layout id; defaults to the guide's current aesthetic.
         #[arg(long)]
-        style: String,
+        style: Option<String>,
         /// Optional palette override.
         #[arg(long)]
         palette: Option<String>,
@@ -1534,6 +1534,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 fonts,
             } => {
                 let guide = Guide::load(&workspace, &guide)?;
+                let style = style.unwrap_or_else(|| guide.style().aesthetic.clone());
                 let before = std::fs::read_to_string(&guide.content)?;
                 let loaded = styles::load_with(
                     workspace.root(),

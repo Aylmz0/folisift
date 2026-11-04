@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "id": "terracotta",
+  "name": "Terracotta",
+  "family": "warm",
+  "palette": {
+    "paper": "#FBF5EF",
+    "ink": "#2C211B",
+    "muted": "#624C40",
+    "soft": "#70574A",
+    "faint": "#7C6254",
+    "accent": "#A24E32",
+    "secondary": "#4B615A",
+    "gold": "#A87B4E",
+    "rule": "#E1D0C3",
+    "code_bg": "#F4E8DF",
+    "cover_bg": "#F7ECE4",
+    "cream": "#F9EFE8",
+    "zebra": "#F8EFE9",
+    "headerfill": "#EFDCD1"
+  },
+  "use": "History, art and social science; terracotta accent."
+}

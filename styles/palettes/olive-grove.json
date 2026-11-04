@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "id": "olive-grove",
+  "name": "Olive grove",
+  "family": "natural",
+  "palette": {
+    "paper": "#F7F6EE",
+    "ink": "#23281C",
+    "muted": "#4E5740",
+    "soft": "#5A634B",
+    "faint": "#667056",
+    "accent": "#5A6B3B",
+    "secondary": "#7A4A3A",
+    "gold": "#9A7B3F",
+    "rule": "#D8D9C8",
+    "code_bg": "#EDEFE2",
+    "cover_bg": "#F0F1E6",
+    "cream": "#F2F2E8",
+    "zebra": "#F4F4EA",
+    "headerfill": "#E6E8D8"
+  },
+  "use": "Environmental science and humanities; olive warmth."
+}

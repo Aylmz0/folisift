@@ -368,6 +368,51 @@ if EXTERNAL.is_dir():
         scaffold.returncode == 0,
         "source id and ten-case skeleton unit test",
     )
+    palettes = run([str(BIN), "--root", str(REPO), "styles", "palettes"])
+    try:
+        palette_rows = json.loads(palettes.stdout)
+    except json.JSONDecodeError:
+        palette_rows = []
+    palette_ok = (
+        len(palette_rows) >= 19
+        and all(row.get("use") for row in palette_rows)
+    )
+    palette_root = Path(tempfile.mkdtemp(prefix="folisift-v4-palette-", dir="/var/tmp"))
+    try:
+        (palette_root / "sources").mkdir()
+        (palette_root / "guides/pd3").mkdir(parents=True)
+        (palette_root / "output").mkdir()
+        (palette_root / "styles").symlink_to(REPO / "styles")
+        shutil.copy2(REPO / "sources/PD3.pdf", palette_root / "sources/PD3.pdf")
+        for name in ["config.json", "guide.md"]:
+            shutil.copy2(REPO / "guides/pd3" / name, palette_root / "guides/pd3" / name)
+        restyle = cli(
+            palette_root,
+            "styles",
+            "restyle",
+            "--guide",
+            "pd3",
+            "--palette",
+            "forest-sage",
+        )
+        restyle_value = json_stdout(restyle)
+        config = json.loads((palette_root / "guides/pd3/config.json").read_text())
+        palette_ok = (
+            palette_ok
+            and restyle.returncode == 0
+            and restyle_value is not None
+            and restyle_value.get("content_unchanged") is True
+            and restyle_value.get("palette") == "forest-sage"
+            and config["style"]["palette"] == "forest-sage"
+            and config["style"]["aesthetic"] == "reader"
+        )
+        record(
+            "A-V4-18 palette switch",
+            palette_ok,
+            f"palettes={len(palette_rows)} restyle={restyle_value and restyle_value.get('palette')}",
+        )
+    finally:
+        shutil.rmtree(palette_root, ignore_errors=True)
 else:
     for name in [
         "A-V4-01 generated rows",

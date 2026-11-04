@@ -33,13 +33,25 @@
   "palette": "academic-navy",
   "fonts": "editorial",
   "supported_palettes": [
-    "warm-paper",
-    "sepia-archive",
-    "clay",
-    "berry",
     "academic-navy",
+    "arctic-blue",
+    "berry",
+    "clay",
+    "cobalt",
+    "cocoa",
+    "cool-slate",
+    "forest-sage",
     "graphite",
-    "mono-print"
+    "high-contrast",
+    "indigo-lilac",
+    "mono-print",
+    "ocean-teal",
+    "olive-grove",
+    "plum-slate",
+    "rosewood",
+    "sepia-archive",
+    "terracotta",
+    "warm-paper"
   ],
   "supported_fonts": [
     "editorial"

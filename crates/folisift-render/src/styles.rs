@@ -71,6 +71,31 @@ const PALETTES: &[(&str, &str)] = &[
     ("clay", include_str!("../../../styles/palettes/clay.json")),
     ("berry", include_str!("../../../styles/palettes/berry.json")),
     (
+        "rosewood",
+        include_str!("../../../styles/palettes/rosewood.json"),
+    ),
+    (
+        "terracotta",
+        include_str!("../../../styles/palettes/terracotta.json"),
+    ),
+    ("cocoa", include_str!("../../../styles/palettes/cocoa.json")),
+    (
+        "olive-grove",
+        include_str!("../../../styles/palettes/olive-grove.json"),
+    ),
+    (
+        "arctic-blue",
+        include_str!("../../../styles/palettes/arctic-blue.json"),
+    ),
+    (
+        "plum-slate",
+        include_str!("../../../styles/palettes/plum-slate.json"),
+    ),
+    (
+        "indigo-lilac",
+        include_str!("../../../styles/palettes/indigo-lilac.json"),
+    ),
+    (
         "cool-slate",
         include_str!("../../../styles/palettes/cool-slate.json"),
     ),
@@ -189,6 +214,8 @@ pub struct PaletteDefinition {
     pub id: String,
     pub name: String,
     pub family: String,
+    #[serde(default, rename = "use")]
+    pub usage: String,
     pub palette: Value,
 }
 
@@ -1375,7 +1402,7 @@ mod tests {
     #[test]
     fn loads_all_palettes_and_font_pairings() {
         let palettes = list_palettes(Path::new("")).expect("palettes");
-        assert_eq!(palettes.len(), 12);
+        assert_eq!(palettes.len(), 19);
         let fonts = list_fonts(Path::new("")).expect("fonts");
         assert_eq!(fonts.len(), 2);
         for palette in palettes {
@@ -1438,7 +1465,7 @@ mod tests {
     fn rejects_unknown_and_unlisted_designs() {
         assert!(load_palette(Path::new(""), "does-not-exist").is_err());
         assert!(load_fonts(Path::new(""), "does-not-exist").is_err());
-        assert!(load_with(Path::new(""), "paper", Some("berry"), None).is_err());
+        assert!(load_with(Path::new(""), "accessible", Some("berry"), None).is_err());
         assert!(load_palette(Path::new(""), "../paper").is_err());
     }
 

@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "id": "cocoa",
+  "name": "Cocoa",
+  "family": "warm",
+  "palette": {
+    "paper": "#FAF5F0",
+    "ink": "#2D211B",
+    "muted": "#604A3D",
+    "soft": "#6D5547",
+    "faint": "#796050",
+    "accent": "#6A3E2E",
+    "secondary": "#3F5A56",
+    "gold": "#A87B4E",
+    "rule": "#E0D0C2",
+    "code_bg": "#F3E8DF",
+    "cover_bg": "#F6ECE4",
+    "cream": "#F8EFE7",
+    "zebra": "#F8F0E9",
+    "headerfill": "#EEDDD2"
+  },
+  "use": "History, law and archives; deep cocoa."
+}

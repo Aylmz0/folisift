@@ -165,7 +165,7 @@
 
 #let glossary_row(body) = text(
   font: "Inter",
-  size: __SMALL_SIZE__,
+  size: __TABLE_SIZE__,
   weight: "semibold",
   tracking: 0.12em,
   fill: sage,
@@ -183,9 +183,9 @@
   } else {
     ()
   }
-  block(breakable: true, above: 2mm, below: 2.5mm)[
-    #set text(size: __TABLE_SIZE__ * 0.84)
-    #set par(leading: 0.40em, spacing: 0pt, justify: false)
+  block(breakable: true, above: 2.5mm, below: 3.5mm)[
+    #set text(size: __TABLE_SIZE__)
+    #set par(leading: 0.50em, spacing: 0pt, justify: false)
     #table(
       columns: cols,
       stroke: (x, y) => if y == 0 {
@@ -200,7 +200,7 @@
       } else {
         none
       },
-      inset: (x: 1.5mm, y: 0.9mm),
+      inset: (x: 1.5mm, y: 1.6mm),
       ..head,
       ..body,
     )

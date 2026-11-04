@@ -21,7 +21,7 @@ Windows, and a source-available PolyForm Strict license.
 - Writes a deterministic document graph: source → page → block → table cell /
   figure, plus heading and citation edges.
 - Renders Markdown guides to tagged A4 PDFs with linked tables of contents,
-  paper/reader/clean/revision/notes/workbook/reference layouts and 12 tested
+  paper/reader/clean/revision/notes/workbook/reference layouts and 19 tested
   palettes.
 - Enforces coverage, page budget, typography, contrast, reading order,
   bookmark, overflow, visual-evidence and visual-regression gates. A reviewed

@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "id": "rosewood",
+  "name": "Rosewood",
+  "family": "warm",
+  "palette": {
+    "paper": "#FBF5F1",
+    "ink": "#2A1D1A",
+    "muted": "#5F4A43",
+    "soft": "#6C554D",
+    "faint": "#786057",
+    "accent": "#8A3F45",
+    "secondary": "#3E5B54",
+    "gold": "#A87B4E",
+    "rule": "#E0D0C7",
+    "code_bg": "#F3E8E2",
+    "cover_bg": "#F6ECE7",
+    "cream": "#F8EEE9",
+    "zebra": "#F8F0EB",
+    "headerfill": "#EFDFD8"
+  },
+  "use": "Literature, law and warm humanities; rosewood accent."
+}

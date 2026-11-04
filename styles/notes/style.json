@@ -34,15 +34,25 @@
   "palette": "warm-paper",
   "fonts": "technical",
   "supported_palettes": [
-    "warm-paper",
-    "forest-sage",
-    "ocean-teal",
-    "graphite",
-    "mono-print",
-    "high-contrast",
-    "cool-slate",
     "academic-navy",
-    "cobalt"
+    "arctic-blue",
+    "berry",
+    "clay",
+    "cobalt",
+    "cocoa",
+    "cool-slate",
+    "forest-sage",
+    "graphite",
+    "high-contrast",
+    "indigo-lilac",
+    "mono-print",
+    "ocean-teal",
+    "olive-grove",
+    "plum-slate",
+    "rosewood",
+    "sepia-archive",
+    "terracotta",
+    "warm-paper"
   ],
   "supported_fonts": [
     "technical"

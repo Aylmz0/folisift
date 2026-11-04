@@ -1351,7 +1351,7 @@ impl Renderer {
             .iter()
             .map(|row| match row {
                 GlossaryRow::Group(group) => format!(
-                    "table.cell(colspan: {columns}, fill: sage.lighten(88%), inset: (x: 1.5mm, y: 1.0mm))[#glossary_row[{group}]]"
+                    "table.cell(colspan: {columns}, fill: sage.lighten(88%))[#glossary_row[{group}]]"
                 ),
                 GlossaryRow::Cells(cells) => (0..columns)
                     .map(|index| format!("[{}]", cells.get(index).map_or("", String::as_str)))

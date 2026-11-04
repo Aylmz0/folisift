@@ -33,12 +33,25 @@
   "palette": "cool-slate",
   "fonts": "technical",
   "supported_palettes": [
-    "cool-slate",
+    "academic-navy",
+    "arctic-blue",
+    "berry",
+    "clay",
     "cobalt",
+    "cocoa",
+    "cool-slate",
+    "forest-sage",
     "graphite",
-    "mono-print",
     "high-contrast",
-    "ocean-teal"
+    "indigo-lilac",
+    "mono-print",
+    "ocean-teal",
+    "olive-grove",
+    "plum-slate",
+    "rosewood",
+    "sepia-archive",
+    "terracotta",
+    "warm-paper"
   ],
   "supported_fonts": [
     "technical"

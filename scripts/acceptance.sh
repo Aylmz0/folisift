@@ -28,6 +28,7 @@ run fmt cargo fmt --all -- --check
 run clippy cargo clippy --all-targets --all-features -- -D warnings
 run exam make exam-check
 run visual make visual
+run palette-check make palette-check
 run type-check make type-check
 run parity make parity
 run genre make genre-check

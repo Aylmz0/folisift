@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "id": "indigo-lilac",
+  "name": "Indigo lilac",
+  "family": "cool",
+  "palette": {
+    "paper": "#F8F7FC",
+    "ink": "#1E1B2A",
+    "muted": "#4F4A63",
+    "soft": "#5B5670",
+    "faint": "#67627C",
+    "accent": "#4C3D8F",
+    "secondary": "#3F5A56",
+    "gold": "#A87B4E",
+    "rule": "#D9D5E8",
+    "code_bg": "#EEECF7",
+    "cover_bg": "#F1EFF9",
+    "cream": "#F4F2FA",
+    "zebra": "#F5F3FA",
+    "headerfill": "#E7E3F2"
+  },
+  "use": "Mathematics, theory and formal methods; indigo."
+}

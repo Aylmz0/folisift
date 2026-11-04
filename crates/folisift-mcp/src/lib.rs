@@ -393,7 +393,7 @@ pub struct ScaffoldGuideParams {
 
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct StyleParams {
-    /// list, info, preview or recommend
+    /// list, palettes, fonts, info, preview, estimate, restyle or recommend
     pub action: String,
     /// Style id for info/preview.
     pub id: Option<String>,
@@ -1331,7 +1331,10 @@ impl FolisiftServer {
                 let guide_slug = params.guide.as_deref().ok_or("restyle requires guide")?;
                 let guide =
                     Guide::load(&self.workspace, guide_slug).map_err(|error| error.to_string())?;
-                let style_id = params.style.clone().ok_or("restyle requires style")?;
+                let style_id = params
+                    .style
+                    .clone()
+                    .unwrap_or_else(|| guide.style().aesthetic.clone());
                 let before =
                     std::fs::read_to_string(&guide.content).map_err(|error| error.to_string())?;
                 let loaded = styles::load_with(

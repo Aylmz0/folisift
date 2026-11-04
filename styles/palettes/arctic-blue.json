@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "id": "arctic-blue",
+  "name": "Arctic blue",
+  "family": "cool",
+  "palette": {
+    "paper": "#F7FAFC",
+    "ink": "#17232B",
+    "muted": "#465A66",
+    "soft": "#526773",
+    "faint": "#5E7480",
+    "accent": "#2F6078",
+    "secondary": "#7A4A3A",
+    "gold": "#9A7B3F",
+    "rule": "#D2DEE4",
+    "code_bg": "#E9F0F4",
+    "cover_bg": "#EDF3F6",
+    "cream": "#F0F5F7",
+    "zebra": "#F2F7F9",
+    "headerfill": "#E1EBF0"
+  },
+  "use": "Computer science and engineering; crisp arctic blue."
+}

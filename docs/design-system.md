@@ -7,7 +7,7 @@ The evidence for these choices is in
 [`document-genres-and-layout-systems.md`](document-genres-and-layout-systems.md),
 [`revision-format-research.md`](revision-format-research.md) and
 [`typography-standardization-research.md`](typography-standardization-research.md).
-The 12-palette/2-pairing library, the shared scale and the code-size standard
+The 19-palette/2-pairing library, the shared scale and the code-size standard
 are implemented in `styles/palettes/`, `styles/fonts/` and
 [`plans/2026-10-31-typography-standardization-and-font-system.md`](plans/2026-10-31-typography-standardization-and-font-system.md).
 The default visual language is warm, editorial and print-friendly; palette and
@@ -30,12 +30,19 @@ surface. The loader rejects a palette that fails either test.
 | `warm-paper` | warm/editorial | `#FAF6EC` | `#211E19` | `#8A3E2F` | default paper, reader, revision |
 | `sepia-archive` | warm/archive | `#F4ECD8` | `#2B2118` | `#7B2D26` | archival or historical sources |
 | `clay` | warm/earthy | `#FAF6F2` | `#2E211C` | `#9C4A2F` | humanities, fieldwork |
+| `terracotta` | warm/earth | `#FBF5EF` | `#2C211B` | `#A24E32` | history, art, social science |
+| `cocoa` | warm/deep | `#FAF5F0` | `#2D211B` | `#6A3E2E` | history, law, archives |
+| `rosewood` | warm/rose | `#FBF5F1` | `#2A1D1A` | `#8A3F45` | literature, law, warm humanities |
 | `berry` | warm/plum | `#FBF7F8` | `#2B1E24` | `#7A2E4A` | literature, language |
-| `cool-slate` | cool/technical | `#FFFFFF` | `#111827` | `#1D4ED8` | clean, brief |
-| `academic-navy` | cool/academic | `#FBF8F1` | `#14213D` | `#1D3557` | journal, formal reports |
-| `cobalt` | cool/strong | `#F8FAFC` | `#0F172A` | `#1E3A8A` | technical reports |
+| `olive-grove` | natural/olive | `#F7F6EE` | `#23281C` | `#5A6B3B` | biology, environmental science |
 | `forest-sage` | natural | `#F7F5EF` | `#1F2A24` | `#2F5D50` | biology, environmental science |
 | `ocean-teal` | natural/cool | `#F7FBFC` | `#0B2B33` | `#0F6E7A` | medicine, earth science |
+| `cool-slate` | cool/technical | `#FFFFFF` | `#111827` | `#1D4ED8` | clean, brief |
+| `arctic-blue` | cool/crisp | `#F7FAFC` | `#17232B` | `#2F6078` | computer science, engineering |
+| `academic-navy` | cool/academic | `#FBF8F1` | `#14213D` | `#1D3557` | journal, formal reports |
+| `cobalt` | cool/strong | `#F8FAFC` | `#0F172A` | `#1E3A8A` | technical reports |
+| `plum-slate` | cool/plum | `#FAF7FA` | `#241E28` | `#65406F` | philosophy, literature, design |
+| `indigo-lilac` | cool/indigo | `#F8F7FC` | `#1E1B2A` | `#4C3D8F` | mathematics, theory |
 | `graphite` | neutral | `#FAFAFA` | `#111111` | `#374151` | print-safe neutral |
 | `mono-print` | grayscale | `#FFFFFF` | `#000000` | `#000000` | monochrome printing |
 | `high-contrast` | accessibility | `#FFFFFF` | `#000000` | `#A40000` | large print, low vision |
@@ -45,8 +52,8 @@ without a label, and it is not required to pass 4.5:1. Never use red/green as
 the only distinction. A grayscale proof must keep every category distinct; if
 it does not, add a label, rule or pattern.
 
-The old warm palette is unchanged and remains the default for the existing
-guides. A guide selects another palette explicitly:
+The old warm palette is unchanged and remains the default for existing,
+paper, reader and revision guides. A guide selects another palette explicitly:
 
 ```json
 "style": {
@@ -56,9 +63,47 @@ guides. A guide selects another palette explicitly:
 }
 ```
 
-Paper is frozen: it accepts only `warm-paper` with `editorial`, so the v0.9
-parity fixture keeps its exact colours and fonts. Other layouts
-accept the palettes and pairings listed in their `style.json`.
+`paper` keeps `warm-paper` as its default but now accepts explicit palette
+overrides; the v0.9 parity fixture is reproduced when no override is given.
+`accessible` is the exception: it accepts only `high-contrast` and
+`mono-print`. Every other layout accepts the full palette library; the
+`style.json` file is the authority and `style palettes` lists each palette's
+family and `use` note.
+
+## Palette switching
+
+The host should not make the user hunt through hex codes. Ask for a mood, then
+inspect the curated palette list:
+
+```bash
+folisift styles palettes
+folisift styles restyle --guide my-course --palette forest-sage
+folisift build --guide my-course --check
+```
+
+`style restyle` accepts a palette-only change; `--style` is optional and
+defaults to the guide's current aesthetic. MCP equivalent:
+
+```text
+style({ action: "palettes" })
+style({ action: "restyle", guide: "my-course", palette: "berry" })
+```
+
+The palette changes colour roles only; content, structure and page budget stay
+unchanged. `style restyle` records `style_source: "explicit"` and reports
+`content_unchanged`. Use `styles preview <style> --palette <id>` before
+committing a new look when the user is undecided.
+
+Default palettes by layout:
+
+| Layout | Default | Good alternatives |
+|---|---|---|
+| paper / reader / revision | `warm-paper` | `sepia-archive`, `clay`, `terracotta`, `olive-grove` |
+| clean / brief | `cool-slate` | `arctic-blue`, `cobalt`, `graphite`, `plum-slate` |
+| journal | `academic-navy` | `cobalt`, `indigo-lilac`, `rosewood`, `cocoa` |
+| notes / workbook | `warm-paper` / `cool-slate` | `forest-sage`, `ocean-teal`, `olive-grove` |
+| reference | `academic-navy` | `graphite`, `arctic-blue`, `mono-print` |
+| accessible | `high-contrast` | `mono-print` |
 
 ## Typography
 

@@ -390,6 +390,27 @@ multi-reference claims expose one evidence row per page.
 **Acceptance:** A-V4-14..16; determinism/OCR/D2/graph/topics claims are
 explicit and tested.
 
+### E10 — Palette library and palette-only restyle
+
+**Finding:** the 12-palette library leaves repeated visual choices; the host
+needs a curated answer when the user asks for “another look”.
+
+**Change**
+
+- Expand the library to 19 contrast-tested palettes across warm, natural, cool,
+  neutral, grayscale and accessibility families.
+- Add a `use` note to every palette so `styles palettes`/`style palettes` is
+  directly usable by a host.
+- Keep one default palette per layout but allow explicit overrides for every
+  layout except `accessible` (only `high-contrast`/`mono-print`).
+- Make `style restyle` work with `palette` only; `style` is optional and
+  defaults to the guide's current aesthetic.
+- Document `palette`-only switching, default/alternative table and preview
+  workflow.
+
+**Acceptance:** A-V4-18; 19 palettes load, every palette has `use`, palette-only
+restyle changes config and leaves content unchanged.
+
 ## 4. Data contracts
 
 ```text
@@ -437,9 +458,10 @@ SourceBrief = {
 - E6 source_brief.
 - E7 scaffold/citations.
 - E8 weak-section transparency and workflow docs.
+- E10 palette library and palette-only restyle.
 
-**Exit:** A-V4-01..13 and A-V4-17 pass; existing guides still pass; MCP schema
-bump documented.
+**Exit:** A-V4-01..13, A-V4-17 and A-V4-18 pass; existing guides still pass;
+MCP schema bump documented.
 
 ### M2 — `v1.0.0` confidence and determinism (P2)
 
@@ -471,6 +493,7 @@ non-goals.
 | F-V4-16 | Graph `path`/`explain` budget parity | E9 | P2 | A-V4-16 |
 | F-V4-17 | D2 limits are not documented in one place | E9 | P2 | A-V4-16 |
 | F-V4-18 | Docs do not describe review/adopt/draft flow | E8 | P1 | A-V4-17 |
+| F-V4-19 | Palette library is small and palette switching is awkward | E10 | P1 | A-V4-18 |
 
 ### 6.1 Feedback §6 item map
 
@@ -515,6 +538,7 @@ non-goals.
 | A-V4-15 | `source_topics` label source | deterministic; labels documented; no false semantic claim |
 | A-V4-16 | OCR/D2/graph limits | OCR off by default; graph path/explain budgeted; D2 limits documented |
 | A-V4-17 | Docs and draft cleanup | review→validate→adopt→qa, combined precedence, draft steps, weak/merged syntax |
+| A-V4-18 | Palette switch | 19 palettes load with `use`; palette-only restyle changes config and leaves content unchanged |
 
 ## 8. Risks and open questions
 

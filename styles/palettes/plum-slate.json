@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "id": "plum-slate",
+  "name": "Plum slate",
+  "family": "cool",
+  "palette": {
+    "paper": "#FAF7FA",
+    "ink": "#241E28",
+    "muted": "#55485C",
+    "soft": "#625468",
+    "faint": "#6E6074",
+    "accent": "#65406F",
+    "secondary": "#3F5A56",
+    "gold": "#A87B4E",
+    "rule": "#DED1E0",
+    "code_bg": "#F1E9F3",
+    "cover_bg": "#F4EDF6",
+    "cream": "#F6F0F7",
+    "zebra": "#F7F2F8",
+    "headerfill": "#EADFED"
+  },
+  "use": "Philosophy, literature and design; plum slate."
+}

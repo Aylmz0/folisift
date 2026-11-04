@@ -73,16 +73,18 @@ fallback. Neither path sends text to a network.
 
 ## Choose a style
 
-Styles are engine-owned packs under `styles/`. `paper` is the frozen parity
-layout and is not the default for new guides; `reader` is the spacious density
+Styles are engine-owned packs under `styles/`. `paper` is the stable parity
+layout and is not the default for new guides; it keeps `warm-paper` by default
+but accepts explicit palette overrides. `reader` is the spacious density
 variant; `clean` is the technical layout; `journal` and `brief` are presets;
 `accessible` is a large-print modifier with a high-contrast palette. None of
 these is a genre on its own.
 
 Palette and font pairing are separate layers. A style pack declares which
 palettes and pairings it accepts; the guide selects them explicitly. The
-12-palette and 2-pairing libraries are in `styles/palettes/` and
+19-palette and 2-pairing libraries are in `styles/palettes/` and
 `styles/fonts/`, and every palette is contrast-tested at load time.
+`styles palettes` reports each family and its intended use.
 
 If the reader task is known, select an intent instead of guessing a style:
 
@@ -124,6 +126,8 @@ cargo run -p folisift-cli -- styles preview revision --language tr
 cargo run -p folisift-cli -- styles palettes
 cargo run -p folisift-cli -- styles fonts
 cargo run -p folisift-cli -- styles preview revision --palette high-contrast --fonts technical
+cargo run -p folisift-cli -- styles palettes
+cargo run -p folisift-cli -- styles restyle --guide my-guide --palette forest-sage
 ```
 
 The MCP `style` tool also has a `recommend` action. It returns only packs

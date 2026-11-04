@@ -67,7 +67,7 @@ fn palette_and_font_choices_are_independent_layers() {
     assert_eq!(warm.pages, sage.pages);
 
     let unsupported = StyleProfile {
-        aesthetic: "paper".to_string(),
+        aesthetic: "accessible".to_string(),
         palette: "berry".to_string(),
         language: "en".to_string(),
         source_language: "en".to_string(),

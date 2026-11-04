@@ -44,18 +44,25 @@
   "palette": "warm-paper",
   "fonts": "editorial",
   "supported_palettes": [
-    "warm-paper",
-    "sepia-archive",
-    "clay",
-    "berry",
-    "cool-slate",
     "academic-navy",
+    "arctic-blue",
+    "berry",
+    "clay",
     "cobalt",
+    "cocoa",
+    "cool-slate",
     "forest-sage",
-    "ocean-teal",
     "graphite",
+    "high-contrast",
+    "indigo-lilac",
     "mono-print",
-    "high-contrast"
+    "ocean-teal",
+    "olive-grove",
+    "plum-slate",
+    "rosewood",
+    "sepia-archive",
+    "terracotta",
+    "warm-paper"
   ],
   "supported_fonts": [
     "editorial"

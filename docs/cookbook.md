@@ -73,6 +73,24 @@ the normal output. `empty_sections` means zero body characters; a section with
 `## 2.1–2.2 ...` cover every source number in the range with score `1.0`;
 `fields` and `max_tokens` trim the hint response like any other tool.
 
+## Palette refresh
+
+When the user is bored of the current colours, list the curated library and
+switch only the palette:
+
+```bash
+folisift styles palettes
+folisift styles restyle --guide <slug> --palette forest-sage
+folisift build --guide <slug> --check
+```
+
+`--style` is optional; the guide keeps its current layout. MCP:
+`style({action:"palettes"})` then
+`style({action:"restyle", guide:"<slug>", palette:"berry"})`. Restyle does not
+modify guide content and records `content_unchanged`. The library covers warm,
+natural, cool, neutral, grayscale and high-contrast families; each palette has
+a `use` note for the host.
+
 ## IRAC scaffold
 
 ```bash
