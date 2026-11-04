@@ -3532,16 +3532,43 @@ fn source_topics(inventory: &Inventory, k: usize) -> Vec<Value> {
 }
 
 fn citation_snippet(text: &str, query: &str) -> Option<String> {
-    let lower = text.to_lowercase();
+    // Turkish uppercase `İ` expands when lowercased, so a byte offset in the
+    // lowercase string is not an offset in the original. Keep a byte map.
+    let (lower, map) = lower_with_map(text);
     let query = query.to_lowercase();
+    if query.is_empty() {
+        return None;
+    }
     let index = lower.find(&query)?;
-    let start = text[..index]
+    let match_end = index + query.len();
+    let original_index = *map.get(index).unwrap_or(&text.len());
+    let original_match_end = map
+        .get(match_end)
+        .copied()
+        .or_else(|| map.last().map(|last| last + 1))
+        .unwrap_or(text.len());
+    let start = text[..original_index]
         .rfind(['.', '!', '?'])
         .map_or(0, |value| value + 1);
-    let end = text[index..]
+    let end = text[original_match_end..]
         .find(['.', '!', '?'])
-        .map_or(text.len(), |value| index + value + 1);
+        .map_or(text.len(), |value| original_match_end + value + 1);
     Some(text[start..end].trim().chars().take(400).collect())
+}
+
+fn lower_with_map(text: &str) -> (String, Vec<usize>) {
+    let mut lower = String::with_capacity(text.len());
+    let mut map = Vec::with_capacity(text.len());
+    for (index, character) in text.char_indices() {
+        for lowercase in character.to_lowercase() {
+            let start = lower.len();
+            lower.push(lowercase);
+            for _ in start..lower.len() {
+                map.push(index);
+            }
+        }
+    }
+    (lower, map)
 }
 
 fn shape_response(mut value: Value, options: &OutputOptions) -> Value {
@@ -4208,7 +4235,10 @@ pub async fn serve_http_profile(
 
 #[cfg(test)]
 mod tests {
-    use super::{OutputOptions, content_stats, is_loopback, shape_response, suggested_page_range};
+    use super::{
+        OutputOptions, citation_snippet, content_stats, is_loopback, shape_response,
+        suggested_page_range,
+    };
     use folisift_core::StyleProfile;
     use folisift_parse::{CanonicalSection, Heading, Inventory, SourceInventory, Totals};
 
@@ -4355,6 +4385,14 @@ mod tests {
             assert_eq!(style.aesthetic, aesthetic, "{structure}");
             assert!(!super::genre_checklist(structure).is_empty());
         }
+    }
+
+    #[test]
+    fn citation_snippet_handles_turkish_case_folding() {
+        let text = "Önceki cümle. İŞVEREN alt işveren ilişkisini açıklar. Sonraki cümle.";
+        let snippet = citation_snippet(text, "alt işveren").expect("snippet");
+        assert!(snippet.contains("alt işveren"), "{snippet}");
+        assert!(!snippet.contains("Önceki"), "{snippet}");
     }
 
     #[test]
