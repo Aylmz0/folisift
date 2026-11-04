@@ -50,19 +50,21 @@ pub fn visual_evidence_report(pages: &[Value], total_pages: usize) -> Value {
         if chart_likely {
             chart_pages.push(page_number);
         }
-        items.push(json!({
-            "page": page_number,
-            "chars": page["chars"],
-            "figures": figures,
-            "image_refs": image_refs,
-            "vector_graphics": vectors,
-            "ruled_table_count": ruled_tables,
-            "text_table_run_count": text_tables,
-            "table_likely": table_likely,
-            "chart_likely": chart_likely,
-            "needs_ocr": complexity["needs_ocr"],
-            "reasons": complexity["reasons"],
-        }));
+        if figures > 0 || image_refs > 0 || vectors > 0 || table_likely || chart_likely {
+            items.push(json!({
+                "page": page_number,
+                "chars": page["chars"],
+                "figures": figures,
+                "image_refs": image_refs,
+                "vector_graphics": vectors,
+                "ruled_table_count": ruled_tables,
+                "text_table_run_count": text_tables,
+                "table_likely": table_likely,
+                "chart_likely": chart_likely,
+                "needs_ocr": complexity["needs_ocr"],
+                "reasons": complexity["reasons"],
+            }));
+        }
     }
     json!({
         "total_pages": total_pages,

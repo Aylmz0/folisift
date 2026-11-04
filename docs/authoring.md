@@ -663,8 +663,11 @@ The MCP equivalent is `crop_source`. The crop is stored under
 :::
 ```
 
-A crop is not a redrawn or verified figure. Do not use a crop to claim a data
-value that is not visible in the source. If the chart data is available as a
+The directive requires `src`, `caption`, `source` and `alt`. The renderer
+rejects remote paths, parent-directory escapes and missing assets, and includes
+the crop bytes in the build cache key. A crop is not a redrawn or verified
+figure. Do not use a crop to claim a data value that is not visible in the
+source. If the chart data is available as a
 table, prefer a table or a `describe` note; D2 is only for conceptual diagrams,
 not XY/ROC plots.
 

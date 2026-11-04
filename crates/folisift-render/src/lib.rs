@@ -316,6 +316,19 @@ fn asset_digest(body: &str, guide_root: &Path) -> String {
             rest = &after_dest[end + 1..];
         }
     }
+    for (_, attrs) in assets::figure_attrs(body) {
+        let Some(dest) = attrs.get("src") else {
+            continue;
+        };
+        if dest.starts_with("http://") || dest.starts_with("https://") {
+            continue;
+        }
+        let path = guide_root.join(dest);
+        let digest = std::fs::read(&path)
+            .map(|bytes| blake3::hash(&bytes).to_hex().to_string())
+            .unwrap_or_else(|_| "missing".to_string());
+        entries.push(format!("figure:{dest}:{digest}"));
+    }
     entries.sort();
     entries.dedup();
     entries.join("\n")

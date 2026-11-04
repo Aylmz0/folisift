@@ -3,6 +3,7 @@
 //! The renderer never fetches a URL. An image that is not a local file would
 //! silently disappear in Typst, so the engine rejects it instead.
 
+use std::collections::BTreeMap;
 use std::path::Path;
 
 use crate::error::{Error, Result};
@@ -30,76 +31,135 @@ pub fn lint_assets(markdown: &str, guide_root: &Path) -> Result<()> {
             continue;
         }
         for (alt, dest) in images(line) {
-            let line_number = index + 1;
-            if alt.trim().is_empty() {
-                return Err(Error::Markdown {
-                    line: line_number,
-                    message: "image has no caption/alt text; describe the takeaway".to_string(),
-                });
-            }
-            let lower = alt.to_lowercase();
-            if lower.starts_with("image of") || lower.starts_with("resim") {
-                return Err(Error::Markdown {
-                    line: line_number,
-                    message: "alt text must describe the takeaway, not say “image of”".to_string(),
-                });
-            }
-            if alt.trim().chars().count() < 20 {
-                return Err(Error::Markdown {
-                    line: line_number,
-                    message: "figure caption is too short; state the takeaway".to_string(),
-                });
-            }
-            if !has_provenance(&alt) {
-                return Err(Error::Markdown {
-                    line: line_number,
-                    message: "figure caption needs provenance such as [PD0, s. 35] or [original]"
-                        .to_string(),
-                });
-            }
-            let dest_lower = dest.to_lowercase();
-            if dest_lower.starts_with("http://") || dest_lower.starts_with("https://") {
-                return Err(Error::Markdown {
-                    line: line_number,
-                    message: "remote images are not allowed; download the asset into assets/"
-                        .to_string(),
-                });
-            }
-            if STOCK_HOSTS
-                .iter()
-                .any(|host| dest_lower.contains(host) || lower.contains(host))
-            {
-                return Err(Error::Markdown {
-                    line: line_number,
-                    message: "decorative stock images are not allowed in a study guide".to_string(),
-                });
-            }
-            let dest_path = Path::new(&dest);
-            if dest_path.is_absolute()
-                || dest_path
-                    .components()
-                    .any(|component| matches!(component, std::path::Component::ParentDir))
-            {
-                return Err(Error::Markdown {
-                    line: line_number,
-                    message: format!("asset path must stay inside the guide directory: {dest:?}"),
-                });
-            }
-            let asset = guide_root.join(dest_path);
-            if !asset.is_file() {
-                return Err(Error::Markdown {
-                    line: line_number,
-                    message: format!("asset not found: {}", asset.display()),
-                });
-            }
-            if dest_lower.ends_with(".svg") {
-                let svg = std::fs::read_to_string(&asset).map_err(|error| Error::Io {
-                    path: asset.clone(),
-                    source: error,
-                })?;
-                sanitize_svg(&svg, &asset)?;
-            }
+            lint_asset(&alt, &dest, index + 1, guide_root, true)?;
         }
+    }
+    for (line_number, attrs) in figure_attrs(markdown) {
+        let Some(alt) = attrs.get("alt") else {
+            return Err(Error::Markdown {
+                line: line_number,
+                message: "figure needs alt text".to_string(),
+            });
+        };
+        let Some(dest) = attrs.get("src") else {
+            return Err(Error::Markdown {
+                line: line_number,
+                message: "figure needs src=\"<asset>\"".to_string(),
+            });
+        };
+        if attrs
+            .get("source")
+            .is_none_or(|source| source.trim().is_empty())
+        {
+            return Err(Error::Markdown {
+                line: line_number,
+                message: "figure needs source=\"<source, s. N>\"".to_string(),
+            });
+        }
+        lint_asset(alt, dest, line_number, guide_root, false)?;
+    }
+    Ok(())
+}
+
+/// Collect `::: figure` attributes for cache digests and asset linting.
+pub(crate) fn figure_attrs(markdown: &str) -> Vec<(usize, BTreeMap<String, String>)> {
+    let mut out = Vec::new();
+    let mut fence = false;
+    for (index, line) in markdown.lines().enumerate() {
+        let trimmed = line.trim();
+        if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
+            fence = !fence;
+            continue;
+        }
+        if fence {
+            continue;
+        }
+        let Some(rest) = trimmed.strip_prefix("::: figure") else {
+            continue;
+        };
+        if !rest.chars().next().is_none_or(char::is_whitespace) {
+            continue;
+        }
+        if let Ok(attrs) = crate::markdown::parse_attrs(rest) {
+            out.push((index + 1, attrs));
+        }
+    }
+    out
+}
+
+fn lint_asset(
+    alt: &str,
+    dest: &str,
+    line_number: usize,
+    guide_root: &Path,
+    require_provenance: bool,
+) -> Result<()> {
+    if alt.trim().is_empty() {
+        return Err(Error::Markdown {
+            line: line_number,
+            message: "image has no caption/alt text; describe the takeaway".to_string(),
+        });
+    }
+    let lower = alt.to_lowercase();
+    if lower.starts_with("image of") || lower.starts_with("resim") {
+        return Err(Error::Markdown {
+            line: line_number,
+            message: "alt text must describe the takeaway, not say “image of”".to_string(),
+        });
+    }
+    if alt.trim().chars().count() < 20 {
+        return Err(Error::Markdown {
+            line: line_number,
+            message: "figure caption is too short; state the takeaway".to_string(),
+        });
+    }
+    if require_provenance && !has_provenance(alt) {
+        return Err(Error::Markdown {
+            line: line_number,
+            message: "figure caption needs provenance such as [PD0, s. 35] or [original]"
+                .to_string(),
+        });
+    }
+    let dest_lower = dest.to_lowercase();
+    if dest_lower.starts_with("http://") || dest_lower.starts_with("https://") {
+        return Err(Error::Markdown {
+            line: line_number,
+            message: "remote images are not allowed; download the asset into assets/".to_string(),
+        });
+    }
+    if STOCK_HOSTS
+        .iter()
+        .any(|host| dest_lower.contains(host) || lower.contains(host))
+    {
+        return Err(Error::Markdown {
+            line: line_number,
+            message: "decorative stock images are not allowed in a study guide".to_string(),
+        });
+    }
+    let dest_path = Path::new(dest);
+    if dest_path.is_absolute()
+        || dest_path
+            .components()
+            .any(|component| matches!(component, std::path::Component::ParentDir))
+    {
+        return Err(Error::Markdown {
+            line: line_number,
+            message: format!("asset path must stay inside the guide directory: {dest:?}"),
+        });
+    }
+    let asset = guide_root.join(dest_path);
+    if !asset.is_file() {
+        return Err(Error::Markdown {
+            line: line_number,
+            message: format!("asset not found: {}", asset.display()),
+        });
+    }
+    if dest_lower.ends_with(".svg") {
+        let svg = std::fs::read_to_string(&asset).map_err(|error| Error::Io {
+            path: asset.clone(),
+            source: error,
+        })?;
+        sanitize_svg(&svg, &asset)?;
     }
     Ok(())
 }
@@ -264,6 +324,23 @@ mod tests {
     fn accepts_an_inline_svg() {
         let svg = r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><title>X</title><rect width="10" height="10" fill="#fff"/></svg>"##;
         assert!(sanitize_svg(svg, Path::new("asset.svg")).is_ok());
+    }
+
+    #[test]
+    fn figure_directive_follows_the_asset_policy() {
+        let root = tempfile::tempdir().expect("tempdir");
+        let ok = "::: figure src=\"data/crops/a.png\" caption=\"ROC eğrisi\" source=\"PD3, s. 45\" alt=\"ROC eğrisi; eksenlerde TPR ve FPR\"\n:::";
+        assert!(
+            lint_assets(ok, root.path()).is_err(),
+            "missing asset must fail"
+        );
+        std::fs::create_dir_all(root.path().join("data/crops")).expect("dirs");
+        std::fs::write(root.path().join("data/crops/a.png"), b"png").expect("asset");
+        assert!(lint_assets(ok, root.path()).is_ok());
+        let remote = "::: figure src=\"https://example.com/a.png\" caption=\"ROC eğrisi\" source=\"PD3, s. 45\" alt=\"ROC eğrisi; eksenlerde TPR ve FPR\"\n:::";
+        assert!(lint_assets(remote, root.path()).is_err());
+        let escape = "::: figure src=\"../a.png\" caption=\"ROC eğrisi\" source=\"PD3, s. 45\" alt=\"ROC eğrisi; eksenlerde TPR ve FPR\"\n:::";
+        assert!(lint_assets(escape, root.path()).is_err());
     }
 
     #[test]

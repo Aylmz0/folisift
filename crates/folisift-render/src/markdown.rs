@@ -503,7 +503,10 @@ fn markdown_to_typst_with(markdown: &str, config: &RenderConfig) -> Result<Strin
                         line: start_line,
                         message: "figure needs alt text".to_string(),
                     })?;
-                    let caption = attr(&attrs, "caption").unwrap_or_default();
+                    let caption = attr(&attrs, "caption").ok_or_else(|| Error::Markdown {
+                        line: start_line,
+                        message: "figure needs caption text".to_string(),
+                    })?;
                     let width = attr(&attrs, "width").unwrap_or("90%").trim();
                     let valid_width = width
                         .strip_suffix('%')
@@ -867,7 +870,7 @@ fn directive_start(line: &str) -> Option<(&str, &str)> {
     Some((kind, attrs))
 }
 
-fn parse_attrs(input: &str) -> std::result::Result<BTreeMap<String, String>, String> {
+pub(crate) fn parse_attrs(input: &str) -> std::result::Result<BTreeMap<String, String>, String> {
     let mut attrs = BTreeMap::new();
     let chars: Vec<char> = input.chars().collect();
     let mut index = 0;
@@ -1513,6 +1516,15 @@ mod tests {
         );
         assert!(typst.contains("#source_ref(\"PD3, s. 45\")"), "{typst}");
         assert!(typst.contains("width: 80%"));
+    }
+
+    #[test]
+    fn figure_directive_requires_caption() {
+        let error = markdown_to_typst(
+            "::: figure src=\"data/crops/abc.png\" source=\"PD3, s. 45\" alt=\"ROC eğrisi; eksenler\"\n:::",
+        )
+        .expect_err("caption");
+        assert!(error.to_string().contains("caption"), "{error}");
     }
 
     #[test]

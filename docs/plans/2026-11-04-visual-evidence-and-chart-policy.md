@@ -53,9 +53,11 @@ without claiming that a diagram engine can reproduce statistical plots.
 
 ### Goals
 
-1. Every page with substantial figure/table/vector evidence is visible to the
-   host and requires an explicit disposition before a checked build passes when
-   the guide opts into `visual_gate="required"`.
+1. Every figure/table page is visible to the host and requires an explicit
+   disposition before a checked build passes when the guide opts into
+   `visual_gate="required"`. Vector/image evidence without a layout figure or
+   table block is reported by `visual_evidence` for host review, but is not
+   auto-gated; a page-level layout block is the auditable unit.
 2. A host can choose A, B or a table for each visual page without inventing
    data.
 3. A source crop is traceable: source, page, bbox, hash, caption, alt text and
