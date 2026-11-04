@@ -1,6 +1,6 @@
 # Final feedback v3 remediation plan — 2026-11-05
 
-- **Status:** Active — M1/M2 implemented; A-V4 green; release pending
+- **Status:** Completed — v0.21.0 source, package and local install; A-V4 green; remote release pending maintainer
 - **Source:** [`docs/FOLISIFT-GERI-BILDIRIM-v3.md`](../FOLISIFT-GERI-BILDIRIM-v3.md)
   (0.20.0, build 195, score 9.2/10)
 - **Previous plans:**
