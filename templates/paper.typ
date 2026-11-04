@@ -185,7 +185,7 @@
   }
   block(breakable: true, above: 2.5mm, below: 3.5mm)[
     #set text(size: __TABLE_SIZE__)
-    #set par(leading: 0.50em, spacing: 0pt, justify: false)
+    #set par(leading: 0.55em, spacing: 0pt, justify: false)
     #table(
       columns: cols,
       stroke: (x, y) => if y == 0 {
