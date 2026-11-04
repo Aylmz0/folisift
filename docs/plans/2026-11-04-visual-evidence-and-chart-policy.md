@@ -1,6 +1,6 @@
 # Visual evidence and chart policy plan — 2026-11-04
 
-- **Status:** Active — implementation complete; release evidence pending
+- **Status:** Completed — v0.20.0, build 193; A-V3-01..12 and A-V2 green
 - **Source:** [`docs/FOLISIFT-GERI-BILDIRIM-v2.md`](../FOLISIFT-GERI-BILDIRIM-v2.md),
   the `verimadenciliği.pdf` review, and the A+B decision for chart-heavy
   sources

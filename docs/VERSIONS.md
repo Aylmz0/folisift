@@ -6,6 +6,7 @@ table.
 
 | Tag | Date | Build | Commit | PDFium | What changed |
 |---|---|---:|---|---|---|
+| `v0.20.0` | 2026-11-04 | 193 | `91b5b42` | `chromium/8058` | Visual evidence and chart policy: `visual_evidence`, figure/table visual gate (`off`/`warn`/`required`), `embed_crop`/`describe` decisions, provenance-aware `crop_source` and `::: figure`, actionable table fallback, global Model2Vec discovery, digital review action and V3 acceptance harness; schema 15 with 37 tools |
 | `v0.19.0` | 2026-11-04 | 190 | `2e8975206cf9961ddca76cf2d3a15a72f6b9e4ff` | `chromium/8058` | Feedback v2 P2: real PDF bbox width regression, OCR evidence matrix, bounded graph path/explain, QA environment/determinism report, cookbook and manifest review docs |
 | `v0.18.0` | 2026-11-04 | 188 | `a1fd480fea2f22a5ae67c4c89f8c70a5447a087f` | `chromium/8058` | Feedback v2 P0/P1: review-manifest coverage truth, brief budgets/exact matches, semantic topics, claims/graph budgets, shared guide metrics, citation sentence scoring, D2 sidecar discovery, visual taxonomy, style over_budget, QA cards, IRAC scaffold, source-brief review merge and QA cost report; schema 13 with 35 tools |
 | `v0.17.1` | 2026-11-04 | 185 | `8726bd792a3c6fa0ad60f335cc30e8d46f8af1c6` | `chromium/8058` | Fix `citation_snippet` byte-offset panic on Turkish uppercase case folding (`İ`/`I`); the MCP request now returns a bounded snippet instead of hanging. Schema stays 13 with 35 tools |
@@ -43,6 +44,19 @@ table.
 | `v0.1.0` | 2026-10-26 | 16 | `fb7fe59de483f8e4e88d4346cb10f4c91f3445e2` | `chromium/8058` | First Rust/Typst/MCP release; 23-page reference guide, coverage 13/13; Python engine removed |
 
 ## Notes
+
+- `v0.20.0` adds the visual evidence contract and A+B chart policy. The build
+  now reports figure/table pages from `data/blocks`, requires a decision when
+  `config.audit.visual_gate="required"` (default `warn` keeps existing guides
+  buildable), and supports `describe` and provenance-checked `embed_crop`
+  decisions. `crop_source`/`crop-source` writes local, gitignored crops and
+  `::: figure` renders them with caption, source and alt text. `table_extract`
+  returns an actionable reason and text preview instead of a bare `[]` for
+  drawn tables. `find_model_dir` searches the installed sidecar and global
+  user directories. `coverage_manifest review` reports the unresolved digital
+  rows while `qa` labels the legacy 41-section fallback. A-V3-01..12 and the v2
+  acceptance suite pass; conditional reranking remains the only explicit
+  deferral.
 
 - `v0.19.0` closes the feedback-v2 P2 code: PDF image-bbox width regression,
   LiteParse OCR evidence, bounded graph path/explain, QA environment metadata,
