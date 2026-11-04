@@ -119,6 +119,8 @@ must be redrawn. Legacy `table` is accepted as `redraw_table` for one release.
 pages and reasons. The default is off; `ocr=true` or `--ocr` is an explicit
 opt-in. `source_brief` reports the same policy and low-text candidates.
 
+Run `make feedback-v2` for the external acceptance matrix (A-V2-01…18).
+
 `qa` includes an `environment` block with version, build, PDFium, LiteParse, D2,
 model signature, OCR/reranker policy and the topic seed. Two runs with the same
 inputs should report the same content hash, coverage and card/claim counts.

@@ -1,6 +1,6 @@
 # Production feedback v2 remediation plan — 2026-11-04
 
-- **Status:** Active; 0.19.0 closes P2 code, final acceptance evidence remains
+- **Status:** Completed through v0.19.0; external A-V2 acceptance passes
 - **Source:** [`docs/FOLISIFT-GERI-BILDIRIM-v2.md`](../FOLISIFT-GERI-BILDIRIM-v2.md)
 - **Previous plan:** [`2026-11-03-production-feedback-remediation.md`](2026-11-03-production-feedback-remediation.md)
 - **Baseline:** Folisift 0.17.1, build 185, MCP schema 13, 35 tools
@@ -136,8 +136,9 @@ The review file also contains 62 digital rows while the canonical source set is
 | Source brief | `headings_total=141`, `review_added=2`, explicit `truncated`/`next` |
 | QA | cost block present; main/digital/IRAC all pass |
 
-Remaining P2: real PDF bbox proof for D2 width, full LiteParse/OCR evidence
-matrix, and the final determinism manifest. They do not block P0/P1.
+P2 is closed. `make feedback-v2` covers the external main/digital/IRAC workspace
+and the five repository guides; it also runs the restyle and scaffold unit
+checks. The conditional reranker remains the only explicit deferral.
 
 ## 0.5 P2 implementation status — 0.19.0 worktree
 
@@ -149,7 +150,7 @@ matrix, and the final determinism manifest. They do not block P0/P1.
 | Graph shape | `path`/`explain` bounded; geometry opt-in |
 | Determinism | brief/topic cache keys and fallback tests; `qa.environment` records versions, model signature, OCR/reranker policy and seed |
 | Docs | manifest precedence, brief budgets, IRAC `###`, D2 sidecar, visual taxonomy, OCR and cards documented |
-| Remaining | one-to-one executable A-V2-01…18 harness on the external workspace |
+| Acceptance | `make feedback-v2` runs A-V2-01…18 on the external workspace and repo guides; all pass |
 
 ## 1. Root cause map
 
