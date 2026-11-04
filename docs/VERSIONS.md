@@ -6,7 +6,7 @@ table.
 
 | Tag | Date | Build | Commit | PDFium | What changed |
 |---|---|---:|---|---|---|
-| `v0.19.0` | 2026-11-04 | pending | pending | `chromium/8058` | Feedback v2 P2: real PDF bbox width regression, OCR evidence matrix, bounded graph path/explain, QA environment/determinism report, cookbook and manifest review docs |
+| `v0.19.0` | 2026-11-04 | 190 | `2e8975206cf9961ddca76cf2d3a15a72f6b9e4ff` | `chromium/8058` | Feedback v2 P2: real PDF bbox width regression, OCR evidence matrix, bounded graph path/explain, QA environment/determinism report, cookbook and manifest review docs |
 | `v0.18.0` | 2026-11-04 | 188 | `a1fd480fea2f22a5ae67c4c89f8c70a5447a087f` | `chromium/8058` | Feedback v2 P0/P1: review-manifest coverage truth, brief budgets/exact matches, semantic topics, claims/graph budgets, shared guide metrics, citation sentence scoring, D2 sidecar discovery, visual taxonomy, style over_budget, QA cards, IRAC scaffold, source-brief review merge and QA cost report; schema 13 with 35 tools |
 | `v0.17.1` | 2026-11-04 | 185 | `8726bd792a3c6fa0ad60f335cc30e8d46f8af1c6` | `chromium/8058` | Fix `citation_snippet` byte-offset panic on Turkish uppercase case folding (`İ`/`I`); the MCP request now returns a bounded snippet instead of hanging. Schema stays 13 with 35 tools |
 | `v0.17.0` | 2026-11-04 | 183 | `60b70fbcf86bcf028f933d33c60717d96b473c1c` | `chromium/8058` | Review close-out: D2 classes/grid/vars/imports/dimensions, allow_page_span/aspect_ratio/label_lines, unified DiagramResult, audit intentional pages and table-free line stats, actual section pages, brief cache, chapter/heading briefs, coverage hints, output budget contract, doctor style checks; schema 13 with 35 tools |
