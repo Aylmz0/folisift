@@ -35,7 +35,7 @@ pub struct FolisiftServer {
     tool_router: ToolRouter<Self>,
 }
 
-#[derive(Debug, Default, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Default, Deserialize, JsonSchema)]
 pub struct OutputOptions {
     /// summary or full; large arrays are shortened in summary mode.
     pub detail: Option<String>,
@@ -1172,7 +1172,7 @@ impl FolisiftServer {
                             "domain": profile.domain,
                             "styles": candidates,
                         }),
-                        &params.response,
+                        &list_response_options(&params.response),
                     )));
                 }
                 let packs =
@@ -1181,7 +1181,7 @@ impl FolisiftServer {
                 // rejected by strict clients such as OpenCode V2.
                 Ok(Json(shape_response(
                     json!({ "styles": packs }),
-                    &params.response,
+                    &list_response_options(&params.response),
                 )))
             }
             "palettes" => {
@@ -1189,7 +1189,7 @@ impl FolisiftServer {
                     .map_err(|error| error.to_string())?;
                 Ok(Json(shape_response(
                     json!({ "palettes": palettes }),
-                    &params.response,
+                    &list_response_options(&params.response),
                 )))
             }
             "fonts" => {
@@ -1197,7 +1197,7 @@ impl FolisiftServer {
                     styles::list_fonts(self.workspace.root()).map_err(|error| error.to_string())?;
                 Ok(Json(shape_response(
                     json!({ "fonts": fonts }),
-                    &params.response,
+                    &list_response_options(&params.response),
                 )))
             }
             "info" => {
@@ -4474,6 +4474,14 @@ fn strip_geometry(value: &mut Value) {
         }
         _ => {}
     }
+}
+
+fn list_response_options(options: &OutputOptions) -> OutputOptions {
+    let mut options = options.clone();
+    if options.detail.is_none() {
+        options.detail = Some("full".to_string());
+    }
+    options
 }
 
 fn shape_response(mut value: Value, options: &OutputOptions) -> Value {
