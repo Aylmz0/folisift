@@ -484,6 +484,47 @@ fn markdown_to_typst_with(markdown: &str, config: &RenderConfig) -> Result<Strin
                         out.push_str(&format!("#two_col({})[{inner_typst}]\n\n", args.join(", ")));
                     }
                 }
+                "figure" => {
+                    if !inner_markdown.trim().is_empty() {
+                        return Err(Error::Markdown {
+                            line: start_line,
+                            message: "figure takes no body; use src=\"<asset>\"".to_string(),
+                        });
+                    }
+                    let src = attr(&attrs, "src").ok_or_else(|| Error::Markdown {
+                        line: start_line,
+                        message: "figure needs src=\"<asset>\"".to_string(),
+                    })?;
+                    let source = attr(&attrs, "source").ok_or_else(|| Error::Markdown {
+                        line: start_line,
+                        message: "figure needs source=\"<source, s. N>\"".to_string(),
+                    })?;
+                    let alt = attr(&attrs, "alt").ok_or_else(|| Error::Markdown {
+                        line: start_line,
+                        message: "figure needs alt text".to_string(),
+                    })?;
+                    let caption = attr(&attrs, "caption").unwrap_or_default();
+                    let width = attr(&attrs, "width").unwrap_or("90%").trim();
+                    let valid_width = width
+                        .strip_suffix('%')
+                        .and_then(|value| value.parse::<u8>().ok())
+                        .is_some_and(|value| (50..=100).contains(&value));
+                    if !valid_width {
+                        return Err(Error::Markdown {
+                            line: start_line,
+                            message: format!(
+                                "figure width must be a percentage from 50% to 100%, got {width:?}"
+                            ),
+                        });
+                    }
+                    out.push_str(&format!(
+                        "#figure(fitted_image({}, width: {}, alt: {}), caption: [{}], numbering: none)\n\n",
+                        typst_string(src),
+                        width,
+                        typst_string(alt),
+                        caption_typst(&format!("{caption} [{}]", source)),
+                    ));
+                }
                 "diagram" => {
                     if !inner_markdown.trim().is_empty() {
                         return Err(Error::Markdown {
@@ -1458,6 +1499,20 @@ mod tests {
         )
         .expect("typst");
         assert!(typst.contains("<tab-derleme>"));
+    }
+
+    #[test]
+    fn source_figure_directive_emits_provenance() {
+        let typst = markdown_to_typst(
+            "::: figure src=\"data/crops/abc.png\" caption=\"ROC eğrisi\" source=\"PD3, s. 45\" alt=\"ROC eğrisi\" width=\"80%\"\n:::",
+        )
+        .expect("figure");
+        assert!(
+            typst.contains("fitted_image(\"data/crops/abc.png\""),
+            "{typst}"
+        );
+        assert!(typst.contains("#source_ref(\"PD3, s. 45\")"), "{typst}");
+        assert!(typst.contains("width: 80%"));
     }
 
     #[test]

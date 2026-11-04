@@ -193,13 +193,86 @@ pub async fn build(workspace: &Workspace, request: BuildRequest) -> Result<Build
         }
         layout = Some(report);
 
-        if gates::uses_course_coverage(&style.structure)
-            || gates::uses_revision_coverage(&style.structure)
-        {
+        let coverage_gate = gates::uses_course_coverage(&style.structure)
+            || gates::uses_revision_coverage(&style.structure);
+        let visual_gate = guide
+            .config
+            .audit
+            .as_ref()
+            .and_then(|policy| policy.visual_gate.as_deref())
+            .unwrap_or("warn");
+        if !matches!(visual_gate, "off" | "warn" | "required") {
+            return Err(fail_with_draft(
+                format!("unknown visual_gate {visual_gate:?}; use off, warn or required"),
+                &mut staged,
+            ));
+        }
+        let include_figures = visual_gate != "off";
+        let audit_exists = guide.visual_audit().is_file();
+        let needs_inventory = coverage_gate || audit_exists || visual_gate == "required";
+        let inventory = if needs_inventory {
             let (inventory, cached) = load_inventory(&guide).await?;
             parse_cache_hit = cached;
+            Some(inventory)
+        } else {
+            None
+        };
+
+        if let Some(inventory) = inventory.as_ref() {
+            let low_text_pages = inventory.totals.low_text_pages;
+            let needs_visual = low_text_pages > 0
+                || (include_figures && (audit_exists || visual_gate == "required"));
+            if needs_visual {
+                if audit_exists {
+                    let audit = VisualAudit::load(&guide.visual_audit())?;
+                    let intentional = guide
+                        .config
+                        .audit
+                        .as_ref()
+                        .map_or(&[][..], |policy| policy.intentional_pages.as_slice());
+                    let mut report = audit.validate_with_policy(
+                        std::path::Path::new(""),
+                        inventory,
+                        &guide.dir,
+                        include_figures,
+                        intentional,
+                    );
+                    report.visual_gate = visual_gate.to_string();
+                    let passed = report.missing_low_text.is_empty()
+                        && report.unresolved.is_empty()
+                        && (visual_gate != "required" || report.missing_figures.is_empty());
+                    report.passed = passed;
+                    visual_passed = Some(passed);
+                    if !passed {
+                        return Err(fail_with_draft(
+                            format!(
+                                "visual audit failed: {} low-text missing, {} figure/table missing, {} unresolved",
+                                report.missing_low_text.len(),
+                                report.missing_figures.len(),
+                                report.unresolved.len()
+                            ),
+                            &mut staged,
+                        ));
+                    }
+                    visual = Some(report);
+                } else {
+                    return Err(fail_with_draft(
+                        format!(
+                            "visual audit is required ({visual_gate}) but visual-audit.json is missing; {} low-text page(s) need decisions",
+                            low_text_pages
+                        ),
+                        &mut staged,
+                    ));
+                }
+            }
+        }
+
+        if coverage_gate {
+            let inventory = inventory.as_ref().ok_or_else(|| {
+                Error::Message("inventory unavailable for the coverage gate".to_string())
+            })?;
             if gates::uses_revision_coverage(&style.structure) {
-                let report = folisift_parse::revision_coverage_report(&inventory, &markdown);
+                let report = folisift_parse::revision_coverage_report(inventory, &markdown);
                 if let Some(path) = &guide.coverage {
                     report.write_markdown(path)?;
                 }
@@ -214,32 +287,13 @@ pub async fn build(workspace: &Workspace, request: BuildRequest) -> Result<Build
                 }
                 revision_coverage = true;
             } else {
-                if inventory.totals.low_text_pages > 0 {
-                    let report = VisualAudit::load_and_validate(
-                        &guide.visual_audit(),
-                        &inventory,
-                        &guide.dir,
-                    )?;
-                    visual_passed = Some(report.passed);
-                    if !report.passed {
-                        return Err(fail_with_draft(
-                            format!(
-                                "visual audit failed: {} missing, {} unresolved",
-                                report.missing.len(),
-                                report.unresolved.len()
-                            ),
-                            &mut staged,
-                        ));
-                    }
-                    visual = Some(report);
-                }
                 let (manifest, source, warning) = load_coverage_manifest(&guide)?;
                 coverage_source = Some(source);
                 coverage_warning = warning;
                 let report = if let Some(manifest) = manifest {
-                    manifest.report(&inventory, &markdown)
+                    manifest.report(inventory, &markdown)
                 } else {
-                    check_coverage(&inventory, &markdown, folisift_parse::DEFAULT_THRESHOLD)
+                    check_coverage(inventory, &markdown, folisift_parse::DEFAULT_THRESHOLD)
                 };
                 if let Some(path) = &guide.coverage {
                     report.write_markdown(path)?;

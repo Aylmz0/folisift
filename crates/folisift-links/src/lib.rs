@@ -45,19 +45,31 @@ pub fn find_model_dir(workspace_root: &Path) -> Option<PathBuf> {
             return Some(path);
         }
     }
-    for candidate in [
+    let mut candidates = vec![
         workspace_root.join("data/models").join(DEFAULT_MODEL),
         workspace_root.join("models").join(DEFAULT_MODEL),
-    ] {
-        if candidate.is_dir() {
-            return Some(candidate);
-        }
+    ];
+    if let Some(exe) = std::env::current_exe().ok()
+        && let Some(parent) = exe.parent()
+    {
+        candidates.push(parent.join("models").join(DEFAULT_MODEL));
     }
-    let sidecar = std::env::current_exe().ok().and_then(|path| {
-        path.parent()
-            .map(|parent| parent.join("models").join(DEFAULT_MODEL))
-    });
-    sidecar.filter(|path| path.is_dir())
+    if let Some(home) = std::env::var_os("HOME") {
+        let home = PathBuf::from(home);
+        candidates.push(home.join(".local/lib/folisift/models").join(DEFAULT_MODEL));
+        candidates.push(
+            home.join(".local/share/folisift/models")
+                .join(DEFAULT_MODEL),
+        );
+    }
+    if let Some(data) = std::env::var_os("XDG_DATA_HOME") {
+        candidates.push(
+            PathBuf::from(data)
+                .join("folisift/models")
+                .join(DEFAULT_MODEL),
+        );
+    }
+    candidates.into_iter().find(|path| path.is_dir())
 }
 pub use model::{Model2VecEmbedder, verify_model_dir};
 pub use section::{Section, sections_from_layout};

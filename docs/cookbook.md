@@ -106,12 +106,31 @@ layout is recorded in the manifest. `width` changes the rendered bbox; a tall
 diagram needs `allow_page_span=true`. Guide builds only embed pre-generated SVG
 and never execute D2.
 
+## Chart-heavy sources
+
+Use **A + B**:
+
+- **A:** describe the chart in prose, extract its table when present, and use a
+  D2 schematic only for conceptual relationships;
+- **B:** crop the source chart when its exact appearance matters. Keep the
+  caption, source page, alt text and crop hash; the crop is local-only.
+
+Do not ask D2 to draw XY/scatter/ROC/quantile charts. It is a diagram engine,
+not a chart engine. A chart renderer is only safe when the data comes from a
+table or an explicit JSON file.
+
+`visual_evidence` lists figure/table/vector evidence. Set
+`config.audit.visual_gate` to `required` for a chart-sensitive guide; `warn`
+(the default) reports missing decisions without breaking existing guides.
+
 ## Visual decisions
 
 Use `native_table` when the source already contains a table, `redraw_table` when
 a figure/matrix must become a table, and `redraw_figure` when the figure itself
-must be redrawn. Legacy `table` is accepted as `redraw_table` for one release.
-`table_extract` returns `reason` and `table_likely` when no table block exists.
+must be redrawn. Use `embed_crop` for a source crop and `describe` for a
+text-only chart note. Legacy `table` is accepted as `redraw_table` for one
+release. `table_extract` returns `reason`, `table_likely`, `manual_action` and a
+text preview when no table block exists.
 
 ## OCR and insights
 

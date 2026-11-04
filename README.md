@@ -5,7 +5,7 @@ PDFs into source-traceable, paper-like study guides with a deterministic build,
 layout audit and local review tools. The engine is shared; each course is a
 self-contained guide bundle.
 
-**Current release: `v0.19.0`** — Linux archive, source builds for macOS and
+**Current release: `v0.20.0`** — Linux archive, source builds for macOS and
 Windows, and a source-available PolyForm Strict license.
 
 - Repository: <https://github.com/Aylmz0/folisift>
@@ -24,8 +24,10 @@ Windows, and a source-available PolyForm Strict license.
   paper/reader/clean/revision/notes/workbook/reference layouts and 12 tested
   palettes.
 - Enforces coverage, page budget, typography, contrast, reading order,
-  bookmark, overflow and visual-regression gates. A reviewed coverage manifest
-  makes the source-heading set authoritative for multi-source guides.
+  bookmark, overflow, visual-evidence and visual-regression gates. A reviewed
+  coverage manifest makes the source-heading set authoritative for multi-source
+  guides; figure/table pages enter a configurable visual gate (`off`, `warn`,
+  `required`).
 - Exposes the same build, source, block, link, graph, claim and card operations
   through a CLI and an MCP server for agent hosts such as OpenCode. Section
   briefs, source topics, guide plans, cost reports and bounded section reads
@@ -33,7 +35,9 @@ Windows, and a source-available PolyForm Strict license.
   the active tool schema small; and `::: glossary` renders dense four-column
   term tables. Opt-in `insights` exposes LiteParse annotations, AcroForm
   fields, tagged structure, vector geometry and per-page complexity without
-  changing the normal inventory.
+  changing the normal inventory. `visual_evidence` reports figure/table/vector
+  pages; `crop_source` stores provenance-aware source crops for charts that
+  cannot be faithfully redrawn.
 - Runs offline after installation. The MCP server makes no LLM, network or
   shell calls.
 
@@ -75,8 +79,8 @@ pre-generated SVG and never execute D2.
 ### Manual archive
 
 ```bash
-tar -xzf folisift-v0.19.0-linux-x86_64.tar.gz
-sha256sum -c folisift-v0.19.0-linux-x86_64.tar.gz.sha256
+tar -xzf folisift-v0.20.0-linux-x86_64.tar.gz
+sha256sum -c folisift-v0.20.0-linux-x86_64.tar.gz.sha256
 ./folisift doctor
 ```
 
@@ -197,8 +201,8 @@ Or declare it directly:
 ```
 
 Ask the host to run `doctor`, prepare the guide, read the sources, write the
-guide, build with the coverage gate and audit the PDF. The MCP exposes 35 tools
-at schema 13; profiles (`core`, `source`, `authoring`, `review`, `fast`, `deep`)
+guide, build with the coverage gate and audit the PDF. The MCP exposes 37 tools
+at schema 15; profiles (`core`, `source`, `authoring`, `review`, `fast`, `deep`)
 hide the rest before `tools/list`, and `core` is ten tools. The normal path is
 `prepare_guide` → `section_brief` / `read_section` / `read_source` → host writes
 `guide.md` → `build_guide` → `qa_guide` (`audit_guide` for the standalone

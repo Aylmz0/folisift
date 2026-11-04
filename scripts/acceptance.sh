@@ -46,5 +46,6 @@ done
 run doctor cargo run -q -p folisift-cli -- doctor
 run coverage-hint cargo run -q -p folisift-cli -- coverage-hint --guide pd3
 run diagram-status cargo run -q -p folisift-cli -- diagram status --guide pd3
+run feedback-v3 python3 scripts/check-feedback-v3.py
 
 printf '{"acceptance":true,"checks":[%s]}\n' "$(IFS=,; echo "${json[*]}")"

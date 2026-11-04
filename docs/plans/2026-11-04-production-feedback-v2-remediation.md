@@ -3,6 +3,7 @@
 - **Status:** Completed through v0.19.0; external A-V2 acceptance passes
 - **Source:** [`docs/FOLISIFT-GERI-BILDIRIM-v2.md`](../FOLISIFT-GERI-BILDIRIM-v2.md)
 - **Previous plan:** [`2026-11-03-production-feedback-remediation.md`](2026-11-03-production-feedback-remediation.md)
+- **Follow-up:** [`2026-11-04-visual-evidence-and-chart-policy.md`](2026-11-04-visual-evidence-and-chart-policy.md) owns visual evidence and A+B chart policy.
 - **Baseline:** Folisift 0.17.1, build 185, MCP schema 13, 35 tools
 - **Purpose:** turn the second production feedback into an owned, testable
   remediation map without weakening the deterministic/local boundary

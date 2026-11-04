@@ -246,9 +246,14 @@ Every low-text page needs exactly one decision in
 }
 ```
 
-Decisions: `native_table`, `redraw_table`, `redraw_figure`, `text`,
-`decorative`, `unreadable`. Legacy `table` is accepted as `redraw_table` for
-one release; legacy `redraw` remains a figure redraw.
+Decisions: `native_table`, `redraw_table`, `redraw_figure`, `embed_crop`,
+`describe`, `text`, `decorative`, `unreadable`. Legacy `table` is accepted as
+`redraw_table` for one release; legacy `redraw` remains a figure redraw.
+
+`embed_crop` entries also carry `asset`, `crop`, `caption`, `alt`, a required
+`hash` and `local_only=true`; the crop is local/gitignored under
+`data/crops/`. `describe` entries need a reason and must not invent chart
+values.
 
 - `native_table` means the source already contains a table.
 - `redraw_table` means a figure/matrix must be converted into a table.
@@ -256,7 +261,10 @@ one release; legacy `redraw` remains a figure redraw.
 - `text`, `decorative` and `unreadable` require a reason.
 - Cover pages and decorative photos are `decorative`; they are not content.
 - `build --check` fails when a low-text page is missing from the manifest or
-  an entry is unresolved. This is the evidence trail for the G section.
+  an entry is unresolved. With `config.audit.visual_gate="required"`, pages
+  with figure/table/vector evidence are also required; the default `warn`
+  reports them without breaking existing guides.
+- This is the evidence trail for the G section.
 
 `build --check` also reports `underfilled_pages` through `folisift audit`.
 A page below the body-density threshold must be reflowed or removed from the
@@ -636,6 +644,44 @@ IRAC case bodies use level-3 headings:
 `source-headings.md`, not in `guide.md`. `prepare_guide` writes ten case blocks
 for a new IRAC guide and refuses to overwrite an existing IRAC guide without
 case headings.
+
+### Source crops
+
+For a chart or table that cannot be faithfully redrawn, crop the source page and
+embed the crop with provenance:
+
+```bash
+folisift crop-source --guide my-guide --source sources/PD0.pdf \
+  --page 45 --crop 0.05,0.10,0.55,0.45
+```
+
+The MCP equivalent is `crop_source`. The crop is stored under
+`guides/<slug>/data/crops/` (local/gitignored). Reference it with:
+
+```markdown
+::: figure src="data/crops/<hash>.png" caption="ROC eğrisi" source="PD0, s. 45" alt="ROC eğrisi; eksenlerde TPR ve FPR"
+:::
+```
+
+A crop is not a redrawn or verified figure. Do not use a crop to claim a data
+value that is not visible in the source. If the chart data is available as a
+table, prefer a table or a `describe` note; D2 is only for conceptual diagrams,
+not XY/ROC plots.
+
+## Figure evidence gate
+
+`visual_evidence` (CLI `visual-evidence`) reports figure, table, vector and
+image evidence per page. Set:
+
+```json
+"audit": {
+  "visual_gate": "required"
+}
+```
+
+for a chart-sensitive guide. `required` fails the build when an evidence page
+has no decision; `warn` (default) reports missing decisions; `off` keeps the
+legacy low-text-only gate.
 
 ## Design changes
 

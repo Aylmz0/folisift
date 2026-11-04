@@ -193,6 +193,9 @@ pub struct AuditPolicy {
     /// Pages that are intentionally short (divider, full-page figure, TOC).
     #[serde(default)]
     pub intentional_pages: Vec<usize>,
+    /// off, warn or required for pages with figure/table evidence.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub visual_gate: Option<String>,
     /// Optional human-readable reasons, keyed by 1-based page number.
     #[serde(default)]
     pub layout_exceptions: BTreeMap<usize, String>,

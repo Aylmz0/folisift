@@ -13,6 +13,74 @@ use serde_json::{Value, json};
 use crate::error::{Error, Result};
 use crate::pdfium;
 
+pub fn visual_evidence_report(pages: &[Value], total_pages: usize) -> Value {
+    let mut items = Vec::new();
+    let mut figure_pages = Vec::new();
+    let mut table_pages = Vec::new();
+    let mut chart_pages = Vec::new();
+    for page in pages {
+        let page_number = page["page"].as_u64().unwrap_or(0) as usize;
+        let figures = page["figures"].as_u64().map_or_else(
+            || page["figures"].as_array().map_or(0, Vec::len),
+            |value| value as usize,
+        );
+        let image_refs = page["image_refs"].as_u64().map_or_else(
+            || page["image_refs"].as_array().map_or(0, Vec::len),
+            |value| value as usize,
+        );
+        let vectors = page["vector_graphics"].as_u64().unwrap_or(0) as usize;
+        let complexity = &page["complexity"];
+        let layout = &complexity["layout"];
+        let ruled_tables = layout["ruled_table_count"].as_u64().unwrap_or(0) as usize;
+        let text_tables = layout["text_table_run_count"].as_u64().unwrap_or(0) as usize;
+        let table_likely = ruled_tables > 0 || text_tables > 0;
+        let chart_likely = (figures > 0 || image_refs > 0)
+            && (vectors > 0
+                || complexity["reasons"].as_array().is_some_and(|reasons| {
+                    reasons.iter().any(|reason| {
+                        matches!(reason.as_str(), Some("dense-graphics" | "embedded-images"))
+                    })
+                }));
+        if figures > 0 {
+            figure_pages.push(page_number);
+        }
+        if table_likely {
+            table_pages.push(page_number);
+        }
+        if chart_likely {
+            chart_pages.push(page_number);
+        }
+        items.push(json!({
+            "page": page_number,
+            "chars": page["chars"],
+            "figures": figures,
+            "image_refs": image_refs,
+            "vector_graphics": vectors,
+            "ruled_table_count": ruled_tables,
+            "text_table_run_count": text_tables,
+            "table_likely": table_likely,
+            "chart_likely": chart_likely,
+            "needs_ocr": complexity["needs_ocr"],
+            "reasons": complexity["reasons"],
+        }));
+    }
+    json!({
+        "total_pages": total_pages,
+        "parsed_pages": pages.len(),
+        "figure_pages": figure_pages,
+        "table_pages": table_pages,
+        "chart_pages": chart_pages,
+        "summary": {
+            "figure_pages": figure_pages.len(),
+            "table_pages": table_pages.len(),
+            "chart_pages": chart_pages.len(),
+            "items": items.len(),
+        },
+        "items": items,
+        "policy": "advisory evidence; decide with visual-audit",
+    })
+}
+
 pub async fn extract_insights(
     path: &Path,
     ocr: bool,
@@ -71,6 +139,7 @@ pub async fn extract_insights(
         })
         .collect::<Vec<_>>();
 
+    let visual_evidence = visual_evidence_report(&pages, result.total_pages as usize);
     let mut ocr_reasons = std::collections::BTreeMap::<String, usize>::new();
     let mut ocr_candidates = Vec::new();
     for page in &pages {
@@ -105,6 +174,7 @@ pub async fn extract_insights(
         "form_type": result.form_type,
         "page_errors": result.page_errors,
         "pages": pages,
+        "visual_evidence": visual_evidence,
         "ocr_evidence": {
             "policy": if ocr { "explicit-on" } else { "off; auto is explicit opt-in" },
             "pages_ocr": if ocr { pages.len() } else { 0 },

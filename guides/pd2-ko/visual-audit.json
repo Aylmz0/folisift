@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "source_pages": [
+    {
+      "source": "PD2",
+      "page": 1,
+      "decision": "decorative",
+      "reason": "Bölüm kapağı; içerik değil.",
+      "priority": "low"
+    },
+    {
+      "source": "PD2",
+      "page": 5,
+      "decision": "text",
+      "reason": "Organiser kapsamı dışında kalan görsel; metin katmanı yeterli (s. 5).",
+      "priority": "high"
+    },
+    {
+      "source": "PD2",
+      "page": 19,
+      "decision": "text",
+      "reason": "Fortran II slaytı; sürüm bilgisi metin ve tabloda aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD2",
+      "page": 21,
+      "decision": "text",
+      "reason": "Fortran 77 slaytı; sürüm bilgisi metin ve tabloda aktarıldı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD2",
+      "page": 29,
+      "decision": "text",
+      "reason": "Organiser kapsamı dışında kalan görsel; metin katmanı yeterli (s. 29).",
+      "priority": "high"
+    },
+    {
+      "source": "PD2",
+      "page": 33,
+      "decision": "text",
+      "reason": "COMMON LISP slaytı; lehçe açıklaması metne alındı.",
+      "priority": "medium"
+    },
+    {
+      "source": "PD2",
+      "page": 45,
+      "decision": "decorative",
+      "reason": "COBOL tarihsel fotoğrafı; mekanizma taşımıyor.",
+      "priority": "low"
+    },
+    {
+      "source": "PD2",
+      "page": 53,
+      "decision": "text",
+      "reason": "Organiser kapsamı dışında kalan görsel; metin katmanı yeterli (s. 53).",
+      "priority": "high"
+    },
+    {
+      "source": "PD2",
+      "page": 101,
+      "decision": "decorative",
+      "reason": "Dekoratif karikatür; içerik değil.",
+      "priority": "low"
+    }
+  ]
+}

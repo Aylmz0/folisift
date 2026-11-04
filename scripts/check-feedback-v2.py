@@ -2,13 +2,19 @@
 """External feedback-v2 acceptance checks (A-V2-01..18)."""
 import json
 import os
+import select
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
 ROOT = Path(os.environ.get("FOLISIFT_V2_WORKSPACE", "/home/yilmaz/Documents/DersNot"))
-BIN = os.environ.get("FOLISIFT_BIN", str(Path(__file__).resolve().parents[1] / "target/debug/folisift"))
+_installed = Path.home() / ".local/bin/folisift"
+BIN = os.environ.get(
+    "FOLISIFT_BIN",
+    str(_installed if _installed.exists() else Path(__file__).resolve().parents[1] / "target/debug/folisift"),
+)
 checks = []
 
 
@@ -25,15 +31,35 @@ def client():
     next_id = 2
 
     def call(name, arguments):
-        nonlocal next_id, messages
+        nonlocal next_id
         request_id = next_id
         next_id += 1
-        messages.append({"jsonrpc": "2.0", "id": request_id, "method": "tools/call", "params": {"name": name, "arguments": arguments}})
-        proc = subprocess.run([BIN, "mcp", "--root", str(ROOT)], input="".join(json.dumps(message) + "\n" for message in messages), text=True, capture_output=True, timeout=600)
-        messages = messages[:2]
-        for line in proc.stdout.splitlines():
-            response = json.loads(line)
-            if response.get("id") == request_id:
+        payload = messages + [{"jsonrpc": "2.0", "id": request_id, "method": "tools/call", "params": {"name": name, "arguments": arguments}}]
+        proc = subprocess.Popen(
+            [BIN, "mcp", "--root", str(ROOT)],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            bufsize=1,
+        )
+        try:
+            assert proc.stdin is not None and proc.stdout is not None
+            proc.stdin.write("".join(json.dumps(message) + "\n" for message in payload))
+            proc.stdin.flush()
+            deadline = time.monotonic() + 600
+            while time.monotonic() < deadline:
+                ready, _, _ = select.select([proc.stdout], [], [], 1.0)
+                if not ready:
+                    if proc.poll() is not None:
+                        break
+                    continue
+                line = proc.stdout.readline()
+                if not line:
+                    break
+                response = json.loads(line)
+                if response.get("id") != request_id:
+                    continue
                 result = response.get("result", {})
                 if result.get("isError"):
                     return None, result
@@ -45,7 +71,16 @@ def client():
                     return json.loads(content), result
                 except json.JSONDecodeError:
                     return content, result
-        return None, proc.stderr[-500:]
+            stderr = proc.stderr.read()[-500:] if proc.stderr is not None else ""
+            return None, stderr or "no MCP response"
+        finally:
+            if proc.stdin is not None:
+                proc.stdin.close()
+            proc.terminate()
+            try:
+                proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                proc.kill()
 
     call.initialize = lambda: (messages, next_id)
     return call
@@ -78,8 +113,14 @@ chapter, _ = call("chapter_brief", {"guide": main, "source": main, "heading": "4
 record("A-V2-05 chapter exact", chapter and str(chapter.get("heading", "")).startswith("4.") and "4857" in str(chapter.get("heading")), str((chapter or {}).get("heading")))
 
 # A06
+doctor, _ = call("doctor", {})
+model_check = next((check for check in (doctor or {}).get("checks", []) if check.get("name") == "semantic-model"), {})
 topics, _ = call("source_topics", {"guide": main, "semantic": True, "k": 5})
-record("A-V2-06 semantic topics", topics and (topics.get("method") == "model2vec" or (topics.get("fallback") and topics.get("warning"))), str((topics or {}).get("method")))
+topics_ok = topics and (
+    topics.get("method") == "model2vec"
+    or (not model_check.get("ok") and topics.get("fallback") and topics.get("warning"))
+)
+record("A-V2-06 semantic topics", topics_ok, str((topics or {}).get("method")))
 
 # A07/A08
 claims, _ = call("claims", {"slug": main, "detail": "summary", "max_tokens": 1200})

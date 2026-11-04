@@ -10,8 +10,8 @@ use folisift_links::{
     write_report,
 };
 use folisift_parse::{
-    DocumentGraph, SourceCache, analyze_sources_with_layout, parse_page_list, read_block_view,
-    read_source_at, render_pages, search_source, write_layouts,
+    CropBox, DocumentGraph, SourceCache, analyze_sources_with_layout, parse_page_list,
+    read_block_view, read_source_at, render_pages, search_source, write_layouts,
 };
 use folisift_render::{RenderOptions, render, styles};
 use serde::Serialize;
@@ -295,6 +295,30 @@ enum Command {
         /// Character offset to resume a page that exceeded max_chars.
         #[arg(long)]
         offset: Option<usize>,
+    },
+    /// Bounded figure/table/vector evidence for a source PDF.
+    VisualEvidence {
+        #[arg(long)]
+        source: PathBuf,
+        #[arg(long)]
+        pages: Option<String>,
+    },
+    /// Crop a source page for provenance-aware figure embedding.
+    CropSource {
+        #[arg(long)]
+        guide: String,
+        #[arg(long)]
+        source: PathBuf,
+        #[arg(long)]
+        page: u32,
+        /// Normalized crop: left,top,width,height.
+        #[arg(long)]
+        crop: String,
+        /// Optional guide-relative output path.
+        #[arg(long)]
+        out: Option<PathBuf>,
+        #[arg(long, default_value_t = 200.0)]
+        dpi: f32,
     },
     /// Read a bounded view of stored layout blocks for one guide source.
     ReadBlocks {
@@ -1822,6 +1846,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                     "coverage": coverage,
                     "coverage_source": outcome.coverage_source,
                     "coverage_warning": outcome.coverage_warning,
+                    "visual": outcome.visual,
                     "section_pages": outcome.section_pages,
                     "outline": outcome.outline,
                     "parse_cache_hit": outcome.parse_cache_hit,
@@ -2213,6 +2238,70 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
         },
+        Command::VisualEvidence { source, pages } => {
+            let source = workspace.resolve_read(&source)?;
+            let value =
+                folisift_parse::extract_insights(&source, false, pages.as_deref(), false).await?;
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&json!({
+                    "source": source.display().to_string(),
+                    "visual_evidence": value["visual_evidence"],
+                }))?
+            );
+        }
+        Command::CropSource {
+            guide,
+            source,
+            page,
+            crop,
+            out,
+            dpi,
+        } => {
+            let guide = Guide::load(&workspace, &guide)?;
+            let source = workspace.resolve_read(&source)?;
+            let crop = CropBox::parse(&crop)?;
+            let temp_dir = guide
+                .dir
+                .join("data/crops")
+                .join(format!(".tmp-{}", std::process::id()));
+            let result = render_pages(
+                &source,
+                Some(vec![page]),
+                &temp_dir,
+                false,
+                Some(dpi),
+                Some(crop),
+            )
+            .await?;
+            let image = result
+                .pages
+                .into_iter()
+                .next()
+                .ok_or_else(|| format!("page {page} was not rendered"))?;
+            let bytes = std::fs::read(&image.path)?;
+            let hash = blake3::hash(&bytes).to_hex().to_string();
+            let relative = out.unwrap_or_else(|| PathBuf::from(format!("data/crops/{hash}.png")));
+            let target = workspace.resolve_write(guide.dir.join(&relative))?;
+            if let Some(parent) = target.parent() {
+                std::fs::create_dir_all(parent)?;
+            }
+            std::fs::write(&target, &bytes)?;
+            let _ = std::fs::remove_dir_all(&temp_dir);
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&json!({
+                    "guide": guide.slug,
+                    "source": source.display().to_string(),
+                    "page": page,
+                    "asset": relative.display().to_string(),
+                    "hash": hash,
+                    "width": image.width,
+                    "height": image.height,
+                    "local_only": true,
+                }))?
+            );
+        }
         Command::ReadSource {
             source,
             pages,

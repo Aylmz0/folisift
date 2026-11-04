@@ -35,8 +35,8 @@ inference only and the MCP server makes no network call.
 Manual archive verification:
 
 ```bash
-tar -xzf folisift-v0.19.0-linux-x86_64.tar.gz
-sha256sum -c folisift-v0.19.0-linux-x86_64.tar.gz.sha256
+tar -xzf folisift-v0.20.0-linux-x86_64.tar.gz
+sha256sum -c folisift-v0.20.0-linux-x86_64.tar.gz.sha256
 ./folisift doctor
 ```
 
@@ -115,7 +115,9 @@ make package
 
 `make package` requires `FOLISIFT_D2` or a staged
 `target/package/d2-v0.9.0/bin/d2`. It also requires the int8 semantic model
-under `models/potion-multilingual-128M-int8`; generate it once with:
+The model may live in the package sidecar, `~/.local/lib/folisift/models`,
+`~/.local/share/folisift/models`, `$XDG_DATA_HOME/folisift/models`, the
+workspace, or `FOLISIFT_MODEL_DIR`. Generate the development copy with:
 
 ```bash
 ./scripts/prepare-model2vec.sh

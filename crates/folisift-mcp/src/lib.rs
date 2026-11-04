@@ -120,6 +120,32 @@ pub struct SourceInsightsParams {
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
+pub struct CropSourceParams {
+    /// Guide slug.
+    pub guide: String,
+    /// Source PDF path relative to the workspace.
+    pub source: String,
+    /// 1-based page.
+    pub page: u32,
+    /// Normalized crop: left,top,width,height.
+    pub crop: String,
+    /// Optional guide-relative output path; defaults to data/crops/<hash>.png.
+    pub out: Option<String>,
+    /// Render DPI; default 200.
+    pub dpi: Option<f32>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct VisualEvidenceParams {
+    /// Source PDF path relative to the workspace.
+    pub source: String,
+    /// Page range such as 1-5,10; default all pages.
+    pub pages: Option<String>,
+    #[serde(flatten)]
+    pub response: OutputOptions,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
 pub struct SourceBriefParams {
     /// Guide slug.
     pub guide: String,
@@ -259,7 +285,7 @@ pub struct ReadSectionParams {
 
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct CoverageManifestParams {
-    /// build, read or validate
+    /// build, read, validate, review or hint
     pub action: String,
     /// Guide slug.
     pub guide: String,
@@ -2175,6 +2201,97 @@ impl FolisiftServer {
     }
 
     #[tool(
+        description = "Crop a source page for provenance-aware figure embedding",
+        annotations(title = "Crop source", read_only_hint = false, open_world_hint = false)
+    )]
+    async fn crop_source(
+        &self,
+        Parameters(params): Parameters<CropSourceParams>,
+    ) -> Result<Json<Value>, String> {
+        let guide =
+            Guide::load(&self.workspace, &params.guide).map_err(|error| error.to_string())?;
+        let source = self
+            .workspace
+            .resolve_read(&params.source)
+            .map_err(|error| error.to_string())?;
+        let crop =
+            folisift_parse::CropBox::parse(&params.crop).map_err(|error| error.to_string())?;
+        let temp_dir = guide
+            .dir
+            .join("data/crops")
+            .join(format!(".tmp-{}", std::process::id()));
+        let result = folisift_parse::render_pages(
+            &source,
+            Some(vec![params.page]),
+            &temp_dir,
+            false,
+            Some(params.dpi.unwrap_or(200.0)),
+            Some(crop),
+        )
+        .await
+        .map_err(|error| error.to_string())?;
+        let image = result
+            .pages
+            .into_iter()
+            .next()
+            .ok_or_else(|| format!("page {} was not rendered", params.page))?;
+        let bytes = std::fs::read(&image.path).map_err(|error| error.to_string())?;
+        let hash = blake3::hash(&bytes).to_hex().to_string();
+        let relative = params
+            .out
+            .unwrap_or_else(|| format!("data/crops/{hash}.png"));
+        let target = self
+            .workspace
+            .resolve_write(guide.dir.join(&relative))
+            .map_err(|error| error.to_string())?;
+        if let Some(parent) = target.parent() {
+            std::fs::create_dir_all(parent).map_err(|error| error.to_string())?;
+        }
+        std::fs::write(&target, &bytes).map_err(|error| error.to_string())?;
+        let _ = std::fs::remove_dir_all(&temp_dir);
+        Ok(Json(json!({
+            "guide": guide.slug,
+            "source": source.display().to_string(),
+            "page": params.page,
+            "crop": params.crop,
+            "asset": relative,
+            "hash": hash,
+            "width": image.width,
+            "height": image.height,
+            "local_only": true,
+            "note": "Source crops are local/gitignored; embed with ::: figure and cite the source page.",
+        })))
+    }
+
+    #[tool(
+        description = "Bounded figure/table/vector evidence for a source PDF",
+        annotations(
+            title = "Visual evidence",
+            read_only_hint = true,
+            open_world_hint = false
+        )
+    )]
+    async fn visual_evidence(
+        &self,
+        Parameters(params): Parameters<VisualEvidenceParams>,
+    ) -> Result<Json<Value>, String> {
+        let source = self
+            .workspace
+            .resolve_read(&params.source)
+            .map_err(|error| error.to_string())?;
+        let value =
+            folisift_parse::extract_insights(&source, false, params.pages.as_deref(), false)
+                .await
+                .map_err(|error| error.to_string())?;
+        let result = json!({
+            "source": source.display().to_string(),
+            "visual_evidence": value["visual_evidence"],
+            "policy": "advisory; use visual-audit before building",
+        });
+        Ok(Json(shape_response(result, &params.response)))
+    }
+
+    #[tool(
         description = "One bounded overview of a source: pages, low-text pages, headings and sections",
         annotations(title = "Source brief", read_only_hint = true, open_world_hint = false)
     )]
@@ -2390,14 +2507,55 @@ impl FolisiftServer {
         let page = layout
             .as_ref()
             .and_then(|layout| layout.pages.iter().find(|page| page.page == params.page));
-        let has_figure = page.is_some_and(|page| {
+        let layout_figure = page.is_some_and(|page| {
             page.blocks
                 .iter()
                 .any(|block| block.kind == folisift_parse::LayoutBlockKind::Figure)
         });
         let has_table =
             page.is_some_and(|page| page.blocks.iter().any(|block| block.kind.is_table()));
-        let visual = low_text || has_figure || has_table;
+        let source_path = guide.sources.iter().find(|path| {
+            path.file_stem().and_then(|value| value.to_str()) == Some(params.source.as_str())
+        });
+        let evidence = match source_path {
+            Some(path) => {
+                folisift_parse::extract_insights(path, false, Some(&params.page.to_string()), false)
+                    .await
+                    .ok()
+                    .and_then(|value| {
+                        value["visual_evidence"]["items"]
+                            .as_array()?
+                            .first()
+                            .cloned()
+                    })
+            }
+            None => None,
+        };
+        let evidence_figures = evidence
+            .as_ref()
+            .and_then(|item| item["figures"].as_u64())
+            .unwrap_or(0);
+        let has_figure = layout_figure || evidence_figures > 0;
+        let chart_likely = evidence
+            .as_ref()
+            .and_then(|item| item["chart_likely"].as_bool())
+            .unwrap_or(false);
+        let table_likely = evidence
+            .as_ref()
+            .and_then(|item| item["table_likely"].as_bool())
+            .unwrap_or(has_table);
+        let evidence_kind = if has_figure && table_likely {
+            "figure+table"
+        } else if table_likely {
+            "table"
+        } else if has_figure || chart_likely {
+            "figure"
+        } else if low_text {
+            "low-text"
+        } else {
+            "text"
+        };
+        let visual = low_text || chart_likely || has_figure || table_likely;
         let decision = std::fs::read_to_string(guide.visual_audit())
             .ok()
             .and_then(|text| serde_json::from_str::<Value>(&text).ok())
@@ -2417,9 +2575,16 @@ impl FolisiftServer {
             "low_text": low_text,
             "has_figure": has_figure,
             "has_table": has_table,
+            "chart_likely": chart_likely,
+            "table_likely": table_likely,
+            "evidence_kind": evidence_kind,
+            "vector_graphics": evidence.as_ref().and_then(|item| item["vector_graphics"].as_u64()),
+            "image_refs": evidence.as_ref().and_then(|item| item["image_refs"].as_u64()),
             "role": if visual { "visual-evidence-required" } else { "text-page" },
-            "recommendation": if visual {
-                "Render this page and inspect it; record native_table/redraw_table/redraw_figure/text/decorative/unreadable before building."
+            "recommendation": if chart_likely || table_likely {
+                "Render this page; record describe or embed_crop for charts and native_table/redraw_table for tables. Never invent chart values."
+            } else if visual {
+                "Render this page and inspect it; record native_table/redraw_table/redraw_figure/embed_crop/describe/text/decorative/unreadable before building."
             } else {
                 "Text layer is available; read_source is sufficient unless a figure/table is material."
             },
@@ -2603,6 +2768,33 @@ impl FolisiftServer {
             .workspace
             .resolve_read(&params.source)
             .map_err(|error| error.to_string())?;
+        let insights =
+            folisift_parse::extract_insights(&source, false, Some(&params.page.to_string()), false)
+                .await
+                .map_err(|error| error.to_string())?;
+        let evidence = insights["visual_evidence"]["items"]
+            .as_array()
+            .and_then(|items| items.first())
+            .cloned()
+            .unwrap_or_else(|| json!({}));
+        let cache = SourceCache::new(self.workspace.root().join("data/cache"));
+        let text_preview = read_source_pages(
+            &cache,
+            &source,
+            Some(&params.page.to_string()),
+            Some(1200),
+            None,
+        )
+        .await
+        .ok()
+        .and_then(|result| result.pages.first().map(|page| page.text.clone()))
+        .unwrap_or_default()
+        .trim()
+        .chars()
+        .take(1200)
+        .collect::<String>();
+        let evidence_table_likely = evidence["table_likely"].as_bool().unwrap_or(false);
+        let source_region = json!({"page": params.page});
         if let Some(slug) = params.guide {
             let guide = Guide::load(&self.workspace, &slug).map_err(|error| error.to_string())?;
             let source_id = source
@@ -2629,9 +2821,10 @@ impl FolisiftServer {
                     .iter()
                     .any(|block| block.kind == folisift_parse::LayoutBlockKind::Figure)
             });
+            let table_likely = evidence_table_likely || !tables.is_empty();
             let reason = if tables.is_empty() {
-                Some(if figure {
-                    "figure-only page; no native table block"
+                Some(if table_likely || figure {
+                    "page has figure/table evidence but no native table block"
                 } else {
                     "no layout table block on this page"
                 })
@@ -2643,8 +2836,15 @@ impl FolisiftServer {
                     "source": source.display().to_string(),
                     "page": params.page,
                     "mode": "layout",
-                    "table_likely": figure || !tables.is_empty(),
+                    "source_region": source_region,
+                    "table_likely": table_likely,
                     "reason": reason,
+                    "manual_action": if tables.is_empty() {
+                        Some("use the text preview or a source crop; do not claim a native table")
+                    } else {
+                        None
+                    },
+                    "text_preview": text_preview,
                     "tables": tables,
                 }),
                 &params.response,
@@ -2652,13 +2852,29 @@ impl FolisiftServer {
         }
         let tables = folisift_parse::extract_tables(&source, params.page)
             .map_err(|error| error.to_string())?;
+        let table_likely = evidence_table_likely || !tables.is_empty();
         Ok(Json(shape_response(
             json!({
                 "source": source.display().to_string(),
                 "page": params.page,
                 "mode": "native-draft",
-                "table_likely": !tables.is_empty(),
-                "reason": if tables.is_empty() { Some("no native table draft on this page") } else { None },
+                "source_region": source_region,
+                "table_likely": table_likely,
+                "reason": if tables.is_empty() {
+                    Some(if table_likely {
+                        "page has figure/table evidence but no native table draft"
+                    } else {
+                        "no native table draft on this page"
+                    })
+                } else {
+                    None
+                },
+                "manual_action": if tables.is_empty() {
+                    Some("use layout mode with a guide, a source crop, or a manual Markdown table")
+                } else {
+                    None
+                },
+                "text_preview": text_preview,
                 "tables": tables,
             }),
             &params.response,
@@ -2981,6 +3197,63 @@ impl FolisiftServer {
                     "per_source": report.sources,
                 })))
             }
+            "review" => {
+                let selector = if params.manifest.is_none() && review_path.is_file() {
+                    Some("review")
+                } else {
+                    params.manifest.as_deref()
+                };
+                let selected = select_coverage_manifest(
+                    &guide,
+                    selector,
+                    &review_path,
+                    &generated_path,
+                    &combined_path,
+                )
+                .map_err(|error| error.to_string())?;
+                let Some(manifest) = selected.manifest else {
+                    return Err(
+                        "no coverage manifest to review; run coverage_manifest build".to_string(),
+                    );
+                };
+                let missing = manifest
+                    .rows
+                    .iter()
+                    .filter(|row| matches!(row.status, folisift_parse::CoverageStatus::Missing))
+                    .count();
+                let rows = manifest
+                    .rows
+                    .iter()
+                    .map(|row| {
+                        json!({
+                            "source": row.source,
+                            "page": row.page,
+                            "heading": row.heading,
+                            "guide_heading": row.guide_heading,
+                            "status": row.status,
+                            "confidence": row.confidence,
+                        })
+                    })
+                    .collect::<Vec<_>>();
+                Ok(Json(shape_response(
+                    json!({
+                        "guide": guide.slug,
+                        "coverage_source": selected.source,
+                        "manifest": selected.path.display().to_string(),
+                        "reviewed_at": manifest.reviewed_at,
+                        "reviewed_by": manifest.reviewed_by,
+                        "rows": rows.len(),
+                        "missing": missing,
+                        "review_required": missing > 0,
+                        "rows_preview": rows,
+                    }),
+                    &OutputOptions {
+                        detail: params.detail.clone(),
+                        max_tokens: params.max_tokens,
+                        fields: params.fields.clone(),
+                    },
+                )))
+            }
             "hint" => {
                 let inventory = self.load_or_analyze_inventory(&guide).await?;
                 let markdown =
@@ -2996,7 +3269,7 @@ impl FolisiftServer {
                 })))
             }
             other => Err(format!(
-                "unknown coverage_manifest action {other:?}; use build, read, validate or hint"
+                "unknown coverage_manifest action {other:?}; use build, read, validate, review or hint"
             )),
         }
     }
@@ -3354,7 +3627,7 @@ impl ServerHandler for FolisiftServer {
                     "profiles": ["core", "source", "authoring", "review", "fast", "deep"],
                     "profile_sizes": {
                         "core": 10,
-                        "source": 8,
+                        "source": 10,
                         "authoring": 7,
                         "review": 8,
                         "fast": 13,
@@ -4293,6 +4566,7 @@ fn environment_report(root: &Path) -> Value {
         "ocr": "off; auto is explicit opt-in",
         "reranker": "off; benchmark-gated",
         "topic_seed": "deterministic-page-order-v1",
+        "visual_evidence": "page-evidence-v1; chart policy A+B; visual_gate=off|warn|required; source crops local-only",
     })
 }
 
@@ -4580,6 +4854,8 @@ fn apply_profile(router: &mut ToolRouter<FolisiftServer>, profile: &str) {
             "read_section",
             "source_topics",
             "visual_brief",
+            "visual_evidence",
+            "crop_source",
         ][..],
         "authoring" => &[
             "prepare_guide",
