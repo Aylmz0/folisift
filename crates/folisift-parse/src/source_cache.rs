@@ -7,7 +7,7 @@ use crate::pdfium;
 use crate::text::clean_text;
 
 const CACHE_VERSION: &str = env!("CARGO_PKG_VERSION");
-const LITEPARSE_VERSION: &str = "2.17";
+pub const LITEPARSE_VERSION: &str = "2.17";
 const PAGE_MARKER: &str = "\n===== PAGE ";
 
 #[derive(Debug, Clone, Serialize)]

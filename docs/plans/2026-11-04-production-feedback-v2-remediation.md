@@ -1,6 +1,6 @@
 # Production feedback v2 remediation plan — 2026-11-04
 
-- **Status:** Active; 0.18.0 closes P0/P1, P2 remains
+- **Status:** Active; 0.19.0 closes P2 code, final acceptance evidence remains
 - **Source:** [`docs/FOLISIFT-GERI-BILDIRIM-v2.md`](../FOLISIFT-GERI-BILDIRIM-v2.md)
 - **Previous plan:** [`2026-11-03-production-feedback-remediation.md`](2026-11-03-production-feedback-remediation.md)
 - **Baseline:** Folisift 0.17.1, build 185, MCP schema 13, 35 tools
@@ -138,6 +138,18 @@ The review file also contains 62 digital rows while the canonical source set is
 
 Remaining P2: real PDF bbox proof for D2 width, full LiteParse/OCR evidence
 matrix, and the final determinism manifest. They do not block P0/P1.
+
+## 0.5 P2 implementation status — 0.19.0 worktree
+
+| Area | Result |
+|---|---|
+| D2 width | Real PDF image bbox test: 60% renders narrower than 90% |
+| D2 decision depth | 24 nodes/40 edges/depth 8, `direction`, `aspect_ratio`, `allow_page_span`, `label_lines` |
+| LiteParse/OCR | `source_insights.ocr_evidence` reports policy, pages_ocr/skipped, candidates and reasons |
+| Graph shape | `path`/`explain` bounded; geometry opt-in |
+| Determinism | brief/topic cache keys and fallback tests; `qa.environment` records versions, model signature, OCR/reranker policy and seed |
+| Docs | manifest precedence, brief budgets, IRAC `###`, D2 sidecar, visual taxonomy, OCR and cards documented |
+| Remaining | one-to-one executable A-V2-01…18 harness on the external workspace |
 
 ## 1. Root cause map
 

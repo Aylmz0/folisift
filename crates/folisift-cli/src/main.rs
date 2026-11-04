@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use clap::{Parser, Subcommand};
@@ -244,6 +244,12 @@ enum Command {
         /// build, read or validate.
         #[arg(long, default_value = "build")]
         action: String,
+        /// review, generated, combined or a guide-relative path.
+        #[arg(long)]
+        manifest: Option<String>,
+        /// Promote a reviewed manifest into the combined path.
+        #[arg(long)]
+        adopt: bool,
     },
     /// Cluster source headings with local Model2Vec embeddings.
     Topics {
@@ -605,6 +611,54 @@ struct GuideStatus {
     section_count: usize,
     source_section_count: usize,
     empty_sections: Vec<String>,
+}
+
+fn select_coverage_manifest(
+    guide: &Guide,
+    selector: Option<&str>,
+    review: &Path,
+    generated: &Path,
+    combined: &Path,
+) -> Result<(PathBuf, String, Option<String>), Box<dyn std::error::Error>> {
+    if let Some(selector) = selector {
+        let (path, source) = match selector {
+            "review" => (review.to_path_buf(), "review"),
+            "generated" => (generated.to_path_buf(), "generated"),
+            "combined" => (combined.to_path_buf(), "combined"),
+            other => (guide.dir.join(other), "path"),
+        };
+        return Ok((path, source.to_string(), None));
+    }
+    if review.is_file() {
+        let manifest = folisift_parse::CoverageManifest::read_json(review)?;
+        if manifest.review_eligible() {
+            return Ok((review.to_path_buf(), "review".to_string(), None));
+        }
+        let missing = manifest
+            .rows
+            .iter()
+            .filter(|row| matches!(row.status, folisift_parse::CoverageStatus::Missing))
+            .count();
+        let warning = Some(format!(
+            "review manifest ignored: {missing} row(s) still marked missing; using generated/legacy"
+        ));
+        if generated.is_file() {
+            return Ok((generated.to_path_buf(), "generated".to_string(), warning));
+        }
+        if combined.is_file() {
+            return Ok((combined.to_path_buf(), "combined".to_string(), warning));
+        }
+        return Err(
+            "review manifest has unresolved rows and no generated/combined fallback".into(),
+        );
+    }
+    if generated.is_file() {
+        return Ok((generated.to_path_buf(), "generated".to_string(), None));
+    }
+    if combined.is_file() {
+        return Ok((combined.to_path_buf(), "combined".to_string(), None));
+    }
+    Err("no coverage manifest found; run coverage-manifest build".into())
 }
 
 fn audit_options_for(
@@ -1844,9 +1898,16 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                     .ok_or_else(|| format!("section {heading:?} not found in {source}"))?;
             println!("{}", serde_json::to_string_pretty(&read)?);
         }
-        Command::CoverageManifest { guide, action } => {
+        Command::CoverageManifest {
+            guide,
+            action,
+            manifest,
+            adopt,
+        } => {
             let guide = Guide::load(&workspace, &guide)?;
-            let path = guide.dir.join("data/coverage-manifest.json");
+            let review = guide.dir.join("data/coverage-manifest.review.json");
+            let generated = guide.dir.join("data/coverage-manifest.generated.json");
+            let combined = guide.dir.join("data/coverage-manifest.json");
             match action.as_str() {
                 "build" => {
                     let inventory = folisift_parse::analyze_sources(
@@ -1856,50 +1917,80 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                     .await?;
                     let markdown = std::fs::read_to_string(&guide.content)?;
                     let manifest = folisift_parse::CoverageManifest::build(&inventory, &markdown);
-                    manifest.write_json(&path)?;
+                    manifest.write_json(&generated)?;
+                    let review_manifest = folisift_parse::CoverageManifest::read_json(&review).ok();
+                    let review_eligible = review_manifest
+                        .as_ref()
+                        .is_some_and(folisift_parse::CoverageManifest::review_eligible);
+                    if review_manifest.is_none() {
+                        manifest.write_json(&combined)?;
+                    } else if adopt
+                        && review_eligible
+                        && let Some(review_manifest) = &review_manifest
+                    {
+                        review_manifest.write_json(&combined)?;
+                    }
                     println!(
                         "{}",
                         serde_json::to_string_pretty(&json!({
                             "guide": guide.slug,
-                            "output": path.display().to_string(),
+                            "output": generated.display().to_string(),
+                            "combined": combined.display().to_string(),
+                            "review": review.display().to_string(),
                             "rows": manifest.rows.len(),
+                            "review_eligible": review_eligible,
+                            "adopted": adopt && review_eligible,
                         }))?
                     );
                 }
-                "read" => {
+                "read" | "validate" => {
+                    let (path, source, warning) = select_coverage_manifest(
+                        &guide,
+                        manifest.as_deref(),
+                        &review,
+                        &generated,
+                        &combined,
+                    )?;
                     let manifest = folisift_parse::CoverageManifest::read_json(&path)?;
-                    println!(
-                        "{}",
-                        serde_json::to_string_pretty(&json!({
-                            "guide": guide.slug,
-                            "output": path.display().to_string(),
-                            "rows": manifest.rows.len(),
-                            "manifest": manifest,
-                        }))?
-                    );
-                }
-                "validate" => {
-                    let inventory = folisift_parse::analyze_sources(
-                        &guide.sources,
-                        folisift_parse::LOW_TEXT_THRESHOLD,
-                    )
-                    .await?;
-                    let markdown = std::fs::read_to_string(&guide.content)?;
-                    let manifest = folisift_parse::CoverageManifest::read_json(&path)?;
-                    let report = manifest.report(&inventory, &markdown);
-                    println!(
-                        "{}",
-                        serde_json::to_string_pretty(&json!({
-                            "guide": guide.slug,
-                            "passed": report.passed,
-                            "total": report.total,
-                            "claimed": report.claimed,
-                            "missing": report.missing_from_gate,
-                            "empty_sections": report.empty_sections,
-                        }))?
-                    );
-                    if !report.passed {
-                        std::process::exit(1);
+                    if action == "read" {
+                        println!(
+                            "{}",
+                            serde_json::to_string_pretty(&json!({
+                                "guide": guide.slug,
+                                "output": path.display().to_string(),
+                                "coverage_source": source,
+                                "warning": warning,
+                                "rows": manifest.rows.len(),
+                                "manifest": manifest,
+                            }))?
+                        );
+                    } else {
+                        let inventory = folisift_parse::analyze_sources(
+                            &guide.sources,
+                            folisift_parse::LOW_TEXT_THRESHOLD,
+                        )
+                        .await?;
+                        let markdown = std::fs::read_to_string(&guide.content)?;
+                        let report = manifest.report(&inventory, &markdown);
+                        println!(
+                            "{}",
+                            serde_json::to_string_pretty(&json!({
+                                "guide": guide.slug,
+                                "coverage_source": source,
+                                "manifest": path.display().to_string(),
+                                "warning": warning,
+                                "passed": report.passed,
+                                "total": report.total,
+                                "canonical_total": report.canonical_total,
+                                "claimed": report.claimed,
+                                "missing": report.missing_from_gate,
+                                "empty_sections": report.empty_sections,
+                                "per_source": report.sources,
+                            }))?
+                        );
+                        if !report.passed {
+                            std::process::exit(1);
+                        }
                     }
                 }
                 other => {

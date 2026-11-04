@@ -71,6 +71,31 @@ pub async fn extract_insights(
         })
         .collect::<Vec<_>>();
 
+    let mut ocr_reasons = std::collections::BTreeMap::<String, usize>::new();
+    let mut ocr_candidates = Vec::new();
+    for page in &pages {
+        let complexity = &page["complexity"];
+        if complexity["needs_ocr"].as_bool() == Some(true) {
+            let page_number = page["page"].as_u64().unwrap_or(0);
+            let reasons = complexity["reasons"]
+                .as_array()
+                .map(|values| {
+                    values
+                        .iter()
+                        .filter_map(|value| value.as_str().map(ToString::to_string))
+                        .collect::<Vec<_>>()
+                })
+                .unwrap_or_default();
+            for reason in &reasons {
+                *ocr_reasons.entry(reason.clone()).or_default() += 1;
+            }
+            ocr_candidates.push(json!({
+                "page": page_number,
+                "reasons": reasons,
+                "needs_ocr": true,
+            }));
+        }
+    }
     Ok(json!({
         "source": path.display().to_string(),
         "total_pages": result.total_pages,
@@ -80,6 +105,15 @@ pub async fn extract_insights(
         "form_type": result.form_type,
         "page_errors": result.page_errors,
         "pages": pages,
+        "ocr_evidence": {
+            "policy": if ocr { "explicit-on" } else { "off; auto is explicit opt-in" },
+            "pages_ocr": if ocr { pages.len() } else { 0 },
+            "pages_skipped": if ocr { 0 } else { pages.len() },
+            "candidates": ocr_candidates,
+            "reasons": ocr_reasons,
+            "manual_review": true,
+            "note": "OCR is advisory; text-layer pages are skipped unless explicitly enabled.",
+        },
         "policy": {
             "read_only": true,
             "ocr": ocr,

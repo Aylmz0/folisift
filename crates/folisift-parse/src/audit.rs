@@ -27,6 +27,15 @@ impl PageRole {
 }
 
 #[derive(Debug, Clone, Serialize)]
+pub struct ImageBox {
+    pub page: usize,
+    pub x: f64,
+    pub y: f64,
+    pub width: f64,
+    pub height: f64,
+}
+
+#[derive(Debug, Clone, Serialize)]
 pub struct PageRoleEntry {
     pub page: usize,
     pub role: PageRole,
@@ -39,6 +48,44 @@ pub struct OutlinePage {
     pub level: u8,
     pub title: String,
     pub page: usize,
+}
+
+/// Read embedded image boxes for one page (1-based).
+pub fn image_boxes(path: &Path, page_number: usize) -> Result<Vec<ImageBox>> {
+    pdfium::init(None)?;
+    let path_text = path.to_str().ok_or_else(|| Error::Parse {
+        path: path.to_path_buf(),
+        message: "PDF path is not valid UTF-8".to_string(),
+    })?;
+    let library = liteparse_pdfium::Library::try_init().map_err(|error| Error::Pdfium {
+        message: error.to_string(),
+    })?;
+    let document = library
+        .load_document(path_text, None)
+        .map_err(|error| Error::Parse {
+            path: path.to_path_buf(),
+            message: error.to_string(),
+        })?;
+    if page_number == 0 || page_number as i32 > document.page_count() {
+        return Ok(Vec::new());
+    }
+    let page = document
+        .page((page_number - 1) as i32)
+        .map_err(|error| Error::Parse {
+            path: path.to_path_buf(),
+            message: error.to_string(),
+        })?;
+    Ok(page
+        .image_bounds(5.0, 1.0)
+        .into_iter()
+        .map(|image| ImageBox {
+            page: page_number,
+            x: f64::from(image.x),
+            y: f64::from(image.y),
+            width: f64::from(image.width),
+            height: f64::from(image.height),
+        })
+        .collect())
 }
 
 /// Read PDF bookmarks as 1-based page anchors.

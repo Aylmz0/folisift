@@ -24,6 +24,9 @@ diagram counts. A failed gate is never hidden behind a bare `passed`.
 | `E_TABLE_WIDTHS: ... sum to N%` | Table widths do not sum to 100. | Fix the `widths=` list; the message names the column count and sum. |
 | `structure "irac" validation failed` | An IRAC heading is at the wrong level. | IRAC uses `## Dava` plus `### Sorun/Kural/Uygulama/Sonuç`. Read the reported line and expected `###`. |
 | `coverage ... missing` | A manifest/source heading has no guide heading or `<!-- covers -->` claim. | Add the section or mark it `merged`/`excluded` in the reviewed manifest. |
+| `review manifest ignored: N row(s) still marked missing` | A generated skeleton is sitting at the review path. | Review every canonical row; do not rename a skeleton `*.review.json`. |
+| `empty_sections` | No substantive body is mapped to a covered row. | Map the source row to the exact guide chapter; a short body is `weak_sections`, not empty. |
+| `coverage_manifest` finds no file | The guide has neither review, generated nor combined manifest. | Run `coverage-manifest build`; legacy `check_coverage` remains available. |
 | `no recall/answer pairs` | `cards` found no `::: recall`/`::: answer` blocks. | Add the blocks or accept an empty deck explicitly; the warning is intentional. |
 | `unknown FOLISIFT_MCP_PROFILE` | The host asked for an unknown profile. | Use `core`, `source`, `authoring`, `review`, `fast`, `deep` or `full`. |
 
@@ -46,17 +49,20 @@ folisift mcp --profile fast
 
 ## Coverage manifest
 
-For a multi-source or long guide, make the reviewed manifest authoritative:
+Precedence is `coverage-manifest.review.json` → `coverage-manifest.generated.json`
+→ `coverage-manifest.json` → legacy gate:
 
 ```bash
 folisift coverage-manifest --guide <slug> --action build
-# review guides/<slug>/data/coverage-manifest.json
-folisift coverage-manifest --guide <slug> --action validate
+# review data/coverage-manifest.review.json; never edit the generated skeleton
+folisift coverage-manifest --guide <slug> --action validate --manifest review
 folisift build --guide <slug> --check
 ```
 
-The build uses the manifest only when the file exists; otherwise the legacy
-coverage gate remains the fallback.
+`build` writes the generated skeleton and never overwrites a review file. A
+review file with any `missing` row is reported and ignored by `qa`/`build`; fix
+the review before trusting `coverage_source=review`. `empty_sections` means no
+substantive body; a short body is `weak_sections`.
 
 ## IRAC scaffold
 
@@ -71,13 +77,48 @@ The scaffold writes ten `## Dava N` placeholders with `### Sorun`, `### Kural`,
 `guides/<slug>/source-headings.md`. Existing guides are preserved unless a new
 slug is used.
 
+## Context briefs
+
+`section_brief`, `chapter_brief` and `heading_brief` accept `max_tokens`.
+The budget applies to the returned JSON, not just the summary:
+
+```bash
+folisift section-brief --guide <slug> --source <id> --heading 4.4.3 --max-tokens 50
+folisift read-section --guide <slug> --source <id> --heading 4.4.3 --mode summary
+```
+
+A small budget returns `truncated: true`, `next_offset` and `full_chars`; it
+never returns the full 3,000-character section silently. `chapter_brief` uses
+exact number matching: `4` selects `4 ...`, not `1.4 ...`.
+
 ## D2 diagrams
 
 ```bash
 folisift diagram validate --guide <slug> --all
 folisift diagram build --guide <slug> --id <id>
+folisift diagram fit --guide <slug> --id <id> --width 60
 folisift diagram status --guide <slug>
 ```
 
-`layout` accepts `tala`, `dagre` or `elk`; the chosen layout is recorded in the
-manifest. Guide builds only embed pre-generated SVG and never execute D2.
+D2 is found from `FOLISIFT_D2`, `PATH`, the binary’s sibling, or
+`~/.local/lib/folisift/d2`. `layout` accepts `tala`, `dagre` or `elk`; the chosen
+layout is recorded in the manifest. `width` changes the rendered bbox; a tall
+diagram needs `allow_page_span=true`. Guide builds only embed pre-generated SVG
+and never execute D2.
+
+## Visual decisions
+
+Use `native_table` when the source already contains a table, `redraw_table` when
+a figure/matrix must become a table, and `redraw_figure` when the figure itself
+must be redrawn. Legacy `table` is accepted as `redraw_table` for one release.
+`table_extract` returns `reason` and `table_likely` when no table block exists.
+
+## OCR and insights
+
+`source_insights` reports `ocr_evidence`: policy, pages OCRed/skipped, candidate
+pages and reasons. The default is off; `ocr=true` or `--ocr` is an explicit
+opt-in. `source_brief` reports the same policy and low-text candidates.
+
+`qa` includes an `environment` block with version, build, PDFium, LiteParse, D2,
+model signature, OCR/reranker policy and the topic seed. Two runs with the same
+inputs should report the same content hash, coverage and card/claim counts.

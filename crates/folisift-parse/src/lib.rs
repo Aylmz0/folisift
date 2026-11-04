@@ -25,7 +25,8 @@ pub mod visual;
 pub mod visual_audit;
 
 pub use audit::{
-    AuditOptions, LayoutAudit, OutlinePage, PageAudit, audit_pdf, audit_pdf_with, outline_pages,
+    AuditOptions, ImageBox, LayoutAudit, OutlinePage, PageAudit, audit_pdf, audit_pdf_with,
+    image_boxes, outline_pages,
 };
 pub use brief::{
     SectionBrief, SectionRead, SourceSection, read_section, read_section_mode, section_brief,
@@ -55,7 +56,7 @@ pub use render::{PageImage, render_pages};
 pub use revision_coverage::{
     RevisionCoverageReport, revision_coverage_issues, revision_coverage_report,
 };
-pub use source_cache::{PageText, SourceCache, SourceText};
+pub use source_cache::{LITEPARSE_VERSION, PageText, SourceCache, SourceText};
 pub use source_read::{
     ReadSourceResult, SearchHit, SearchSourceResult, read_source, read_source_at, search_source,
 };

@@ -242,3 +242,75 @@ pub fn model_signature(path: &std::path::Path) -> Result<String> {
     }
     Ok(format!("{:x}", hasher.finalize()))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use folisift_parse::{CanonicalSection, Heading, Inventory, SourceInventory, Totals};
+
+    fn inventory() -> Inventory {
+        Inventory {
+            generated_at: "now".to_string(),
+            low_text_threshold: 100,
+            sources: vec![SourceInventory {
+                path: "sources/PD3.pdf".to_string(),
+                filename: "PD3.pdf".to_string(),
+                title: "PD3".to_string(),
+                pages: 10,
+                chars: 1000,
+                words: 100,
+                low_text_threshold: 100,
+                source_digest: None,
+                low_text_pages: Vec::new(),
+                headings: vec![
+                    Heading {
+                        heading: "1.1 Sözleşme".to_string(),
+                        page: 1,
+                        level: Some(2),
+                        block_id: None,
+                    },
+                    Heading {
+                        heading: "1.2 Fesih".to_string(),
+                        page: 2,
+                        level: Some(2),
+                        block_id: None,
+                    },
+                ],
+                layout: None,
+                sections: vec![CanonicalSection {
+                    number: "1.1".to_string(),
+                    title: "Sözleşme".to_string(),
+                    page: 1,
+                    origin: "toc".to_string(),
+                }],
+                page_map: Vec::new(),
+            }],
+            totals: Totals {
+                pages: 10,
+                words: 100,
+                low_text_pages: 0,
+            },
+        }
+    }
+
+    #[test]
+    fn heading_fallback_is_deterministic() {
+        let first = topic_report(&inventory(), 2, None).expect("first");
+        let second = topic_report(&inventory(), 2, None).expect("second");
+        assert_eq!(first, second);
+        assert_eq!(first.method, "heading-terms");
+        assert!(!first.topics.is_empty());
+    }
+
+    #[test]
+    fn cache_rejects_stale_model_or_k() {
+        let value = serde_json::json!({
+            "inventory_digest": "d",
+            "model_signature": "m",
+            "k": 2,
+        });
+        assert!(cache_matches(&value, "d", Some("m"), 2));
+        assert!(!cache_matches(&value, "d", Some("other"), 2));
+        assert!(!cache_matches(&value, "d", Some("m"), 3));
+    }
+}

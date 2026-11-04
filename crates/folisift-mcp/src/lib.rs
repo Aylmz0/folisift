@@ -4,8 +4,9 @@ use std::sync::Arc;
 use folisift_core::{Guide, ScaffoldOptions, Workspace, list_guides, scaffold, version};
 use folisift_links::{
     DEFAULT_MODEL, Embedder, LinkIndex, LinkOptions, Model2VecEmbedder, cache_matches,
-    find_model_dir, heading_term_report, inventory_digest, read_layouts, read_report,
-    sections_from_layout, topic_report, verify_model_dir, write_markdown_report, write_report,
+    find_model_dir, heading_term_report, inventory_digest, model_signature, read_layouts,
+    read_report, sections_from_layout, topic_report, verify_model_dir, write_markdown_report,
+    write_report,
 };
 use folisift_parse::{
     CoverageManifest, DocumentGraph, Inventory, SourceCache, VisualAudit, analyze_sources,
@@ -2753,9 +2754,15 @@ impl FolisiftServer {
         &self,
         Parameters(params): Parameters<QaGuideParams>,
     ) -> Result<Json<Value>, String> {
-        let report = folisift_build::qa(&self.workspace, &params.slug)
+        let mut report = folisift_build::qa(&self.workspace, &params.slug)
             .await
             .map_err(|error| error.to_string())?;
+        if let Some(object) = report.as_object_mut() {
+            object.insert(
+                "environment".to_string(),
+                environment_report(self.workspace.root()),
+            );
+        }
         Ok(Json(shape_response(report, &params.response)))
     }
 
@@ -4269,6 +4276,24 @@ fn path_with(path: &[String], key: String) -> Vec<String> {
     let mut next = path.to_vec();
     next.push(key);
     next
+}
+
+fn environment_report(root: &Path) -> Value {
+    let model = find_model_dir(root);
+    let model_signature = model.as_deref().and_then(|path| model_signature(path).ok());
+    json!({
+        "version": version::VERSION,
+        "build": version::BUILD,
+        "mcp_tool_schema_version": version::MCP_TOOL_SCHEMA_VERSION,
+        "liteparse": folisift_parse::LITEPARSE_VERSION,
+        "pdfium": folisift_parse::pdfium::PDFIUM_VERSION,
+        "d2": folisift_render::diagram::D2_VERSION,
+        "model": model.map(|path| path.display().to_string()),
+        "model_signature": model_signature,
+        "ocr": "off; auto is explicit opt-in",
+        "reranker": "off; benchmark-gated",
+        "topic_seed": "deterministic-page-order-v1",
+    })
 }
 
 fn heading_key(value: &str) -> String {
