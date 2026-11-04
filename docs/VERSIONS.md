@@ -6,7 +6,7 @@ table.
 
 | Tag | Date | Build | Commit | PDFium | What changed |
 |---|---|---:|---|---|---|
-| `v0.17.1` | 2026-11-04 | pending | pending | `chromium/8058` | Fix `citation_snippet` byte-offset panic on Turkish uppercase case folding (`İ`/`I`); the MCP request now returns a bounded snippet instead of hanging. Schema stays 13 with 35 tools |
+| `v0.17.1` | 2026-11-04 | 185 | `8726bd792a3c6fa0ad60f335cc30e8d46f8af1c6` | `chromium/8058` | Fix `citation_snippet` byte-offset panic on Turkish uppercase case folding (`İ`/`I`); the MCP request now returns a bounded snippet instead of hanging. Schema stays 13 with 35 tools |
 | `v0.17.0` | 2026-11-04 | 183 | `60b70fbcf86bcf028f933d33c60717d96b473c1c` | `chromium/8058` | Review close-out: D2 classes/grid/vars/imports/dimensions, allow_page_span/aspect_ratio/label_lines, unified DiagramResult, audit intentional pages and table-free line stats, actual section pages, brief cache, chapter/heading briefs, coverage hints, output budget contract, doctor style checks; schema 13 with 35 tools |
 | `v0.16.0` | 2026-11-04 | 179 | `5aff3ba036aa8c0ce969e72994cebc4e20b96709` | `chromium/8058` | TOC include/exclude, structured build failures, doctor MCP, section read modes, definition cards, source-page resources, D2 node metadata; schema 12 with 33 tools |
 | `v0.15.1` | 2026-11-04 | 175 | `9137268d889654cbaf127d31fee57f89d23c0a17` | `chromium/8058` | Model2Vec-backed `topics` CLI clustering with heading-term fallback |
