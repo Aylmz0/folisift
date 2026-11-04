@@ -4,6 +4,7 @@ mod link;
 mod model;
 mod section;
 mod store;
+mod topics;
 
 use std::path::{Path, PathBuf};
 
@@ -61,3 +62,7 @@ pub fn find_model_dir(workspace_root: &Path) -> Option<PathBuf> {
 pub use model::{Model2VecEmbedder, verify_model_dir};
 pub use section::{Section, sections_from_layout};
 pub use store::{LINKS_SCHEMA_VERSION, read_report, write_markdown_report, write_report};
+pub use topics::{
+    TopicCluster, TopicHeading, TopicReport, cache_matches, heading_term_report, inventory_digest,
+    model_signature, topic_report,
+};

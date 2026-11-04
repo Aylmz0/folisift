@@ -7,14 +7,20 @@ use crate::link::{Embedder, Error, Result};
 
 pub struct Model2VecEmbedder {
     model: StaticModel,
+    signature: String,
 }
 
 impl Model2VecEmbedder {
     pub fn load(path: &Path) -> Result<Self> {
         verify_model_dir(path)?;
+        let signature = super::topics::model_signature(path)?;
         let model = StaticModel::from_pretrained(path, None, None, None)
             .map_err(|error| Error::Model(error.to_string()))?;
-        Ok(Self { model })
+        Ok(Self { model, signature })
+    }
+
+    pub fn signature(&self) -> Result<String> {
+        Ok(self.signature.clone())
     }
 }
 

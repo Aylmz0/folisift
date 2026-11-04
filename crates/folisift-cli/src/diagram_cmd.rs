@@ -532,11 +532,27 @@ fn find_d2() -> Option<PathBuf> {
             return Some(path);
         }
     }
-    let exe = std::env::current_exe().ok();
-    if let Some(exe) = exe
+    let binary = format!("d2{}", std::env::consts::EXE_SUFFIX);
+    if let Some(exe) = std::env::current_exe().ok()
         && let Some(parent) = exe.parent()
     {
-        let candidate = parent.join(format!("d2{}", std::env::consts::EXE_SUFFIX));
+        let candidate = parent.join(&binary);
+        if candidate.is_file() {
+            return Some(candidate);
+        }
+    }
+    if let Some(path) = std::env::var_os("PATH") {
+        for directory in std::env::split_paths(&path) {
+            let candidate = directory.join(&binary);
+            if candidate.is_file() {
+                return Some(candidate);
+            }
+        }
+    }
+    if let Some(home) = std::env::var_os("HOME") {
+        let candidate = PathBuf::from(home)
+            .join(".local/lib/folisift")
+            .join(&binary);
         if candidate.is_file() {
             return Some(candidate);
         }

@@ -13,7 +13,16 @@ use crate::error::{Error, Result, io};
 use crate::inventory::Inventory;
 
 pub const VISUAL_AUDIT_SCHEMA_VERSION: u32 = 1;
-pub const DECISIONS: &[&str] = &["redraw", "table", "text", "decorative", "unreadable"];
+pub const DECISIONS: &[&str] = &[
+    "redraw",
+    "redraw_figure",
+    "redraw_table",
+    "native_table",
+    "table",
+    "text",
+    "decorative",
+    "unreadable",
+];
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct VisualAudit {
@@ -41,6 +50,9 @@ pub struct VisualReport {
     pub low_text_pages: usize,
     pub entries: usize,
     pub redrawn: usize,
+    pub redraw_figures: usize,
+    pub redraw_tables: usize,
+    pub native_tables: usize,
     pub tables: usize,
     pub text: usize,
     pub decorative: usize,
@@ -170,6 +182,10 @@ impl VisualAudit {
             low_text_pages: expected.len(),
             entries: seen.len(),
             redrawn: counts.get("redraw").copied().unwrap_or(0),
+            redraw_figures: counts.get("redraw_figure").copied().unwrap_or(0),
+            redraw_tables: counts.get("redraw_table").copied().unwrap_or(0)
+                + counts.get("table").copied().unwrap_or(0),
+            native_tables: counts.get("native_table").copied().unwrap_or(0),
             tables: counts.get("table").copied().unwrap_or(0),
             text: counts.get("text").copied().unwrap_or(0),
             decorative: counts.get("decorative").copied().unwrap_or(0),

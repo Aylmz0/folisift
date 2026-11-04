@@ -212,6 +212,42 @@ pub struct Guide {
 }
 
 /// A lightweight guide row for listings and status output.
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+pub struct GuideMetrics {
+    pub guide_kind: String,
+    pub case_count: usize,
+    pub section_count: usize,
+    pub content_words: usize,
+    pub source_count: usize,
+}
+
+pub fn guide_metrics(markdown: &str, structure: &str, source_count: usize) -> GuideMetrics {
+    let case_prefixes = ["dava", "case", "olay", "event", "vaka"];
+    let mut case_count = 0;
+    let mut section_count = 0;
+    for line in markdown.lines() {
+        let trimmed = line.trim_start();
+        if let Some(heading) = trimmed.strip_prefix("## ") {
+            section_count += 1;
+            let mut words = heading.split_whitespace();
+            let prefix = words.next().unwrap_or_default().to_lowercase();
+            let number = words.next().unwrap_or_default();
+            if case_prefixes.contains(&prefix.as_str())
+                && number.chars().any(|character| character.is_ascii_digit())
+            {
+                case_count += 1;
+            }
+        }
+    }
+    GuideMetrics {
+        guide_kind: structure.to_string(),
+        case_count,
+        section_count,
+        content_words: prose_words(markdown),
+        source_count,
+    }
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct GuideSummary {
     pub slug: String,
@@ -460,6 +496,7 @@ pub fn list_guides(workspace: &Workspace) -> Result<Vec<GuideSummary>> {
             Ok(guide) => {
                 let content = fs::read_to_string(&guide.content).unwrap_or_default();
                 let style = guide.style();
+                let metrics = guide_metrics(&content, &style.structure, guide.sources.len());
                 summaries.push(GuideSummary {
                     slug: guide.slug,
                     title: guide.config.title,
@@ -468,20 +505,11 @@ pub fn list_guides(workspace: &Workspace) -> Result<Vec<GuideSummary>> {
                     language: style.language,
                     output: guide.config.output,
                     sources: guide.sources.len(),
-                    source_count: guide.sources.len(),
-                    guide_kind: style.structure.clone(),
-                    case_count: content
-                        .lines()
-                        .filter(|line| {
-                            let line = line.trim_start();
-                            line.starts_with("## Dava ") || line.starts_with("## Case ")
-                        })
-                        .count(),
-                    content_words: prose_words(&content),
-                    section_count: content
-                        .lines()
-                        .filter(|line| line.trim_start().starts_with("## "))
-                        .count(),
+                    source_count: metrics.source_count,
+                    guide_kind: metrics.guide_kind,
+                    case_count: metrics.case_count,
+                    content_words: metrics.content_words,
+                    section_count: metrics.section_count,
                     valid: true,
                     error: None,
                 });
@@ -663,4 +691,18 @@ fn default_citation() -> String {
 
 fn default_theme() -> String {
     "paper".to_string()
+}
+
+#[cfg(test)]
+mod metrics_tests {
+    use super::guide_metrics;
+
+    #[test]
+    fn irac_cases_and_h3_sections_are_counted() {
+        let markdown = "## Olay haritası\n\n## Olay 1 — Stajyer\n\n### Sorun\n\n### Kural\n\n## Olay 2 — Zincir\n\n### Sorun\n";
+        let metrics = guide_metrics(markdown, "irac", 1);
+        assert_eq!(metrics.case_count, 2);
+        assert_eq!(metrics.section_count, 3);
+        assert_eq!(metrics.source_count, 1);
+    }
 }

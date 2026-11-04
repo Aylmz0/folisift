@@ -7,8 +7,8 @@ use std::path::{Path, PathBuf};
 
 use folisift_core::{Guide, StyleProfile, Workspace, gates};
 use folisift_parse::{
-    AuditOptions, GuideVisualReport, Inventory, LayoutAudit, VisualAudit, analyze_sources,
-    check_coverage,
+    AuditOptions, CoverageManifest, GuideVisualReport, Inventory, LayoutAudit, VisualAudit,
+    analyze_sources, check_coverage,
 };
 use folisift_render::{RenderOptions, Rendered, render, styles};
 
@@ -70,6 +70,8 @@ pub struct BuildOutcome {
     pub outline: Vec<folisift_parse::OutlinePage>,
     pub section_pages: Vec<SectionPage>,
     pub parse_cache_hit: bool,
+    pub coverage_source: Option<String>,
+    pub coverage_warning: Option<String>,
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
@@ -153,6 +155,8 @@ pub async fn build(workspace: &Workspace, request: BuildRequest) -> Result<Build
     let mut parse_cache_hit = false;
     let genre_ok = true;
     let mut visual_passed = None;
+    let mut coverage_source = None;
+    let mut coverage_warning = None;
     if request.check {
         let issues = gates::genre_issues(&style.structure, &markdown);
         if !issues.is_empty() {
@@ -229,9 +233,10 @@ pub async fn build(workspace: &Workspace, request: BuildRequest) -> Result<Build
                     }
                     visual = Some(report);
                 }
-                let manifest_path = guide.dir.join("data/coverage-manifest.json");
-                let report = if manifest_path.is_file() {
-                    let manifest = folisift_parse::CoverageManifest::read_json(&manifest_path)?;
+                let (manifest, source, warning) = load_coverage_manifest(&guide)?;
+                coverage_source = Some(source);
+                coverage_warning = warning;
+                let report = if let Some(manifest) = manifest {
                     manifest.report(&inventory, &markdown)
                 } else {
                     check_coverage(&inventory, &markdown, folisift_parse::DEFAULT_THRESHOLD)
@@ -292,6 +297,8 @@ pub async fn build(workspace: &Workspace, request: BuildRequest) -> Result<Build
         outline,
         section_pages,
         parse_cache_hit,
+        coverage_source,
+        coverage_warning,
     })
 }
 
@@ -414,8 +421,30 @@ pub async fn qa(workspace: &Workspace, slug: &str) -> Result<serde_json::Value> 
     let guide = Guide::load(workspace, slug)?;
     let markdown = outcome.markdown.clone();
     let claims = folisift_core::claims::extract_claims(&markdown);
+    let (inventory, parse_cache_hit) = load_inventory(&guide).await?;
+    let source_chars = inventory
+        .sources
+        .iter()
+        .map(|source| source.chars)
+        .sum::<usize>();
+    let intervals = folisift_core::cards::normalize_review_intervals(
+        guide
+            .config
+            .review_intervals
+            .clone()
+            .unwrap_or_else(|| vec![1, 3, 7, 14, 30]),
+    )
+    .unwrap_or_else(|_| vec![1, 3, 7, 14, 30]);
     let cards =
-        folisift_core::cards::cards_from_markdown(&markdown, &guide.slug, &[1, 3, 7, 14, 30]);
+        folisift_core::cards::cards_from_markdown_opts(&markdown, &guide.slug, &intervals, true);
+    let definitions = cards
+        .iter()
+        .filter(|card| {
+            card.tags
+                .iter()
+                .any(|tag| tag == "definition" || tag == "must-know")
+        })
+        .count();
     let diagram_specs = std::fs::read_dir(guide.dir.join("diagrams"))
         .map(|entries| {
             entries
@@ -447,11 +476,31 @@ pub async fn qa(workspace: &Workspace, slug: &str) -> Result<serde_json::Value> 
             "parse_cache_hit": outcome.parse_cache_hit,
         },
         "outline": outcome.outline,
+        "cost": {
+            "source_pages": inventory.totals.pages,
+            "source_chars": source_chars,
+            "source_words": inventory.totals.words,
+            "guide_chars": markdown.chars().count(),
+            "guide_words": markdown.split_whitespace().count(),
+            "sections": markdown.lines().filter(|line| line.trim_start().starts_with("## ")).count(),
+            "build_iterations": 1,
+            "cache_hit": outcome.rendered.cache_hit,
+            "parse_cache_hit": parse_cache_hit,
+            "estimated_source_tokens": (source_chars as f64 / 4.0).ceil() as usize,
+            "estimated_guide_tokens": (markdown.chars().count() as f64 / 4.0).ceil() as usize,
+        },
         "coverage": outcome.coverage,
+        "coverage_source": outcome.coverage_source,
+        "coverage_warning": outcome.coverage_warning,
         "audit": audit,
         "visual": outcome.visual,
         "cards": {
             "count": cards.len(),
+            "total": cards.len(),
+            "recall": cards.len().saturating_sub(definitions),
+            "definitions": definitions,
+            "includes_definitions": true,
+            "review_intervals": intervals,
             "warning": if cards.is_empty() { Some("no recall/answer pairs") } else { None },
         },
         "claims": {
@@ -505,6 +554,58 @@ pub fn audit_options_for(workspace: &Workspace, style: &StyleProfile) -> Result<
         Some(style.fonts.as_str()),
     )?;
     Ok(AuditOptions::from_tokens(&loaded.tokens))
+}
+
+fn load_coverage_manifest(
+    guide: &Guide,
+) -> Result<(Option<CoverageManifest>, String, Option<String>)> {
+    let review = guide.dir.join("data/coverage-manifest.review.json");
+    let generated = guide.dir.join("data/coverage-manifest.generated.json");
+    let combined = guide.dir.join("data/coverage-manifest.json");
+    if review.is_file() {
+        let manifest = CoverageManifest::read_json(&review)?;
+        if manifest.review_eligible() {
+            return Ok((Some(manifest), "review".to_string(), None));
+        }
+        let missing = manifest
+            .rows
+            .iter()
+            .filter(|row| matches!(row.status, folisift_parse::CoverageStatus::Missing))
+            .count();
+        let warning = format!(
+            "review manifest ignored: {missing} row(s) still marked missing; using generated/legacy"
+        );
+        if generated.is_file() {
+            return Ok((
+                Some(CoverageManifest::read_json(&generated)?),
+                "generated".to_string(),
+                Some(warning),
+            ));
+        }
+        if combined.is_file() {
+            return Ok((
+                Some(CoverageManifest::read_json(&combined)?),
+                "combined".to_string(),
+                Some(warning),
+            ));
+        }
+        return Ok((None, "legacy".to_string(), Some(warning)));
+    }
+    if generated.is_file() {
+        return Ok((
+            Some(CoverageManifest::read_json(&generated)?),
+            "generated".to_string(),
+            None,
+        ));
+    }
+    if combined.is_file() {
+        return Ok((
+            Some(CoverageManifest::read_json(&combined)?),
+            "combined".to_string(),
+            None,
+        ));
+    }
+    Ok((None, "legacy".to_string(), None))
 }
 
 async fn load_inventory(guide: &Guide) -> Result<(Inventory, bool)> {

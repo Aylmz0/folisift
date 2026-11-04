@@ -679,130 +679,6 @@ fn page_attribution(
     rows
 }
 
-fn topic_rows(inventory: &folisift_parse::Inventory) -> Vec<(String, usize, String)> {
-    let mut rows = Vec::new();
-    for source in &inventory.sources {
-        let id = source.filename.trim_end_matches(".pdf").to_string();
-        for heading in &source.headings {
-            rows.push((id.clone(), heading.page, heading.heading.clone()));
-        }
-    }
-    rows.truncate(300);
-    rows
-}
-
-fn topic_terms(inventory: &folisift_parse::Inventory, k: usize) -> Vec<Value> {
-    let stop = [
-        "the", "and", "for", "with", "from", "this", "that", "bir", "ile", "için", "olarak",
-        "daha", "gibi", "olan", "ve", "bu",
-    ];
-    let mut terms: std::collections::BTreeMap<String, Vec<(String, usize, String)>> =
-        std::collections::BTreeMap::new();
-    for (source, page, heading) in topic_rows(inventory) {
-        for word in heading.to_lowercase().split_whitespace() {
-            let word = word.trim_matches(|c: char| !c.is_alphanumeric());
-            if word.chars().count() < 5 || stop.contains(&word) {
-                continue;
-            }
-            terms.entry(word.to_string()).or_default().push((
-                source.clone(),
-                page,
-                heading.clone(),
-            ));
-        }
-    }
-    let mut ranked = terms.into_iter().collect::<Vec<_>>();
-    ranked.sort_by_key(|(term, rows)| (std::cmp::Reverse(rows.len()), term.clone()));
-    ranked.truncate(k);
-    ranked
-        .into_iter()
-        .map(|(term, rows)| {
-            json!({
-                "term": term,
-                "headings": rows.into_iter().take(8).map(|(source, page, heading)| json!({"source": source, "page": page, "heading": heading})).collect::<Vec<_>>(),
-            })
-        })
-        .collect()
-}
-
-fn topic_embeddings(
-    inventory: &folisift_parse::Inventory,
-    k: usize,
-    model: &folisift_links::Model2VecEmbedder,
-) -> Result<Vec<Value>, Box<dyn std::error::Error>> {
-    use folisift_links::Embedder;
-    let rows = topic_rows(inventory);
-    if rows.is_empty() {
-        return Ok(Vec::new());
-    }
-    let texts = rows
-        .iter()
-        .map(|(_, _, heading)| heading.clone())
-        .collect::<Vec<_>>();
-    let vectors = model.embed(&texts)?;
-    let mut clusters: Vec<(Vec<usize>, Vec<f32>)> = Vec::new();
-    for (index, vector) in vectors.iter().enumerate() {
-        let mut best: Option<(usize, f32)> = None;
-        for (cluster_index, (_, centroid)) in clusters.iter().enumerate() {
-            let score = cosine(vector, centroid);
-            if best.is_none_or(|(_, value)| score > value) {
-                best = Some((cluster_index, score));
-            }
-        }
-        match best {
-            Some((cluster_index, score)) if score >= 0.78 => {
-                clusters[cluster_index].0.push(index);
-                clusters[cluster_index].1 = centroid(&vectors, &clusters[cluster_index].0);
-            }
-            _ if clusters.len() < k.max(1) => clusters.push((vec![index], vector.clone())),
-            Some((cluster_index, _)) => {
-                clusters[cluster_index].0.push(index);
-                clusters[cluster_index].1 = centroid(&vectors, &clusters[cluster_index].0);
-            }
-            None => clusters.push((vec![index], vector.clone())),
-        }
-    }
-    Ok(clusters
-        .into_iter()
-        .map(|(members, _)| {
-            let first = members.first().map(|index| &rows[*index]);
-            json!({
-                "term": first.map_or("", |row| row.2.as_str()),
-                "headings": members.iter().take(8).map(|index| {
-                    let (source, page, heading) = &rows[*index];
-                    json!({"source": source, "page": page, "heading": heading})
-                }).collect::<Vec<_>>(),
-            })
-        })
-        .collect())
-}
-
-fn cosine(left: &[f32], right: &[f32]) -> f32 {
-    let dot = left.iter().zip(right).map(|(a, b)| a * b).sum::<f32>();
-    let ln = left.iter().map(|value| value * value).sum::<f32>().sqrt();
-    let rn = right.iter().map(|value| value * value).sum::<f32>().sqrt();
-    if ln == 0.0 || rn == 0.0 {
-        0.0
-    } else {
-        dot / (ln * rn)
-    }
-}
-
-fn centroid(vectors: &[Vec<f32>], members: &[usize]) -> Vec<f32> {
-    let len = vectors[members[0]].len();
-    let mut out = vec![0.0; len];
-    for index in members {
-        for (slot, value) in out.iter_mut().zip(&vectors[*index]) {
-            *slot += value;
-        }
-    }
-    let count = members.len().max(1) as f32;
-    for value in &mut out {
-        *value /= count;
-    }
-    out
-}
-
 fn prose_words(markdown: &str) -> usize {
     markdown
         .lines()
@@ -1890,6 +1766,8 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                     "warnings": outcome.rendered.warnings.len(),
                     "revision_coverage": outcome.revision_coverage.then_some(true),
                     "coverage": coverage,
+                    "coverage_source": outcome.coverage_source,
+                    "coverage_warning": outcome.coverage_warning,
                     "section_pages": outcome.section_pages,
                     "outline": outcome.outline,
                     "parse_cache_hit": outcome.parse_cache_hit,
@@ -2045,18 +1923,23 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 folisift_parse::analyze_sources(&guide.sources, folisift_parse::LOW_TEXT_THRESHOLD)
                     .await?
             };
-            let (method, topics) = if no_model {
-                ("heading-terms", topic_terms(&inventory, k))
+            let model = if no_model {
+                None
             } else {
                 let model_dir = find_model_dir(workspace.root())
                     .ok_or("model directory not found; set FOLISIFT_MODEL_DIR or use --no-model")?;
-                let model = Model2VecEmbedder::load(&model_dir)?;
-                ("model2vec", topic_embeddings(&inventory, k, &model)?)
+                Some(Model2VecEmbedder::load(&model_dir)?)
             };
+            let report = folisift_links::topic_report(&inventory, k, model.as_ref())?;
             let value = json!({
                 "guide": guide.slug,
-                "method": method,
-                "topics": topics,
+                "method": report.method,
+                "fallback": report.fallback,
+                "warning": report.warning,
+                "model_signature": report.model_signature,
+                "inventory_digest": report.inventory_digest,
+                "k": k,
+                "topics": report.topics,
             });
             let out = out.unwrap_or_else(|| guide.dir.join("data/topics.json"));
             let out = workspace.resolve_write(out)?;

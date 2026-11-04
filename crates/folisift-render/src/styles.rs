@@ -356,10 +356,25 @@ pub fn estimate(style: &str, markdown: &str, target_pages: Option<&str>) -> Styl
         .collect::<Vec<_>>()
         .join(" ");
     let words = body.split_whitespace().count();
-    let tables = markdown
-        .lines()
-        .filter(|line| line.trim_start().starts_with("::: table"))
-        .count();
+    let mut wrapped_tables = 0usize;
+    let mut markdown_tables = 0usize;
+    let mut glossary_tables = 0usize;
+    let mut in_wrapped = false;
+    for line in markdown.lines() {
+        let trimmed = line.trim();
+        if trimmed.starts_with("::: table") {
+            wrapped_tables += 1;
+            in_wrapped = true;
+        } else if trimmed.starts_with("::: glossary") {
+            glossary_tables += 1;
+            in_wrapped = true;
+        } else if trimmed.starts_with(":::") {
+            in_wrapped = false;
+        } else if !in_wrapped && is_markdown_table_separator(trimmed) {
+            markdown_tables += 1;
+        }
+    }
+    let tables = wrapped_tables + markdown_tables + glossary_tables;
     let diagrams = markdown
         .lines()
         .filter(|line| line.trim_start().starts_with("::: diagram"))
@@ -384,7 +399,7 @@ pub fn estimate(style: &str, markdown: &str, target_pages: Option<&str>) -> Styl
         format!("{low}-{high}")
     };
     let over_budget = target_pages
-        .is_some_and(|target| parse_page_target(target).is_some_and(|(_, max)| low > max));
+        .is_some_and(|target| parse_page_target(target).is_some_and(|(_, max)| high > max));
     let reason = if over_budget {
         format!(
             "estimated {estimated} pages exceeds the {target} target; cut or move a section before building",
@@ -403,6 +418,14 @@ pub fn estimate(style: &str, markdown: &str, target_pages: Option<&str>) -> Styl
         over_budget,
         reason,
     }
+}
+
+fn is_markdown_table_separator(line: &str) -> bool {
+    line.starts_with('|')
+        && line.contains("---")
+        && line.chars().all(|character| {
+            character == '|' || character == '-' || character == ':' || character.is_whitespace()
+        })
 }
 
 fn parse_page_target(value: &str) -> Option<(usize, usize)> {

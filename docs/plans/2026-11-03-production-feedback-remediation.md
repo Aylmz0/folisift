@@ -1,6 +1,7 @@
 # Production feedback remediation plan — 2026-11-03
 
 - **Status:** Completed through v0.17.0 worktree; the conditional reranker is an explicit accepted deferral
+- **Follow-up:** [`2026-11-04-production-feedback-v2-remediation.md`](2026-11-04-production-feedback-v2-remediation.md) owns the v0.17.1 feedback.
 - **Source:** [`docs/FOLISIFT-GERI-BILDIRIM.md`](../FOLISIFT-GERI-BILDIRIM.md)
 - **Baseline:** Folisift 0.12.4, build 143, MCP schema 8
 - **Purpose:** turn every finding in the production feedback into an owned,

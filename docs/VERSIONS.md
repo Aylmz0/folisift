@@ -6,6 +6,7 @@ table.
 
 | Tag | Date | Build | Commit | PDFium | What changed |
 |---|---|---:|---|---|---|
+| `v0.18.0` | 2026-11-04 | pending | pending | `chromium/8058` | Feedback v2 P0/P1: review-manifest coverage truth, brief budgets/exact matches, semantic topics, claims/graph budgets, shared guide metrics, citation sentence scoring, D2 sidecar discovery, visual taxonomy, style over_budget, QA cards, IRAC scaffold, source-brief review merge and QA cost report; schema 13 with 35 tools |
 | `v0.17.1` | 2026-11-04 | 185 | `8726bd792a3c6fa0ad60f335cc30e8d46f8af1c6` | `chromium/8058` | Fix `citation_snippet` byte-offset panic on Turkish uppercase case folding (`İ`/`I`); the MCP request now returns a bounded snippet instead of hanging. Schema stays 13 with 35 tools |
 | `v0.17.0` | 2026-11-04 | 183 | `60b70fbcf86bcf028f933d33c60717d96b473c1c` | `chromium/8058` | Review close-out: D2 classes/grid/vars/imports/dimensions, allow_page_span/aspect_ratio/label_lines, unified DiagramResult, audit intentional pages and table-free line stats, actual section pages, brief cache, chapter/heading briefs, coverage hints, output budget contract, doctor style checks; schema 13 with 35 tools |
 | `v0.16.0` | 2026-11-04 | 179 | `5aff3ba036aa8c0ce969e72994cebc4e20b96709` | `chromium/8058` | TOC include/exclude, structured build failures, doctor MCP, section read modes, definition cards, source-page resources, D2 node metadata; schema 12 with 33 tools |
@@ -41,6 +42,13 @@ table.
 | `v0.1.0` | 2026-10-26 | 16 | `fb7fe59de483f8e4e88d4346cb10f4c91f3445e2` | `chromium/8058` | First Rust/Typst/MCP release; 23-page reference guide, coverage 13/13; Python engine removed |
 
 ## Notes
+
+- `v0.18.0` is the feedback-v2 P0/P1 close-out. Main coverage is 141/141
+  through the review manifest; digital stays on the 41-section legacy gate
+  because its review file has 60 unresolved rows. Briefs, claims and graph are
+  budgeted; IRAC metrics are 10 cases/14 sections; QA cards are 9/5/8;
+  `source_topics` reports a model2vec/fallback method; `source_brief` merges
+  the two missing reviewed headings.
 
 - `v0.17.1` fixes the `citation_snippet` panic when the page text contains a
   Turkish uppercase character before the query. Lowercasing can change byte

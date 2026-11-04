@@ -57,7 +57,9 @@ not run OCR, write files, or change coverage. The MCP flow reads source text in
 bounded chunks with `read_source` and can search it with `search_source`; the
 host LLM writes the prose. For smaller reads use `section_brief` (level:
 chapter/section/heading) and `read-section --mode full|summary|claims|tables`;
-both accept `--max-tokens` or `--max-chars`.
+both accept `--max-tokens` or `--max-chars`. `max_tokens` is a hard payload
+budget: the response is truncated with `truncated: true`, `next_offset` and the
+full character count instead of silently returning the full section.
 
 Cluster source headings with the bundled local Model2Vec model:
 
@@ -223,7 +225,7 @@ Every low-text page needs exactly one decision in
 
 ```json
 {
-  "schema_version": 3,
+  "schema_version": 1,
   "source_pages": [
     {
       "source": "PD2",
@@ -244,10 +246,14 @@ Every low-text page needs exactly one decision in
 }
 ```
 
-Decisions: `redraw`, `table`, `text`, `decorative`, `unreadable`.
+Decisions: `native_table`, `redraw_table`, `redraw_figure`, `text`,
+`decorative`, `unreadable`. Legacy `table` is accepted as `redraw_table` for
+one release; legacy `redraw` remains a figure redraw.
 
-- `redraw` requires an existing asset under the guide bundle.
-- `table`, `text`, `decorative` and `unreadable` require a reason.
+- `native_table` means the source already contains a table.
+- `redraw_table` means a figure/matrix must be converted into a table.
+- `redraw_figure`/`redraw` requires an existing asset under the guide bundle.
+- `text`, `decorative` and `unreadable` require a reason.
 - Cover pages and decorative photos are `decorative`; they are not content.
 - `build --check` fails when a low-text page is missing from the manifest or
   an entry is unresolved. This is the evidence trail for the G section.
@@ -372,7 +378,9 @@ atomic term/definition rows.
 ### Diagrams
 
 The only diagram engine is **D2 v0.9.0**. It runs in the CLI authoring step;
-the MCP server and guide build only read the generated SVG.
+the MCP server and guide build only read the generated SVG. D2 is discovered
+from `FOLISIFT_D2`, `PATH`, the binary's sibling `d2`, or
+`~/.local/lib/folisift/d2`; `doctor` prints the resolved path.
 
 A diagram is a typed JSON spec under `guides/<slug>/diagrams/<id>.json`:
 
@@ -484,10 +492,18 @@ cargo run -p folisift-cli -- build --guide pd0-pd1 --check
 cargo run -p folisift-cli -- qa --guide pd0-pd1
 ```
 
-`coverage-manifest` is optional but authoritative when
-`data/coverage-manifest.json` exists: it lets the host review merged/excluded
-source headings before building. Without it the legacy heading gate remains the
-fallback.
+`coverage-manifest` is authoritative in this order:
+
+1. `data/coverage-manifest.review.json` — host-reviewed; every canonical row
+   must be resolved (`covered`, `merged` or `excluded`);
+2. `data/coverage-manifest.generated.json` — machine-built skeleton;
+3. `data/coverage-manifest.json` — legacy combined file;
+4. the legacy heading gate.
+
+`build` writes a generated skeleton and never overwrites a review file. A
+review file with `missing` rows is reported but ignored by `qa`/`build`; fix the
+review before treating it as the gate. `empty_sections` means no substantive
+body at all; a short section is reported as `weak_sections`, not empty.
 
 The build fails if a numbered source subsection has no matching heading, an
 empty section, a missing visual decision, or an underfilled body page. The
@@ -529,8 +545,9 @@ causal wording and qualifiers. Claims inside `::: recall` questions are ignored;
 claims inside answers and prose are included.
 
 `cards` pairs `::: recall` and `::: answer` blocks in document order and writes
-an Anki-compatible CSV with `front,back,tags,source`. The guide tags are the
-slug, `recall`, and one `review-<days>d` tag per interval. Set the default
+an Anki-compatible CSV with `front,back,tags,source`. `--include-definitions`
+also exports `::: definition`/`::: must-know` blocks. `qa` uses the same policy
+and reports `recall`, `definitions` and `total` separately. Set the default
 intervals in `config.json`:
 
 ```json
@@ -598,6 +615,27 @@ Which tool when:
 | Inspect or preview styles | `styles` | `style` |
 | Validate/build/status D2 | `diagram` | `diagram` (`build` stays CLI-only) |
 | Read one source section | `read-section` | `read_section` / `section_brief` |
+
+### IRAC guides
+
+IRAC case bodies use level-3 headings:
+
+```markdown
+## Olay 1 — ...
+
+### Sorun
+
+### Kural
+
+### Uygulama
+
+### Sonuç
+```
+
+`## Olay/Case/Dava` headings are case rows; source headings belong in
+`source-headings.md`, not in `guide.md`. `prepare_guide` writes ten case blocks
+for a new IRAC guide and refuses to overwrite an existing IRAC guide without
+case headings.
 
 ## Design changes
 

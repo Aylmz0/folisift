@@ -218,7 +218,7 @@ static PAGE_REF_RE: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new
 
 impl DocumentGraph {
     /// Case-insensitive label query. Heading nodes rank before blocks.
-    pub fn query(&self, term: &str, limit: usize) -> Vec<&GraphNode> {
+    pub fn query_matches(&self, term: &str) -> Vec<&GraphNode> {
         let needle = term.to_lowercase();
         let mut hits = self
             .nodes
@@ -236,6 +236,11 @@ impl DocumentGraph {
                 node.id.clone(),
             )
         });
+        hits
+    }
+
+    pub fn query(&self, term: &str, limit: usize) -> Vec<&GraphNode> {
+        let mut hits = self.query_matches(term);
         hits.truncate(limit.clamp(1, 100));
         hits
     }

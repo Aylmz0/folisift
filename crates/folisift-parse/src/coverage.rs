@@ -402,42 +402,67 @@ fn covers_comment(line: &str) -> Option<Vec<String>> {
 
 fn guide_section_chars(markdown: &str) -> std::collections::HashMap<String, usize> {
     let markdown = strip_frontmatter(markdown);
-    let mut sections = std::collections::HashMap::new();
-    let mut current: Option<(String, String)> = None;
+    let mut bodies: std::collections::HashMap<String, String> = std::collections::HashMap::new();
+    let mut active: Vec<String> = Vec::new();
     let mut fenced = false;
 
     for line in markdown.lines() {
         let trimmed = line.trim();
         if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
             fenced = !fenced;
-            if let Some((_, body)) = &mut current {
-                body.push('\n');
+            for key in &active {
+                bodies.entry(key.clone()).or_default().push('\n');
             }
             continue;
         }
-        if !fenced && let Some(heading) = trimmed.strip_prefix("## ") {
-            finalize_section(&mut sections, current.take());
-            if let Some(captures) = SECTION_RE.captures(heading) {
-                let number = captures
-                    .get(1)
-                    .map_or("", |value| value.as_str())
-                    .to_string();
-                let title = captures
-                    .get(2)
-                    .map_or("", |value| value.as_str())
-                    .trim()
-                    .to_string();
-                current = Some((number, title));
+        if fenced {
+            continue;
+        }
+        if let Some((level, heading)) = markdown_heading(trimmed) {
+            if level == 2 {
+                active.clear();
             }
-        } else if let Some((_, body)) = &mut current
-            && !fenced
-        {
+            if let Some(number) = heading_number(heading) {
+                active.push(number);
+            }
+            active.push(normalize(heading));
+            continue;
+        }
+        if active.is_empty() {
+            continue;
+        }
+        for key in &active {
+            let body = bodies.entry(key.clone()).or_default();
             body.push_str(trimmed);
             body.push('\n');
         }
     }
-    finalize_section(&mut sections, current);
-    sections
+
+    bodies
+        .into_iter()
+        .map(|(key, body)| (key, count_body_chars(&body)))
+        .collect()
+}
+
+fn markdown_heading(line: &str) -> Option<(u8, &str)> {
+    if let Some(rest) = line.strip_prefix("## ") {
+        Some((2, rest.trim()))
+    } else {
+        line.strip_prefix("### ").map(|rest| (3, rest.trim()))
+    }
+}
+
+fn heading_number(heading: &str) -> Option<String> {
+    let token = heading.split_whitespace().next()?.trim_end_matches('.');
+    let token = token.trim_end_matches('.');
+    if token.is_empty()
+        || !token
+            .chars()
+            .all(|character| character.is_ascii_digit() || character == '.')
+    {
+        return None;
+    }
+    Some(token.to_string())
 }
 
 fn guide_duplicate_sections(markdown: &str) -> Vec<String> {
@@ -468,15 +493,6 @@ fn guide_duplicate_sections(markdown: &str) -> Vec<String> {
     duplicates.sort();
     duplicates.dedup();
     duplicates
-}
-
-fn finalize_section(
-    sections: &mut std::collections::HashMap<String, usize>,
-    current: Option<(String, String)>,
-) {
-    if let Some((number, body)) = current {
-        sections.insert(number, count_body_chars(&body));
-    }
 }
 
 fn count_body_chars(body: &str) -> usize {

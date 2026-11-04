@@ -6,10 +6,10 @@ Eşik: **0.55**
 
 | Bölüm | Kaynak sayfa | Durum | Gövde karakteri | Eşleşen kılavuz satırı |
 |---|---:|---|---:|---|
-| 3.1 Giriş | 3 | OK | 2947 | ## 3.1 Giriş |
-| 3.2 Genel Sentaks Tanımlama Problemi | 11 | OK | 2290 | ## 3.2 Genel sözdizimi tanımlama problemi |
-| 3.3 Sentaks Tanımlamanın Biçimsel Metotları | 22 | OK | 4678 | ## 3.3 Sözdizimi tanımlamanın biçimsel yöntemleri |
-| 3.4 Özellik (Attribute) Gramerleri | 63 | OK | 2669 | ## 3.4 Özellik (Attribute) Gramerleri |
+| 3.1 Giriş | 3 | OK | 2891 | ## 3.1 Giriş |
+| 3.2 Genel Sentaks Tanımlama Problemi | 11 | OK | 2173 | ## 3.2 Genel sözdizimi tanımlama problemi |
+| 3.3 Sentaks Tanımlamanın Biçimsel Metotları | 22 | OK | 4502 | ## 3.3 Sözdizimi tanımlamanın biçimsel yöntemleri |
+| 3.4 Özellik (Attribute) Gramerleri | 63 | OK | 2582 | ## 3.4 Özellik (Attribute) Gramerleri |
 | 3.5 Programların Anlamlarını Açıklamak: Dinamik Semantik | 78 | OK | 15064 | <!-- covers: PD3:3.5 --> |
 
 Alt bölüm: **5** · Düşük metinli slayt: **18**

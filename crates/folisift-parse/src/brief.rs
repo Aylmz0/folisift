@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::layout::{LayoutBlock, LayoutBlockKind, SourceLayout};
 
-pub const BRIEF_CACHE_VERSION: u32 = 1;
+pub const BRIEF_CACHE_VERSION: u32 = 2;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SectionBrief {
@@ -26,6 +26,20 @@ pub struct SectionBrief {
     pub citations: Vec<String>,
     pub chars: usize,
     pub estimated_tokens: usize,
+    #[serde(default)]
+    pub full_chars: usize,
+    #[serde(default)]
+    pub budget_tokens: usize,
+    #[serde(default)]
+    pub budget_chars: usize,
+    #[serde(default)]
+    pub truncated: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub next_offset: Option<usize>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub candidates: Vec<String>,
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub ambiguous: bool,
     #[serde(default, skip_serializing_if = "is_false")]
     pub cache_hit: bool,
 }
@@ -107,11 +121,70 @@ pub fn source_sections(layout: &SourceLayout) -> Vec<SourceSection> {
     sections
 }
 
+struct SectionResolution<'a> {
+    section: &'a SourceSection,
+    ambiguous: bool,
+    candidates: Vec<String>,
+}
+
 pub fn find_section<'a>(sections: &'a [SourceSection], query: &str) -> Option<&'a SourceSection> {
-    let query = normalize(query);
-    sections
-        .iter()
-        .find(|section| normalize(&section.heading).contains(&query))
+    resolve_section(sections, query).map(|resolution| resolution.section)
+}
+
+fn resolve_section<'a>(
+    sections: &'a [SourceSection],
+    query: &str,
+) -> Option<SectionResolution<'a>> {
+    let query = normalize(query).trim_end_matches('.').to_string();
+    if query.is_empty() {
+        return None;
+    }
+    let query_number = query.split_whitespace().next().unwrap_or_default();
+    let mut best: Option<(&'a SourceSection, u8)> = None;
+    let mut candidates = Vec::new();
+    for section in sections {
+        let heading = normalize(&section.heading);
+        let number = heading
+            .split_whitespace()
+            .next()
+            .unwrap_or_default()
+            .trim_end_matches('.');
+        let rank = if heading == query || number == query_number {
+            0
+        } else if heading.starts_with(&format!("{query} "))
+            || number.starts_with(&format!("{query_number}."))
+        {
+            1
+        } else if heading.contains(&query) {
+            2
+        } else {
+            continue;
+        };
+        match best {
+            None => {
+                best = Some((section, rank));
+                candidates.push(section.heading.clone());
+            }
+            Some((_, best_rank)) if rank < best_rank => {
+                best = Some((section, rank));
+                candidates.clear();
+                candidates.push(section.heading.clone());
+            }
+            Some((best_section, best_rank))
+                if rank == best_rank && best_section.heading != section.heading =>
+            {
+                candidates.push(section.heading.clone());
+            }
+            _ => {}
+        }
+    }
+    let (section, _) = best?;
+    candidates.truncate(5);
+    Some(SectionResolution {
+        section,
+        ambiguous: candidates.len() > 1,
+        candidates,
+    })
 }
 
 /// Read a deterministic brief artifact or compute and store it.
@@ -158,24 +231,68 @@ fn is_false(value: &bool) -> bool {
 
 pub fn section_brief(layout: &SourceLayout, query: &str, max_chars: usize) -> Option<SectionBrief> {
     let sections = source_sections(layout);
-    let section = find_section(&sections, query)?;
-    let max_chars = max_chars.clamp(200, 4000);
+    let resolution = resolve_section(&sections, query)?;
+    let section = resolution.section;
+    let max_chars = max_chars.clamp(40, 4000);
     let text = section.text.trim();
-    let summary = summary(text, max_chars);
-    Some(SectionBrief {
+    let full_chars = text.chars().count();
+    let brief = SectionBrief {
         source: layout.source.clone(),
         heading: section.heading.clone(),
         level: section_level(&section.heading).to_string(),
         page_start: section.page_start,
         page_end: section.page_end,
-        summary,
+        summary: summary(text, max_chars),
         numbers: numbers(text),
         table_rows: section.table_rows.iter().take(8).cloned().collect(),
         citations: citations(text),
-        chars: text.chars().count(),
-        estimated_tokens: estimate_tokens(text),
+        chars: full_chars,
+        estimated_tokens: 0,
+        full_chars,
+        budget_tokens: max_chars.div_ceil(4),
+        budget_chars: max_chars,
+        truncated: false,
+        next_offset: None,
+        candidates: resolution.candidates,
+        ambiguous: resolution.ambiguous,
         cache_hit: false,
-    })
+    };
+    Some(apply_budget(brief, max_chars))
+}
+
+fn apply_budget(mut brief: SectionBrief, max_chars: usize) -> SectionBrief {
+    let budget = max_chars.max(40);
+    let summary_budget = (budget * 3 / 4).max(40);
+    brief.summary = brief.summary.chars().take(summary_budget).collect();
+    brief.full_chars = brief.full_chars.max(brief.summary.chars().count());
+    brief.budget_chars = budget;
+    brief.budget_tokens = budget.div_ceil(4);
+    brief.estimated_tokens = 0;
+    let mut truncated = brief.summary.chars().count() < brief.chars;
+    if serialized_tokens(&brief) > brief.budget_tokens {
+        brief.numbers.clear();
+        brief.table_rows.clear();
+        brief.citations.clear();
+        truncated = true;
+    }
+    if serialized_tokens(&brief) > brief.budget_tokens {
+        brief.summary = brief.summary.chars().take((budget / 2).max(20)).collect();
+        truncated = true;
+    }
+    if budget <= 120 {
+        brief.summary.clear();
+        truncated = true;
+    }
+    brief.truncated = truncated;
+    brief.next_offset = truncated.then_some(brief.summary.chars().count());
+    brief.estimated_tokens = serialized_tokens(&brief);
+    brief
+}
+
+fn serialized_tokens(brief: &SectionBrief) -> usize {
+    serde_json::to_string(brief)
+        .map(|text| text.chars().count().div_ceil(4))
+        .unwrap_or_else(|_| brief.estimated_tokens)
 }
 
 pub fn read_section(
@@ -445,12 +562,50 @@ mod tests {
 
     #[test]
     fn brief_is_bounded_and_page_anchored() {
-        let brief = section_brief(&layout(), "3.1", 300).expect("brief");
+        let brief = section_brief(&layout(), "3.1", 2000).expect("brief");
         assert_eq!(brief.heading, "3.1 Giriş");
         assert!(brief.summary.contains("Türkçe"));
         assert!(brief.numbers.iter().any(|value| value == "2026"));
         assert!(brief.citations.iter().any(|value| value.contains("PD3")));
         assert!(brief.table_rows.iter().any(|value| value.contains("Ad")));
+    }
+
+    #[test]
+    fn chapter_number_does_not_match_a_subsection() {
+        let sections = vec![
+            SourceSection {
+                heading: "1.4. Sosyal Güvenlik Hukuku".to_string(),
+                page_start: 1,
+                page_end: 1,
+                text: "x".to_string(),
+                table_rows: Vec::new(),
+            },
+            SourceSection {
+                heading: "4 4857 sayılı Kanun".to_string(),
+                page_start: 2,
+                page_end: 2,
+                text: "y".to_string(),
+                table_rows: Vec::new(),
+            },
+        ];
+        let resolved = resolve_section(&sections, "4").expect("4");
+        assert_eq!(resolved.section.heading, "4 4857 sayılı Kanun");
+        assert!(!resolved.ambiguous);
+        assert_eq!(
+            resolve_section(&sections, "1.4")
+                .expect("1.4")
+                .section
+                .heading,
+            "1.4. Sosyal Güvenlik Hukuku"
+        );
+    }
+
+    #[test]
+    fn brief_budget_is_bounded_and_explicit() {
+        let brief = section_brief(&layout(), "3.1", 80).expect("brief");
+        assert!(brief.truncated);
+        assert!(brief.estimated_tokens <= 80, "{brief:#?}");
+        assert!(brief.budget_tokens <= 20, "{brief:#?}");
     }
 
     #[test]

@@ -33,6 +33,9 @@ pub struct ManifestRow {
     pub page: usize,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub guide_heading: Option<String>,
+    /// Exact `##`/`###` guide headings that cover this source row.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub guide_sections: Vec<String>,
     pub status: CoverageStatus,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub evidence: Option<String>,
@@ -43,6 +46,12 @@ pub struct ManifestRow {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CoverageManifest {
     pub schema_version: u32,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reviewed_at: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reviewed_by: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub canonical_total: Option<usize>,
     pub rows: Vec<ManifestRow>,
 }
 
@@ -75,7 +84,8 @@ impl CoverageManifest {
                     heading,
                     normalized_heading: normalized,
                     page,
-                    guide_heading,
+                    guide_heading: guide_heading.clone(),
+                    guide_sections: guide_heading.into_iter().collect(),
                     status: if covered {
                         CoverageStatus::Covered
                     } else {
@@ -88,6 +98,9 @@ impl CoverageManifest {
         }
         Self {
             schema_version: MANIFEST_SCHEMA_VERSION,
+            reviewed_at: None,
+            reviewed_by: None,
+            canonical_total: None,
             rows,
         }
     }
@@ -102,14 +115,32 @@ impl CoverageManifest {
         let mut missing = 0;
         let mut missing_from_gate = Vec::new();
         let mut empty_sections = Vec::new();
+        let mut weak_sections = Vec::new();
         for row in &self.rows {
             total += 1;
-            let present = covers.contains(&format!("{}:{}", row.source, row_number(&row.heading)))
-                || headings.iter().any(|heading| {
-                    row.guide_heading
-                        .as_deref()
-                        .is_some_and(|guide| normalize(guide) == normalize(heading))
+            let number = row_number(&row.heading);
+            let parent = number.split('.').next().unwrap_or(&number).to_string();
+            let present = covers.contains(&format!("{}:{number}", row.source))
+                || row.guide_sections.iter().any(|guide| {
+                    headings
+                        .iter()
+                        .any(|heading| normalize(guide) == normalize(heading))
+                })
+                || row.guide_heading.as_deref().is_some_and(|guide| {
+                    headings
+                        .iter()
+                        .any(|heading| normalize(guide) == normalize(heading))
                 });
+            let mapped_body_chars = row
+                .guide_sections
+                .iter()
+                .chain(row.guide_heading.iter())
+                .filter_map(|guide| body_chars.get(&normalize(guide)))
+                .max()
+                .copied()
+                .or_else(|| body_chars.get(&number).copied())
+                .or_else(|| body_chars.get(&parent).copied())
+                .unwrap_or(0);
             let covered = match row.status {
                 CoverageStatus::Covered => present,
                 CoverageStatus::Merged | CoverageStatus::Excluded => true,
@@ -121,11 +152,14 @@ impl CoverageManifest {
                 missing += 1;
                 missing_from_gate.push(row.heading.clone());
             }
-            let number = row_number(&row.heading);
-            let chars = body_chars.get(&number).copied().unwrap_or(0);
-            let empty = covered && chars < crate::coverage::MIN_SECTION_CHARS;
+            let chars = mapped_body_chars;
+            // Empty means no substantive body at all. A short body is weak,
+            // not empty; the old 400-character floor conflated the two.
+            let empty = covered && chars == 0;
             if empty {
                 empty_sections.push(row.heading.clone());
+            } else if covered && chars < crate::coverage::MIN_SECTION_CHARS {
+                weak_sections.push(row.heading.clone());
             }
             by_source
                 .entry(row.source.clone())
@@ -158,19 +192,29 @@ impl CoverageManifest {
             passed: missing == 0 && empty_sections.is_empty(),
             threshold: 1.0,
             total,
+            // For a reviewed manifest the manifest rows are the canonical set.
+            // Legacy canonical sections are reported by check_coverage instead.
             canonical_total: total,
             claimed,
             gate_total: claimed,
             missing,
             missing_from_gate,
             empty_sections,
-            weak_sections: Vec::new(),
+            weak_sections,
             unknown_claims: Vec::new(),
             duplicate_claims: Vec::new(),
             duplicate_sections: Vec::new(),
             audit_missing: false,
             sources: source_rows,
         }
+    }
+
+    /// A review file is eligible when no canonical row is still missing.
+    /// Review stamps are optional for legacy files and advisory for new ones.
+    pub fn review_eligible(&self) -> bool {
+        self.rows
+            .iter()
+            .all(|row| !matches!(row.status, CoverageStatus::Missing))
     }
 
     pub fn write_json(&self, path: &Path) -> Result<()> {
@@ -260,18 +304,28 @@ fn row_number(heading: &str) -> String {
 }
 
 fn normalize(value: &str) -> String {
-    value
-        .to_lowercase()
-        .split_whitespace()
-        .collect::<Vec<_>>()
-        .join(" ")
+    let mut out = String::with_capacity(value.len());
+    for character in value.chars() {
+        let character = match character {
+            'ı' | 'İ' | 'I' => 'i',
+            other => other.to_lowercase().next().unwrap_or(other),
+        };
+        if character.is_alphanumeric() {
+            out.push(character);
+        } else {
+            out.push(' ');
+        }
+    }
+    out.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
 fn heading_index(markdown: &str) -> Vec<String> {
     markdown
         .lines()
         .filter_map(|line| {
-            let rest = line.strip_prefix("## ")?;
+            let rest = line
+                .strip_prefix("## ")
+                .or_else(|| line.strip_prefix("### "))?;
             Some(rest.trim().to_string())
         })
         .collect()
@@ -322,6 +376,37 @@ mod tests {
                 low_text_pages: 0,
             },
         }
+    }
+
+    #[test]
+    fn review_rows_fall_back_to_the_parent_chapter_body() {
+        let inventory = inventory();
+        let body = format!(
+            "## 1. Parent chapter\n\n{}\n\n## 2. Other\n\n{}\n",
+            "anlamlı gövde metni ".repeat(40),
+            "başka gövde ".repeat(40)
+        );
+        let mut manifest = CoverageManifest::build(&inventory, &body);
+        manifest.rows[0].guide_heading = Some("1. Parent chapter".to_string());
+        manifest.rows[0].guide_sections = vec!["1. Parent chapter".to_string()];
+        manifest.rows[0].status = CoverageStatus::Covered;
+        let report = manifest.report(&inventory, &body);
+        assert!(report.passed, "{report:#?}");
+        assert!(report.empty_sections.is_empty(), "{report:#?}");
+        assert!(report.sources[0].sections[0].body_chars > 0);
+        assert!(manifest.review_eligible());
+        manifest.rows[0].status = CoverageStatus::Missing;
+        assert!(!manifest.review_eligible());
+    }
+
+    #[test]
+    fn guide_body_chars_indexes_h2_and_h3() {
+        let chars = crate::coverage::guide_body_chars(
+            "## 1. Chapter\n\nchapter body\n\n### 1.1 Sub\n\nsub body\n",
+        );
+        assert!(chars.get("1").is_some_and(|value| *value > 0));
+        assert!(chars.get("1.1").is_some_and(|value| *value > 0));
+        assert!(chars.contains_key("1 chapter"));
     }
 
     #[test]
