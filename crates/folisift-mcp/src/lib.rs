@@ -9,10 +9,11 @@ use folisift_links::{
     write_report,
 };
 use folisift_parse::{
-    CoverageManifest, DocumentGraph, Inventory, SourceCache, VisualAudit, analyze_sources,
-    analyze_sources_with_layout, check_coverage as coverage_report, parse_page_list,
+    CoverageManifest, DocumentGraph, Inventory, SourceCache, VisualAudit, VisualDecisionInput,
+    analyze_sources, analyze_sources_with_layout, apply_visual_decision,
+    check_coverage as coverage_report, collect_candidates, extract_native, parse_page_list,
     read_block_view, read_source_at as read_source_pages, render_pages as render_page_images,
-    search_source as search_source_text, write_layouts,
+    search_source as search_source_text, visual_assets_report, write_layouts,
 };
 use folisift_render::diagram::{self, DiagramSpec, DiagramTheme};
 use folisift_render::{RenderOptions, content_hash, render as render_guide, styles};
@@ -133,6 +134,89 @@ pub struct CropSourceParams {
     pub out: Option<String>,
     /// Render DPI; default 200.
     pub dpi: Option<f32>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct VisualCandidatesParams {
+    /// Optional guide slug; used as a label.
+    pub guide: Option<String>,
+    /// Source PDF path relative to the workspace.
+    pub source: String,
+    /// Page range such as 14,45,71; default all pages.
+    pub pages: Option<String>,
+    /// Minimum salience score; default 30.
+    pub min_score: Option<u32>,
+    /// Maximum candidates; default 20, max 100.
+    pub limit: Option<usize>,
+    #[serde(flatten)]
+    pub response: OutputOptions,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct VisualExtractParams {
+    /// Guide slug.
+    pub guide: String,
+    /// Source PDF path relative to the workspace.
+    pub source: String,
+    /// 1-based page.
+    pub page: u32,
+    /// liteparse image id, e.g. p76_1.
+    pub image_id: String,
+    /// Optional guide-relative output path.
+    pub out: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct VisualDecisionParams {
+    /// Guide slug.
+    pub guide: String,
+    /// Source PDF path relative to the workspace.
+    pub source: String,
+    /// 1-based page.
+    pub page: usize,
+    /// Candidate id from visual_candidates.
+    pub candidate: Option<String>,
+    /// redraw, redraw_figure, redraw_table, native_table, table,
+    /// embed_crop, embed_image, describe, text, decorative, unreadable.
+    pub decision: String,
+    /// Why this decision was made.
+    pub reason: String,
+    /// Takeaway caption (required for embeds).
+    pub caption: Option<String>,
+    /// Accessible description (required for embeds).
+    pub alt: Option<String>,
+    /// low, medium or high.
+    pub priority: Option<String>,
+    /// Existing guide-relative asset for redraw, or an explicit output path.
+    pub asset: Option<String>,
+    /// Normalized crop left,top,width,height.
+    pub crop: Option<String>,
+    /// Viewport bbox x,y,w,h.
+    pub bbox: Option<String>,
+    /// Crop DPI; default 300.
+    pub dpi: Option<f32>,
+    /// Padding around the bbox in points; default 4.
+    pub padding: Option<f32>,
+    /// Native image id for embed_image.
+    pub image_id: Option<String>,
+    /// Print width percentage; default the candidate recommendation.
+    pub width: Option<u8>,
+    /// concept or schematic for a redraw.
+    pub redraw_kind: Option<String>,
+    /// Source crop/table/candidate reference for a schematic.
+    pub schematic_of: Option<String>,
+    /// Accept a low-DPI asset with a reason.
+    pub quality_exception: Option<bool>,
+    /// Free-form override note.
+    pub notes: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct VisualAssetsParams {
+    /// Guide slug.
+    pub guide: String,
+    /// check, materialize or refresh.
+    pub action: String,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -2264,6 +2348,174 @@ impl FolisiftServer {
             "local_only": true,
             "note": "Source crops are local/gitignored; embed with ::: figure and cite the source page.",
         })))
+    }
+
+    #[tool(
+        description = "Ranked text-only visual candidates with salience and D2/unique classification",
+        annotations(
+            title = "Visual candidates",
+            read_only_hint = true,
+            open_world_hint = false
+        )
+    )]
+    async fn visual_candidates(
+        &self,
+        Parameters(params): Parameters<VisualCandidatesParams>,
+    ) -> Result<Json<Value>, String> {
+        let source = self
+            .workspace
+            .resolve_read(&params.source)
+            .map_err(|error| error.to_string())?;
+        let source_id = source
+            .file_stem()
+            .and_then(|value| value.to_str())
+            .unwrap_or("source")
+            .to_string();
+        let limit = params.limit.unwrap_or(20).clamp(1, 100);
+        let mut report = collect_candidates(
+            &source,
+            &source_id,
+            params.guide.clone(),
+            params.pages.as_deref(),
+            params.min_score.unwrap_or(30),
+            limit,
+        )
+        .await
+        .map_err(|error| error.to_string())?;
+        let mut options = params.response.clone();
+        if options.detail.as_deref().unwrap_or("summary") == "summary"
+            && report.candidates.len() > 5
+        {
+            report.candidates.truncate(5);
+            report.counts.returned = 5;
+            report.next = Some(5);
+        }
+        options.detail = Some("full".to_string());
+        Ok(Json(shape_response(
+            serde_json::to_value(report).map_err(|error| error.to_string())?,
+            &options,
+        )))
+    }
+
+    #[tool(
+        description = "Extract one native raster image from a source page",
+        annotations(
+            title = "Visual extract",
+            read_only_hint = false,
+            open_world_hint = false
+        )
+    )]
+    async fn visual_extract(
+        &self,
+        Parameters(params): Parameters<VisualExtractParams>,
+    ) -> Result<Json<Value>, String> {
+        let guide =
+            Guide::load(&self.workspace, &params.guide).map_err(|error| error.to_string())?;
+        let source = self
+            .workspace
+            .resolve_read(&params.source)
+            .map_err(|error| error.to_string())?;
+        let asset = extract_native(
+            &source,
+            &guide.dir,
+            params.page,
+            &params.image_id,
+            params.out.as_deref(),
+        )
+        .await
+        .map_err(|error| error.to_string())?;
+        Ok(Json(
+            serde_json::to_value(asset).map_err(|error| error.to_string())?,
+        ))
+    }
+
+    #[tool(
+        description = "Materialize a visual decision, upsert visual-audit.json and return Markdown",
+        annotations(
+            title = "Visual decision",
+            read_only_hint = false,
+            open_world_hint = false
+        )
+    )]
+    async fn visual_decision(
+        &self,
+        Parameters(params): Parameters<VisualDecisionParams>,
+    ) -> Result<Json<Value>, String> {
+        let guide =
+            Guide::load(&self.workspace, &params.guide).map_err(|error| error.to_string())?;
+        let source = self
+            .workspace
+            .resolve_read(&params.source)
+            .map_err(|error| error.to_string())?;
+        let source_id = source
+            .file_stem()
+            .and_then(|value| value.to_str())
+            .unwrap_or("source")
+            .to_string();
+        let bbox = params.bbox.as_deref().and_then(parse_bbox_value);
+        let input = VisualDecisionInput {
+            source: source_id.clone(),
+            page: params.page,
+            candidate_id: params.candidate,
+            decision: params.decision,
+            reason: params.reason,
+            caption: params.caption,
+            alt: params.alt,
+            priority: params.priority,
+            asset: params.asset,
+            crop: params.crop,
+            bbox,
+            dpi: params.dpi,
+            padding: params.padding,
+            image_id: params.image_id,
+            width: params.width,
+            redraw_kind: params.redraw_kind,
+            schematic_of: params.schematic_of,
+            quality_exception: params.quality_exception.unwrap_or(false),
+            notes: params.notes,
+        };
+        let outcome = apply_visual_decision(&guide.slug, &guide.dir, &source, &source_id, input)
+            .await
+            .map_err(|error| error.to_string())?;
+        Ok(Json(
+            serde_json::to_value(outcome).map_err(|error| error.to_string())?,
+        ))
+    }
+
+    #[tool(
+        description = "Check, materialize or refresh visual assets recorded in the audit",
+        annotations(
+            title = "Visual assets",
+            read_only_hint = false,
+            open_world_hint = false
+        )
+    )]
+    async fn visual_assets(
+        &self,
+        Parameters(params): Parameters<VisualAssetsParams>,
+    ) -> Result<Json<Value>, String> {
+        let guide =
+            Guide::load(&self.workspace, &params.guide).map_err(|error| error.to_string())?;
+        let sources = guide
+            .sources
+            .iter()
+            .filter_map(|path| {
+                let id = path.file_stem()?.to_str()?.to_string();
+                Some((id, path.clone()))
+            })
+            .collect::<Vec<_>>();
+        let report = visual_assets_report(&guide.slug, &guide.dir, &sources, &params.action)
+            .await
+            .map_err(|error| error.to_string())?;
+        let mut value = serde_json::to_value(report).map_err(|error| error.to_string())?;
+        if let Some(object) = value.as_object_mut() {
+            let ok = object
+                .get("issues")
+                .and_then(Value::as_array)
+                .is_none_or(Vec::is_empty);
+            object.insert("ok".to_string(), Value::Bool(ok));
+        }
+        Ok(Json(value))
     }
 
     #[tool(
@@ -4484,6 +4736,21 @@ fn list_response_options(options: &OutputOptions) -> OutputOptions {
     options
 }
 
+fn parse_bbox_value(value: &str) -> Option<folisift_parse::LayoutRect> {
+    let parts = value
+        .split(',')
+        .map(str::trim)
+        .map(str::parse::<f32>)
+        .collect::<std::result::Result<Vec<_>, _>>()
+        .ok()?;
+    (parts.len() == 4).then(|| folisift_parse::LayoutRect {
+        x: parts[0],
+        y: parts[1],
+        width: parts[2],
+        height: parts[3],
+    })
+}
+
 fn shape_response(mut value: Value, options: &OutputOptions) -> Value {
     if let Some(fields) = &options.fields
         && let Some(object) = value.as_object()
@@ -5042,6 +5309,10 @@ fn apply_profile(router: &mut ToolRouter<FolisiftServer>, profile: &str) {
             "source_topics",
             "visual_brief",
             "visual_evidence",
+            "visual_candidates",
+            "visual_extract",
+            "visual_decision",
+            "visual_assets",
             "crop_source",
         ][..],
         "authoring" => &[
@@ -5051,6 +5322,9 @@ fn apply_profile(router: &mut ToolRouter<FolisiftServer>, profile: &str) {
             "diagram",
             "table_extract",
             "guide_plan",
+            "visual_candidates",
+            "visual_decision",
+            "visual_assets",
             "build_guide",
         ][..],
         "review" => &[
@@ -5073,6 +5347,7 @@ fn apply_profile(router: &mut ToolRouter<FolisiftServer>, profile: &str) {
             "heading_brief",
             "read_section",
             "visual_brief",
+            "visual_candidates",
             "guide_plan",
             "cost_report",
             "build_guide",
@@ -5090,6 +5365,10 @@ fn apply_profile(router: &mut ToolRouter<FolisiftServer>, profile: &str) {
             "table_extract",
             "citation_snippet",
             "visual_brief",
+            "visual_candidates",
+            "visual_extract",
+            "visual_decision",
+            "visual_assets",
             "links",
             "graph",
             "build_guide",

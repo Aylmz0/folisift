@@ -106,7 +106,7 @@ X is Y. [PD0, p. 1]
         .iter()
         .filter_map(|tool| tool["name"].as_str())
         .collect::<Vec<_>>();
-    assert_eq!(tools.len(), 37);
+    assert_eq!(tools.len(), 41);
     for expected in [
         "read_source",
         "search_source",
@@ -134,6 +134,10 @@ X is Y. [PD0, p. 1]
         "verify_citations",
         "source_insights",
         "visual_evidence",
+        "visual_candidates",
+        "visual_extract",
+        "visual_decision",
+        "visual_assets",
         "crop_source",
         "doctor",
     ] {
