@@ -90,8 +90,10 @@ course name, a page count or a source path in the engine.
    can regress.
 3. Run the relevant gate before reporting done. If a gate cannot run, say why.
 4. Keep docs links valid and update the contract when behavior changes.
-5. Commit with Conventional Commits. Do not push branches; the maintainer owns
-   remote pushes and releases.
+5. Commit with Conventional Commits. Keep commits reviewable: one logical
+   change per commit, tests and docs separate when they are not part of the
+   same contract, and no mixed 1k+ line commit unless it is a single new module.
+   Do not push branches; the maintainer owns remote pushes and releases.
 6. Record a decision in `docs/adr/` when it changes a boundary, not when it
    merely renames a local variable.
 

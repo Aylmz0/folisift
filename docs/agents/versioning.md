@@ -49,5 +49,7 @@ A breaking tool-schema change requires at least a MINOR SemVer bump.
 
 - Conventional Commits (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`).
 - One logical change per commit; do not mix a migration with a visual tweak.
+- Keep commits reviewable: split tests/docs when they are not part of the same
+  contract, and avoid mixed 1k+ line commits unless it is one new module.
 - Do not commit `sources/*.pdf`.
 - Do not hand-edit generated inventories or coverage reports.
