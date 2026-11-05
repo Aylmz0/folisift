@@ -10,8 +10,9 @@ use folisift_links::{
     write_report,
 };
 use folisift_parse::{
-    CropBox, DocumentGraph, SourceCache, analyze_sources_with_layout, parse_page_list,
-    read_block_view, read_source_at, render_pages, search_source, write_layouts,
+    CropBox, DocumentGraph, SourceCache, VisualDecisionInput, analyze_sources_with_layout,
+    apply_visual_decision, collect_candidates, extract_native, parse_page_list, read_block_view,
+    read_source_at, render_pages, search_source, visual_assets_report, write_layouts,
 };
 use folisift_render::{RenderOptions, render, styles};
 use serde::Serialize;
@@ -491,7 +492,99 @@ enum DiagramCommand {
 }
 
 #[derive(Debug, Subcommand)]
+#[allow(clippy::large_enum_variant)]
 enum VisualCommand {
+    /// Rank visual candidates for one source.
+    Candidates {
+        /// Optional guide slug; used as a label and for source lookup.
+        #[arg(long)]
+        guide: Option<String>,
+        /// Source PDF, relative to the workspace root.
+        #[arg(long)]
+        source: PathBuf,
+        /// Page list such as `14,45,71`; default all pages.
+        #[arg(long)]
+        pages: Option<String>,
+        /// Minimum salience score.
+        #[arg(long, default_value_t = 30)]
+        min_score: u32,
+        /// Maximum candidates returned.
+        #[arg(long, default_value_t = 20)]
+        limit: usize,
+        /// summary (top 5) or full.
+        #[arg(long, default_value = "full")]
+        detail: String,
+    },
+    /// Extract one native image from a source page.
+    Extract {
+        #[arg(long)]
+        guide: String,
+        #[arg(long)]
+        source: PathBuf,
+        #[arg(long)]
+        page: u32,
+        #[arg(long)]
+        image_id: String,
+        /// Optional guide-relative output path.
+        #[arg(long)]
+        out: Option<String>,
+    },
+    /// Record a visual decision, materialize its asset, and print Markdown.
+    Decision {
+        #[arg(long)]
+        guide: String,
+        #[arg(long)]
+        source: PathBuf,
+        #[arg(long)]
+        page: usize,
+        #[arg(long)]
+        candidate: Option<String>,
+        /// redraw, redraw_figure, redraw_table, native_table, table,
+        /// embed_crop, embed_image, describe, text, decorative, unreadable.
+        #[arg(long)]
+        decision: String,
+        #[arg(long)]
+        reason: String,
+        #[arg(long)]
+        caption: Option<String>,
+        #[arg(long)]
+        alt: Option<String>,
+        #[arg(long)]
+        priority: Option<String>,
+        /// Existing guide-relative asset for redraw or an explicit output path.
+        #[arg(long)]
+        asset: Option<String>,
+        /// Normalized crop left,top,width,height for embed_crop.
+        #[arg(long)]
+        crop: Option<String>,
+        /// Bbox x,y,w,h in viewport points.
+        #[arg(long)]
+        bbox: Option<String>,
+        #[arg(long)]
+        dpi: Option<f32>,
+        #[arg(long, default_value_t = 4.0)]
+        padding: f32,
+        #[arg(long)]
+        image_id: Option<String>,
+        #[arg(long)]
+        width: Option<u8>,
+        #[arg(long)]
+        redraw_kind: Option<String>,
+        #[arg(long)]
+        schematic_of: Option<String>,
+        #[arg(long)]
+        quality_exception: bool,
+        #[arg(long)]
+        notes: Option<String>,
+    },
+    /// Check or materialize visual assets recorded in the audit.
+    Assets {
+        #[arg(long)]
+        guide: String,
+        /// check, materialize or refresh.
+        #[arg(long, default_value = "check")]
+        action: String,
+    },
     Compare {
         #[arg(long)]
         reference: PathBuf,
@@ -1844,6 +1937,121 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
             );
         }
         Command::Visual { command } => match command {
+            VisualCommand::Candidates {
+                guide,
+                source,
+                pages,
+                min_score,
+                limit,
+                detail,
+            } => {
+                let source = workspace.resolve_read(&source)?;
+                let source_id = source
+                    .file_stem()
+                    .and_then(|value| value.to_str())
+                    .unwrap_or("source")
+                    .to_string();
+                let mut report = collect_candidates(
+                    &source,
+                    &source_id,
+                    guide,
+                    pages.as_deref(),
+                    min_score,
+                    limit.clamp(1, 100),
+                )
+                .await?;
+                if detail == "summary" && report.candidates.len() > 5 {
+                    report.candidates.truncate(5);
+                    report.counts.returned = 5;
+                    report.next = Some(5);
+                }
+                println!("{}", serde_json::to_string_pretty(&report)?);
+            }
+            VisualCommand::Extract {
+                guide,
+                source,
+                page,
+                image_id,
+                out,
+            } => {
+                let guide = Guide::load(&workspace, &guide)?;
+                let source = workspace.resolve_read(&source)?;
+                let asset =
+                    extract_native(&source, &guide.dir, page, &image_id, out.as_deref()).await?;
+                println!("{}", serde_json::to_string_pretty(&asset)?);
+            }
+            VisualCommand::Decision {
+                guide,
+                source,
+                page,
+                candidate,
+                decision,
+                reason,
+                caption,
+                alt,
+                priority,
+                asset,
+                crop,
+                bbox,
+                dpi,
+                padding,
+                image_id,
+                width,
+                redraw_kind,
+                schematic_of,
+                quality_exception,
+                notes,
+            } => {
+                let guide = Guide::load(&workspace, &guide)?;
+                let source = workspace.resolve_read(&source)?;
+                let source_id = source
+                    .file_stem()
+                    .and_then(|value| value.to_str())
+                    .unwrap_or("source")
+                    .to_string();
+                let input = VisualDecisionInput {
+                    source: source_id.clone(),
+                    page,
+                    candidate_id: candidate,
+                    decision,
+                    reason,
+                    caption,
+                    alt,
+                    priority,
+                    asset,
+                    crop,
+                    bbox: bbox.as_deref().and_then(parse_bbox_arg),
+                    dpi,
+                    padding: Some(padding),
+                    image_id,
+                    width,
+                    redraw_kind,
+                    schematic_of,
+                    quality_exception,
+                    notes,
+                };
+                let outcome =
+                    apply_visual_decision(&guide.slug, &guide.dir, &source, &source_id, input)
+                        .await?;
+                println!("{}", serde_json::to_string_pretty(&outcome)?);
+            }
+            VisualCommand::Assets { guide, action } => {
+                let guide = Guide::load(&workspace, &guide)?;
+                let sources = guide
+                    .sources
+                    .iter()
+                    .filter_map(|path| {
+                        let id = path.file_stem()?.to_str()?.to_string();
+                        Some((id, path.clone()))
+                    })
+                    .collect::<Vec<_>>();
+                let report =
+                    visual_assets_report(&guide.slug, &guide.dir, &sources, &action).await?;
+                println!("{}", serde_json::to_string_pretty(&report)?);
+                if action == "check" && !report.issues.is_empty() {
+                    return Err("visual assets check found missing or mismatched assets".into());
+                }
+            }
             VisualCommand::Compare {
                 reference,
                 current,
@@ -2377,4 +2585,19 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
     Ok(())
+}
+
+fn parse_bbox_arg(value: &str) -> Option<folisift_parse::LayoutRect> {
+    let parts = value
+        .split(',')
+        .map(str::trim)
+        .map(str::parse::<f32>)
+        .collect::<std::result::Result<Vec<_>, _>>()
+        .ok()?;
+    (parts.len() == 4).then(|| folisift_parse::LayoutRect {
+        x: parts[0],
+        y: parts[1],
+        width: parts[2],
+        height: parts[3],
+    })
 }
