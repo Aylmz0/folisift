@@ -142,6 +142,9 @@ pub async fn apply_decision(
     }
 
     let mut asset = input.asset.clone();
+    let preexisting_asset = asset
+        .as_deref()
+        .is_some_and(|value| guide_dir.join(value).is_file());
     let mut hash = None;
     let mut crop = input.crop.clone();
     let mut pixel_width = None;
@@ -166,6 +169,9 @@ pub async fn apply_decision(
             .await?;
             let failures = native.quality.hard_failures(input.quality_exception);
             if !failures.is_empty() {
+                if !preexisting_asset {
+                    let _ = std::fs::remove_file(guide_dir.join(&native.asset));
+                }
                 return Err(Error::PageSelection {
                     value: format!("asset quality failed: {}", failures.join("; ")),
                 });
@@ -212,6 +218,9 @@ pub async fn apply_decision(
             .await?;
             let failures = rendered.quality.hard_failures(input.quality_exception);
             if !failures.is_empty() {
+                if !preexisting_asset {
+                    let _ = std::fs::remove_file(guide_dir.join(&rendered.asset));
+                }
                 return Err(Error::PageSelection {
                     value: format!("asset quality failed: {}", failures.join("; ")),
                 });
@@ -238,6 +247,15 @@ pub async fn apply_decision(
             asset_kind = Some("diagram".to_string());
         }
         _ => {}
+    }
+
+    if input.decision == "redraw" && input.redraw_kind.as_deref() == Some("schematic") {
+        let caption = input.caption.as_deref().unwrap_or("").to_lowercase();
+        if !caption.contains("şematik") && !caption.contains("schematic") {
+            return Err(Error::PageSelection {
+                value: "schematic redraw caption must contain “şematik” or “schematic”".to_string(),
+            });
+        }
     }
 
     if matches!(input.decision.as_str(), "embed_crop" | "embed_image") {
@@ -495,6 +513,9 @@ pub async fn assets(
                 entry.pixel_height = Some(height);
                 entry.effective_dpi = dpi;
                 entry.quality = Some(quality);
+                if let Ok(bytes) = std::fs::read(source_path) {
+                    entry.source_digest = Some(blake3::hash(&bytes).to_hex().to_string());
+                }
                 report.refreshed += 1;
                 changed = true;
             }
