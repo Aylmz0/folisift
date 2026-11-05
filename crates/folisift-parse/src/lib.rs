@@ -23,6 +23,7 @@ pub mod table;
 pub mod text;
 pub mod visual;
 pub mod visual_audit;
+pub mod visual_candidates;
 pub mod visual_classify;
 pub mod visual_quality;
 pub mod visual_score;
@@ -71,6 +72,10 @@ pub use table::{BBox, ExtractedTable, extract_tables};
 pub use text::LOW_TEXT_THRESHOLD;
 pub use visual::{VisualPage, VisualReport, compare_pdfs};
 pub use visual_quality::QualityReport;
+pub use visual_candidates::{
+    CandidateCounts, CandidateReport, SCORER_VERSION as VISUAL_SCORER_VERSION, VisualCandidate,
+    collect_candidates,
+};
 pub use visual_audit::{
     DECISIONS as VISUAL_DECISIONS, VISUAL_AUDIT_SCHEMA_VERSION, VisualAudit, VisualEntry,
     VisualReport as GuideVisualReport,
