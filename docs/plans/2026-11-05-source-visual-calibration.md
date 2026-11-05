@@ -49,6 +49,7 @@ they increase liking.
 | `verimadenciliği:45` | slides 51/53/54 | text/formulas | 0 | text | skip | — |
 | `verimadenciliği:71` | slide 31 | four-panel clustering scatter | 2 | `d2_schematic` or `unique` | `redraw` (schematic) or `embed_crop` | low |
 | `PD2:5` | slide | language family tree | 1 | `d2_concept` | `redraw` (D2) | high |
+| `PD2:5` | corner | “Real programmers code in binary” cartoon | 0 | `seductive` | skip | — |
 | `PD2:29` | slide | two LISP list representations | 2 | `d2_concept` | `redraw` (D2) | high |
 | `PD2:53` | slide | BASIC genealogy (nodes/arrows) | 1 | `d2_concept` | `redraw` (D2) | high |
 | `PD2:45` | slide | historical COBOL photo | 0 | photo | skip | — |
@@ -211,11 +212,15 @@ the top five contained no decorative image. The reviewed top candidates were:
 | Candidate | Score | Suggested | Manual judgment |
 |---|---:|---|---|
 | `verimadenciliği:p45:vec1` | 69 | `redraw` | Slide 52 classification workflow. **D2 concept is correct.** The score is mid-range because the slide has 321 vector primitives and a low-quality source; the action is right. |
-| `verimadenciliği:p71:vec1` | 50 | `redraw` | Four-panel clustering scatter. **D2 schematic is acceptable only as a qualitative cluster comparison.** Exact point positions must stay a source crop; the host must use `unique` if the algorithm output is the lesson. |
+| `verimadenciliği:p71:vec1` | 50 | `describe` / `unique` | Four-panel algorithm comparison (hierarchical/DBSCAN/K-means/Max). Because exact point assignments are the lesson, the classifier now returns `unique`; **D2 schematic is only a host-chosen qualitative alternative**, not the default. |
 | `verimadenciliği:p14:fig2` | 57 | `describe` | Four skewness/box panels grouped into one comparison (`group_members=4`). Low-resolution source; **describe/crop is right, not D2**. |
 | `verimadenciliği:p45:tbl1` | 61 | `native_table` | The example table is present; **native table is right**. |
 | `verimadenciliği:p45:img1` | 52 | `describe` | ROC image is low-resolution and title detection picked axis labels; **describe is the safe default**, host may crop with an exception. |
 | `PD3:p76:img1` | 62 | `redraw` | 31 fragmented syntax-graph pieces collapsed into one candidate; **D2 concept is right**. |
+| `PD2:p5:img1` | 62 | `redraw` | Language family tree; **D2 concept is right**. |
+| `PD2:p53:img1` | 89 | `redraw` | BASIC genealogy; **D2 concept is right**. |
+| `PD2:p29:img1` | 72 | `redraw` | LISP list representations; **D2 concept is right**. |
+| `PD2:p5:fig1` | 20 | `skip` | Cartoon beside the tree; **decorative is right**. |
 | `verimadenciliği:p14:fig1` | 9 | `skip` | Logo/title fragment; **skip is right**. |
 
 What the implementation pass changed:
@@ -227,6 +232,15 @@ What the implementation pass changed:
 - Page 45 slide 51 was initially classified as a chart because “model”/“ilişki”
   appeared in body text. Classification now uses the title plus text inside the
   candidate, not the neighbouring slide's context.
+- Text-heavy vectors (p71 vec2/vec3, p14 vec1/vec2) are capped at 45 and
+  suggested `skip`; they no longer outrank actual charts.
+- Algorithm-comparison charts (`DBSCAN`, `K-means`, `Max`, hierarchical) are
+  `unique`; D2 schematic remains for circle/cluster concepts without exact
+  algorithm output.
+- A small secondary image on a page with a dominant diagram and no page-level
+  chart evidence is marked decorative. This caught the binary cartoon beside
+  the PD2 language tree; the tree itself, as a large image with a page-level
+  “Genealogy” signal, is `d2_concept`.
 - The first version assigned axis labels as slide titles. Whole-slide vector
   candidates now prefer the topmost short line inside their own region.
 
@@ -237,13 +251,36 @@ Known gaps (documented, not hidden):
 2. Page 45 ROC image title detection picked axis labels (“FPR …”) rather than
    the slide title; the action is conservative (`describe`), but the host
    should inspect it.
-3. `d2_schematic` for the four-panel clustering scatter is qualitative only.
-   The guide must not present it as the exact algorithm output.
+3. The four-panel clustering scatter is now `unique`; D2 schematic is an
+   explicit host alternative for a qualitative cluster concept only. The guide
+   must not present it as the exact algorithm output.
+4. The PD2 p5 tree still has a weak `heading` seed (`None`); the page-level
+   diagram signal drives the action, but the caption must be written by the
+   host. This is a caption-seed gap, not an action error.
 4. The full precision/recall targets in §4 were not claimed: the labelled set
    is small and the top-10 review was manual. The next calibration pass should
    add PD0/PD1 as an out-of-sample set and record a confusion matrix.
 
-## 7. Open calibration questions
+## 7. Calibration status — v1 complete
+
+The v1 calibration is complete for the reviewed set. Top candidates from
+`verimadenciliği` pages 14/45/71 and PD2 pages 5/29/53 plus PD3 page 76 were
+rendered and inspected. The final report has no decorative image in the top
+five, and the reviewed actions are:
+
+- classification workflow → `d2_concept` / redraw;
+- example table → `native_table`;
+- skewness group → `describe` (low-resolution, exact curves);
+- scatter/ROC/quantile images → `unique` / `describe`;
+- PD2 trees and LISP representations → `d2_concept` / redraw;
+- PD2 binary cartoon → decorative/skip;
+- PD3 syntax graph fragments → one merged `d2_concept` candidate / redraw.
+
+This is a **v1** calibration, not a claim of perfect pedagogical importance.
+The remaining gaps are listed in §6 and the precision/recall targets in §4
+remain manual review targets, not automated proof.
+
+## 8. Open calibration questions
 
 - Should the box plot on `verimadenciliği:14/s16` be `describe`, a D2
   schematic, or a crop? It is a concept illustration, but it also encodes
