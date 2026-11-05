@@ -6,6 +6,7 @@ table.
 
 | Tag | Date | Build | Commit | PDFium | What changed |
 |---|---|---:|---|---|---|
+| `v0.22.0` | 2026-11-05 | 216 | `d65f2d1` | `chromium/8058` | Source visual pipeline: bbox-level `visual_candidates` with salience/relevance/reconstruction, native image extraction, adaptive 200–500 DPI crops, visual quality/audit provenance, `visual_decision`/`visual_assets`, D2 concept/schematic vs unique charts, vector-cluster fallback, soft visual budget; schema 17 with 41 tools; A-V5-01..13 green |
 | `v0.20.0` | 2026-11-04 | 195 | `8507525` | `chromium/8058` | Visual evidence and chart policy: `visual_evidence`, figure/table visual gate (`off`/`warn`/`required`), `embed_crop`/`describe` decisions, provenance-aware `crop_source` and `::: figure`, actionable table fallback, global Model2Vec discovery, digital review action and V3 acceptance harness; schema 15 with 37 tools |
 | `v0.19.0` | 2026-11-04 | 190 | `2e8975206cf9961ddca76cf2d3a15a72f6b9e4ff` | `chromium/8058` | Feedback v2 P2: real PDF bbox width regression, OCR evidence matrix, bounded graph path/explain, QA environment/determinism report, cookbook and manifest review docs |
 | `v0.18.0` | 2026-11-04 | 188 | `a1fd480fea2f22a5ae67c4c89f8c70a5447a087f` | `chromium/8058` | Feedback v2 P0/P1: review-manifest coverage truth, brief budgets/exact matches, semantic topics, claims/graph budgets, shared guide metrics, citation sentence scoring, D2 sidecar discovery, visual taxonomy, style over_budget, QA cards, IRAC scaffold, source-brief review merge and QA cost report; schema 13 with 35 tools |
@@ -44,6 +45,19 @@ table.
 | `v0.1.0` | 2026-10-26 | 16 | `fb7fe59de483f8e4e88d4346cb10f4c91f3445e2` | `chromium/8058` | First Rust/Typst/MCP release; 23-page reference guide, coverage 13/13; Python engine removed |
 
 ## Notes
+
+- `v0.22.0` adds the source visual pipeline. `visual_candidates` ranks
+  bbox-level candidates with `relevance` (core/supporting/decorative/seductive)
+  and `reconstruction` (d2_concept/d2_schematic/table/text/unique), merges
+  fragmented panels and rejects page-spanning containers. `visual_decision`
+  materializes a native image or adaptive-DPI crop, validates blank/resolution/
+  caption/alt/hash quality, upserts `visual-audit.json` and returns the exact
+  Markdown snippet without editing `guide.md`. `visual_assets` checks,
+  materializes or refreshes recorded assets. D2 remains a concept/schematic
+  engine; exact charts stay source crops/tables. Visual assets are local-only
+  under `data/crops/` and `data/figures/`. The manual calibration report records
+  the reviewed top candidates and known gaps; `make visuals-v5` and the full
+  acceptance suite pass.
 
 - `v0.20.0` adds the visual evidence contract and A+B chart policy. The build
   now reports figure/table pages from `data/blocks`, requires a decision when
