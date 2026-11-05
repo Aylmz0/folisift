@@ -489,11 +489,15 @@ extraction API is keyed by it. The candidate carries both:
    a neighbouring slide does not leak into the caption seed.
 9. Images with height ≤ 2 pt, width ≤ 24 pt, or aspect ratio > 20 are marked
    `decoration` (title strips, rules, bullets).
-10. **Grouping:** multi-panel visuals on the same page that share a heading or
+10. **Cover guard:** on page 1, figure/image/vector candidates are decorative
+    when the page text identifies a cover or chapter opener (“Bölüm”,
+    “Chapter”, “Kapak”, “Cover”). This prevents a cover motif from outranking
+    real content; it does not apply to tables.
+11. **Grouping:** multi-panel visuals on the same page that share a heading or
     are spatially adjacent get a shared `group_id` (e.g., the three skewness
     curves). The host may embed the group as one comparison or select one
     panel; the scorer does not force a split.
-11. **Series/continuation:** when adjacent pages share a heading and contain
+12. **Series/continuation:** when adjacent pages share a heading and contain
     candidates of the same `content_class`, tag them `series` and
     `series_index`. The host decides whether to use one representative or both;
     v1 does not stitch images automatically.

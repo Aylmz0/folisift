@@ -222,6 +222,7 @@ the top five contained no decorative image. The reviewed top candidates were:
 | `PD2:p29:img1` | 72 | `redraw` | LISP list representations; **D2 concept is right**. |
 | `PD2:p5:fig1` | 20 | `skip` | Cartoon beside the tree; **decorative is right**. |
 | `verimadenciliği:p14:fig1` | 9 | `skip` | Logo/title fragment; **skip is right**. |
+| `PD0:p1:fig2` | 100→decorative | `skip` | Cover motif initially outranked page content. The page-1 cover guard now skips it; the top PD0 candidates become p9 “Mimar” (`embed_crop`), p7 TIOBE table image (`describe`), p2 intro diagram (`redraw`). |
 
 What the implementation pass changed:
 
@@ -238,7 +239,10 @@ What the implementation pass changed:
   `unique`; D2 schematic remains for circle/cluster concepts without exact
   algorithm output.
 - A small secondary image on a page with a dominant diagram and no page-level
-  chart evidence is marked decorative. This caught the binary cartoon beside
+  chart evidence is marked decorative.
+- Page-1 cover motifs are marked decorative when the page text identifies a
+  cover/chapter opener; this removed three 77–100-score cover figures from the
+  PD0 top list. This caught the binary cartoon beside
   the PD2 language tree; the tree itself, as a large image with a page-level
   “Genealogy” signal, is `d2_concept`.
 - The first version assigned axis labels as slide titles. Whole-slide vector

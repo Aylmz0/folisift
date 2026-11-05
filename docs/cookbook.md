@@ -179,6 +179,10 @@ diagram. Use `embed_crop` for vector/mixed source charts and `describe` for a
 text-only chart note. `d2_schematic` is allowed only for a qualitative relation
 (cluster blobs, box-plot sketch): caption it “şematik” and do not assert exact
 values. Exact ROC/scatter/quantile charts stay `unique` (crop/table/describe).
+An algorithm comparison (DBSCAN/K-means/hierarchical/Max) is `unique` because
+the point assignments are the lesson; only a circle/cluster concept without
+exact output can be a D2 schematic. Text-heavy slide vectors and page-1 cover
+motifs are skipped, not embedded.
 Legacy `table` is accepted as `redraw_table` for one release. `table_extract`
 returns `reason`, `table_likely`, `manual_action` and a text preview when no
 table block exists.
