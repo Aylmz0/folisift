@@ -202,6 +202,26 @@ pub struct AuditPolicy {
     /// Optional human-readable reasons, keyed by 1-based page number.
     #[serde(default)]
     pub layout_exceptions: BTreeMap<usize, String>,
+    /// Optional soft visual budget. Default absent: no cap, counts only.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub visual_budget: Option<VisualBudget>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct VisualBudget {
+    /// warn or required; warn is the recommended default.
+    #[serde(default = "default_budget_mode")]
+    pub mode: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_per_source: Option<usize>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_per_guide: Option<usize>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_visual_page_share_percent: Option<u8>,
+}
+
+fn default_budget_mode() -> String {
+    "warn".to_string()
 }
 
 /// A validated guide bundle.
