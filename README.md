@@ -36,8 +36,10 @@ Windows, and a source-available PolyForm Strict license.
   term tables. Opt-in `insights` exposes LiteParse annotations, AcroForm
   fields, tagged structure, vector geometry and per-page complexity without
   changing the normal inventory. `visual_evidence` reports figure/table/vector
-  pages; `crop_source` stores provenance-aware source crops for charts that
-  cannot be faithfully redrawn.
+  pages; `visual_candidates` ranks per-visual candidates and separates
+  D2 concepts/schematics from unique charts; `visual_decision` materializes a
+  native image or adaptive-DPI crop, writes the audit and returns the exact
+  Markdown snippet; `crop_source` remains a low-level manual crop path.
 - Runs offline after installation. The MCP server makes no LLM, network or
   shell calls.
 
@@ -201,14 +203,17 @@ Or declare it directly:
 ```
 
 Ask the host to run `doctor`, prepare the guide, read the sources, write the
-guide, build with the coverage gate and audit the PDF. The MCP exposes 37 tools
-at schema 15; profiles (`core`, `source`, `authoring`, `review`, `fast`, `deep`)
+guide, build with the coverage gate and audit the PDF. The MCP exposes 41 tools
+at schema 17; profiles (`core`, `source`, `authoring`, `review`, `fast`, `deep`)
 hide the rest before `tools/list`, and `core` is ten tools. The normal path is
 `prepare_guide` → `section_brief` / `read_section` / `read_source` → host writes
 `guide.md` → `build_guide` → `qa_guide` (`audit_guide` for the standalone
 check). `coverage_manifest`, `guide_plan`, `source_topics`, `read_blocks`,
-`links` and `graph` provide bounded review data. The MCP server stays inside the
-workspace root and never calls a network, LLM or shell.
+`links`, `graph` and `visual_candidates` provide bounded review data. The
+source-visual workflow is `visual_candidates` → `visual_decision` →
+`visual_assets` → `build_guide`; `visual_decision` returns Markdown and never
+edits `guide.md`. The MCP server stays inside the workspace root and never calls
+a network, LLM or shell.
 
 ## Common commands
 

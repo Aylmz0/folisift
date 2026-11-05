@@ -24,6 +24,10 @@ course-specific material is the guide bundle under `guides/<slug>/`.
 | **Template** | Shared paper and revision layouts in `templates/`. |
 | **Design system** | Layout, role scale, contrast-tested palettes and embedded font pairings in `templates/` and `styles/{palettes,fonts}/`. |
 | **Output** | A generated PDF under `output/`; not a source of truth. |
+| **Visual candidate** | One bbox-level source visual (figure, image, vector cluster or table) with a salience score, relevance and reconstruction decision. |
+| **Relevance** | `core`, `supporting`, `decorative` or `seductive`; decorative/seductive visuals are skipped. |
+| **Reconstruction** | `d2_concept`, `d2_schematic`, `table`, `text` or `unique`; exact charts stay source crops/tables. |
+| **Source asset** | A local-only native image (`data/figures/`) or page crop (`data/crops/`), hash-checked and gitignored. |
 
 ## Invariants
 
@@ -32,13 +36,16 @@ course-specific material is the guide bundle under `guides/<slug>/`.
 - The coverage gate is part of “done”; see `docs/agents/domain.md`.
 - The guide remains understandable without reading the engine code.
 - The design system stays stable across guides; deviations need an ADR.
+- Source visuals are selected for relevance, not decoration; exact charts keep
+  source pixels or a table, and D2 schematics must say “şematik”.
+- `sources/` stays read-only; crops and native images are local-only.
 
 ## Layout
 
 ```
 crates/                 Rust workspace: core, parse, render, build, mcp, cli
 templates/              paper.typ, revision.typ + embedded fonts
-styles/                 packs, 12 palettes, 2 font pairings, labels
+styles/                 packs, 19 palettes, 2 font pairings, labels
 guides/<slug>/          one course/material guide (guide.md in v2)
 sources/                local PDF inputs (gitignored)
 output/                 generated PDFs

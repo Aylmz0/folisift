@@ -150,18 +150,38 @@ Do not ask D2 to draw XY/scatter/ROC/quantile charts. It is a diagram engine,
 not a chart engine. A chart renderer is only safe when the data comes from a
 table or an explicit JSON file.
 
-`visual_evidence` lists figure/table/vector evidence. Set
-`config.audit.visual_gate` to `required` for a chart-sensitive guide; `warn`
-(the default) reports missing decisions without breaking existing guides.
+Start with `folisift visual candidates --guide <slug> --source <path>` (MCP
+`visual_candidates`). It returns ranked candidates with bbox, bounded context,
+`relevance`, `reconstruction`, `score_parts`, `suggested` and `review_mode`.
+Set `config.audit.visual_gate` to `required` for a chart-sensitive guide;
+`warn` (the default) reports missing decisions without breaking existing guides.
+Use `visual assets --check` as the strict preflight and `visual assets
+--materialize` to regenerate a missing crop from its stored recipe.
 
 ## Visual decisions
 
-Use `native_table` when the source already contains a table, `redraw_table` when
-a figure/matrix must become a table, and `redraw_figure` when the figure itself
-must be redrawn. Use `embed_crop` for a source crop and `describe` for a
-text-only chart note. Legacy `table` is accepted as `redraw_table` for one
-release. `table_extract` returns `reason`, `table_likely`, `manual_action` and a
-text preview when no table block exists.
+Use `visual decision` to materialize and record the choice in one step:
+
+```bash
+folisift visual decision --guide <slug> --source sources/PD0.pdf \
+  --page 45 --candidate <source>:p45:img1 --decision embed_image \
+  --caption "ROC eğrisi ve eşik noktaları" \
+  --alt "ROC eğrisi; yatay eksende FPR, dikey eksende TPR" \
+  --reason "Eşik değerleri metinde yok."
+```
+
+It writes the asset, validates quality, upserts `visual-audit.json` and prints
+the `::: figure` snippet. It never edits `guide.md`.
+
+Use `native_table` when the source already contains a table, `redraw_table`
+when a figure/matrix must become a table, and `redraw` for a D2 concept
+diagram. Use `embed_crop` for vector/mixed source charts and `describe` for a
+text-only chart note. `d2_schematic` is allowed only for a qualitative relation
+(cluster blobs, box-plot sketch): caption it “şematik” and do not assert exact
+values. Exact ROC/scatter/quantile charts stay `unique` (crop/table/describe).
+Legacy `table` is accepted as `redraw_table` for one release. `table_extract`
+returns `reason`, `table_likely`, `manual_action` and a text preview when no
+table block exists.
 
 ## OCR and insights
 

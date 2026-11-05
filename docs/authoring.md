@@ -662,31 +662,81 @@ for a new IRAC guide, uses the real source id in placeholder citations, writes
 `source-headings.md`, and refuses to overwrite an existing IRAC guide without
 case headings.
 
-### Source crops
+### Source visuals
 
-For a chart or table that cannot be faithfully redrawn, crop the source page and
-embed the crop with provenance:
+Start with the ranked, text-only candidate report:
 
 ```bash
-folisift crop-source --guide my-guide --source sources/PD0.pdf \
-  --page 45 --crop 0.05,0.10,0.55,0.45
+folisift visual candidates --guide my-guide --source sources/PD0.pdf \
+  --pages 14,45 --min-score 30
 ```
 
-The MCP equivalent is `crop_source`. The crop is stored under
-`guides/<slug>/data/crops/` (local/gitignored). Reference it with:
+Each candidate has a bbox, bounded context, `relevance`
+(`core`/`supporting`/`decorative`/`seductive`), `reconstruction`
+(`d2_concept`/`d2_schematic`/`table`/`text`/`unique`), `score_parts`,
+`suggested` and `review_mode`. Read the context; the report never sends image
+bytes and never replaces host judgment.
+
+Record the decision with one command. It materializes the asset, validates
+quality, upserts `visual-audit.json` and prints the Markdown snippet:
+
+```bash
+# A native raster image (JPEG stays JPEG, PNG stays PNG)
+folisift visual decision --guide my-guide --source sources/PD0.pdf \
+  --page 45 --candidate my-source:p45:img1 --decision embed_image \
+  --caption "ROC eğrisi ve eşik noktaları" \
+  --alt "ROC eğrisi; yatay eksende FPR, dikey eksende TPR" \
+  --reason "Eşik değerleri metinde yok; kaynak görsel doğrudan kullanıldı."
+
+# A vector chart or a mixed raster+vector figure
+folisift visual decision --guide my-guide --source sources/PD0.pdf \
+  --page 45 --candidate my-source:p45:fig1 --decision embed_crop \
+  --caption "Dağılım grafiği (kaynak görsel)" \
+  --alt "Dağılım grafiği; yatay eksende değer, dikey eksende yoğunluk" \
+  --reason "Kesin değerler önemli; sayfa kırpması kullanıldı."
+```
+
+The asset is stored under `guides/<slug>/data/crops/` or
+`guides/<slug>/data/figures/` (local/gitignored). The decision returns:
 
 ```markdown
-::: figure src="data/crops/<hash>.png" caption="ROC eğrisi" source="PD0, s. 45" alt="ROC eğrisi; eksenlerde TPR ve FPR"
+::: figure src="data/crops/<hash>.png" caption="..." source="PD0, s. 45" alt="..." width="90%"
 :::
 ```
 
 The directive requires `src`, `caption`, `source` and `alt`. The renderer
 rejects remote paths, parent-directory escapes and missing assets, and includes
-the crop bytes in the build cache key. A crop is not a redrawn or verified
-figure. Do not use a crop to claim a data value that is not visible in the
-source. If the chart data is available as a
-table, prefer a table or a `describe` note; D2 is only for conceptual diagrams,
-not XY/ROC plots.
+the asset bytes in the build cache key.
+
+For a D2 concept diagram, use `--decision redraw`, `--redraw-kind concept` and
+the existing `diagrams/<id>.json` asset. For a qualitative schematic
+(cluster blobs, box-plot sketch), use `--redraw-kind schematic` and put
+“şematik” in the caption; it must not assert values that are not in the source
+text or a table. If exact data matters, pass `--schematic-of` with the source
+crop/table reference. D2 is not a plotting library and cannot place arbitrary
+XY points or reproduce ROC/quantile curves.
+
+Check or regenerate recorded assets:
+
+```bash
+folisift visual assets --guide my-guide --action check
+folisift visual assets --guide my-guide --action materialize
+folisift visual assets --guide my-guide --action refresh
+```
+
+`check` exits non-zero on a missing or mismatched asset. `materialize`
+regenerates from the stored source/page/image-id or crop recipe; `refresh`
+explicitly accepts a new render hash after a PDFium/platform change.
+
+The low-level `crop-source` command remains available for a manual normalized
+crop (`--crop left,top,width,height`); the candidate-based path is preferred.
+
+Quality gates reject blank/tiny assets, low-DPI assets without an explicit
+`quality_exception`, empty captions/alt text, label-only captions and
+decorative/seductive embeds without an override. A crop is not a redrawn or
+verified figure; do not use it to claim a value that is not visible in the
+source. If the chart data is available as a table, prefer `native_table` or a
+`describe` note.
 
 ## Figure evidence gate
 
@@ -701,7 +751,24 @@ image evidence per page. Set:
 
 for a chart-sensitive guide. `required` fails the build when an evidence page
 has no decision; `warn` (default) reports missing decisions; `off` keeps the
-legacy low-text-only gate.
+legacy low-text-only gate. `visual_candidates` gives per-visual decisions inside
+a page; `visual assets --check` is the strict preflight for high-score
+candidates and recorded assets. A soft budget can warn:
+
+```json
+"audit": {
+  "visual_gate": "required",
+  "visual_budget": {
+    "mode": "warn",
+    "max_per_source": 16,
+    "max_per_guide": 30,
+    "max_visual_page_share_percent": 40
+  }
+}
+```
+
+`mode="warn"` adds a build warning; `mode="required"` fails only when the host
+explicitly configures that. There is no hard default quota.
 
 ## Design changes
 
