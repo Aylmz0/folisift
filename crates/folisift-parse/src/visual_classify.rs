@@ -31,6 +31,7 @@ pub struct ClassifyInput<'a> {
     pub low_text: bool,
     pub text_inside_chars: usize,
     pub decorative: bool,
+    pub large: bool,
 }
 
 const CHART_WORDS: &[&str] = &[
@@ -130,6 +131,16 @@ const DIAGRAM_WORDS: &[&str] = &[
     "syntax",
     "gramer",
     "grammar",
+    "genealogy",
+    "şecere",
+    "secere",
+    "soy ağacı",
+    "soy agaci",
+    "family tree",
+    "language tree",
+    "gösterim",
+    "gosterim",
+    "representation",
 ];
 
 const PHOTO_WORDS: &[&str] = &[
@@ -150,6 +161,12 @@ fn has(text: &str, words: &[&str]) -> bool {
     words.iter().any(|word| text.contains(word))
 }
 
+/// Page-level chart evidence, used only as a safety guard for small-image
+/// decoration rules. It never replaces candidate-level classification.
+pub fn page_has_chart(text: &str) -> bool {
+    has(&text.to_lowercase(), CHART_WORDS)
+}
+
 pub fn classify(input: ClassifyInput<'_>) -> ClassifyResult {
     let title = input.title.to_lowercase();
     let body = input.body.to_lowercase();
@@ -162,23 +179,45 @@ pub fn classify(input: ClassifyInput<'_>) -> ClassifyResult {
         || (input.native_image && input.text_inside_chars < 50 && page_exact);
     let qualitative_chart =
         has(&title, QUALITATIVE_CHART_WORDS) || has(&body, QUALITATIVE_CHART_WORDS);
+    let algorithm_comparison = [
+        "dbscan",
+        "k-means",
+        "kmeans",
+        "hierarchical",
+        "hiyerarşik",
+        "hiyerarsik",
+        "max",
+    ]
+    .iter()
+    .any(|word| body.contains(word) || title.contains(word));
     let chart = chart_title
         || has(&body, CHART_WORDS)
         || (input.native_image && input.text_inside_chars < 50 && page_chart);
     let diagram_title = has(&title, DIAGRAM_WORDS);
+    let page_diagram = has(&page_text, DIAGRAM_WORDS);
+    let large_diagram = input.large
+        && !chart
+        && (page_diagram || has(&body, DIAGRAM_WORDS) || has(&title, DIAGRAM_WORDS));
     let diagram = diagram_title
+        || large_diagram
         || (input.vector_primitives >= 20 && has(&body, DIAGRAM_WORDS) && !exact_chart);
     let photo = has(&title, PHOTO_WORDS) || has(&body, PHOTO_WORDS);
 
-    let text_heavy = input.text_inside_chars > 300
+    let text_heavy = (input.text_inside_chars > 300
         && input.vector_primitives < 300
         && !input.table
-        && !input.native_image;
+        && !input.native_image)
+        || (input.text_inside_chars > 100
+            && input.vector_primitives < 50
+            && !input.table
+            && !input.native_image
+            && !chart
+            && !diagram);
     let content_class = if input.table {
         "table"
     } else if text_heavy {
         "text"
-    } else if diagram_title {
+    } else if diagram_title || large_diagram {
         "diagram"
     } else if chart {
         "chart"
@@ -204,6 +243,9 @@ pub fn classify(input: ClassifyInput<'_>) -> ClassifyResult {
     }
     if qualitative_chart {
         reasons.push("qualitative cluster/schematic keyword".to_string());
+    }
+    if algorithm_comparison {
+        reasons.push("algorithm comparison; exact point assignment matters".to_string());
     }
     if diagram {
         reasons.push("diagram keyword in heading/context".to_string());
@@ -233,9 +275,9 @@ pub fn classify(input: ClassifyInput<'_>) -> ClassifyResult {
         ("text".to_string(), "high".to_string())
     } else if exact_chart {
         ("unique".to_string(), "high".to_string())
-    } else if diagram_title {
+    } else if diagram_title || large_diagram {
         ("d2_concept".to_string(), "high".to_string())
-    } else if chart && qualitative_chart {
+    } else if chart && qualitative_chart && !algorithm_comparison {
         ("d2_schematic".to_string(), "medium".to_string())
     } else if chart {
         ("unique".to_string(), "medium".to_string())
@@ -278,6 +320,7 @@ mod tests {
             low_text: false,
             text_inside_chars: 0,
             decorative: false,
+            large: false,
         }
     }
 
@@ -300,6 +343,25 @@ mod tests {
         let result = classify(input("Kümeleme", "kümeler ayrık ve örtüşüyor"));
         assert_eq!(result.reconstruction, "d2_schematic");
         assert_eq!(result.relevance, "core");
+    }
+
+    #[test]
+    fn a_large_genealogy_image_is_a_concept_diagram() {
+        let mut value = input("(Genealogy)", "");
+        value.large = true;
+        value.native_image = true;
+        let result = classify(value);
+        assert_eq!(result.reconstruction, "d2_concept");
+        assert_eq!(result.relevance, "core");
+    }
+
+    #[test]
+    fn an_algorithm_comparison_is_unique_not_schematic() {
+        let result = classify(input(
+            "Kümeleme",
+            "DBSCAN K-means sonuçları karşılaştırılır",
+        ));
+        assert_eq!(result.reconstruction, "unique");
     }
 
     #[test]
