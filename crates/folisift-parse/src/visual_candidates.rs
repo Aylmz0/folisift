@@ -346,6 +346,13 @@ pub async fn collect_candidates(
         let page_low_text =
             page.text.chars().filter(|c| !c.is_whitespace()).count() < LOW_TEXT_THRESHOLD;
         let page_chart = page_has_chart(&page.text);
+        let page_text_lower = page.text.to_lowercase();
+        let cover_page = page.page_number == 1
+            && (page_text_lower.contains("bölüm")
+                || page_text_lower.contains("bolum")
+                || page_text_lower.contains("chapter")
+                || page_text_lower.contains("kapak")
+                || page_text_lower.contains("cover"));
         let dominant_area = kept
             .iter()
             .map(|seed| (seed.bbox.width * seed.bbox.height) / page_area)
@@ -389,6 +396,7 @@ pub async fn collect_candidates(
                 || decorative_band
                 || frame_like
                 || secondary_decorative
+                || (cover_page && matches!(seed.kind.as_str(), "figure" | "image" | "vector"))
                 || is_cover_text(caption.as_deref());
             let tagged_alt = tagged_alt(page, seed.bbox);
             let title_text = format!(
