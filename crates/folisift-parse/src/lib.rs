@@ -22,6 +22,7 @@ pub mod source_read;
 pub mod table;
 pub mod text;
 pub mod visual;
+pub mod visual_assets;
 pub mod visual_audit;
 pub mod visual_candidates;
 pub mod visual_classify;
@@ -72,6 +73,7 @@ pub use table::{BBox, ExtractedTable, extract_tables};
 pub use text::LOW_TEXT_THRESHOLD;
 pub use visual::{VisualPage, VisualReport, compare_pdfs};
 pub use visual_quality::QualityReport;
+pub use visual_assets::{CropAsset, NativeAsset, crop_from_bbox, extract_native, render_crop};
 pub use visual_candidates::{
     CandidateCounts, CandidateReport, SCORER_VERSION as VISUAL_SCORER_VERSION, VisualCandidate,
     collect_candidates,
