@@ -28,6 +28,7 @@ pub mod visual_candidates;
 pub mod visual_classify;
 pub mod visual_quality;
 pub mod visual_score;
+pub mod visual_workflow;
 
 pub use audit::{
     AuditOptions, ImageBox, LayoutAudit, OutlinePage, PageAudit, audit_pdf, audit_pdf_with,
@@ -74,6 +75,11 @@ pub use text::LOW_TEXT_THRESHOLD;
 pub use visual::{VisualPage, VisualReport, compare_pdfs};
 pub use visual_quality::QualityReport;
 pub use visual_assets::{CropAsset, NativeAsset, crop_from_bbox, extract_native, render_crop};
+pub use visual_workflow::{
+    AssetReport as VisualAssetReport, DecisionInput as VisualDecisionInput,
+    DecisionOutcome as VisualDecisionOutcome, apply_decision as apply_visual_decision,
+    assets as visual_assets_report,
+};
 pub use visual_candidates::{
     CandidateCounts, CandidateReport, SCORER_VERSION as VISUAL_SCORER_VERSION, VisualCandidate,
     collect_candidates,
