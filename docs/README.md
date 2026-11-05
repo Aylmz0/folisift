@@ -18,6 +18,7 @@
 | [Plans](plans/) | Architecture, migration and remediation plans |
 | [Source visual pipeline](plans/2026-11-05-source-visual-pipeline.md) | Proposed candidate, salience, D2/unique, crop/native and audit plan |
 | [Source visual calibration](plans/2026-11-05-source-visual-calibration.md) | Manual ground truth from data-mining and PD2/PD3 pages |
+| [Feedback v4](FOLISIFT-GERI-BILDIRIM-v4.md) | 0.22.0 PDF and system review; P1 visual-gate truth finding |
 | [ADR-0015](adr/0015-source-visual-pipeline.md) | Source visual candidates, relevance, D2/unique and local assets |
 | [Production feedback remediation](plans/2026-11-03-production-feedback-remediation.md) | Completed remediation plan for coverage, layout, diagnostics, D2, MCP, context economics and engine depth |
 | [Agent configuration](agents/) | Issue tracker, triage labels, domain-doc rules, versioning |
