@@ -4,6 +4,8 @@
 //! plotting library; a qualitative schematic is allowed only when the text
 //! asks for a relation rather than exact values.
 
+use std::collections::HashSet;
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -41,6 +43,10 @@ const CHART_WORDS: &[&str] = &[
     "saçılım",
     "serpilme",
     "dağılım",
+    "dağılımı",
+    "dağılımlar",
+    "dagilim",
+    "dagilimi",
     "histogram",
     "roc",
     "eğri",
@@ -52,14 +58,19 @@ const CHART_WORDS: &[&str] = &[
     "pasta grafiği",
     "çizgi grafiği",
     "cluster",
+    "clustering",
     "küme",
+    "kümeler",
+    "kümeleme",
+    "kume",
+    "kumeler",
+    "kumeleme",
     "kmeans",
     "k-means",
     "dbscan",
     "hiyerarşik",
     "hierarchical",
     "demetleme",
-    "clustering",
 ];
 
 const EXACT_CHART_WORDS: &[&str] = &[
@@ -80,7 +91,13 @@ const EXACT_CHART_WORDS: &[&str] = &[
 
 const QUALITATIVE_CHART_WORDS: &[&str] = &[
     "küme",
+    "kümeler",
+    "kümeleme",
+    "kume",
+    "kumeler",
+    "kumeleme",
     "cluster",
+    "clustering",
     "kmeans",
     "k-means",
     "dbscan",
@@ -89,13 +106,16 @@ const QUALITATIVE_CHART_WORDS: &[&str] = &[
     "ayrık",
     "ayrik",
     "örtüş",
+    "örtüşme",
+    "örtüşüyor",
     "ortus",
+    "ortusme",
+    "ortusuyor",
     "merkez",
     "centroid",
     "şematik",
     "schematic",
     "demetleme",
-    "clustering",
 ];
 
 const DIAGRAM_WORDS: &[&str] = &[
@@ -112,6 +132,8 @@ const DIAGRAM_WORDS: &[&str] = &[
     "soyağacı",
     "soyagaci",
     "mimari",
+    "mimar",
+    "architecture",
     "sınıflandırma",
     "siniflandirma",
     "döngü",
@@ -133,13 +155,17 @@ const DIAGRAM_WORDS: &[&str] = &[
     "grammar",
     "genealogy",
     "şecere",
+    "şeceresi",
     "secere",
+    "seceresi",
     "soy ağacı",
     "soy agaci",
     "family tree",
     "language tree",
     "gösterim",
+    "gösterimi",
     "gosterim",
+    "gosterimi",
     "representation",
 ];
 
@@ -158,7 +184,17 @@ const PHOTO_WORDS: &[&str] = &[
 ];
 
 fn has(text: &str, words: &[&str]) -> bool {
-    words.iter().any(|word| text.contains(word))
+    let tokens = text
+        .split(|character: char| !character.is_alphanumeric())
+        .filter(|token| !token.is_empty())
+        .collect::<HashSet<_>>();
+    words.iter().any(|word| {
+        if word.contains(' ') {
+            text.contains(word)
+        } else {
+            tokens.contains(word)
+        }
+    })
 }
 
 /// Page-level chart evidence, used only as a safety guard for small-image
@@ -194,10 +230,11 @@ pub fn classify(input: ClassifyInput<'_>) -> ClassifyResult {
         || has(&body, CHART_WORDS)
         || (input.native_image && input.text_inside_chars < 50 && page_chart);
     let diagram_title = has(&title, DIAGRAM_WORDS);
-    let page_diagram = has(&page_text, DIAGRAM_WORDS);
     let large_diagram = input.large
         && !chart
-        && (page_diagram || has(&body, DIAGRAM_WORDS) || has(&title, DIAGRAM_WORDS));
+        && (has(&body, DIAGRAM_WORDS)
+            || has(&title, DIAGRAM_WORDS)
+            || (input.native_image && has(&page_text, DIAGRAM_WORDS)));
     let diagram = diagram_title
         || large_diagram
         || (input.vector_primitives >= 20 && has(&body, DIAGRAM_WORDS) && !exact_chart);
@@ -208,7 +245,7 @@ pub fn classify(input: ClassifyInput<'_>) -> ClassifyResult {
         && !input.table
         && !input.native_image)
         || (input.text_inside_chars > 100
-            && input.vector_primitives < 50
+            && input.vector_primitives < 200
             && !input.table
             && !input.native_image
             && !chart
@@ -356,12 +393,31 @@ mod tests {
     }
 
     #[test]
+    fn a_large_page_level_genealogy_image_is_a_diagram() {
+        let mut value = input("", "");
+        value.page_text = "Yaygın\nDillerin\nSoyağacı\n(Genealogy)\n5";
+        value.native_image = true;
+        value.large = true;
+        let result = classify(value);
+        assert_eq!(result.reconstruction, "d2_concept");
+    }
+
+    #[test]
     fn an_algorithm_comparison_is_unique_not_schematic() {
         let result = classify(input(
             "Kümeleme",
             "DBSCAN K-means sonuçları karşılaştırılır",
         ));
         assert_eq!(result.reconstruction, "unique");
+    }
+
+    #[test]
+    fn a_suffix_is_not_a_keyword() {
+        let result = classify(input(
+            "Giriş ve Amaçlar",
+            "Programlama Dillerinin Yazılım Yaşam Döngüsündeki Yeri",
+        ));
+        assert_ne!(result.reconstruction, "d2_concept");
     }
 
     #[test]
