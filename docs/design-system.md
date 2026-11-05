@@ -291,6 +291,18 @@ TALA layout and a scrubbed environment. Icons, links, imports, layers,
 scenarios, animations and remote assets are rejected. See
 [`plans/2026-10-31-d2-capability-and-codebase-hardening.md`](plans/2026-10-31-d2-capability-and-codebase-hardening.md).
 
+Visual selection is evidence-informed, not “more pictures is better”. Relevant
+visuals can support comprehension and recall; decorative or seductive visuals
+can increase liking while reducing learning. See
+[`learning-science-and-genre-review-2026-11-02.md`](learning-science-and-genre-review-2026-11-02.md#6-visual-learning-evidence-2026-11-05-update).
+Use a visual when it explains a relation, mechanism or data pattern; skip it
+when it only decorates the page. Exact charts keep their source crop or a table.
+A D2 schematic is allowed only for a qualitative relation, must say “şematik”
+in the caption, and must not assert values that are not in the source text or a
+table. Do not recolor a source chart to match the palette; colour may encode
+data. D2 schematics use the guide palette; source crops keep their original
+colours. These rules do not assume “visual learner” matching; the evidence does
+not support learning-style labelling.
 
 - Redraw important diagrams as simple SVG. Do not paste screenshots unless the
   original image is the only faithful representation.

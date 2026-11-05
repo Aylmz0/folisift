@@ -1,10 +1,11 @@
 # MASTER STUDY-GUIDE SPECIFICATION — v2
 
-> **Evidence note (2026-10-29, updated 2026-10-31).** The learning,
+> **Evidence note (2026-10-29, updated 2026-11-05).** The learning,
 > note-taking, summarization, visual and accessibility basis for these rules is
 > documented in [`docs/authoring-evidence.md`](authoring-evidence.md),
-> [`docs/revision-format-research.md`](revision-format-research.md) and
-> [`docs/document-genres-and-layout-systems.md`](document-genres-and-layout-systems.md).
+> [`docs/revision-format-research.md`](revision-format-research.md),
+> [`docs/document-genres-and-layout-systems.md`](document-genres-and-layout-systems.md)
+> and [`docs/learning-science-and-genre-review-2026-11-02.md`](learning-science-and-genre-review-2026-11-02.md#6-visual-learning-evidence-2026-11-05-update).
 > It is evidence-informed, not a claim of proven product-level learning gains.
 
 > **v3 implementation note (2026-10-26).** The A–G structure, coverage,
@@ -341,6 +342,13 @@ unlabelled when the hierarchy is self-evident. Use arrowheads (`triangle`,
 Icons, links, imports, layers, scenarios, animations, remote assets and raw
 HTML/CSS are rejected. If a figure is decorative, say so and skip it. If it is
 unreadable, list it in G.
+
+Visual selection follows the evidence review: include a visual when it explains
+a relation, mechanism or data pattern; skip decorative/seductive visuals even
+when they are attractive. Exact charts keep their source crop or table. A D2
+schematic is allowed only for a qualitative relation, must say “şematik” in the
+caption, and must not assert values that are not in the source text or a table.
+When exact data matters, pair the schematic with the source crop or table.
 
 ### Code
 
