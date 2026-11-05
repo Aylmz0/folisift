@@ -17,7 +17,7 @@ use crate::error::{Error, Result};
 use crate::layout::{LayoutBlock, LayoutBlockKind, Rect};
 use crate::pdfium;
 use crate::text::LOW_TEXT_THRESHOLD;
-use crate::visual_classify::{ClassifyInput, classify};
+use crate::visual_classify::{ClassifyInput, classify, page_has_chart};
 use crate::visual_score::{ScoreFeatures, score};
 
 pub const SCORER_VERSION: u32 = 1;
@@ -345,6 +345,11 @@ pub async fn collect_candidates(
 
         let page_low_text =
             page.text.chars().filter(|c| !c.is_whitespace()).count() < LOW_TEXT_THRESHOLD;
+        let page_chart = page_has_chart(&page.text);
+        let dominant_area = kept
+            .iter()
+            .map(|seed| (seed.bbox.width * seed.bbox.height) / page_area)
+            .fold(0.0, f32::max);
         for mut seed in kept {
             let Some(clamped) = clamp_bbox(seed.bbox, page_width, page_height) else {
                 continue;
@@ -371,6 +376,11 @@ pub async fn collect_candidates(
             };
             let frame_like =
                 seed.kind == "vector" && text_inside == 0 && seed.vector_primitives <= 40;
+            let secondary_decorative = matches!(seed.kind.as_str(), "figure" | "image")
+                && area_ratio < 0.2
+                && area_ratio < dominant_area * 0.5
+                && !page_chart
+                && !seed.table;
             let decorative = seed.image_count >= 3
                 || seed.bbox.height <= 2.0
                 || seed.bbox.width <= 24.0
@@ -378,6 +388,7 @@ pub async fn collect_candidates(
                 || area_ratio < 0.01
                 || decorative_band
                 || frame_like
+                || secondary_decorative
                 || is_cover_text(caption.as_deref());
             let tagged_alt = tagged_alt(page, seed.bbox);
             let title_text = format!(
@@ -404,8 +415,9 @@ pub async fn collect_candidates(
                 low_text: page_low_text,
                 text_inside_chars: text_inside,
                 decorative,
+                large: area_ratio >= 0.3,
             });
-            let scoring = score(&ScoreFeatures {
+            let mut scoring = score(&ScoreFeatures {
                 area_ratio,
                 heading_distance_pt: heading.as_ref().map(|heading| heading.distance),
                 caption: tagged_alt.is_some()
@@ -425,6 +437,9 @@ pub async fn collect_candidates(
                 aspect_ratio: aspect,
                 relevance: classification.relevance.clone(),
             });
+            if classification.reconstruction == "text" {
+                scoring.score = scoring.score.min(45);
+            }
             let suggested = suggested(
                 scoring.score,
                 &classification.relevance,
@@ -845,6 +860,9 @@ fn suggested(
     }
     if reconstruction == "table" {
         return "native_table".to_string();
+    }
+    if reconstruction == "text" {
+        return "skip".to_string();
     }
     if reconstruction == "d2_concept" || reconstruction == "d2_schematic" {
         return if score >= 50 { "redraw" } else { "describe" }.to_string();
