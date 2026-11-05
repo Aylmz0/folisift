@@ -4,13 +4,16 @@
 //! visual page was inspected, so the build gate requires this file for guides
 //! that contain low-text pages.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
+use regex::Regex;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 use crate::error::{Error, Result, io};
 use crate::inventory::Inventory;
+use crate::visual_quality::{QualityReport, inspect};
 
 pub const VISUAL_AUDIT_SCHEMA_VERSION: u32 = 1;
 pub const DECISIONS: &[&str] = &[
@@ -20,13 +23,14 @@ pub const DECISIONS: &[&str] = &[
     "native_table",
     "table",
     "embed_crop",
+    "embed_image",
     "describe",
     "text",
     "decorative",
     "unreadable",
 ];
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct VisualAudit {
     #[serde(default = "default_schema")]
     pub schema_version: u32,
@@ -34,7 +38,7 @@ pub struct VisualAudit {
     pub source_pages: Vec<VisualEntry>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct VisualEntry {
     pub source: String,
     pub page: usize,
@@ -55,6 +59,42 @@ pub struct VisualEntry {
     pub local_only: bool,
     #[serde(default)]
     pub priority: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub candidate_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub asset_kind: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub image_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bbox: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub dpi: Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pixel_width: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pixel_height: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub effective_dpi: Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub relevance: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reconstruction: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub redraw_kind: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub schematic_of: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_digest: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub renderer: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub quality: Option<QualityReport>,
+    #[serde(default)]
+    pub quality_exception: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub notes: Option<String>,
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
@@ -66,6 +106,10 @@ pub struct VisualReport {
     pub redraw_tables: usize,
     pub native_tables: usize,
     pub tables: usize,
+    pub embedded_crops: usize,
+    pub embedded_images: usize,
+    pub concept_diagrams: usize,
+    pub schematic_diagrams: usize,
     pub text: usize,
     pub decorative: usize,
     pub unreadable: usize,
@@ -75,6 +119,7 @@ pub struct VisualReport {
     pub missing_low_text: Vec<String>,
     pub missing_figures: Vec<String>,
     pub unresolved: Vec<String>,
+    pub warnings: Vec<String>,
     pub passed: bool,
 }
 
@@ -182,20 +227,26 @@ impl VisualAudit {
         expected.sort();
         expected.dedup();
 
-        let mut seen = HashSet::new();
+        let mut seen_keys = HashSet::new();
+        let mut seen_pages = HashSet::new();
         let mut missing = Vec::new();
         let mut unresolved = Vec::new();
+        let mut warnings = Vec::new();
+        let mut asset_hashes = HashMap::<String, String>::new();
         let mut counts = HashMap::<&str, usize>::new();
         for entry in &self.source_pages {
-            let key = format!("{}:{}", entry.source, entry.page);
-            if !seen.insert(key.clone()) {
+            let page_key = format!("{}:{}", entry.source, entry.page);
+            let candidate_key = entry.candidate_id.as_deref().unwrap_or("-");
+            let key = format!("{page_key}:{candidate_key}");
+            if !seen_keys.insert(key.clone()) {
                 unresolved.push(format!("{key}: duplicate entry"));
                 continue;
             }
-            if !expected.contains(&key) {
+            if !expected.contains(&page_key) {
                 unresolved.push(format!("{key}: not a low-text page in the inventory"));
                 continue;
             }
+            seen_pages.insert(page_key.clone());
             if !DECISIONS.contains(&entry.decision.as_str()) {
                 unresolved.push(format!("{key}: unknown decision {:?}", entry.decision));
                 continue;
@@ -207,7 +258,24 @@ impl VisualAudit {
             {
                 unresolved.push(format!("{key}: unknown priority {:?}", entry.priority));
             }
+            if let Some(relevance) = entry.relevance.as_deref()
+                && !matches!(
+                    relevance,
+                    "core" | "supporting" | "decorative" | "seductive"
+                )
+            {
+                unresolved.push(format!("{key}: unknown relevance {relevance:?}"));
+            }
+            if let Some(reconstruction) = entry.reconstruction.as_deref()
+                && !matches!(
+                    reconstruction,
+                    "d2_concept" | "d2_schematic" | "table" | "text" | "unique"
+                )
+            {
+                unresolved.push(format!("{key}: unknown reconstruction {reconstruction:?}"));
+            }
             *counts.entry(entry.decision.as_str()).or_default() += 1;
+
             if matches!(
                 entry.decision.as_str(),
                 "text" | "decorative" | "unreadable" | "describe"
@@ -218,51 +286,33 @@ impl VisualAudit {
             {
                 unresolved.push(format!("{key}: {} needs a reason", entry.decision));
             }
-            if entry.decision == "embed_crop" {
-                for (name, value) in [
-                    ("reason", entry.reason.as_deref()),
-                    ("caption", entry.caption.as_deref()),
-                    ("alt", entry.alt.as_deref()),
-                    ("crop", entry.crop.as_deref()),
-                    ("asset", entry.asset.as_deref()),
-                    ("hash", entry.hash.as_deref()),
-                ] {
-                    if value.is_none_or(|value| value.trim().is_empty()) {
-                        unresolved.push(format!("{key}: embed_crop needs {name}"));
-                    }
-                }
-                if !entry.local_only {
-                    unresolved.push(format!(
-                        "{key}: embed_crop must be local_only; source crops are not committed"
-                    ));
-                }
-                if let Some(crop) = entry.crop.as_deref()
-                    && !valid_crop(crop)
+
+            if matches!(entry.decision.as_str(), "embed_crop" | "embed_image") {
+                validate_embed_entry(
+                    entry,
+                    &key,
+                    guide_dir,
+                    &mut unresolved,
+                    &mut warnings,
+                    &mut asset_hashes,
+                );
+                if matches!(entry.relevance.as_deref(), Some("decorative" | "seductive"))
+                    && !entry.quality_exception
+                    && !entry
+                        .notes
+                        .as_deref()
+                        .is_some_and(|notes| notes.to_lowercase().contains("override"))
                 {
                     unresolved.push(format!(
-                        "{key}: crop must be four normalized 0..1 values left,top,width,height"
+                        "{key}: decorative/seductive embed needs a quality_exception or an explicit override note"
                     ));
                 }
-                if let Some(asset) = entry.asset.as_deref() {
-                    if !asset.starts_with("data/crops/") {
-                        unresolved.push(format!(
-                            "{key}: source crop asset {asset:?} must live under data/crops/"
-                        ));
-                    }
-                    if !safe_asset_path(guide_dir, asset) {
-                        unresolved
-                            .push(format!("{key}: crop asset {asset:?} is missing or unsafe"));
-                    } else if let Some(expected) = entry.hash.as_deref()
-                        && let Ok(bytes) = std::fs::read(guide_dir.join(asset))
-                        && blake3::hash(&bytes).to_hex().to_string() != expected
-                    {
-                        unresolved.push(format!("{key}: crop hash mismatch"));
-                    }
-                }
             }
+
             if entry.priority.as_deref() == Some("high") && entry.decision == "decorative" {
                 unresolved.push(format!("{key}: a high-priority page cannot be decorative"));
             }
+
             if entry.decision == "redraw" {
                 let Some(asset) = entry.asset.as_deref() else {
                     unresolved.push(format!("{key}: redraw needs an asset"));
@@ -271,12 +321,49 @@ impl VisualAudit {
                 if !safe_asset_path(guide_dir, asset) {
                     unresolved.push(format!("{key}: asset {asset:?} is missing or unsafe"));
                 }
+                if let Some(kind) = entry.redraw_kind.as_deref() {
+                    if !matches!(kind, "concept" | "schematic") {
+                        unresolved.push(format!("{key}: unknown redraw_kind {kind:?}"));
+                    }
+                    if kind == "schematic"
+                        && !entry.caption.as_deref().is_some_and(|caption| {
+                            let caption = caption.to_lowercase();
+                            caption.contains("şematik") || caption.contains("schematic")
+                        })
+                    {
+                        unresolved.push(format!(
+                            "{key}: schematic redraw caption must contain “şematik” or “schematic”"
+                        ));
+                    }
+                }
+                if let Some(reference) = entry.schematic_of.as_deref()
+                    && reference.starts_with("data/")
+                    && !safe_asset_path(guide_dir, reference)
+                {
+                    unresolved.push(format!(
+                        "{key}: schematic_of asset {reference:?} is missing or unsafe"
+                    ));
+                }
+            }
+
+            if let Some(expected_digest) = entry.source_digest.as_deref()
+                && let Some(source) = inventory
+                    .sources
+                    .iter()
+                    .find(|source| source.filename.trim_end_matches(".pdf") == entry.source)
+                && let Some(actual) = source.source_digest.as_deref()
+                && actual != expected_digest
+            {
+                warnings.push(format!(
+                    "{key}: source digest changed; run visual assets --materialize --refresh"
+                ));
             }
         }
+
         let mut missing_low_text = Vec::new();
         let mut missing_figures = Vec::new();
         for key in &expected {
-            if seen.contains(key) {
+            if seen_pages.contains(key) {
                 continue;
             }
             missing.push(key.clone());
@@ -289,13 +376,25 @@ impl VisualAudit {
         let passed = missing.is_empty() && unresolved.is_empty();
         VisualReport {
             low_text_pages: low_text.len(),
-            entries: seen.len(),
+            entries: seen_keys.len(),
             redrawn: counts.get("redraw").copied().unwrap_or(0),
             redraw_figures: counts.get("redraw_figure").copied().unwrap_or(0),
             redraw_tables: counts.get("redraw_table").copied().unwrap_or(0)
                 + counts.get("table").copied().unwrap_or(0),
             native_tables: counts.get("native_table").copied().unwrap_or(0),
             tables: counts.get("table").copied().unwrap_or(0),
+            embedded_crops: counts.get("embed_crop").copied().unwrap_or(0),
+            embedded_images: counts.get("embed_image").copied().unwrap_or(0),
+            concept_diagrams: self
+                .source_pages
+                .iter()
+                .filter(|entry| entry.redraw_kind.as_deref() == Some("concept"))
+                .count(),
+            schematic_diagrams: self
+                .source_pages
+                .iter()
+                .filter(|entry| entry.redraw_kind.as_deref() == Some("schematic"))
+                .count(),
             text: counts.get("text").copied().unwrap_or(0),
             decorative: counts.get("decorative").copied().unwrap_or(0),
             unreadable: counts.get("unreadable").copied().unwrap_or(0),
@@ -309,9 +408,197 @@ impl VisualAudit {
             missing_low_text,
             missing_figures,
             unresolved,
+            warnings,
             passed,
         }
     }
+
+    pub fn load_or_default(path: &Path) -> Result<Self> {
+        if path.is_file() {
+            Self::load(path)
+        } else {
+            Ok(Self {
+                schema_version: VISUAL_AUDIT_SCHEMA_VERSION,
+                source_pages: Vec::new(),
+            })
+        }
+    }
+
+    /// Write the manifest atomically.
+    pub fn save(&self, path: &Path) -> Result<()> {
+        let text = serde_json::to_string_pretty(self).map_err(|error| Error::Parse {
+            path: path.to_path_buf(),
+            message: format!("serialize visual audit: {error}"),
+        })?;
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent).map_err(|error| io(parent, error))?;
+        }
+        let temporary = path.with_extension("json.tmp");
+        std::fs::write(&temporary, text + "\n").map_err(|error| io(&temporary, error))?;
+        std::fs::rename(&temporary, path).map_err(|error| io(path, error))?;
+        Ok(())
+    }
+
+    /// Insert or replace one candidate decision. The write is atomic.
+    pub fn upsert(path: &Path, entry: VisualEntry) -> Result<()> {
+        let mut audit = Self::load_or_default(path)?;
+        let key = (entry.source.clone(), entry.page, entry.candidate_id.clone());
+        if let Some(existing) = audit.source_pages.iter_mut().find(|existing| {
+            (
+                existing.source.clone(),
+                existing.page,
+                existing.candidate_id.clone(),
+            ) == key
+        }) {
+            *existing = entry;
+        } else {
+            audit.source_pages.push(entry);
+        }
+        audit.source_pages.sort_by(|a, b| {
+            a.source
+                .cmp(&b.source)
+                .then_with(|| a.page.cmp(&b.page))
+                .then_with(|| a.candidate_id.cmp(&b.candidate_id))
+        });
+        audit.save(path)
+    }
+}
+
+fn validate_embed_entry(
+    entry: &VisualEntry,
+    key: &str,
+    guide_dir: &Path,
+    unresolved: &mut Vec<String>,
+    warnings: &mut Vec<String>,
+    asset_hashes: &mut HashMap<String, String>,
+) {
+    let image = entry.decision == "embed_image";
+    for (name, value) in [
+        ("reason", entry.reason.as_deref()),
+        ("caption", entry.caption.as_deref()),
+        ("alt", entry.alt.as_deref()),
+        ("asset", entry.asset.as_deref()),
+        ("hash", entry.hash.as_deref()),
+    ] {
+        if value.is_none_or(|value| value.trim().is_empty()) {
+            unresolved.push(format!("{key}: {} needs {name}", entry.decision));
+        }
+    }
+    if image {
+        if entry
+            .image_id
+            .as_deref()
+            .is_none_or(|value| value.trim().is_empty())
+        {
+            unresolved.push(format!("{key}: embed_image needs image_id"));
+        }
+    } else if entry
+        .crop
+        .as_deref()
+        .is_none_or(|value| value.trim().is_empty())
+    {
+        unresolved.push(format!("{key}: embed_crop needs crop"));
+    }
+    if !entry.local_only {
+        unresolved.push(format!(
+            "{key}: {} must be local_only; source assets are not committed",
+            entry.decision
+        ));
+    }
+    if !image
+        && let Some(crop) = entry.crop.as_deref()
+        && !valid_crop(crop)
+    {
+        unresolved.push(format!(
+            "{key}: crop must be four normalized 0..1 values left,top,width,height"
+        ));
+    }
+    let Some(asset) = entry.asset.as_deref() else {
+        return;
+    };
+    if image && !asset.starts_with("data/figures/") {
+        unresolved.push(format!(
+            "{key}: native image asset {asset:?} must live under data/figures/"
+        ));
+    }
+    if !image && !asset.starts_with("data/crops/") {
+        unresolved.push(format!(
+            "{key}: source crop asset {asset:?} must live under data/crops/"
+        ));
+    }
+    if !safe_asset_path(guide_dir, asset) {
+        unresolved.push(format!("{key}: asset {asset:?} is missing or unsafe"));
+        return;
+    }
+    let bytes = match std::fs::read(guide_dir.join(asset)) {
+        Ok(bytes) => bytes,
+        Err(error) => {
+            unresolved.push(format!("{key}: cannot read asset {asset:?}: {error}"));
+            return;
+        }
+    };
+    if let Some(expected) = entry.hash.as_deref()
+        && blake3::hash(&bytes).to_hex().to_string() != expected
+    {
+        unresolved.push(format!("{key}: asset hash mismatch"));
+    }
+    if let Some(caption) = entry.caption.as_deref() {
+        validate_caption(entry, key, caption, unresolved);
+    }
+    if let Some(hash) = entry.hash.as_deref()
+        && let Some(previous) = asset_hashes.insert(hash.to_string(), key.to_string())
+        && previous != key
+    {
+        warnings.push(format!(
+            "{key}: same asset hash is also used by {previous}; verify intentional reuse"
+        ));
+    }
+    match inspect(&bytes, entry.effective_dpi) {
+        Ok(quality) => {
+            for failure in quality.hard_failures(entry.quality_exception) {
+                unresolved.push(format!("{key}: {failure}"));
+            }
+            for warning in quality.warnings() {
+                warnings.push(format!("{key}: {warning}"));
+            }
+        }
+        Err(error) => unresolved.push(format!("{key}: quality check failed: {error}")),
+    }
+}
+
+fn validate_caption(entry: &VisualEntry, key: &str, caption: &str, unresolved: &mut Vec<String>) {
+    let length = caption.trim().chars().count();
+    if !(8..=200).contains(&length) {
+        unresolved.push(format!("{key}: caption must be 8–200 characters"));
+    }
+    if caption.to_lowercase().contains("lorem")
+        || caption.contains("TODO")
+        || caption.contains("...")
+    {
+        unresolved.push(format!("{key}: caption looks like a placeholder"));
+    }
+    if label_only_regex().is_match(caption.trim()) {
+        unresolved.push(format!(
+            "{key}: caption must state a takeaway, not only a figure/table label"
+        ));
+    }
+    if let Some(alt) = entry.alt.as_deref() {
+        let alt_length = alt.trim().chars().count();
+        if !(12..=300).contains(&alt_length) {
+            unresolved.push(format!("{key}: alt must be 12–300 characters"));
+        }
+        if alt.trim() == caption.trim() {
+            unresolved.push(format!("{key}: alt must differ from the caption"));
+        }
+    }
+}
+
+fn label_only_regex() -> &'static Regex {
+    static CAPTION: std::sync::OnceLock<Regex> = std::sync::OnceLock::new();
+    CAPTION.get_or_init(|| {
+        Regex::new(r"(?i)^(şekil|sekil|figure|tablo|table)\s*\d+[.:]?$")
+            .expect("label-only caption regex")
+    })
 }
 
 /// Asset paths must resolve inside the guide and point to an existing file.
@@ -450,6 +737,24 @@ mod tests {
             hash: None,
             local_only: true,
             priority: Some("high".to_string()),
+            candidate_id: None,
+            asset_kind: None,
+            image_id: None,
+            bbox: None,
+            dpi: None,
+            pixel_width: None,
+            pixel_height: None,
+            effective_dpi: None,
+            relevance: None,
+            reconstruction: None,
+            redraw_kind: None,
+            schematic_of: None,
+            source_digest: None,
+            renderer: None,
+            quality: None,
+            quality_exception: false,
+            notes: None,
+            extra: BTreeMap::new(),
         }
     }
 
@@ -697,40 +1002,112 @@ mod tests {
         assert_eq!(report.text, 1);
     }
 
+    fn write_png(path: &Path) -> String {
+        std::fs::create_dir_all(path.parent().expect("parent")).expect("dirs");
+        let mut image = image::RgbaImage::new(400, 400);
+        for (x, y, pixel) in image.enumerate_pixels_mut() {
+            *pixel = if (x / 20 + y / 20) % 2 == 0 {
+                image::Rgba([30, 90, 150, 255])
+            } else {
+                image::Rgba([240, 220, 180, 255])
+            };
+        }
+        let mut bytes = Vec::new();
+        image::DynamicImage::ImageRgba8(image)
+            .write_to(
+                &mut std::io::Cursor::new(&mut bytes),
+                image::ImageFormat::Png,
+            )
+            .expect("png");
+        std::fs::write(path, &bytes).expect("write png");
+        blake3::hash(&bytes).to_hex().to_string()
+    }
+
     #[test]
-    fn rejects_duplicates_unknown_decisions_and_high_priority_decorative() {
-        let mut duplicate = VisualAudit {
+    fn embed_crop_with_a_real_asset_passes_quality_and_provenance() {
+        let root = tempfile::tempdir().expect("tempdir");
+        let asset = "data/crops/x.png";
+        let hash = write_png(&root.path().join(asset));
+        let mut crop = entry(1, "embed_crop");
+        crop.crop = Some("0.1,0.1,0.5,0.5".to_string());
+        crop.asset = Some(asset.to_string());
+        crop.hash = Some(hash);
+        crop.caption = Some("ROC eğrisi ve eşik noktaları".to_string());
+        crop.alt = Some("ROC eğrisi; yatay eksende FPR, dikey eksende TPR".to_string());
+        crop.effective_dpi = Some(200.0);
+        let audit = VisualAudit {
             schema_version: 1,
-            source_pages: vec![entry(1, "text"), entry(1, "text")],
+            source_pages: vec![crop],
         };
-        let report = duplicate.validate(&inventory(vec![1]), Path::new("."));
-        assert!(!report.passed);
-        assert!(
-            report
-                .unresolved
-                .iter()
-                .any(|item| item.contains("duplicate"))
-        );
+        let report = audit.validate(&inventory(vec![1]), root.path());
+        assert!(report.passed, "{report:?}");
+    }
 
-        duplicate.source_pages = vec![entry(1, "mystery")];
-        let report = duplicate.validate(&inventory(vec![1]), Path::new("."));
-        assert!(!report.passed);
+    #[test]
+    fn embed_image_requires_an_image_id() {
+        let root = tempfile::tempdir().expect("tempdir");
+        let asset = "data/figures/x.png";
+        let hash = write_png(&root.path().join(asset));
+        let mut image = entry(1, "embed_image");
+        image.asset = Some(asset.to_string());
+        image.hash = Some(hash);
+        image.caption = Some("Sözdizim grafiği (kaynak görsel)".to_string());
+        image.alt = Some("Sözdizim grafiği; ifade ve terim düğümleri".to_string());
+        image.effective_dpi = Some(200.0);
+        let audit = VisualAudit {
+            schema_version: 1,
+            source_pages: vec![image],
+        };
+        let report = audit.validate(&inventory(vec![1]), root.path());
         assert!(
             report
                 .unresolved
                 .iter()
-                .any(|item| item.contains("unknown decision"))
+                .any(|item| item.contains("needs image_id"))
         );
+    }
 
-        duplicate.source_pages = vec![entry(1, "decorative")];
-        duplicate.source_pages[0].priority = Some("high".to_string());
-        let report = duplicate.validate(&inventory(vec![1]), Path::new("."));
-        assert!(!report.passed);
+    #[test]
+    fn several_candidates_can_have_decisions_on_one_page() {
+        let mut first = entry(1, "text");
+        first.candidate_id = Some("PD0:p1:fig1".to_string());
+        let mut second = entry(1, "describe");
+        second.candidate_id = Some("PD0:p1:fig2".to_string());
+        second.reason = Some("İkinci görsel metinle açıklandı.".to_string());
+        let audit = VisualAudit {
+            schema_version: 1,
+            source_pages: vec![first, second],
+        };
+        let report = audit.validate(&inventory(vec![1]), Path::new("."));
+        assert!(report.passed, "{report:?}");
+        assert_eq!(report.entries, 2);
+    }
+
+    #[test]
+    fn a_schematic_redraw_requires_a_schematic_caption() {
+        let root = tempfile::tempdir().expect("tempdir");
+        std::fs::create_dir_all(root.path().join("diagrams")).expect("diagrams");
+        std::fs::write(root.path().join("diagrams/flow.json"), "{}").expect("asset");
+        let mut redraw = entry(1, "redraw");
+        redraw.asset = Some("diagrams/flow.json".to_string());
+        redraw.redraw_kind = Some("schematic".to_string());
+        redraw.caption = Some("Küme ayrımı".to_string());
+        let audit = VisualAudit {
+            schema_version: 1,
+            source_pages: vec![redraw.clone()],
+        };
+        let report = audit.validate(&inventory(vec![1]), root.path());
         assert!(
             report
                 .unresolved
                 .iter()
-                .any(|item| item.contains("high-priority"))
+                .any(|item| item.contains("şematik"))
         );
+        redraw.caption = Some("Küme ayrımı (şematik)".to_string());
+        let audit = VisualAudit {
+            schema_version: 1,
+            source_pages: vec![redraw],
+        };
+        assert!(audit.validate(&inventory(vec![1]), root.path()).passed);
     }
 }
