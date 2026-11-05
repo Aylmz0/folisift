@@ -11,13 +11,14 @@ VISUAL_BASELINE ?= tests/baselines/pd0-pd1.pdf
 CLEAN_BASELINE ?= tests/baselines/clean-preview.pdf
 VISUAL_PAGES ?= 1,4,8,12,18,23
 
-.PHONY: acceptance feedback-v2 feedback-v3 feedback-v4 help build check verify audit dep-audit toc-check reading-order-check component-contrast-check component-contrast-strict production-report revision revision-check type-check palette-check style-audit exam-check genre-check genre-visual genre-capture d2-pdf-check d2-pdf-capture package-check doctor parity parity-capture visual visual-capture diagram diagram-status package test fmt clippy analyze pages scaffold offline-exam
+.PHONY: acceptance feedback-v2 feedback-v3 feedback-v4 visuals-v5 help build check verify audit dep-audit toc-check reading-order-check component-contrast-check component-contrast-strict production-report revision revision-check type-check palette-check style-audit exam-check genre-check genre-visual genre-capture d2-pdf-check d2-pdf-capture package-check doctor parity parity-capture visual visual-capture diagram diagram-status package test fmt clippy analyze pages scaffold offline-exam
 
 help:
 	@echo "make acceptance # one-command release gate (tests, audits, QA, doctor)"
 	@echo "make feedback-v2 # external A-V2 acceptance checks"
 	@echo "make feedback-v3 # visual/chart A-V3 acceptance checks"
 	@echo "make feedback-v4 # final feedback A-V4 acceptance checks"
+	@echo "make visuals-v5  # A-V5 source visual pipeline acceptance checks"
 	@echo "make build      # guide PDF"
 	@echo "make check      # build + coverage gate"
 	@echo "make verify     # check + layout audit + pdfinfo"
@@ -62,6 +63,10 @@ feedback-v3:
 
 feedback-v4:
 	python3 scripts/check-feedback-v4.py
+
+visuals-v5:
+	cargo build -q -p folisift-cli
+	FOLISIFT_BIN=$(CURDIR)/target/debug/folisift python3 scripts/check-visuals-v5.py
 
 build:
 	cargo run -p folisift-cli -- build --guide $(GUIDE)
