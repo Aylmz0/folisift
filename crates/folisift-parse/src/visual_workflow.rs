@@ -68,6 +68,39 @@ pub async fn apply_decision(
     source_id: &str,
     mut input: DecisionInput,
 ) -> Result<DecisionOutcome> {
+    if !crate::visual_audit::DECISIONS.contains(&input.decision.as_str()) {
+        return Err(Error::PageSelection {
+            value: format!(
+                "unknown visual decision {:?}; use one of {:?}",
+                input.decision,
+                crate::visual_audit::DECISIONS
+            ),
+        });
+    }
+    if input
+        .priority
+        .as_deref()
+        .is_some_and(|priority| !matches!(priority, "low" | "medium" | "high"))
+    {
+        return Err(Error::PageSelection {
+            value: format!(
+                "unknown priority {:?}; use low, medium or high",
+                input.priority
+            ),
+        });
+    }
+    if input
+        .redraw_kind
+        .as_deref()
+        .is_some_and(|kind| !matches!(kind, "concept" | "schematic"))
+    {
+        return Err(Error::PageSelection {
+            value: format!(
+                "unknown redraw_kind {:?}; use concept or schematic",
+                input.redraw_kind
+            ),
+        });
+    }
     let candidate = if let Some(candidate_id) = input.candidate_id.as_deref() {
         let report = collect_candidates(
             source_path,
@@ -192,6 +225,15 @@ pub async fn apply_decision(
             asset_kind = Some("crop".to_string());
         }
         "redraw" => {
+            if input
+                .asset
+                .as_deref()
+                .is_none_or(|value| value.trim().is_empty())
+            {
+                return Err(Error::PageSelection {
+                    value: "redraw requires an existing diagram asset".to_string(),
+                });
+            }
             asset = input.asset.clone();
             asset_kind = Some("diagram".to_string());
         }
