@@ -444,6 +444,7 @@ pub async fn collect_candidates(
                 || classification.relevance == "seductive"
                 || classification.reconstruction == "d2_concept"
                 || classification.reconstruction == "table"
+                || classification.reconstruction == "text"
             {
                 "text-only"
             } else if scoring.score >= 50 {
