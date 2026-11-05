@@ -1,6 +1,6 @@
 # Source visual calibration — v0
 
-- **Status:** Ground truth captured before implementation; implementation calibration v1 recorded below
+- **Status:** Completed — v1 ground truth and manual calibration review recorded
 - **Date:** 2026-11-05
 - **Related plan:** [`2026-11-05-source-visual-pipeline.md`](2026-11-05-source-visual-pipeline.md)
 - **Research basis:** [`../learning-science-and-genre-review-2026-11-02.md`](../learning-science-and-genre-review-2026-11-02.md#6-visual-learning-evidence-2026-11-05-update)
