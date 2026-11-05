@@ -253,6 +253,68 @@ pub async fn build(workspace: &Workspace, request: BuildRequest) -> Result<Build
                         intentional,
                     );
                     report.visual_gate = visual_gate.to_string();
+                    if let Some(budget) = guide
+                        .config
+                        .audit
+                        .as_ref()
+                        .and_then(|policy| policy.visual_budget.as_ref())
+                    {
+                        if !matches!(budget.mode.as_str(), "warn" | "required") {
+                            return Err(fail_with_draft(
+                                format!(
+                                    "unknown visual_budget.mode {:?}; use warn or required",
+                                    budget.mode
+                                ),
+                                &mut staged,
+                            ));
+                        }
+                        let embedded = audit
+                            .source_pages
+                            .iter()
+                            .filter(|entry| {
+                                matches!(entry.decision.as_str(), "embed_crop" | "embed_image")
+                            })
+                            .count();
+                        let mut over = Vec::new();
+                        if let Some(max) = budget.max_per_guide
+                            && embedded > max
+                        {
+                            over.push(format!(
+                                "guide has {embedded} embedded visuals; soft max is {max}"
+                            ));
+                        }
+                        if let Some(max) = budget.max_per_source {
+                            let mut per_source = std::collections::BTreeMap::<&str, usize>::new();
+                            for entry in &audit.source_pages {
+                                if matches!(entry.decision.as_str(), "embed_crop" | "embed_image") {
+                                    *per_source.entry(entry.source.as_str()).or_default() += 1;
+                                }
+                            }
+                            for (source, count) in per_source {
+                                if count > max {
+                                    over.push(format!(
+                                        "{source} has {count} embedded visuals; soft max is {max}"
+                                    ));
+                                }
+                            }
+                        }
+                        if let Some(percent) = budget.max_visual_page_share_percent
+                            && inventory.totals.pages > 0
+                            && (embedded * 100) / inventory.totals.pages > usize::from(percent)
+                        {
+                            over.push(format!(
+                                "embedded visuals cover {}% of source pages; soft max is {percent}%",
+                                (embedded * 100) / inventory.totals.pages
+                            ));
+                        }
+                        if !over.is_empty() {
+                            let message = format!("visual budget: {}", over.join("; "));
+                            if budget.mode == "required" {
+                                return Err(fail_with_draft(message, &mut staged));
+                            }
+                            report.warnings.push(message);
+                        }
+                    }
                     let passed = report.missing_low_text.is_empty()
                         && report.unresolved.is_empty()
                         && (visual_gate != "required" || report.missing_figures.is_empty());
