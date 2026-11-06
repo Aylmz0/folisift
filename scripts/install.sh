@@ -14,17 +14,22 @@ case "$(uname -m)" in
   *) fail "unsupported architecture: $(uname -m)" ;;
 esac
 
-version="${FOLISIFT_VERSION:-}"
-if [ -z "$version" ]; then
-  version="$(curl -fsSL https://api.github.com/repos/Aylmz0/folisift/releases/latest \
+tag="${FOLISIFT_VERSION:-}"
+if [ -z "$tag" ]; then
+  tag="$(curl -fsSL https://api.github.com/repos/Aylmz0/folisift/releases/latest \
     | sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' \
     | head -n 1)"
-  [ -n "$version" ] || fail "could not resolve the latest release; set FOLISIFT_VERSION"
+  [ -n "$tag" ] || fail "could not resolve the latest release; set FOLISIFT_VERSION"
 fi
+case "$tag" in
+  v*) ;;
+  *) tag="v${tag}" ;;
+esac
+version="${tag#v}"
 
-name="folisift-${version}-linux-${arch}.tar.gz"
+name="folisift-v${version}-linux-${arch}.tar.gz"
 base="${FOLISIFT_BASE_URL:-https://github.com/Aylmz0/folisift/releases/download}"
-url="${base}/${version}/${name}"
+url="${base}/${tag}/${name}"
 prefix="${FOLISIFT_PREFIX:-$HOME/.local}"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
