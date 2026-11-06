@@ -48,14 +48,16 @@ pub use hint::{
     CoverageHint, coverage_hints, coverage_hints_with_manifest, heading_has_range,
     heading_range_contains,
 };
-pub use insights::extract_insights;
+pub use insights::{extract_insights, extract_insights_with};
 pub use inventory::{CanonicalSection, Heading, Inventory, PageRow, SourceInventory, Totals};
 pub use layout::{
     BlockView, LAYOUT_SCHEMA_VERSION, LayoutBlock, LayoutBlockKind, LayoutCell, LayoutSummary,
-    PageLayout, PageLayoutSummary, Rect as LayoutRect, SourceLayout, read_block_view,
-    write_layouts,
+    PageLayout, PageLayoutSummary, Rect as LayoutRect, SourceLayout, block_path, read_block_view,
+    source_id, write_layouts,
 };
-pub use manifest::{CoverageManifest, CoverageStatus, ManifestRow};
+pub use manifest::{
+    CoverageManifest, CoverageStatus, ManifestRow, manifest_row_number, number_specs,
+};
 pub use parser::{
     Analysis, AnalyzedSource, LiteparseParser, SourceParser, analyze_source, analyze_sources,
     analyze_sources_with_layout, parse_page_list,
@@ -79,8 +81,8 @@ pub use visual_audit::{
     VisualReport as GuideVisualReport,
 };
 pub use visual_candidates::{
-    CandidateCounts, CandidateReport, SCORER_VERSION as VISUAL_SCORER_VERSION, VisualCandidate,
-    collect_candidates,
+    CANDIDATE_MANIFEST_SCHEMA_VERSION, CandidateCounts, CandidateManifest, CandidateReport,
+    CandidateSource, SCORER_VERSION as VISUAL_SCORER_VERSION, VisualCandidate, collect_candidates,
 };
 pub use visual_quality::QualityReport;
 pub use visual_workflow::{

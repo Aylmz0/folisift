@@ -6,14 +6,18 @@ edition.workspace = true
 rust-version.workspace = true
 publish.workspace = true
 
+[features]
+default = []
+ocr-tesseract = ["folisift-parse/ocr-tesseract"]
+
 [dependencies]
 axum.workspace = true
 blake3.workspace = true
-folisift-build = { path = "../folisift-build", version = "0.22.0" }
-folisift-core = { path = "../folisift-core", version = "0.22.0" }
-folisift-links = { path = "../folisift-links", version = "0.22.0" }
-folisift-parse = { path = "../folisift-parse", version = "0.22.0" }
-folisift-render = { path = "../folisift-render", version = "0.22.0" }
+folisift-build = { path = "../folisift-build", version = "0.23.0" }
+folisift-core = { path = "../folisift-core", version = "0.23.0" }
+folisift-links = { path = "../folisift-links", version = "0.23.0" }
+folisift-parse = { path = "../folisift-parse", version = "0.23.0" }
+folisift-render = { path = "../folisift-render", version = "0.23.0" }
 rmcp.workspace = true
 schemars.workspace = true
 serde.workspace = true

@@ -196,6 +196,9 @@ pub struct AuditPolicy {
     /// off, warn or required for pages with figure/table evidence.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub visual_gate: Option<String>,
+    /// Minimum candidate score that enters the required visual gate.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub visual_min_score: Option<u8>,
     /// combined, review, generated or legacy; generated is advisory by default.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub manifest_gate: Option<String>,
@@ -413,6 +416,24 @@ impl Guide {
                 return Err(config_error(
                     &config_path,
                     "review_intervals must be between 1 and 365 days",
+                ));
+            }
+        }
+        if let Some(policy) = &config.audit {
+            if let Some(gate) = policy.visual_gate.as_deref()
+                && !matches!(gate, "off" | "warn" | "required")
+            {
+                return Err(config_error(
+                    &config_path,
+                    format!("audit.visual_gate {gate:?} must be off, warn or required"),
+                ));
+            }
+            if let Some(score) = policy.visual_min_score
+                && score > 100
+            {
+                return Err(config_error(
+                    &config_path,
+                    "audit.visual_min_score must be between 0 and 100",
                 ));
             }
         }

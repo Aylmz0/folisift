@@ -14,7 +14,7 @@ release ownership. `AGENTS.md` only points here.
 `FOLISIFT_BUILD` may override the build number for a reproducible build. A
 binary must never read `.git` at runtime.
 
-The MCP tool contract has its own `mcp_tool_schema_version` (currently `17`).
+The MCP tool contract has its own `mcp_tool_schema_version` (currently `19`).
 A breaking tool-schema change requires at least a MINOR SemVer bump.
 
 ## SemVer rules
@@ -35,7 +35,8 @@ A breaking tool-schema change requires at least a MINOR SemVer bump.
 ## Release checklist
 
 1. `cargo test --workspace`
-2. `cargo clippy --workspace --all-targets --all-features -- -D warnings`
+2. `cargo clippy --workspace --all-targets -- -D warnings`
+   (run the `ocr-tesseract` feature job separately on a native-toolchain runner)
 3. `cargo fmt --all -- --check`
 4. `cargo run -p folisift-cli -- build --guide pd0-pd1 --check`
 5. `cargo run -p folisift-cli -- doctor` and `audit --expected-pages 23`.

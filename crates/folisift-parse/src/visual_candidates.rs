@@ -4,7 +4,7 @@
 //! uses the bounded context and the score breakdown to decide whether to
 //! embed, redraw, describe or skip a visual.
 
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::path::Path;
 
 use liteparse::config::OutputFormat;
@@ -105,6 +105,123 @@ pub struct CandidateReport {
     pub candidates: Vec<VisualCandidate>,
     pub next: Option<usize>,
     pub policy: String,
+}
+
+pub const CANDIDATE_MANIFEST_SCHEMA_VERSION: u32 = 1;
+
+/// Deterministic, text-only cache of ranked candidates for a guide.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CandidateManifest {
+    pub schema_version: u32,
+    pub scorer_version: u32,
+    pub generated_from: String,
+    #[serde(default)]
+    pub sources: Vec<CandidateSource>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CandidateSource {
+    pub source: String,
+    pub source_digest: String,
+    pub pages: usize,
+    #[serde(default)]
+    pub candidates: Vec<VisualCandidate>,
+}
+
+impl CandidateManifest {
+    pub fn new() -> Self {
+        Self {
+            schema_version: CANDIDATE_MANIFEST_SCHEMA_VERSION,
+            scorer_version: SCORER_VERSION,
+            generated_from: "visual_candidates".to_string(),
+            sources: Vec::new(),
+        }
+    }
+
+    pub fn read(path: &Path) -> Result<Self> {
+        let bytes = std::fs::read(path).map_err(|error| crate::error::io(path, error))?;
+        serde_json::from_slice(&bytes).map_err(|error| crate::error::Error::Parse {
+            path: path.to_path_buf(),
+            message: format!("visual candidate manifest: {error}"),
+        })
+    }
+
+    pub fn write(&self, path: &Path) -> Result<()> {
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent).map_err(|error| crate::error::io(parent, error))?;
+        }
+        let text =
+            serde_json::to_string_pretty(self).map_err(|error| crate::error::Error::Parse {
+                path: path.to_path_buf(),
+                message: format!("serialize visual candidate manifest: {error}"),
+            })?;
+        let temporary = path.with_extension("json.tmp");
+        std::fs::write(&temporary, text + "\n")
+            .map_err(|error| crate::error::io(&temporary, error))?;
+        std::fs::rename(&temporary, path).map_err(|error| crate::error::io(path, error))
+    }
+
+    /// Upsert one source report. Other sources are preserved.
+    pub fn upsert_source(&mut self, report: &CandidateReport) {
+        let pages = report
+            .candidates
+            .iter()
+            .map(|candidate| candidate.page)
+            .max()
+            .unwrap_or(0);
+        let entry = CandidateSource {
+            source: report.source.clone(),
+            source_digest: report.source_digest.clone(),
+            pages,
+            candidates: report.candidates.clone(),
+        };
+        if let Some(existing) = self
+            .sources
+            .iter_mut()
+            .find(|existing| existing.source == entry.source)
+        {
+            *existing = entry;
+        } else {
+            self.sources.push(entry);
+            self.sources.sort_by(|a, b| a.source.cmp(&b.source));
+        }
+    }
+
+    /// Page-level gate set. Core candidates and real table candidates count;
+    /// decorative/seductive rows never create a mandatory page.
+    pub fn gate_pages(&self, min_score: u32) -> BTreeSet<(String, usize)> {
+        let mut pages = BTreeSet::new();
+        for source in &self.sources {
+            for candidate in &source.candidates {
+                if candidate.score < min_score {
+                    continue;
+                }
+                let decorative = matches!(
+                    candidate.relevance.label.as_str(),
+                    "decorative" | "seductive"
+                );
+                let core = candidate.relevance.label == "core";
+                let table = candidate.reconstruction.kind == "table" && !decorative;
+                if core || table {
+                    pages.insert((source.source.clone(), candidate.page));
+                }
+            }
+        }
+        pages
+    }
+
+    pub fn source_digest(&self, source: &str) -> Option<&str> {
+        self.sources
+            .iter()
+            .find(|entry| entry.source == source)
+            .map(|entry| entry.source_digest.as_str())
+    }
+}
+
+impl Default for CandidateManifest {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[derive(Debug, Clone)]

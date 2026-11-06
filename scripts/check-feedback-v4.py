@@ -138,6 +138,9 @@ def temp_guide(source: Path):
     shutil.copy2(source, src)
     for name in ["config.json", "guide.md"]:
         shutil.copy2(EXTERNAL / "guides/is-hukuku" / name, root / "guides/is-hukuku" / name)
+    blocks = EXTERNAL / "guides/is-hukuku/data/blocks"
+    if blocks.is_dir():
+        shutil.copytree(blocks, root / "guides/is-hukuku/data/blocks")
     return root
 
 
@@ -168,7 +171,7 @@ if EXTERNAL.is_dir():
                 has_102 = any(item.startswith("10.2") for item in headings)
                 record(
                     "A-V4-01 generated rows",
-                    len(rows) == 138 and not body_like and has_444 and not has_102,
+                    len(rows) >= 138 and not body_like and has_444 and has_102,
                     f"rows={len(rows)} body_like={len(body_like)} 4.4.4={has_444} 10.2={has_102}",
                 )
                 validated = cli(

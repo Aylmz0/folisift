@@ -4,7 +4,7 @@
 //! a stable Folisift schema so a parser upgrade cannot silently change the
 //! inventory or the document-link artifact.
 
-use std::path::Path;
+use std::path::{Component, Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
@@ -287,18 +287,64 @@ pub struct PageLayoutSummary {
 }
 
 /// Read a bounded page/block view from a stored layout artifact.
+/// Normalize a source argument to the block-file stem.
+///
+/// Accepted forms: `PD0`, `PD0.pdf`, `sources/PD0.pdf` and
+/// `data/blocks/PD0.json`. Paths that escape the workspace are rejected.
+pub fn source_id(value: &str) -> Result<String> {
+    let raw = value.trim();
+    let path = Path::new(raw);
+    if raw.is_empty()
+        || path.is_absolute()
+        || path.components().any(|component| {
+            matches!(
+                component,
+                Component::ParentDir | Component::RootDir | Component::Prefix(_)
+            )
+        })
+    {
+        return Err(Error::Parse {
+            path: PathBuf::from(raw),
+            message: "invalid source id; use PD0, PD0.pdf, sources/PD0.pdf or data/blocks/PD0.json"
+                .to_string(),
+        });
+    }
+    let file = path
+        .file_name()
+        .and_then(|value| value.to_str())
+        .ok_or_else(|| Error::Parse {
+            path: PathBuf::from(raw),
+            message: "source id has no file name".to_string(),
+        })?;
+    let mut stem = file;
+    for extension in [".pdf.json", ".pdf", ".json"] {
+        if let Some(value) = stem.strip_suffix(extension) {
+            stem = value;
+            break;
+        }
+    }
+    if stem.is_empty() || stem.contains('/') || stem.contains('\\') || stem == "." || stem == ".." {
+        return Err(Error::Parse {
+            path: PathBuf::from(raw),
+            message: "invalid source id; use the PDF file stem".to_string(),
+        });
+    }
+    Ok(stem.to_string())
+}
+
+/// Resolve one source argument to `<guide>/data/blocks/<id>.json`.
+pub fn block_path(guide_dir: &Path, source: &str) -> Result<PathBuf> {
+    let id = source_id(source)?;
+    Ok(guide_dir.join("data/blocks").join(format!("{id}.json")))
+}
+
 pub fn read_block_view(
     blocks_dir: &Path,
     source: &str,
     pages: Option<&[u32]>,
     max_blocks: usize,
 ) -> Result<BlockView> {
-    if source.is_empty() || source.contains('/') || source.contains('\\') || source.contains("..") {
-        return Err(Error::Parse {
-            path: blocks_dir.join(format!("{source}.json")),
-            message: "invalid source id".to_string(),
-        });
-    }
+    let source = source_id(source)?;
     let layout = SourceLayout::read_json(&blocks_dir.join(format!("{source}.json")))?;
     let total_blocks = layout.pages.iter().map(|page| page.blocks.len()).sum();
     let mut returned_blocks = 0usize;
@@ -338,6 +384,17 @@ fn is_false(value: &bool) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn normalizes_source_arguments() {
+        for value in ["PD0", "PD0.pdf", "sources/PD0.pdf", "data/blocks/PD0.json"] {
+            assert_eq!(source_id(value).expect(value), "PD0");
+        }
+        assert!(source_id("").is_err());
+        assert!(source_id("../PD0.pdf").is_err());
+        assert!(source_id("/tmp/PD0.pdf").is_err());
+        assert!(source_id("sources/..").is_err());
+    }
 
     #[test]
     fn maps_layout_cells_and_counts() {

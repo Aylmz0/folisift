@@ -6,6 +6,10 @@ edition.workspace = true
 rust-version.workspace = true
 publish.workspace = true
 
+[features]
+default = []
+ocr-tesseract = ["liteparse/tesseract"]
+
 [dev-dependencies]
 tempfile.workspace = true
 
@@ -13,7 +17,7 @@ tempfile.workspace = true
 async-trait.workspace = true
 blake3.workspace = true
 chrono.workspace = true
-folisift-core = { path = "../folisift-core", version = "0.22.0" }
+folisift-core = { path = "../folisift-core", version = "0.23.0" }
 image.workspace = true
 liteparse.workspace = true
 liteparse-pdfium.workspace = true

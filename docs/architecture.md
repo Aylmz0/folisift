@@ -134,7 +134,7 @@ completeness on its own.
 
 ```bash
 cargo test --workspace
-cargo clippy --workspace --all-targets --all-features -- -D warnings
+cargo clippy --workspace --all-targets -- -D warnings
 cargo run -p folisift-cli -- build --guide pd0-pd1 --check
 ```
 
@@ -145,9 +145,10 @@ with a stdio client during release checks.
 
 ## Source visual workflow
 
-1. `folisift visual candidates --source sources/<file>.pdf --pages …` returns
-   ranked, text-only candidates with bbox, context, `relevance`,
-   `reconstruction`, `score_parts`, `suggested` and `review_mode`.
+1. `folisift visual candidates --source sources/<file>.pdf --pages … --write`
+   returns ranked, text-only candidates with bbox, context, `relevance`,
+   `reconstruction`, `score_parts`, `suggested` and `review_mode`, and upserts
+   `data/visual-candidates.json`.
 2. The host reads the bounded context and decides: embed native, embed crop,
    redraw with D2, use a table, describe or skip.
 3. `folisift visual decision …` materializes the asset, validates quality,
@@ -155,13 +156,22 @@ with a stdio client during release checks.
    edits `guide.md`.
 4. `folisift visual assets --guide <slug> --action check|materialize|refresh`
    verifies or regenerates recorded assets.
-5. `folisift build --guide <slug> --check` enforces the visual gate.
+5. `folisift build --guide <slug> --check` enforces the visual gate. Gated
+   pages come from the candidate manifest; `warn` reports `advisory`, while
+   `required` needs the manifest and blocks missing decisions.
 
 The MCP equivalents are `visual_candidates`, `visual_extract`,
 `visual_decision` and `visual_assets`. The boundary decision is
 [ADR-0015](adr/0015-source-visual-pipeline.md). D2 remains a concept/schematic engine,
 not a plotting library. Native images and crops stay local; source PDFs are
 read-only.
+
+## MCP guidance
+
+The MCP contract is layered: a short server instruction, tool descriptions and
+JSON Schemas, structured results with a concise summary, user-invoked prompts
+and on-demand resources. See [MCP guidance](mcp-guidance.md). The server never
+executes a shell, a network request or an LLM call.
 
 ## Non-goals
 

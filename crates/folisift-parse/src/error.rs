@@ -20,6 +20,9 @@ pub enum Error {
 
     #[error("PDF has no pages: {path}")]
     NoPages { path: PathBuf },
+
+    #[error("OCR_UNAVAILABLE: {message}")]
+    OcrUnavailable { message: String },
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

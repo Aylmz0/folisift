@@ -24,7 +24,9 @@ Run from the repository root unless stated otherwise.
 ```bash
 # Build, test and inspect
 cargo test
-cargo clippy --all-targets --all-features -- -D warnings
+cargo clippy --workspace --all-targets -- -D warnings
+# OCR feature job (separate native toolchain):
+cargo clippy -p folisift-cli --all-targets --features ocr-tesseract -- -D warnings
 cargo fmt --all -- --check
 cargo run -p folisift-cli -- workspace-info
 cargo run -p folisift-cli -- guide-status pd0-pd1

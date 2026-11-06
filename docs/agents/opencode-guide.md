@@ -18,7 +18,8 @@ itself never runs a shell, D2 or a network request.
 2. doctor
 3. prepare_guide (analyze once, scaffold, outline)
 4. read_source / search_source in 10–20 page chunks
-5. for every low-text page, record one decision in visual-audit.json
+5. visual candidates --write once per source; inspect the page and record
+   every decision with visual_decision (never hand-edit visual-audit.json)
 6. write guide.md with covers, audit and source refs
    (revision/organiser: declare source_scope and cite every scoped page)
 7. for each meaningful mechanism or high-priority target:

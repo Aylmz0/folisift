@@ -5,7 +5,7 @@ PDFs into source-traceable, paper-like study guides with a deterministic build,
 layout audit and local review tools. The engine is shared; each course is a
 self-contained guide bundle.
 
-**Current release: `v0.20.0`** — Linux archive, source builds for macOS and
+**Current release: `v0.23.0`** — Linux archive, source builds for macOS and
 Windows, and a source-available PolyForm Strict license.
 
 - Repository: <https://github.com/Aylmz0/folisift>
@@ -26,8 +26,8 @@ Windows, and a source-available PolyForm Strict license.
 - Enforces coverage, page budget, typography, contrast, reading order,
   bookmark, overflow, visual-evidence and visual-regression gates. A reviewed
   coverage manifest makes the source-heading set authoritative for multi-source
-  guides; figure/table pages enter a configurable visual gate (`off`, `warn`,
-  `required`).
+  guides; candidate-backed visual pages enter a configurable gate (`off`,
+  `warn`, `required`) with an explicit advisory status.
 - Exposes the same build, source, block, link, graph, claim and card operations
   through a CLI and an MCP server for agent hosts such as OpenCode. Section
   briefs, source topics, guide plans, cost reports and bounded section reads
@@ -81,8 +81,8 @@ pre-generated SVG and never execute D2.
 ### Manual archive
 
 ```bash
-tar -xzf folisift-v0.20.0-linux-x86_64.tar.gz
-sha256sum -c folisift-v0.20.0-linux-x86_64.tar.gz.sha256
+tar -xzf folisift-v0.23.0-linux-x86_64.tar.gz
+sha256sum -c folisift-v0.23.0-linux-x86_64.tar.gz.sha256
 ./folisift doctor
 ```
 
@@ -204,7 +204,7 @@ Or declare it directly:
 
 Ask the host to run `doctor`, prepare the guide, read the sources, write the
 guide, build with the coverage gate and audit the PDF. The MCP exposes 41 tools
-at schema 17; profiles (`core`, `source`, `authoring`, `review`, `fast`, `deep`)
+at schema 19 with a layered guidance contract; profiles (`core`, `source`, `authoring`, `review`, `fast`, `deep`)
 hide the rest before `tools/list`, and `core` is ten tools. The normal path is
 `prepare_guide` → `section_brief` / `read_section` / `read_source` → host writes
 `guide.md` → `build_guide` → `qa_guide` (`audit_guide` for the standalone
@@ -250,7 +250,7 @@ Requirements: Rust 1.92+, `libpdfium.so` in the binary directory or
 ```bash
 cargo build --release
 cargo test --workspace
-cargo clippy --workspace --all-targets --all-features -- -D warnings
+cargo clippy --workspace --all-targets -- -D warnings
 cargo fmt --all -- --check
 ```
 

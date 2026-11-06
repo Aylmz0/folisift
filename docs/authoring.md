@@ -250,6 +250,10 @@ Every low-text page needs exactly one decision in
 }
 ```
 
+Prefer `folisift visual decision` (MCP `visual_decision`): it derives the crop,
+checks quality, upserts this file and returns the Markdown snippet. Hand-edit
+the JSON only for review or migration.
+
 Decisions: `native_table`, `redraw_table`, `redraw_figure`, `embed_crop`,
 `describe`, `text`, `decorative`, `unreadable`. Legacy `table` is accepted as
 `redraw_table` for one release; legacy `redraw` remains a figure redraw.
@@ -265,9 +269,10 @@ values.
 - `text`, `decorative` and `unreadable` require a reason.
 - Cover pages and decorative photos are `decorative`; they are not content.
 - `build --check` fails when a low-text page is missing from the manifest or
-  an entry is unresolved. With `config.audit.visual_gate="required"`, pages
-  with figure/table/vector evidence are also required; the default `warn`
-  reports them without breaking existing guides.
+  an entry is unresolved. With `config.audit.visual_gate="required"`, gated
+  candidate pages are also required and `data/visual-candidates.json` must
+  exist. The default `warn` reports gaps as `status="advisory"` without
+  breaking existing guides.
 - This is the evidence trail for the G section.
 
 `build --check` also reports `underfilled_pages` through `folisift audit`.
@@ -664,18 +669,21 @@ case headings.
 
 ### Source visuals
 
-Start with the ranked, text-only candidate report:
+Start with the ranked, text-only candidate report and persist it once per
+source:
 
 ```bash
 folisift visual candidates --guide my-guide --source sources/PD0.pdf \
-  --pages 14,45 --min-score 30
+  --pages 14,45 --min-score 30 --write
 ```
 
 Each candidate has a bbox, bounded context, `relevance`
 (`core`/`supporting`/`decorative`/`seductive`), `reconstruction`
 (`d2_concept`/`d2_schematic`/`table`/`text`/`unique`), `score_parts`,
-`suggested` and `review_mode`. Read the context; the report never sends image
-bytes and never replaces host judgment.
+`suggested` and `review_mode`. `--write` upserts the source entry in
+`guides/<slug>/data/visual-candidates.json`; the file is deterministic and
+stores no image bytes. Read the context; the report never replaces host
+judgment.
 
 Record the decision with one command. It materializes the asset, validates
 quality, upserts `visual-audit.json` and prints the Markdown snippet:
@@ -749,15 +757,18 @@ image evidence per page. Set:
 }
 ```
 
-for a chart-sensitive guide. `required` fails the build when an evidence page
-has no decision; `warn` (default) reports missing decisions; `off` keeps the
-legacy low-text-only gate. `visual_candidates` gives per-visual decisions inside
-a page; `visual assets --check` is the strict preflight for high-score
-candidates and recorded assets. A soft budget can warn:
+for a chart-sensitive guide. `required` fails the build when a gated candidate
+page has no decision and requires `data/visual-candidates.json`; `warn`
+(default) reports missing decisions as advisory, with `status="advisory"` rather
+than a false `passed:true`; `off` keeps the legacy low-text-only gate. The gate
+uses core candidates and real table candidates at or above
+`audit.visual_min_score` (default 50). `visual assets --check` remains the
+strict per-candidate preflight. A soft budget can warn:
 
 ```json
 "audit": {
   "visual_gate": "required",
+  "visual_min_score": 50,
   "visual_budget": {
     "mode": "warn",
     "max_per_source": 16,

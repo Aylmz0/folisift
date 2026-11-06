@@ -89,6 +89,21 @@ pub async fn extract_insights(
     target_pages: Option<&str>,
     continue_on_page_error: bool,
 ) -> Result<Value> {
+    extract_insights_with(path, ocr, None, target_pages, continue_on_page_error).await
+}
+
+pub async fn extract_insights_with(
+    path: &Path,
+    ocr: bool,
+    ocr_server_url: Option<&str>,
+    target_pages: Option<&str>,
+    continue_on_page_error: bool,
+) -> Result<Value> {
+    if ocr && !cfg!(feature = "ocr-tesseract") && ocr_server_url.is_none() {
+        return Err(Error::OcrUnavailable {
+            message: "build with `--features ocr-tesseract` or pass `--ocr-server-url` in the CLI; the MCP server stays network-free".to_string(),
+        });
+    }
     pdfium::init(None)?;
     let path_text = path.to_str().ok_or_else(|| Error::Parse {
         path: path.to_path_buf(),
@@ -96,6 +111,7 @@ pub async fn extract_insights(
     })?;
     let result = LiteParse::new(LiteParseConfig {
         ocr_enabled: ocr,
+        ocr_server_url: ocr_server_url.map(ToString::to_string),
         target_pages: target_pages.map(ToString::to_string),
         continue_on_page_error,
         output_format: OutputFormat::Json,
@@ -135,6 +151,21 @@ pub async fn extract_insights(
                 "complexity": page.complexity,
                 "structure_nodes": page.struct_nodes.len(),
                 "image_refs": page.image_refs.len(),
+                "image_refs_detail": page.image_refs.iter().map(|image| json!({
+                    "id": image.id,
+                    "bbox": {
+                        "x": image.bbox.x,
+                        "y": image.bbox.y,
+                        "width": image.bbox.width,
+                        "height": image.bbox.height,
+                    },
+                    "format": image.format,
+                    "pixel_width": image.pixel_width,
+                    "pixel_height": image.pixel_height,
+                    "rotation": image.rotation,
+                    "bits_per_pixel": image.bits_per_pixel,
+                    "colorspace": image.colorspace,
+                })).collect::<Vec<_>>(),
                 "figures": page.figures.len(),
                 "vector_graphics": page.vector_graphics.as_ref().map_or(0, |graphics| graphics.shapes.len() + graphics.lines.len()),
             })
@@ -195,4 +226,18 @@ pub async fn extract_insights(
             "note": "Annotations/forms/structure/vector/complexity are diagnostics, not coverage inputs."
         },
     }))
+}
+
+#[cfg(all(test, not(feature = "ocr-tesseract")))]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn ocr_without_feature_or_server_is_structured() {
+        let error = extract_insights(Path::new("missing.pdf"), true, None, false)
+            .await
+            .expect_err("OCR must be unavailable");
+        assert!(error.to_string().starts_with("OCR_UNAVAILABLE:"));
+        assert!(error.to_string().contains("ocr-tesseract"));
+    }
 }

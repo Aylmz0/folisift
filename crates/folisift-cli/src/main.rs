@@ -106,6 +106,9 @@ enum Command {
         /// Enable LiteParse OCR (off by default).
         #[arg(long)]
         ocr: bool,
+        /// HTTP OCR server URL; CLI-only, the MCP server stays network-free.
+        #[arg(long, env = "FOLISIFT_OCR_SERVER_URL")]
+        ocr_server_url: Option<String>,
         /// Page range such as 1-5,10.
         #[arg(long)]
         pages: Option<String>,
@@ -514,6 +517,9 @@ enum VisualCommand {
         /// summary (top 5) or full.
         #[arg(long, default_value = "full")]
         detail: String,
+        /// Persist the full candidate report to the guide data directory.
+        #[arg(long)]
+        write: bool,
     },
     /// Extract one native image from a source page.
     Extract {
@@ -956,6 +962,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                     let d2 = diagram_cmd::engine_info();
                     json!({"name": "d2", "ok": d2["ok"], "required": d2["required"], "detail": d2["detail"], "path": d2["path"], "version": d2["version"]})
                 },
+                ocr_check(),
             ];
             let ok = checks.iter().all(|check| check["ok"] == true);
             let value = json!({
@@ -1117,8 +1124,19 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 std::fs::create_dir_all(parent)?;
             }
             std::fs::write(&out, folisift_core::cards::to_csv(&cards))?;
+            let definitions = cards
+                .iter()
+                .filter(|card| {
+                    card.tags
+                        .iter()
+                        .any(|tag| tag == "definition" || tag == "must-know")
+                })
+                .count();
+            let recall = cards.len().saturating_sub(definitions);
             let warning = if cards.is_empty() {
                 Some("no recall/answer pairs found; add ::: recall and ::: answer blocks")
+            } else if definitions > 0 && recall == 0 {
+                Some("no recall blocks; only definition cards")
             } else {
                 None
             };
@@ -1128,6 +1146,8 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                     "guide": guide.slug,
                     "output": out.display().to_string(),
                     "cards": cards.len(),
+                    "recall": recall,
+                    "definitions": definitions,
                     "review_intervals_days": intervals,
                     "warning": warning,
                 }))?
@@ -1283,13 +1303,15 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
         Command::Insights {
             source,
             ocr,
+            ocr_server_url,
             pages,
             continue_on_page_error,
         } => {
             let source = workspace.resolve_read(&source)?;
-            let value = folisift_parse::extract_insights(
+            let value = folisift_parse::extract_insights_with(
                 &source,
                 ocr,
+                ocr_server_url.as_deref(),
                 pages.as_deref(),
                 continue_on_page_error,
             )
@@ -1944,6 +1966,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 min_score,
                 limit,
                 detail,
+                write,
             } => {
                 let source = workspace.resolve_read(&source)?;
                 let source_id = source
@@ -1951,15 +1974,33 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                     .and_then(|value| value.to_str())
                     .unwrap_or("source")
                     .to_string();
+                let guide_slug = guide.clone();
+                let collect_limit = if write {
+                    usize::MAX
+                } else {
+                    limit.clamp(1, 100)
+                };
                 let mut report = collect_candidates(
                     &source,
                     &source_id,
                     guide,
                     pages.as_deref(),
                     min_score,
-                    limit.clamp(1, 100),
+                    collect_limit,
                 )
                 .await?;
+                if write {
+                    let Some(slug) = guide_slug else {
+                        return Err("visual candidates --write needs guide".into());
+                    };
+                    let guide = Guide::load(&workspace, &slug)?;
+                    let path = guide.dir.join("data/visual-candidates.json");
+                    let mut manifest = folisift_parse::CandidateManifest::read(&path)
+                        .unwrap_or_else(|_| folisift_parse::CandidateManifest::new());
+                    manifest.scorer_version = folisift_parse::VISUAL_SCORER_VERSION;
+                    manifest.upsert_source(&report);
+                    manifest.write(&path)?;
+                }
                 if detail == "summary" && report.candidates.len() > 5 {
                     report.candidates.truncate(5);
                     report.counts.returned = 5;
@@ -2089,9 +2130,8 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
             max_tokens,
         } => {
             let guide = Guide::load(&workspace, &guide)?;
-            let layout = folisift_parse::SourceLayout::read_json(
-                &guide.dir.join("data/blocks").join(format!("{source}.json")),
-            )?;
+            let block_path = folisift_parse::block_path(&guide.dir, &source)?;
+            let layout = folisift_parse::SourceLayout::read_json(&block_path)?;
             let max_chars = max_tokens.map_or(max_chars, |tokens| tokens.saturating_mul(4));
             let (brief, _) = folisift_parse::section_brief_cached(
                 &guide.dir.join("data/briefs"),
@@ -2112,9 +2152,8 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
             offset,
         } => {
             let guide = Guide::load(&workspace, &guide)?;
-            let layout = folisift_parse::SourceLayout::read_json(
-                &guide.dir.join("data/blocks").join(format!("{source}.json")),
-            )?;
+            let block_path = folisift_parse::block_path(&guide.dir, &source)?;
+            let layout = folisift_parse::SourceLayout::read_json(&block_path)?;
             let max_chars = max_tokens.map_or(max_chars, |tokens| tokens.saturating_mul(4));
             let read =
                 folisift_parse::read_section_mode(&layout, &heading, max_chars, offset, &mode)
@@ -2139,17 +2178,41 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                     )
                     .await?;
                     let markdown = std::fs::read_to_string(&guide.content)?;
-                    let manifest = folisift_parse::CoverageManifest::build(&inventory, &markdown);
+                    let cache = SourceCache::new(workspace.root().join("data/cache"));
+                    let mut source_texts = std::collections::BTreeMap::new();
+                    let mut source_layouts = std::collections::BTreeMap::new();
+                    for source in &guide.sources {
+                        let Some(id) = source.file_stem().and_then(|value| value.to_str()) else {
+                            continue;
+                        };
+                        if let Ok(text) = cache.load(source, false).await {
+                            source_texts.insert(id.to_string(), text.pages);
+                        }
+                        if let Ok(layout) = folisift_parse::SourceLayout::read_json(
+                            &guide.dir.join("data/blocks").join(format!("{id}.json")),
+                        ) {
+                            source_layouts.insert(id.to_string(), layout);
+                        }
+                    }
+                    let manifest = folisift_parse::CoverageManifest::build_with_sources(
+                        &inventory,
+                        &markdown,
+                        &source_texts,
+                        &source_layouts,
+                    );
                     manifest.write_json(&generated)?;
                     let review_manifest = folisift_parse::CoverageManifest::read_json(&review).ok();
-                    let review_eligible = review_manifest
+                    let merged = review_manifest
+                        .as_ref()
+                        .map(|review| manifest.merge_with_review(review));
+                    let review_eligible = merged
                         .as_ref()
                         .is_some_and(folisift_parse::CoverageManifest::review_eligible);
                     if adopt
                         && review_eligible
-                        && let Some(review_manifest) = &review_manifest
+                        && let Some(merged) = &merged
                     {
-                        review_manifest.write_json(&combined)?;
+                        merged.write_json(&combined)?;
                     }
                     println!(
                         "{}",
@@ -2585,6 +2648,41 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
     Ok(())
+}
+
+fn ocr_check() -> Value {
+    let feature = cfg!(feature = "ocr-tesseract");
+    let server = std::env::var_os("FOLISIFT_OCR_SERVER_URL").is_some();
+    let binary = std::env::var_os("PATH")
+        .and_then(|path| {
+            std::env::split_paths(&path)
+                .map(|dir| dir.join("tesseract"))
+                .find(|candidate| candidate.is_file())
+        })
+        .map(|path| path.display().to_string());
+    let mode = if server {
+        "server"
+    } else if feature {
+        "tesseract"
+    } else {
+        "disabled"
+    };
+    json!({
+        "name": "ocr",
+        "ok": true,
+        "available": server || feature,
+        "mode": mode,
+        "feature": feature,
+        "binary": binary,
+        "server_url": server,
+        "detail": if server {
+            "HTTP OCR server configured for the CLI".to_string()
+        } else if feature {
+            "tesseract feature enabled; binary lookup is advisory".to_string()
+        } else {
+            "OCR unavailable: build with `--features ocr-tesseract` or use `insights --ocr-server-url`".to_string()
+        },
+    })
 }
 
 fn parse_bbox_arg(value: &str) -> Option<folisift_parse::LayoutRect> {

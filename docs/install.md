@@ -35,8 +35,8 @@ inference only and the MCP server makes no network call.
 Manual archive verification:
 
 ```bash
-tar -xzf folisift-v0.20.0-linux-x86_64.tar.gz
-sha256sum -c folisift-v0.20.0-linux-x86_64.tar.gz.sha256
+tar -xzf folisift-v0.23.0-linux-x86_64.tar.gz
+sha256sum -c folisift-v0.23.0-linux-x86_64.tar.gz.sha256
 ./folisift doctor
 ```
 
@@ -102,8 +102,29 @@ Requirements:
 ```bash
 cargo build --release
 cargo test
-cargo clippy --workspace --all-targets --all-features -- -D warnings
+cargo clippy --workspace --all-targets -- -D warnings
 ```
+
+The default build is portable and has OCR disabled. Build the optional local
+tesseract path with:
+
+```bash
+cargo build -p folisift-cli --features ocr-tesseract
+```
+
+`liteparse/tesseract` builds `tesseract-rs`; this target needs the native
+tesseract build toolchain. Keep the normal release/acceptance gate on the
+default feature set and run the OCR feature in its own CI job. For the CLI-only
+HTTP OCR server path:
+
+```bash
+folisift insights --source sources/scan.pdf --ocr \
+  --ocr-server-url http://127.0.0.1:8080
+```
+
+MCP `source_insights` never uses a server URL and never makes a network call;
+it reports `OCR_UNAVAILABLE` unless the binary was built with
+`ocr-tesseract`. `doctor` reports the mode and availability.
 
 Put the PDFium sidecar next to the binary or set `FOLISIFT_PDFIUM_DIR`. For a
 development package:

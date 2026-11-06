@@ -12,6 +12,8 @@ use serde::{Deserialize, Serialize};
 use crate::coverage::{CoverageReport, SectionResult, SourceCoverage};
 use crate::error::{Error, Result, io};
 use crate::inventory::{Inventory, SourceInventory};
+use crate::layout::SourceLayout;
+use crate::source_cache::PageText;
 
 pub const MANIFEST_SCHEMA_VERSION: u32 = 1;
 
@@ -37,6 +39,9 @@ pub struct ManifestRow {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub guide_sections: Vec<String>,
     pub status: CoverageStatus,
+    /// Required when the row is intentionally out of scope.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
     /// How the row entered the manifest: heading, toc, inline, review, manual.
     #[serde(default = "default_origin")]
     pub origin: String,
@@ -60,19 +65,50 @@ pub struct CoverageManifest {
 
 impl CoverageManifest {
     pub fn build(inventory: &Inventory, markdown: &str) -> Self {
+        Self::build_with_sources(inventory, markdown, &BTreeMap::new(), &BTreeMap::new())
+    }
+
+    /// Build a generated manifest with cached source page text. The text
+    /// supplies numbered headings the layout classifier missed; it never
+    /// overrides a cleaner layout/TOC row.
+    pub fn build_with_texts(
+        inventory: &Inventory,
+        markdown: &str,
+        source_texts: &BTreeMap<String, Vec<PageText>>,
+    ) -> Self {
+        Self::build_with_sources(inventory, markdown, source_texts, &BTreeMap::new())
+    }
+
+    /// Build with cached text and stored layout blocks. Table cells and
+    /// wrapped blocks often contain headings the layout classifier did not
+    /// classify as `heading`; they are additive evidence, never a replacement.
+    pub fn build_with_sources(
+        inventory: &Inventory,
+        markdown: &str,
+        source_texts: &BTreeMap<String, Vec<PageText>>,
+        source_layouts: &BTreeMap<String, SourceLayout>,
+    ) -> Self {
         let headings = heading_index(markdown);
         let covers = covers_index(markdown);
         let mut rows = Vec::new();
         for source in &inventory.sources {
             let source_id = source.filename.trim_end_matches(".pdf");
-            for (number, title, page, origin) in candidates(source) {
+            for (number, title, page, origin) in candidates(
+                source,
+                source_texts.get(source_id).map(Vec::as_slice),
+                source_layouts.get(source_id),
+            ) {
                 let heading = if number.is_empty() {
                     title.clone()
                 } else {
                     format!("{number} {title}")
                 };
                 let normalized = normalize(&heading);
-                let key = format!("{source_id}:{number}");
+                let key = if number.is_empty() {
+                    format!("{source_id}:{}", normalize(&title))
+                } else {
+                    format!("{source_id}:{number}")
+                };
                 let guide_heading = guide_heading_for(&headings, &number, &title);
                 let covered = covers.contains(&key) || guide_heading.is_some();
                 rows.push(ManifestRow {
@@ -87,6 +123,7 @@ impl CoverageManifest {
                     } else {
                         CoverageStatus::Missing
                     },
+                    reason: None,
                     origin,
                     evidence: None,
                     confidence: 1.0,
@@ -118,9 +155,14 @@ impl CoverageManifest {
         let mut weak_sections = Vec::new();
         for row in &self.rows {
             total += 1;
-            let number = row_number(&row.heading);
+            let number = row_number(&row.heading).unwrap_or_default();
+            let key = if number.is_empty() {
+                format!("{}:{}", row.source, row.normalized_heading)
+            } else {
+                format!("{}:{number}", row.source)
+            };
             let parent = number.split('.').next().unwrap_or(&number).to_string();
-            let present = covers.contains(&format!("{}:{number}", row.source))
+            let present = covers.contains(&key)
                 || row.guide_sections.iter().any(|guide| {
                     headings
                         .iter()
@@ -232,12 +274,45 @@ impl CoverageManifest {
         }
     }
 
+    /// Merge a review into a generated manifest without dropping generated
+    /// rows. An unreviewed generated row stays `missing` until the author
+    /// covers or explicitly excludes it.
+    pub fn merge_with_review(&self, review: &Self) -> Self {
+        let mut merged = BTreeMap::<String, ManifestRow>::new();
+        for row in &self.rows {
+            let key = row_key(row);
+            merged.insert(key, row.clone());
+        }
+        for row in &review.rows {
+            merged.insert(row_key(row), row.clone());
+        }
+        let mut rows = merged.into_values().collect::<Vec<_>>();
+        rows.sort_by(|a, b| {
+            a.source
+                .cmp(&b.source)
+                .then_with(|| row_number(&a.heading).cmp(&row_number(&b.heading)))
+                .then_with(|| a.heading.cmp(&b.heading))
+        });
+        Self {
+            schema_version: MANIFEST_SCHEMA_VERSION,
+            reviewed_at: review.reviewed_at.clone(),
+            reviewed_by: review.reviewed_by.clone(),
+            canonical_total: self.canonical_total.or(review.canonical_total),
+            rows,
+        }
+    }
+
     /// A review file is eligible when no canonical row is still missing.
     /// Review stamps are optional for legacy files and advisory for new ones.
     pub fn review_eligible(&self) -> bool {
-        self.rows
-            .iter()
-            .all(|row| !matches!(row.status, CoverageStatus::Missing))
+        self.rows.iter().all(|row| match row.status {
+            CoverageStatus::Missing => false,
+            CoverageStatus::Excluded => row
+                .reason
+                .as_deref()
+                .is_some_and(|reason| !reason.trim().is_empty()),
+            _ => true,
+        })
     }
 
     pub fn write_json(&self, path: &Path) -> Result<()> {
@@ -292,92 +367,249 @@ fn guide_heading_for(headings: &[String], number: &str, title: &str) -> Option<S
     None
 }
 
-fn candidates(source: &SourceInventory) -> Vec<(String, String, usize, String)> {
-    let mut rows: BTreeMap<String, (String, String, usize, String)> = BTreeMap::new();
-    // Real heading blocks are the cleanest source: they never contain body
-    // prose. The TOC/section list is a fallback for rows the layout missed.
+fn candidates(
+    source: &SourceInventory,
+    source_text: Option<&[PageText]>,
+    layout: Option<&SourceLayout>,
+) -> Vec<(String, String, usize, String)> {
+    // Lower rank wins: layout heading > TOC/section list > numbered source text.
+    let mut rows: BTreeMap<String, (u8, String, String, usize, String)> = BTreeMap::new();
     for heading in &source.headings {
         let heading = heading.heading.trim();
-        let Some(number) = heading.split_whitespace().next() else {
+        let Some(number) = number_token(heading) else {
             continue;
         };
-        let number = number.trim_end_matches('.');
-        if !number
-            .chars()
-            .all(|character| character.is_ascii_digit() || character == '.')
-        {
-            continue;
-        }
-        let title = clean_heading_title(heading[number.len()..].trim());
+        let title = clean_heading_title(strip_number(heading, &number));
         if !title_like(&title) {
             continue;
         }
-        rows.entry(number.to_string()).or_insert((
-            number.to_string(),
+        insert_candidate(
+            &mut rows,
+            &number,
             title,
             heading_page(source, heading),
-            "heading".to_string(),
-        ));
+            0,
+            "heading",
+        );
     }
     for section in &source.sections {
-        if rows.contains_key(&section.number) || !title_like(&section.title) {
+        let Some(number) = number_token(&section.number) else {
+            continue;
+        };
+        let title = clean_heading_title(&section.title);
+        if !title_like(&title) {
             continue;
         }
         let page = source
             .headings
             .iter()
-            .find(|heading| heading.heading.starts_with(&section.number))
-            .map_or(0, |heading| heading.page);
-        rows.entry(section.number.clone()).or_insert((
-            section.number.clone(),
-            section.title.clone(),
-            page,
-            "toc".to_string(),
-        ));
+            .find(|heading| number_token(&heading.heading).as_deref() == Some(number.as_str()))
+            .map_or(section.page, |heading| heading.page);
+        insert_candidate(&mut rows, &number, title, page, 1, "toc");
     }
-    rows.into_values().collect()
-}
-
-fn clean_heading_title(value: &str) -> String {
-    const CONNECTORS: &[&str] = &["ve", "veya", "ile", "için", "ve/veya"];
-    let words = value.split_whitespace().collect::<Vec<_>>();
-    if words.len() > 8 {
-        for index in 3..words.len().saturating_sub(1) {
-            let current = words[index];
-            let next = words[index + 1];
-            if CONNECTORS.contains(&current.to_lowercase().as_str()) {
-                continue;
-            }
-            let current_upper = current.chars().next().is_some_and(char::is_uppercase);
-            let next_lower = next.chars().next().is_some_and(char::is_lowercase);
-            if (current_upper && next_lower)
-                || current.chars().next().is_some_and(char::is_lowercase)
-            {
-                return words[..index].join(" ");
+    static NUMBERED_LINE: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+        Regex::new(r"^\s*(\d+(?:\.\d+){1,3})\.?\s+(.{3,160})\s*$")
+            .expect("valid numbered heading regex")
+    });
+    static NUMBERED_ANYWHERE: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+        Regex::new(r"(?:^|\s)(\d+(?:\.\d+){1,3})\.?\s+(.{3,160})")
+            .expect("valid embedded heading regex")
+    });
+    if let Some(pages) = source_text {
+        for page in pages {
+            for line in page.text.lines() {
+                let mut matched = false;
+                for capture in NUMBERED_LINE.captures_iter(line) {
+                    matched = true;
+                    let number = capture[1].trim_end_matches('.').to_string();
+                    if is_date_like(&number) {
+                        continue;
+                    }
+                    let title = clean_heading_title(capture[2].trim());
+                    if !title_like(&title) {
+                        continue;
+                    }
+                    insert_candidate(&mut rows, &number, title, page.page, 2, "text");
+                }
+                if matched {
+                    continue;
+                }
+                // Table cells and wrapped PDF text often put a heading after
+                // another cell on the same line.
+                for capture in NUMBERED_ANYWHERE.captures_iter(line) {
+                    let number = capture[1].trim_end_matches('.').to_string();
+                    if is_date_like(&number) {
+                        continue;
+                    }
+                    let title = clean_heading_title(capture[2].trim());
+                    if !title_like(&title) {
+                        continue;
+                    }
+                    insert_candidate(&mut rows, &number, title, page.page, 2, "text");
+                }
             }
         }
     }
-    value.to_string()
+    if let Some(layout) = layout {
+        let mut scan = |text: &str, page: usize| {
+            for line in text.lines() {
+                for capture in NUMBERED_ANYWHERE.captures_iter(line) {
+                    let number = capture[1].trim_end_matches('.').to_string();
+                    if is_date_like(&number) {
+                        continue;
+                    }
+                    let title = clean_heading_title(capture[2].trim());
+                    if !title_like(&title) {
+                        continue;
+                    }
+                    insert_candidate(&mut rows, &number, title, page, 3, "layout");
+                }
+            }
+        };
+        for page in &layout.pages {
+            for block in &page.blocks {
+                if let Some(text) = block.text.as_deref() {
+                    scan(text, page.page);
+                }
+                for cell in &block.header {
+                    scan(&cell.text, page.page);
+                }
+                for row in &block.rows {
+                    for cell in row {
+                        scan(&cell.text, page.page);
+                    }
+                }
+            }
+        }
+    }
+    rows.into_iter()
+        .map(|(number, (_, title, _, page, origin))| (number, title, page, origin))
+        .collect()
+}
+
+fn insert_candidate(
+    rows: &mut BTreeMap<String, (u8, String, String, usize, String)>,
+    number: &str,
+    title: String,
+    page: usize,
+    rank: u8,
+    origin: &str,
+) {
+    match rows.get_mut(number) {
+        Some(existing) if rank < existing.0 => {
+            existing.0 = rank;
+            existing.1 = title;
+            existing.3 = page;
+            existing.4 = origin.to_string();
+        }
+        Some(existing) => {
+            if existing.3 == 0 && page > 0 {
+                existing.3 = page;
+            }
+        }
+        None => {
+            rows.insert(
+                number.to_string(),
+                (rank, title, number.to_string(), page, origin.to_string()),
+            );
+        }
+    }
+}
+
+fn is_date_like(number: &str) -> bool {
+    let parts = number
+        .split('.')
+        .map(|part| part.parse::<u32>())
+        .collect::<std::result::Result<Vec<_>, _>>();
+    matches!(parts, Ok(parts) if parts.len() == 3
+        && (1..=31).contains(&parts[0])
+        && (1..=12).contains(&parts[1])
+        && (1900..=2100).contains(&parts[2]))
+}
+
+fn strip_number<'a>(heading: &'a str, number: &str) -> &'a str {
+    heading
+        .strip_prefix(number)
+        .unwrap_or(heading)
+        .trim_start_matches(['.', ':', '-', '–', '—', ' '])
+        .trim()
+}
+
+fn number_token(value: &str) -> Option<String> {
+    let token = value
+        .split_whitespace()
+        .next()
+        .unwrap_or_default()
+        .trim_end_matches(['.', ':']);
+    if token.is_empty()
+        || !token
+            .chars()
+            .all(|character| character.is_ascii_digit() || character == '.')
+        || token.starts_with('.')
+        || token.ends_with('.')
+        || token.contains("..")
+        || is_date_like(token)
+    {
+        return None;
+    }
+    Some(token.to_string())
+}
+
+fn clean_heading_title(value: &str) -> String {
+    let mut value = value.trim();
+    // A heading ends at the first sentence boundary. Colon and semicolon are
+    // valid inside titles; only a period followed by whitespace ends one.
+    if let Some(index) = value.find(". ") {
+        value = &value[..index];
+    }
+    let value = value
+        .trim()
+        .trim_end_matches(['.', ',', ';', ':', '·', '•'])
+        .trim();
+    let mut words = value.split_whitespace().collect::<Vec<_>>();
+    if words.len() > 18 {
+        words.truncate(18);
+    }
+    let mut title = words.join(" ");
+    if title.chars().count() > 100 {
+        title = title.chars().take(100).collect::<String>();
+        if let Some(index) = title.rfind(' ') {
+            title.truncate(index);
+        }
+    }
+    title
 }
 
 fn title_like(value: &str) -> bool {
     let value = value.trim();
     let words = value.split_whitespace().count();
+    let first = value
+        .split_whitespace()
+        .next()
+        .unwrap_or_default()
+        .to_lowercase();
     !value.is_empty()
-        && value.chars().count() <= 160
-        && words <= 24
+        && value.chars().count() <= 100
+        && (1..=18).contains(&words)
         && !value.ends_with("...")
         && !value.ends_with(',')
         && !value.ends_with(';')
         && !(value.contains(',') && words > 8)
         && !matches!(
-            value
-                .split_whitespace()
-                .next()
-                .unwrap_or_default()
-                .to_lowercase()
-                .as_str(),
-            "ve" | "veya" | "ile" | "için" | "daha" | "gibi"
+            first.as_str(),
+            "bu" | "bir"
+                | "amaç"
+                | "örnek"
+                | "şekil"
+                | "tablo"
+                | "kaynak"
+                | "not"
+                | "ve"
+                | "veya"
+                | "ile"
+                | "için"
+                | "daha"
+                | "gibi"
         )
 }
 
@@ -402,13 +634,20 @@ fn display_title(heading: &str, number: &str) -> String {
         .to_string()
 }
 
-fn row_number(heading: &str) -> String {
-    heading
-        .split_whitespace()
-        .next()
-        .unwrap_or(heading)
-        .trim_end_matches('.')
-        .to_string()
+pub(crate) fn row_number(heading: &str) -> Option<String> {
+    number_token(heading)
+}
+
+fn row_key(row: &ManifestRow) -> String {
+    match row_number(&row.heading) {
+        Some(number) => format!("{}:{number}", row.source),
+        None => format!("{}:{}", row.source, row.normalized_heading),
+    }
+}
+
+/// Public row-number helper for MCP planning and hint surfaces.
+pub fn manifest_row_number(heading: &str) -> Option<String> {
+    row_number(heading)
 }
 
 fn normalize(value: &str) -> String {
@@ -439,14 +678,91 @@ fn heading_index(markdown: &str) -> Vec<String> {
         .collect()
 }
 
-fn covers_index(markdown: &str) -> BTreeSet<String> {
+pub(crate) fn covers_index(markdown: &str) -> BTreeSet<String> {
     static COVERS_RE: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
-        Regex::new(r"<!--\s*covers:\s*([A-Za-z0-9_.-]+:[0-9.]+)\s*-->").expect("valid covers regex")
+        Regex::new(r"<!--\s*covers:\s*(.+?)\s*-->").expect("valid covers regex")
     });
-    COVERS_RE
-        .captures_iter(markdown)
-        .map(|capture| capture[1].to_string())
-        .collect()
+    static ENTRY_RE: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+        Regex::new(r"^\s*([A-Za-z0-9_.-]+)\s*:\s*(.+?)\s*$").expect("valid covers entry")
+    });
+    let mut out = BTreeSet::new();
+    for capture in COVERS_RE.captures_iter(markdown) {
+        let mut current_source: Option<String> = None;
+        for entry in capture[1].split(',') {
+            let entry = entry.trim();
+            let (source, spec) = if let Some(entry) = ENTRY_RE.captures(entry) {
+                let source = entry[1].trim().to_string();
+                current_source = Some(source.clone());
+                (source, entry[2].trim().to_string())
+            } else if let Some(source) = current_source.as_ref() {
+                // `PD2:3.1,3.2` keeps the previous source for the second
+                // entry without requiring a repeated `PD2:` prefix.
+                (source.clone(), entry.to_string())
+            } else {
+                continue;
+            };
+            for number in expand_number_spec(&spec) {
+                out.insert(format!("{source}:{number}"));
+            }
+        }
+    }
+    out
+}
+
+/// Expand `2.1–2.2`, `2.1,2.2` or a single number into canonical numbers.
+pub fn number_specs(value: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    for part in value.split(',') {
+        out.extend(expand_number_spec(part));
+    }
+    out.sort();
+    out.dedup();
+    out
+}
+
+fn expand_number_spec(value: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    let value = value.trim();
+    if let Some((start, end)) = value.split_once(['–', '—', '-']) {
+        let Some(start_tuple) = number_tuple(start.trim()) else {
+            return out;
+        };
+        let Some(end_tuple) = number_tuple(end.trim()) else {
+            return out;
+        };
+        if start_tuple.len() == end_tuple.len()
+            && start_tuple[..start_tuple.len() - 1] == end_tuple[..end_tuple.len() - 1]
+        {
+            let prefix = start_tuple[..start_tuple.len() - 1].to_vec();
+            let first = *start_tuple.last().unwrap_or(&0);
+            let last = *end_tuple.last().unwrap_or(&first);
+            for value in first..=last {
+                let mut parts = prefix.clone();
+                parts.push(value);
+                out.push(
+                    parts
+                        .iter()
+                        .map(ToString::to_string)
+                        .collect::<Vec<_>>()
+                        .join("."),
+                );
+            }
+        } else {
+            out.push(start.trim().to_string());
+            out.push(end.trim().to_string());
+        }
+    } else if let Some(number) = number_token(value) {
+        out.push(number);
+    }
+    out
+}
+
+fn number_tuple(value: &str) -> Option<Vec<u32>> {
+    let mut parts = Vec::new();
+    for part in value.trim().trim_end_matches('.').split('.') {
+        parts.push(part.parse::<u32>().ok()?);
+    }
+    (!parts.is_empty()).then_some(parts)
 }
 
 #[cfg(test)]
@@ -553,6 +869,7 @@ mod tests {
         let body = format!("## 2.1 Giriş\n\n{}\n", "anlamlı gövde metni ".repeat(40));
         let mut manifest = CoverageManifest::build(&inventory, &body);
         manifest.rows[0].status = CoverageStatus::Excluded;
+        manifest.rows[0].reason = Some("intentionally out of scope".to_string());
         manifest.rows[0].guide_heading = None;
         manifest.rows[0].guide_sections.clear();
         let report = manifest.report(&inventory, &body);
@@ -567,6 +884,82 @@ mod tests {
         assert!(report.passed, "{report:#?}");
         assert_eq!(report.claimed, 1);
         assert_eq!(report.merged, 1);
+    }
+
+    #[test]
+    fn covers_expand_ranges_and_lists() {
+        let covers = covers_index(
+            "<!-- covers: PD2:2.1–2.2, PD2:3.1,3.2 -->\n<!-- covers: PD3:10.1-10.2 -->",
+        );
+        for key in [
+            "PD2:2.1", "PD2:2.2", "PD2:3.1", "PD2:3.2", "PD3:10.1", "PD3:10.2",
+        ] {
+            assert!(covers.contains(key), "missing {key}: {covers:?}");
+        }
+        assert!(!covers.contains("PD2:2.3"));
+        assert_eq!(number_specs("2.1–2.2"), vec!["2.1", "2.2"]);
+        assert_eq!(number_specs("3.1,3.2"), vec!["3.1", "3.2"]);
+    }
+
+    #[test]
+    fn body_prose_is_not_a_canonical_heading() {
+        let mut inventory = inventory();
+        inventory.sources[0].headings = vec![crate::inventory::Heading {
+            heading: "2.1 Bu paragraf gövde metnidir ve başlık değildir".to_string(),
+            page: 4,
+            level: Some(1),
+            block_id: None,
+        }];
+        inventory.sources[0].sections.clear();
+        let manifest = CoverageManifest::build(&inventory, "");
+        assert!(manifest.rows.is_empty(), "{:?}", manifest.rows);
+    }
+
+    #[test]
+    fn cached_source_text_supplies_missing_numbered_rows() {
+        let mut inventory = inventory();
+        inventory.sources[0].headings.clear();
+        inventory.sources[0].sections.clear();
+        let mut texts = BTreeMap::new();
+        texts.insert(
+            "PD2".to_string(),
+            vec![PageText {
+                page: 7,
+                chars: 200,
+                text: "4.4.4 Alt Düzey Konu\n10.2 Son Konu\nBu bir gövde cümlesidir.".to_string(),
+            }],
+        );
+        let manifest = CoverageManifest::build_with_texts(&inventory, "", &texts);
+        let headings = manifest
+            .rows
+            .iter()
+            .map(|row| row.heading.as_str())
+            .collect::<Vec<_>>();
+        assert!(
+            headings.iter().any(|heading| heading.starts_with("4.4.4 ")),
+            "{headings:?}"
+        );
+        assert!(
+            headings.iter().any(|heading| heading.starts_with("10.2 ")),
+            "{headings:?}"
+        );
+    }
+
+    #[test]
+    fn merge_preserves_unreviewed_generated_rows_as_missing() {
+        let inventory = inventory();
+        let generated = CoverageManifest::build(&inventory, "");
+        let mut review = generated.clone();
+        review.rows.clear();
+        let merged = generated.merge_with_review(&review);
+        assert_eq!(merged.rows.len(), generated.rows.len());
+        assert!(
+            merged
+                .rows
+                .iter()
+                .all(|row| matches!(row.status, CoverageStatus::Missing))
+        );
+        assert!(!merged.review_eligible());
     }
 
     #[test]

@@ -1,0 +1,2624 @@
+{
+  "schema_version": 1,
+  "scorer_version": 1,
+  "generated_from": "visual_candidates",
+  "sources": [
+    {
+      "source": "PD2",
+      "source_digest": "ba88dbd15e780a8f53c94f27cb91258a74553bbc5a774d7354695734858e14d6",
+      "pages": 101,
+      "candidates": [
+        {
+          "id": "PD2:p53:img1",
+          "source": "PD2",
+          "page": 53,
+          "kind": "image",
+          "bbox": {
+            "x": 75.005,
+            "y": 137.962,
+            "width": 560.976,
+            "height": 360.70898
+          },
+          "page_width": 720.0,
+          "page_height": 540.0,
+          "area_ratio": 0.5204452,
+          "native": true,
+          "image_id": "p53_1",
+          "pixel_width": 0,
+          "pixel_height": 0,
+          "format": "png",
+          "vector_primitives": 2,
+          "text_inside_chars": 0,
+          "heading": "BASIC'in Şeceresi",
+          "caption_seed": "FIG_0205.pct                                                   000C7A15 The Brain                      B3A96F87:",
+          "context": {
+            "before": "BASIC'in Şeceresi",
+            "after": "",
+            "inside": ""
+          },
+          "group_id": "PD2:p53:gbasic-in-şeceresi",
+          "group_members": 1,
+          "series": null,
+          "series_index": null,
+          "content_class": "diagram",
+          "relevance": {
+            "label": "core",
+            "confidence": "high"
+          },
+          "reconstruction": {
+            "kind": "d2_concept",
+            "confidence": "high",
+            "reasons": [
+              "diagram keyword in heading/context"
+            ]
+          },
+          "score": 89,
+          "score_parts": {
+            "area": 11.0,
+            "caption": 18.0,
+            "complexity": 11.7,
+            "heading": 12.0,
+            "low_text": 8.0,
+            "quality": 2.8,
+            "relevance_bonus": 15.0,
+            "structure": 10.0
+          },
+          "signals": [
+            "near-heading",
+            "caption",
+            "native-image",
+            "low-text-page",
+            "tagged-figure",
+            "relevance:core"
+          ],
+          "penalties": [],
+          "suggested": "redraw",
+          "confidence": "high",
+          "recommended_width_percent": 35,
+          "effective_dpi": 0.0,
+          "review_mode": "text-only",
+          "reason": "diagram candidate; near heading \"BASIC'in Şeceresi\"; low effective DPI; recommended width 35%"
+        },
+        {
+          "id": "PD2:p38:fig1",
+          "source": "PD2",
+          "page": 38,
+          "kind": "figure",
+          "bbox": {
+            "x": 324.0,
+            "y": 0.0,
+            "width": 395.972,
+            "height": 99.326
+          },
+          "page_width": 720.0,
+          "page_height": 540.0,
+          "area_ratio": 0.10115821,
+          "native": true,
+          "image_id": "p38_1",
+          "pixel_width": 0,
+          "pixel_height": 0,
+          "format": "png",
+          "vector_primitives": 5,
+          "text_inside_chars": 0,
+          "heading": "ALGOL 60 'e bakış",
+          "caption_seed": "FIG_0203.pct                                                   000C7A15 The Brain                      B3A96F87:",
+          "context": {
+            "before": "",
+            "after": "Paris'teki 6-günlük toplantı sonucunda ALGOL 58'in değiştirilmesiyle geliştirildi",
+            "inside": ""
+          },
+          "group_id": "PD2:p38:galgol-60--e-bakış",
+          "group_members": 1,
+          "series": null,
+          "series_index": null,
+          "content_class": "photo",
+          "relevance": {
+            "label": "supporting",
+            "confidence": "low"
+          },
+          "reconstruction": {
+            "kind": "unique",
+            "confidence": "medium",
+            "reasons": []
+          },
+          "score": 81,
+          "score_parts": {
+            "area": 20.0,
+            "caption": 18.0,
+            "complexity": 13.1,
+            "heading": 12.0,
+            "low_text": 0.0,
+            "quality": 2.8,
+            "relevance_bonus": 5.0,
+            "structure": 10.0
+          },
+          "signals": [
+            "area",
+            "near-heading",
+            "caption",
+            "native-image",
+            "tagged-figure",
+            "relevance:supporting"
+          ],
+          "penalties": [],
+          "suggested": "describe",
+          "confidence": "high",
+          "recommended_width_percent": 35,
+          "effective_dpi": 0.0,
+          "review_mode": "visual-check-recommended",
+          "reason": "photo candidate; near heading \"ALGOL 60 'e bakış\"; low effective DPI; recommended width 35%"
+        },
+        {
+          "id": "PD2:p6:fig1",
+          "source": "PD2",
+          "page": 6,
+          "kind": "figure",
+          "bbox": {
+            "x": 389.991,
+            "y": 368.079,
+            "width": 244.09097,
+            "height": 159.874
+          },
+          "page_width": 720.0,
+          "page_height": 540.0,
+          "area_ratio": 0.10036985,
+          "native": true,
+          "image_id": "p6_1",
+          "pixel_width": 0,
+          "pixel_height": 0,
+          "format": "png",
+          "vector_primitives": 2,
+          "text_inside_chars": 0,
+          "heading": "mantığı hâlen geçerli olan bir mimaridir.",
+          "caption_seed": "http://www.simplexit.com.ar/spam/content/archivos/imagenes/Doce/Edvac.jpg",
+          "context": {
+            "before": "elde edilen ikili sayı sistemi tabanındaki sayısal veri ile işlemler yapan ENIAC dilinin programlama mantığı hâlen geçerli olan bir mimaridir.",
+            "after": "",
+            "inside": ""
+          },
+          "group_id": "PD2:p6:gmantığı-hâlen-geçerli-olan-bir-mimaridir",
+          "group_members": 1,
+          "series": null,
+          "series_index": null,
+          "content_class": "photo",
+          "relevance": {
+            "label": "supporting",
+            "confidence": "low"
+          },
+          "reconstruction": {
+            "kind": "unique",
+            "confidence": "medium",
+            "reasons": []
+          },
+          "score": 80,
+          "score_parts": {
+            "area": 20.0,
+            "caption": 18.0,
+            "complexity": 11.7,
+            "heading": 12.0,
+            "low_text": 0.0,
+            "quality": 2.8,
+            "relevance_bonus": 5.0,
+            "structure": 10.0
+          },
+          "signals": [
+            "area",
+            "near-heading",
+            "caption",
+            "native-image",
+            "tagged-figure",
+            "relevance:supporting"
+          ],
+          "penalties": [],
+          "suggested": "describe",
+          "confidence": "high",
+          "recommended_width_percent": 35,
+          "effective_dpi": 0.0,
+          "review_mode": "visual-check-recommended",
+          "reason": "photo candidate; near heading \"mantığı hâlen geçerli olan bir mimaridir.\"; low effective DPI; recommended width 35%"
+        },
+        {
+          "id": "PD2:p55:fig1",
+          "source": "PD2",
+          "page": 55,
+          "kind": "figure",
+          "bbox": {
+            "x": 263.991,
+            "y": 365.981,
+            "width": 430.696,
+            "height": 147.345
+          },
+          "page_width": 720.0,
+          "page_height": 540.0,
+          "area_ratio": 0.16322249,
+          "native": true,
+          "image_id": "p55_1",
+          "pixel_width": 0,
+          "pixel_height": 0,
+          "format": "png",
+          "vector_primitives": 2,
+          "text_inside_chars": 0,
+          "heading": "üzere geliştirilmiş bir dildir.",
+          "caption_seed": "FIG_0206.pct                                                   000C7A15 The Brain                      B3A96F87:",
+          "context": {
+            "before": "ve işletme problemlerine çözüm sağlayabilmek için floating-point ve desima veritiplerini desteklemek üzere geliştirilmiş bir dildir.",
+            "after": "55",
+            "inside": ""
+          },
+          "group_id": "PD2:p55:güzere-geliştirilmiş-bir-dildir",
+          "group_members": 1,
+          "series": null,
+          "series_index": null,
+          "content_class": "photo",
+          "relevance": {
+            "label": "supporting",
+            "confidence": "low"
+          },
+          "reconstruction": {
+            "kind": "unique",
+            "confidence": "medium",
+            "reasons": []
+          },
+          "score": 80,
+          "score_parts": {
+            "area": 20.0,
+            "caption": 18.0,
+            "complexity": 11.7,
+            "heading": 12.0,
+            "low_text": 0.0,
+            "quality": 2.8,
+            "relevance_bonus": 5.0,
+            "structure": 10.0
+          },
+          "signals": [
+            "area",
+            "near-heading",
+            "caption",
+            "native-image",
+            "tagged-figure",
+            "relevance:supporting"
+          ],
+          "penalties": [],
+          "suggested": "describe",
+          "confidence": "high",
+          "recommended_width_percent": 35,
+          "effective_dpi": 0.0,
+          "review_mode": "visual-check-recommended",
+          "reason": "photo candidate; near heading \"üzere geliştirilmiş bir dildir.\"; low effective DPI; recommended width 35%"
+        },
+        {
+          "id": "PD2:p64:fig1",
+          "source": "PD2",
+          "page": 64,
+          "kind": "figure",
+          "bbox": {
+            "x": 564.009,
+            "y": 101.962,
+            "width": 149.98102,
+            "height": 149.98099
+          },
+          "page_width": 720.0,
+          "page_height": 540.0,
+          "area_ratio": 0.05785571,
+          "native": true,
+          "image_id": "p64_1",
+          "pixel_width": 0,
+          "pixel_height": 0,
+          "format": "png",
+          "vector_primitives": 2,
+          "text_inside_chars": 0,
+          "heading": "Norveç'de Nygaard ve Dahl tarafından asıl olarak",
+          "caption_seed": "FIG_0207.pct                                                   000C7A15 The Brain                      B3A96F87:",
+          "context": {
+            "before": "2.10 Veri Soyutlama (Data Abstraction)",
+            "after": "- Eş yordam (Co-routines) - bir çeşit alt program 64",
+            "inside": ""
+          },
+          "group_id": "PD2:p64:gnorveç-de-nygaard-ve-dahl-tarafından-asıl-olarak",
+          "group_members": 1,
+          "series": null,
+          "series_index": null,
+          "content_class": "photo",
+          "relevance": {
+            "label": "supporting",
+            "confidence": "low"
+          },
+          "reconstruction": {
+            "kind": "unique",
+            "confidence": "medium",
+            "reasons": []
+          },
+          "score": 80,
+          "score_parts": {
+            "area": 20.0,
+            "caption": 18.0,
+            "complexity": 11.7,
+            "heading": 12.0,
+            "low_text": 0.0,
+            "quality": 2.8,
+            "relevance_bonus": 5.0,
+            "structure": 10.0
+          },
+          "signals": [
+            "area",
+            "near-heading",
+            "caption",
+            "native-image",
+            "tagged-figure",
+            "relevance:supporting"
+          ],
+          "penalties": [],
+          "suggested": "describe",
+          "confidence": "high",
+          "recommended_width_percent": 35,
+          "effective_dpi": 0.0,
+          "review_mode": "visual-check-recommended",
+          "reason": "photo candidate; near heading \"Norveç'de Nygaard ve Dahl tarafından asıl olarak\"; low effective DPI; recommended width 35%"
+        },
+        {
+          "id": "PD2:p67:fig1",
+          "source": "PD2",
+          "page": 67,
+          "kind": "figure",
+          "bbox": {
+            "x": 508.762,
+            "y": 107.972,
+            "width": 211.20901,
+            "height": 167.981
+          },
+          "page_width": 720.0,
+          "page_height": 540.0,
+          "area_ratio": 0.09125283,
+          "native": true,
+          "image_id": "p67_1",
+          "pixel_width": 0,
+          "pixel_height": 0,
+          "format": "png",
+          "vector_primitives": 2,
+          "text_inside_chars": 0,
+          "heading": "ALGOL 68 Değerlendirmesi",
+          "caption_seed": "FIG_0208.pct                                                   000C7A15 The Brain                      B3A96F87:",
+          "context": {
+            "before": "ALGOL 68 Değerlendirmesi",
+            "after": "- Öğrenilmesi oldukça zor olan bir gramer - Sadece bilimsel uygulamalar hedeflenerek",
+            "inside": ""
+          },
+          "group_id": "PD2:p67:galgol-68-değerlendirmesi",
+          "group_members": 1,
+          "series": null,
+          "series_index": null,
+          "content_class": "photo",
+          "relevance": {
+            "label": "supporting",
+            "confidence": "low"
+          },
+          "reconstruction": {
+            "kind": "unique",
+            "confidence": "medium",
+            "reasons": []
+          },
+          "score": 80,
+          "score_parts": {
+            "area": 20.0,
+            "caption": 18.0,
+            "complexity": 11.7,
+            "heading": 12.0,
+            "low_text": 0.0,
+            "quality": 2.8,
+            "relevance_bonus": 5.0,
+            "structure": 10.0
+          },
+          "signals": [
+            "area",
+            "near-heading",
+            "caption",
+            "native-image",
+            "tagged-figure",
+            "relevance:supporting"
+          ],
+          "penalties": [],
+          "suggested": "describe",
+          "confidence": "high",
+          "recommended_width_percent": 35,
+          "effective_dpi": 0.0,
+          "review_mode": "visual-check-recommended",
+          "reason": "photo candidate; near heading \"ALGOL 68 Değerlendirmesi\"; low effective DPI; recommended width 35%"
+        },
+        {
+          "id": "PD2:p69:fig2",
+          "source": "PD2",
+          "page": 69,
+          "kind": "figure",
+          "bbox": {
+            "x": 486.0,
+            "y": 173.962,
+            "width": 226.091,
+            "height": 125.971985
+          },
+          "page_width": 720.0,
+          "page_height": 540.0,
+          "area_ratio": 0.073253945,
+          "native": true,
+          "image_id": "p69_1",
+          "pixel_width": 0,
+          "pixel_height": 0,
+          "format": "png",
+          "vector_primitives": 2,
+          "text_inside_chars": 5,
+          "heading": "Önceki bir çok dilin özelliklerini barındıran PASCAL, COBOL",
+          "caption_seed": "FIG_0209.pct                                                   000C7A15 The Brain                      B3A96F87:",
+          "context": {
+            "before": "ALGOL 68 dilinin tasarımında çalışan araştırmacı Nicholas Wirth tarafından öğretim amaçlı olarak tasarlanan PASCAL'ı Niklaus",
+            "after": "ve PL/I'dan kayıt yapısını, ALGOL dilinden kullanıcı tanımlı tip - 1970lerin ortalarından 1990 ların sonlarına kadar,",
+            "inside": "Wirth"
+          },
+          "group_id": "PD2:p69:gönceki-bir-çok-dilin-özelliklerini-barındıran-pascal--cobol",
+          "group_members": 1,
+          "series": null,
+          "series_index": null,
+          "content_class": "photo",
+          "relevance": {
+            "label": "supporting",
+            "confidence": "low"
+          },
+          "reconstruction": {
+            "kind": "unique",
+            "confidence": "medium",
+            "reasons": []
+          },
+          "score": 80,
+          "score_parts": {
+            "area": 20.0,
+            "caption": 18.0,
+            "complexity": 11.7,
+            "heading": 12.0,
+            "low_text": 0.0,
+            "quality": 2.8,
+            "relevance_bonus": 5.0,
+            "structure": 10.0
+          },
+          "signals": [
+            "area",
+            "near-heading",
+            "caption",
+            "native-image",
+            "tagged-figure",
+            "relevance:supporting"
+          ],
+          "penalties": [],
+          "suggested": "describe",
+          "confidence": "high",
+          "recommended_width_percent": 35,
+          "effective_dpi": 0.0,
+          "review_mode": "visual-check-recommended",
+          "reason": "photo candidate; near heading \"Önceki bir çok dilin özelliklerini barındıran PASCAL, COBOL\"; low effective DPI; recommended width 35%"
+        },
+        {
+          "id": "PD2:p70:fig2",
+          "source": "PD2",
+          "page": 70,
+          "kind": "figure",
+          "bbox": {
+            "x": 411.987,
+            "y": 161.972,
+            "width": 307.984,
+            "height": 329.98102
+          },
+          "page_width": 720.0,
+          "page_height": 540.0,
+          "area_ratio": 0.26139113,
+          "native": true,
+          "image_id": "p70_1",
+          "pixel_width": 0,
+          "pixel_height": 0,
+          "format": "png",
+          "vector_primitives": 2,
+          "text_inside_chars": 0,
+          "heading": "Temel olarak BCLP, B'den, aynı zamanda",
+          "caption_seed": "FIG_0210.pct                                                   000C7A15 The Brain                      B3A96F87:",
+          "context": {
+            "before": "Sistem programlama için tasarlandı (Bell K. Thompson and D. Ritchie",
+            "after": "70",
+            "inside": ""
+          },
+          "group_id": "PD2:p70:gtemel-olarak-bclp--b-den--aynı-zamanda",
+          "group_members": 1,
+          "series": null,
+          "series_index": null,
+          "content_class": "photo",
+          "relevance": {
+            "label": "supporting",
+            "confidence": "low"
+          },
+          "reconstruction": {
+            "kind": "unique",
+            "confidence": "medium",
+            "reasons": []
+          },
+          "score": 80,
+          "score_parts": {
+            "area": 20.0,
+            "caption": 18.0,
+            "complexity": 11.7,
+            "heading": 12.0,
+            "low_text": 0.0,
+            "quality": 2.8,
+            "relevance_bonus": 5.0,
+            "structure": 10.0
+          },
+          "signals": [
+            "area",
+            "near-heading",
+            "caption",
+            "native-image",
+            "tagged-figure",
+            "relevance:supporting"
+          ],
+          "penalties": [],
+          "suggested": "describe",
+          "confidence": "high",
+          "recommended_width_percent": 35,
+          "effective_dpi": 0.0,
+          "review_mode": "visual-check-recommended",
+          "reason": "photo candidate; near heading \"Temel olarak BCLP, B'den, aynı zamanda\"; low effective DPI; recommended width 35%"
+        },
+        {
+          "id": "PD2:p80:fig1",
+          "source": "PD2",
+          "page": 80,
+          "kind": "figure",
+          "bbox": {
+            "x": 474.888,
+            "y": 101.962,
+            "width": 245.08301,
+            "height": 425.962
+          },
+          "page_width": 720.0,
+          "page_height": 540.0,
+          "area_ratio": 0.26850834,
+          "native": true,
+          "image_id": "p80_1",
+          "pixel_width": 0,
+          "pixel_height": 0,
+          "format": "png",
+          "vector_primitives": 2,
+          "text_inside_chars": 2,
+          "heading": "2.15 Nesneye-dayalı Programlama:",
+          "caption_seed": "FIG_0212.pct                                                   000C7A15 The Brain                      B3A96F87:",
+          "context": {
+            "before": "2.15 Nesneye-dayalı Programlama:",
+            "after": "",
+            "inside": "80"
+          },
+          "group_id": "PD2:p80:g2-15-nesneye-dayalı-programlama",
+          "group_members": 1,
+          "series": null,
+          "series_index": null,
+          "content_class": "photo",
+          "relevance": {
+            "label": "supporting",
+            "confidence": "low"
+          },
+          "reconstruction": {
+            "kind": "unique",
+            "confidence": "medium",
+            "reasons": []
+          },
+          "score": 80,
+          "score_parts": {
+            "area": 20.0,
+            "caption": 18.0,
+            "complexity": 11.7,
+            "heading": 12.0,
+            "low_text": 0.0,
+            "quality": 2.8,
+            "relevance_bonus": 5.0,
+            "structure": 10.0
+          },
+          "signals": [
+            "area",
+            "near-heading",
+            "caption",
+            "native-image",
+            "tagged-figure",
+            "relevance:supporting"
+          ],
+          "penalties": [],
+          "suggested": "describe",
+          "confidence": "high",
+          "recommended_width_percent": 35,
+          "effective_dpi": 0.0,
+          "review_mode": "visual-check-recommended",
+          "reason": "photo candidate; near heading \"2.15 Nesneye-dayalı Programlama:\"; low effective DPI; recommended width 35%"
+        },
+        {
+          "id": "PD2:p45:img1",
+          "source": "PD2",
+          "page": 45,
+          "kind": "image",
+          "bbox": {
+            "x": 72.0,
+            "y": 100.091,
+            "width": 575.972,
+            "height": 433.84302
+          },
+          "page_width": 720.0,
+          "page_height": 540.0,
+          "area_ratio": 0.6426991,
+          "native": true,
+          "image_id": "p45_1",
+          "pixel_width": 0,
+          "pixel_height": 0,
+          "format": "png",
+          "vector_primitives": 2,
+          "text_inside_chars": 0,
+          "heading": null,
+          "caption_seed": "D:\\WINNT\\Profiles\\finin\\Desktop\\331\\cobol60_groupphoto.jpg",
+          "context": {
+            "before": "",
+            "after": "",
+            "inside": ""
+          },
+          "group_id": null,
+          "group_members": 1,
+          "series": null,
+          "series_index": null,
+          "content_class": "photo",
+          "relevance": {
+            "label": "core",
+            "confidence": "high"
+          },
+          "reconstruction": {
+            "kind": "unique",
+            "confidence": "medium",
+            "reasons": []
+          },
+          "score": 78,
+          "score_parts": {
+            "area": 11.0,
+            "caption": 18.0,
+            "complexity": 11.7,
+            "heading": 1.2,
+            "low_text": 8.0,
+            "quality": 2.8,
+            "relevance_bonus": 15.0,
+            "structure": 10.0
+          },
+          "signals": [
+            "caption",
+            "native-image",
+            "low-text-page",
+            "tagged-figure",
+            "relevance:core"
+          ],
+          "penalties": [],
+          "suggested": "describe",
+          "confidence": "high",
+          "recommended_width_percent": 35,
+          "effective_dpi": 0.0,
+          "review_mode": "visual-check-recommended",
+          "reason": "photo candidate; low effective DPI; recommended width 35%"
+        },
+        {
+          "id": "PD2:p42:fig1",
+          "source": "PD2",
+          "page": 42,
+          "kind": "figure",
+          "bbox": {
+            "x": 567.836,
+            "y": 311.981,
+            "width": 152.13501,
+            "height": 169.34201
+          },
+          "page_width": 720.0,
+          "page_height": 540.0,
+          "area_ratio": 0.06626247,
+          "native": true,
+          "image_id": "p42_2",
+          "pixel_width": 0,
+          "pixel_height": 0,
+          "format": "png",
+          "vector_primitives": 2,
+          "text_inside_chars": 0,
+          "heading": "COmmon Business Oriented Language)",
+          "caption_seed": "D:\\WINNT\\Profiles\\finin\\Desktop\\331\\young-hopper.JPG",
+          "context": {
+            "before": "COmmon Business Oriented Language) - UNIVAC, FLOW-MATIC'i kullanmaya başlıyordu - USAF, AIMACO' yu kullanmaya başlıyordu",
+            "after": "Grace Hopper 42",
+            "inside": ""
+          },
+          "group_id": "PD2:p42:gcommon-business-oriented-language",
+          "group_members": 1,
+          "series": null,
+          "series_index": null,
+          "content_class": "photo",
+          "relevance": {
+            "label": "supporting",
+            "confidence": "low"
+          },
+          "reconstruction": {
+            "kind": "unique",
+            "confidence": "medium",
+            "reasons": []
+          },
+          "score": 77,
+          "score_parts": {
+            "area": 20.0,
+            "caption": 18.0,
+            "complexity": 11.7,
+            "heading": 9.0,
+            "low_text": 0.0,
+            "quality": 2.8,
+            "relevance_bonus": 5.0,
+            "structure": 10.0
+          },
+          "signals": [
+            "area",
+            "near-heading",
+            "caption",
+            "native-image",
+            "tagged-figure",
+            "relevance:supporting"
+          ],
+          "penalties": [],
+          "suggested": "describe",
+          "confidence": "high",
+          "recommended_width_percent": 35,
+          "effective_dpi": 0.0,
+          "review_mode": "visual-check-recommended",
+          "reason": "photo candidate; near heading \"COmmon Business Oriented Language)\"; low effective DPI; recommended width 35%"
+        },
+        {
+          "id": "PD2:p42:fig3",
+          "source": "PD2",
+          "page": 42,
+          "kind": "figure",
+          "bbox": {
+            "x": 11.991,
+            "y": 317.963,
+            "width": 275.981,
+            "height": 136.26099
+          },
+          "page_width": 720.0,
+          "page_height": 540.0,
+          "area_ratio": 0.09672181,
+          "native": true,
+          "image_id": "p42_1",
+          "pixel_width": 0,
+          "pixel_height": 0,
+          "format": "png",
+          "vector_primitives": 2,
+          "text_inside_chars": 0,
+          "heading": "Geliştirme platformu",
+          "caption_seed": "FIG_0204.pct                                                   000C7A15 The Brain                      B3A96F87:",
+          "context": {
+            "before": "- UNIVAC, FLOW-MATIC'i kullanmaya başlıyordu - USAF, AIMACO' yu kullanmaya başlıyordu - IBM , COMTRAN'ı geliştiriyordu",
+            "after": "",
+            "inside": ""
+          },
+          "group_id": "PD2:p42:ggeliştirme-platformu",
+          "group_members": 1,
+          "series": null,
+          "series_index": null,
+          "content_class": "photo",
+          "relevance": {
+            "label": "supporting",
+            "confidence": "low"
+          },
+          "reconstruction": {
+            "kind": "unique",
+            "confidence": "medium",
+            "reasons": []
+          },
+          "score": 77,
+          "score_parts": {
+            "area": 20.0,
+            "caption": 18.0,
+            "complexity": 11.7,
+            "heading": 9.0,
+            "low_text": 0.0,
+            "quality": 2.8,
+            "relevance_bonus": 5.0,
+            "structure": 10.0
+          },
+          "signals": [
+            "area",
+            "near-heading",
+            "caption",
+            "native-image",
+            "tagged-figure",
+            "relevance:supporting"
+          ],
+          "penalties": [],
+          "suggested": "describe",
+          "confidence": "high",
+          "recommended_width_percent": 35,
+          "effective_dpi": 0.0,
+          "review_mode": "visual-check-recommended",
+          "reason": "photo candidate; near heading \"Geliştirme platformu\"; low effective DPI; recommended width 35%"
+        },
+        {
+          "id": "PD2:p42:fig4",
+          "source": "PD2",
+          "page": 42,
+          "kind": "figure",
+          "bbox": {
+            "x": 416.494,
+            "y": 318.472,
+            "width": 123.84604,
+            "height": 154.46002
+          },
+          "page_width": 720.0,
+          "page_height": 540.0,
+          "area_ratio": 0.049200777,
+          "native": true,
+          "image_id": "p42_4",
+          "pixel_width": 0,
+          "pixel_height": 0,
+          "format": "png",
+          "vector_primitives": 0,
+          "text_inside_chars": 0,
+          "heading": "COmmon Business Oriented Language)",
+          "caption_seed": "http://www.cs.bris.ac.uk/admissions/what_is_cs/images/GraceHopper.jpg",
+          "context": {
+            "before": "- UNIVAC, FLOW-MATIC'i kullanmaya başlıyordu - USAF, AIMACO' yu kullanmaya başlıyordu - IBM , COMTRAN'ı geliştiriyordu",
+            "after": "Grace Hopper 42",
+            "inside": ""
+          },
+          "group_id": "PD2:p42:gcommon-business-oriented-language",
+          "group_members": 1,
+          "series": null,
+          "series_index": null,
+          "content_class": "photo",
+          "relevance": {
+            "label": "supporting",
+            "confidence": "low"
+          },
+          "reconstruction": {
+            "kind": "unique",
+            "confidence": "medium",
+            "reasons": []
+          },
+          "score": 76,
+          "score_parts": {
+            "area": 20.0,
+            "caption": 18.0,
+            "complexity": 10.8,
+            "heading": 9.0,
+            "low_text": 0.0,
+            "quality": 2.8,
+            "relevance_bonus": 5.0,
+            "structure": 10.0
+          },
+          "signals": [
+            "area",
+            "near-heading",
+            "caption",
+            "native-image",
+            "tagged-figure",
+            "relevance:supporting"
+          ],
+          "penalties": [],
+          "suggested": "describe",
+          "confidence": "high",
+          "recommended_width_percent": 35,
+          "effective_dpi": 0.0,
+          "review_mode": "visual-check-recommended",
+          "reason": "photo candidate; near heading \"COmmon Business Oriented Language)\"; low effective DPI; recommended width 35%"
+        },
+        {
+          "id": "PD2:p29:img1",
+          "source": "PD2",
+          "page": 29,
+          "kind": "image",
+          "bbox": {
+            "x": 112.507,
+            "y": 113.726,
+            "width": 571.46497,
+            "height": 378.227
+          },
+          "page_width": 720.0,
+          "page_height": 540.0,
+          "area_ratio": 0.55592453,
+          "native": true,
+          "image_id": "p29_1",
+          "pixel_width": 0,
+          "pixel_height": 0,
+          "format": "png",
+          "vector_primitives": 2,
+          "text_inside_chars": 56,
+          "heading": "(A B C D) ve (A (B C) D (E (F G)))",
+          "caption_seed": "(A B C D) ve (A (B C) D (E (F G)))",
+          "context": {
+            "before": "İki LISP Listesini Gösterimi",
+            "after": "29",
+            "inside": "(A B C D) ve (A (B C) D (E (F G))) Listelerinin gösterimi"
+          },
+          "group_id": "PD2:p29:ga-b-c-d--ve--a--b-c--d--e--f-g",
+          "group_members": 1,
+          "series": null,
+          "series_index": null,
+          "content_class": "diagram",
+          "relevance": {
+            "label": "core",
+            "confidence": "high"
+          },
+          "reconstruction": {
+            "kind": "d2_concept",
+            "confidence": "high",
+            "reasons": [
+              "diagram keyword in heading/context"
+            ]
+          },
+          "score": 72,
+          "score_parts": {
+            "area": 11.0,
+            "caption": 1.8,
+            "complexity": 11.7,
+            "heading": 12.0,
+            "low_text": 8.0,
+            "quality": 2.8,
+            "relevance_bonus": 15.0,
+            "structure": 10.0
+          },
+          "signals": [
+            "near-heading",
+            "native-image",
+            "low-text-page",
+            "tagged-figure",
+            "relevance:core"
+          ],
+          "penalties": [],
+          "suggested": "redraw",
+          "confidence": "high",
+          "recommended_width_percent": 35,
+          "effective_dpi": 0.0,
+          "review_mode": "text-only",
+          "reason": "diagram candidate; near heading \"(A B C D) ve (A (B C) D (E (F G)))\"; low effective DPI; recommended width 35%"
+        },
+        {
+          "id": "PD2:p74:tbl1",
+          "source": "PD2",
+          "page": 74,
+          "kind": "table",
+          "bbox": {
+            "x": 29.991,
+            "y": 143.97198,
+            "width": 635.98096,
+            "height": 204.71802
+          },
+          "page_width": 720.0,
+          "page_height": 540.0,
+          "area_ratio": 0.3348682,
+          "native": false,
+          "image_id": null,
+          "pixel_width": null,
+          "pixel_height": null,
+          "format": null,
+          "vector_primitives": 113,
+          "text_inside_chars": 138,
+          "heading": "grandfather(X, Z) :- (mother(X, Y); father(X,Y)),",
+          "caption_seed": "grandfather(X, Z) :- (mother(X, Y); father(X,Y)),",
+          "context": {
+            "before": "Prolog Örnek",
+            "after": "parent (X,Y) :- mother(X, Y). parent(X, Y) :- father(X, Y).",
+            "inside": "grandfather(X, Z) :- (mother(X, Y); father(X,Y)), father(Y,Z). mother(maria, ana). father(juan, ana). father(tom, juan). grandfather(tom, ana)?"
+          },
+          "group_id": "PD2:p74:ggrandfather-x--z------mother-x--y---father-x-y",
+          "group_members": 1,
+          "series": null,
+          "series_index": null,
+          "content_class": "table",
+          "relevance": {
+            "label": "core",
+            "confidence": "high"
+          },
+          "reconstruction": {
+            "kind": "table",
+            "confidence": "high",
+            "reasons": [
+              "table block with extractable structure",
+              "113 vector primitives inside the bbox"
+            ]
+          },
+          "score": 72,
+          "score_parts": {
+            "area": 20.0,
+            "caption": 1.8,
+            "complexity": 14.4,
+            "heading": 12.0,
+            "low_text": 0.0,
+            "quality": 9.1,
+            "relevance_bonus": 15.0,
+            "structure": 0.0
+          },
+          "signals": [
+            "area",
+            "near-heading",
+            "vector-content",
+            "relevance:core"
+          ],
+          "penalties": [],
+          "suggested": "native_table",
+          "confidence": "high",
+          "recommended_width_percent": 90,
+          "effective_dpi": null,
+          "review_mode": "text-only",
+          "reason": "table candidate; near heading \"grandfather(X, Z) :- (mother(X, Y); father(X,Y)),\""
+        },
+        {
+          "id": "PD2:p91:tbl1",
+          "source": "PD2",
+          "page": 91,
+          "kind": "table",
+          "bbox": {
+            "x": 76.762,
+            "y": 338.854,
+            "width": 220.479,
+            "height": 108.595
+          },
+          "page_width": 720.0,
+          "page_height": 540.0,
+          "area_ratio": 0.061581578,
+          "native": false,
+          "image_id": null,
+          "pixel_width": null,
+          "pixel_height": null,
+          "format": null,
+          "vector_primitives": 36,
+          "text_inside_chars": 157,
+          "heading": "import java.applet.Applet;",
+          "caption_seed": "import java.applet.Applet;",
+          "context": {
+            "before": "string. } }",
+            "after": "} }",
+            "inside": "import java.applet.Applet; import java.awt.Graphics; public class HelloWorld extends Applet { public void paint(Graphics g) { g.drawString(\"Hello world!\", 50, 25);"
+          },
+          "group_id": "PD2:p91:gimport-java-applet-applet",
+          "group_members": 1,
+          "series": null,
+          "series_index": null,
+          "content_class": "table",
+          "relevance": {
+            "label": "core",
+            "confidence": "high"
+          },
+          "reconstruction": {
+            "kind": "table",
+            "confidence": "high",
+            "reasons": [
+              "table block with extractable structure",
+              "36 vector primitives inside the bbox"
+            ]
+          },
+          "score": 72,
+          "score_parts": {
+            "area": 20.0,
+            "caption": 1.8,
+            "complexity": 14.4,
+            "heading": 12.0,
+            "low_text": 0.0,
+            "quality": 9.1,
+            "relevance_bonus": 15.0,
+            "structure": 0.0
+          },
+          "signals": [
+            "area",
+            "near-heading",
+            "vector-content",
+            "relevance:core"
+          ],
+          "penalties": [],
+          "suggested": "native_table",
+          "confidence": "high",
+          "recommended_width_percent": 90,
+          "effective_dpi": null,
+          "review_mode": "text-only",
+          "reason": "table candidate; near heading \"import java.applet.Applet;\""
+        },
+        {
+          "id": "PD2:p34:fig1",
+          "source": "PD2",
+          "page": 34,
+          "kind": "figure",
+          "bbox": {
+            "x": 576.369,
+            "y": 53.972,
+            "width": 129.34497,
+            "height": 165.458
+          },
+          "page_width": 720.0,
+          "page_height": 540.0,
+          "area_ratio": 0.055044137,
+          "native": true,
+          "image_id": "p34_1",
+          "pixel_width": 0,
+          "pixel_height": 0,
+          "format": "png",
+          "vector_primitives": 4,
+          "text_inside_chars": 0,
+          "heading": null,
+          "caption_seed": "http://homepages.cs.ncl.ac.uk/brian.randell/NATO/N1968/NAUR.jpg",
+          "context": {
+            "before": "",
+            "after": "Peter Naur - Geliştirilmekte olan diğer bütün diller belirli",
+            "inside": ""
+          },
+          "group_id": null,
+          "group_members": 1,
+          "series": null,
+          "series_index": null,
+          "content_class": "photo",
+          "relevance": {
+            "label": "supporting",
+            "confidence": "low"
+          },
+          "reconstruction": {
+            "kind": "unique",
+            "confidence": "medium",
+            "reasons": []
+          },
+          "score": 70,
+          "score_parts": {
+            "area": 20.0,
+            "caption": 18.0,
+            "complexity": 12.6,
+            "heading": 1.2,
+            "low_text": 0.0,
+            "quality": 2.8,
+            "relevance_bonus": 5.0,
+            "structure": 10.0
+          },
+          "signals": [
+            "area",
+            "caption",
+            "native-image",
+            "tagged-figure",
+            "relevance:supporting"
+          ],
+          "penalties": [],
+          "suggested": "describe",
+          "confidence": "high",
+          "recommended_width_percent": 35,
+          "effective_dpi": 0.0,
+          "review_mode": "visual-check-recommended",
+          "reason": "photo candidate; low effective DPI; recommended width 35%"
+        },
+        {
+          "id": "PD2:p78:fig1",
+          "source": "PD2",
+          "page": 78,
+          "kind": "figure",
+          "bbox": {
+            "x": 606.501,
+            "y": 0.0,
+            "width": 113.47101,
+            "height": 173.934
+          },
+          "page_width": 720.0,
+          "page_height": 540.0,
+          "area_ratio": 0.05076252,
+          "native": true,
+          "image_id": "p78_1",
+          "pixel_width": 0,
+          "pixel_height": 0,
+          "format": "png",
+          "vector_primitives": 5,
+          "text_inside_chars": 0,
+          "heading": null,
+          "caption_seed": "FIG_0211.pct                                                   000C7A15 The Brain                      B3A96F87:",
+          "context": {
+            "before": "",
+            "after": "- Paylaşılan veri için daha iyi kontrol mekanizmaları kurallarına göre çağrılması mekanizması da ADA",
+            "inside": ""
+          },
+          "group_id": null,
+          "group_members": 1,
+          "series": null,
+          "series_index": null,
+          "content_class": "photo",
+          "relevance": {
+            "label": "supporting",
+            "confidence": "low"
+          },
+          "reconstruction": {
+            "kind": "unique",
+            "confidence": "medium",
+            "reasons": []
+          },
+          "score": 70,
+          "score_parts": {
+            "area": 20.0,
+            "caption": 18.0,
+            "complexity": 13.1,
+            "heading": 1.2,
+            "low_text": 0.0,
+            "quality": 2.8,
+            "relevance_bonus": 5.0,
+            "structure": 10.0
+          },
+          "signals": [
+            "area",
+            "caption",
+            "native-image",
+            "tagged-figure",
+            "relevance:supporting"
+          ],
+          "penalties": [],
+          "suggested": "describe",
+          "confidence": "high",
+          "recommended_width_percent": 35,
+          "effective_dpi": 0.0,
+          "review_mode": "visual-check-recommended",
+          "reason": "photo candidate; low effective DPI; recommended width 35%"
+        },
+        {
+          "id": "PD2:p8:fig1",
+          "source": "PD2",
+          "page": 8,
+          "kind": "figure",
+          "bbox": {
+            "x": 605.254,
+            "y": 0.0,
+            "width": 114.71796,
+            "height": 147.94
+          },
+          "page_width": 720.0,
+          "page_height": 540.0,
+          "area_ratio": 0.043650657,
+          "native": true,
+          "image_id": "p8_2",
+          "pixel_width": 0,
+          "pixel_height": 0,
+          "format": "png",
+          "vector_primitives": 3,
+          "text_inside_chars": 0,
+          "heading": null,
+          "caption_seed": "http://stefan-ausbau.de/x/zuse2.jpg",
+          "context": {
+            "before": "",
+            "after": "Konrad Zuse (1910-1995)",
+            "inside": ""
+          },
+          "group_id": null,
+          "group_members": 1,
+          "series": null,
+          "series_index": null,
+          "content_class": "photo",
+          "relevance": {
+            "label": "supporting",
+            "confidence": "low"
+          },
+          "reconstruction": {
+            "kind": "unique",
+            "confidence": "medium",
+            "reasons": []
+          },
+          "score": 69,
+          "score_parts": {
+            "area": 20.0,
+            "caption": 18.0,
+            "complexity": 12.2,
+            "heading": 1.2,
+            "low_text": 0.0,
+            "quality": 2.8,
+            "relevance_bonus": 5.0,
+            "structure": 10.0
+          },
+          "signals": [
+            "area",
+            "caption",
+            "native-image",
+            "tagged-figure",
+            "relevance:supporting"
+          ],
+          "penalties": [],
+          "suggested": "describe",
+          "confidence": "medium",
+          "recommended_width_percent": 35,
+          "effective_dpi": 0.0,
+          "review_mode": "visual-check-recommended",
+          "reason": "photo candidate; low effective DPI; recommended width 35%"
+        },
+        {
+          "id": "PD2:p8:fig2",
+          "source": "PD2",
+          "page": 8,
+          "kind": "figure",
+          "bbox": {
+            "x": 551.991,
+            "y": 233.971,
+            "width": 138.72797,
+            "height": 197.972
+          },
+          "page_width": 720.0,
+          "page_height": 540.0,
+          "area_ratio": 0.070638515,
+          "native": true,
+          "image_id": "p8_1",
+          "pixel_width": 0,
+          "pixel_height": 0,
+          "format": "png",
+          "vector_primitives": 2,
+          "text_inside_chars": 0,
+          "heading": null,
+          "caption_seed": "http://s7.computerhistory.org/is/image/CHM/500003061-03-01?$re-story-hero$",
+          "context": {
+            "before": "",
+            "after": "Konrad Zuse (1910-1995)",
+            "inside": ""
+          },
+          "group_id": null,
+          "group_members": 1,
+          "series": null,
+          "series_index": null,
+          "content_class": "photo",
+          "relevance": {
+            "label": "supporting",
+            "confidence": "low"
+          },
+          "reconstruction": {
+            "kind": "unique",
+            "confidence": "medium",
+            "reasons": []
+          },
+          "score": 69,
+          "score_parts": {
+            "area": 20.0,
+            "caption": 18.0,
+            "complexity": 11.7,
+            "heading": 1.2,
+            "low_text": 0.0,
+            "quality": 2.8,
+            "relevance_bonus": 5.0,
+            "structure": 10.0
+          },
+          "signals": [
+            "area",
+            "caption",
+            "native-image",
+            "tagged-figure",
+            "relevance:supporting"
+          ],
+          "penalties": [],
+          "suggested": "describe",
+          "confidence": "medium",
+          "recommended_width_percent": 35,
+          "effective_dpi": 0.0,
+          "review_mode": "visual-check-recommended",
+          "reason": "photo candidate; low effective DPI; recommended width 35%"
+        },
+        {
+          "id": "PD2:p91:fig1",
+          "source": "PD2",
+          "page": 91,
+          "kind": "figure",
+          "bbox": {
+            "x": 371.991,
+            "y": 155.962,
+            "width": 317.73502,
+            "height": 299.962
+          },
+          "page_width": 720.0,
+          "page_height": 540.0,
+          "area_ratio": 0.24513485,
+          "native": true,
+          "image_id": "p91_1",
+          "pixel_width": 0,
+          "pixel_height": 0,
+          "format": "png",
+          "vector_primitives": 2,
+          "text_inside_chars": 0,
+          "heading": null,
+          "caption_seed": "C:\\Documents and Settings\\Maria Barron\\My Documents\\My Pictures\\Stack.java",
+          "context": {
+            "before": "",
+            "after": "91",
+            "inside": ""
+          },
+          "group_id": null,
+          "group_members": 1,
+          "series": null,
+          "series_index": null,
+          "content_class": "photo",
+          "relevance": {
+            "label": "supporting",
+            "confidence": "low"
+          },
+          "reconstruction": {
+            "kind": "unique",
+            "confidence": "medium",
+            "reasons": []
+          },
+          "score": 69,
+          "score_parts": {
+            "area": 20.0,
+            "caption": 18.0,
+            "complexity": 11.7,
+            "heading": 1.2,
+            "low_text": 0.0,
+            "quality": 2.8,
+            "relevance_bonus": 5.0,
+            "structure": 10.0
+          },
+          "signals": [
+            "area",
+            "caption",
+            "native-image",
+            "tagged-figure",
+            "relevance:supporting"
+          ],
+          "penalties": [],
+          "suggested": "describe",
+          "confidence": "medium",
+          "recommended_width_percent": 35,
+          "effective_dpi": 0.0,
+          "review_mode": "visual-check-recommended",
+          "reason": "photo candidate; low effective DPI; recommended width 35%"
+        },
+        {
+          "id": "PD2:p26:fig1",
+          "source": "PD2",
+          "page": 26,
+          "kind": "figure",
+          "bbox": {
+            "x": 603.354,
+            "y": 99.978,
+            "width": 87.137024,
+            "height": 143.518
+          },
+          "page_width": 720.0,
+          "page_height": 540.0,
+          "area_ratio": 0.032164946,
+          "native": true,
+          "image_id": "p26_1",
+          "pixel_width": 0,
+          "pixel_height": 0,
+          "format": "png",
+          "vector_primitives": 0,
+          "text_inside_chars": 0,
+          "heading": "2.4 Fonksiyonel Programlama: LISP",
+          "caption_seed": "jmcbw",
+          "context": {
+            "before": "2.4 Fonksiyonel Programlama: LISP",
+            "after": "John McCarthy araştırmasının ihtiyaç duyduğu dil şöyleydi:",
+            "inside": ""
+          },
+          "group_id": "PD2:p26:g2-4-fonksiyonel-programlama--lisp",
+          "group_members": 1,
+          "series": null,
+          "series_index": null,
+          "content_class": "photo",
+          "relevance": {
+            "label": "supporting",
+            "confidence": "low"
+          },
+          "reconstruction": {
+            "kind": "unique",
+            "confidence": "medium",
+            "reasons": []
+          },
+          "score": 68,
+          "score_parts": {
+            "area": 9.0,
+            "caption": 18.0,
+            "complexity": 10.8,
+            "heading": 12.0,
+            "low_text": 0.0,
+            "quality": 2.8,
+            "relevance_bonus": 5.0,
+            "structure": 10.0
+          },
+          "signals": [
+            "near-heading",
+            "caption",
+            "native-image",
+            "tagged-figure",
+            "relevance:supporting"
+          ],
+          "penalties": [],
+          "suggested": "describe",
+          "confidence": "medium",
+          "recommended_width_percent": 35,
+          "effective_dpi": 0.0,
+          "review_mode": "visual-check-recommended",
+          "reason": "photo candidate; near heading \"2.4 Fonksiyonel Programlama: LISP\"; low effective DPI; recommended width 35%"
+        },
+        {
+          "id": "PD2:p12:tbl1",
+          "source": "PD2",
+          "page": 12,
+          "kind": "table",
+          "bbox": {
+            "x": 154.205,
+            "y": 339.40918,
+            "width": 408.38202,
+            "height": 79.012024
+          },
+          "page_width": 720.0,
+          "page_height": 540.0,
+          "area_ratio": 0.08299149,
+          "native": false,
+          "image_id": null,
+          "pixel_width": null,
+          "pixel_height": null,
+          "format": null,
+          "vector_primitives": 2,
+          "text_inside_chars": 62,
+          "heading": "07 +",
+          "caption_seed": "07 +",
+          "context": {
+            "before": "power (n+2)nd 01 - 06 abs value 1n",
+            "after": "",
+            "inside": "02 ) 07 + 2n (n+2)nd root 03 = 08 pause 4n if <= n 04 / 09 ( 58 print and tab"
+          },
+          "group_id": "PD2:p12:g07",
+          "group_members": 1,
+          "series": null,
+          "series_index": null,
+          "content_class": "table",
+          "relevance": {
+            "label": "core",
+            "confidence": "high"
+          },
+          "reconstruction": {
+            "kind": "table",
+            "confidence": "high",
+            "reasons": [
+              "table block with extractable structure"
+            ]
+          },
+          "score": 66,
+          "score_parts": {
+            "area": 20.0,
+            "caption": 1.8,
+            "complexity": 8.1,
+            "heading": 12.0,
+            "low_text": 0.0,
+            "quality": 9.1,
+            "relevance_bonus": 15.0,
+            "structure": 0.0
+          },
+          "signals": [
+            "area",
+            "near-heading",
+            "relevance:core"
+          ],
+          "penalties": [],
+          "suggested": "native_table",
+          "confidence": "medium",
+          "recommended_width_percent": 90,
+          "effective_dpi": null,
+          "review_mode": "text-only",
+          "reason": "table candidate; near heading \"07 +\""
+        },
+        {
+          "id": "PD2:p49:tbl1",
+          "source": "PD2",
+          "page": 49,
+          "kind": "table",
+          "bbox": {
+            "x": 19.049,
+            "y": 232.39505,
+            "width": 494.39447,
+            "height": 110.45499
+          },
+          "page_width": 720.0,
+          "page_height": 540.0,
+          "area_ratio": 0.14045353,
+          "native": false,
+          "image_id": null,
+          "pixel_width": null,
+          "pixel_height": null,
+          "format": null,
+          "vector_primitives": 56,
+          "text_inside_chars": 498,
+          "heading": "001000 DATA DIVISION.",
+          "caption_seed": "001000 DATA DIVISION.",
+          "context": {
+            "before": "000800 OBJECT-COMPUTER. RM-COBOL. ORGANIZATION IS LINE SEQUENTIAL. 000900",
+            "after": "02 Gender PIC X.",
+            "inside": "001000 DATA DIVISION. DATA DIVISION. FILE SECTION. 001100 FILE SECTION. FD StudentFile. 001200 100000 PROCEDURE DIVISION. 01 StudentDetails. 100100 02 StudentId PIC 9(7). 02 StudentName. 100200 MAIN-LOGIC SECTION. 03 Surname PIC X(8). 100300 BEGIN. 03 Initials PIC XX. 100400 DISPLAY \" \" LINE 1 POSITION 1 ERASE EOS. 02 DateOfBirth. 03 YOBirth PIC 9(4). 100500 DISPLAY \"HELLO, WORLD.\" LINE 15 POSITION 10. 03 MOBirth PIC 9(2). 100600 STOP RUN. 03 DOBirth PIC 9(2). 100700 MAIN-LOGIC-EXIT. 02 CourseCode PIC X(4). 02 Gender PIC X."
+          },
+          "group_id": "PD2:p49:g001000-data-division",
+          "group_members": 1,
+          "series": null,
+          "series_index": null,
+          "content_class": "table",
+          "relevance": {
+            "label": "core",
+            "confidence": "high"
+          },
+          "reconstruction": {
+            "kind": "table",
+            "confidence": "high",
+            "reasons": [
+              "table block with extractable structure",
+              "56 vector primitives inside the bbox"
+            ]
+          },
+          "score": 65,
+          "score_parts": {
+            "area": 20.0,
+            "caption": 1.8,
+            "complexity": 14.4,
+            "heading": 12.0,
+            "low_text": 0.0,
+            "quality": 9.1,
+            "relevance_bonus": 15.0,
+            "structure": 0.0
+          },
+          "signals": [
+            "area",
+            "near-heading",
+            "vector-content",
+            "relevance:core"
+          ],
+          "penalties": [
+            "text-inside:-7.5"
+          ],
+          "suggested": "native_table",
+          "confidence": "medium",
+          "recommended_width_percent": 90,
+          "effective_dpi": null,
+          "review_mode": "text-only",
+          "reason": "table candidate; near heading \"001000 DATA DIVISION.\"; text-inside:-7.5"
+        },
+        {
+          "id": "PD2:p5:img1",
+          "source": "PD2",
+          "page": 5,
+          "kind": "image",
+          "bbox": {
+            "x": 261.128,
+            "y": 0.0,
+            "width": 458.844,
+            "height": 539.943
+          },
+          "page_width": 720.0,
+          "page_height": 540.0,
+          "area_ratio": 0.63721603,
+          "native": true,
+          "image_id": "p5_1",
+          "pixel_width": 0,
+          "pixel_height": 0,
+          "format": "png",
+          "vector_primitives": 3,
+          "text_inside_chars": 1,
+          "heading": null,
+          "caption_seed": null,
+          "context": {
+            "before": "",
+            "after": "",
+            "inside": "5"
+          },
+          "group_id": null,
+          "group_members": 1,
+          "series": null,
+          "series_index": null,
+          "content_class": "diagram",
+          "relevance": {
+            "label": "core",
+            "confidence": "high"
+          },
+          "reconstruction": {
+            "kind": "d2_concept",
+            "confidence": "high",
+            "reasons": [
+              "diagram keyword in heading/context"
+            ]
+          },
+          "score": 62,
+          "score_parts": {
+            "area": 11.0,
+            "caption": 1.8,
+            "complexity": 12.2,
+            "heading": 1.2,
+            "low_text": 8.0,
+            "quality": 2.8,
+            "relevance_bonus": 15.0,
+            "structure": 10.0
+          },
+          "signals": [
+            "native-image",
+            "low-text-page",
+            "tagged-figure",
+            "relevance:core"
+          ],
+          "penalties": [],
+          "suggested": "redraw",
+          "confidence": "medium",
+          "recommended_width_percent": 35,
+          "effective_dpi": 0.0,
+          "review_mode": "text-only",
+          "reason": "diagram candidate; low effective DPI; recommended width 35%"
+        },
+        {
+          "id": "PD2:p65:vec2",
+          "source": "PD2",
+          "page": 65,
+          "kind": "vector",
+          "bbox": {
+            "x": 37.928,
+            "y": 173.254,
+            "width": 279.787,
+            "height": 110.75699
+          },
+          "page_width": 720.0,
+          "page_height": 540.0,
+          "area_ratio": 0.07970258,
+          "native": false,
+          "image_id": null,
+          "pixel_width": null,
+          "pixel_height": null,
+          "format": null,
+          "vector_primitives": 160,
+          "text_inside_chars": 66,
+          "heading": "Begin",
+          "caption_seed": "Begin",
+          "context": {
+            "before": "Simula Örnek",
+            "after": "begin integer Int1;",
+            "inside": "Begin while 1 = 1 do begin outtext (\"Hello World!\"); outimage; end; End;"
+          },
+          "group_id": "PD2:p65:gbegin",
+          "group_members": 1,
+          "series": null,
+          "series_index": null,
+          "content_class": "diagram",
+          "relevance": {
+            "label": "supporting",
+            "confidence": "low"
+          },
+          "reconstruction": {
+            "kind": "unique",
+            "confidence": "low",
+            "reasons": [
+              "160 vector primitives inside the bbox"
+            ]
+          },
+          "score": 62,
+          "score_parts": {
+            "area": 20.0,
+            "caption": 1.8,
+            "complexity": 14.4,
+            "heading": 12.0,
+            "low_text": 0.0,
+            "quality": 9.1,
+            "relevance_bonus": 5.0,
+            "structure": 0.0
+          },
+          "signals": [
+            "area",
+            "near-heading",
+            "vector-content",
+            "relevance:supporting"
+          ],
+          "penalties": [],
+          "suggested": "describe",
+          "confidence": "medium",
+          "recommended_width_percent": 90,
+          "effective_dpi": null,
+          "review_mode": "visual-check-recommended",
+          "reason": "diagram candidate; near heading \"Begin\""
+        },
+        {
+          "id": "PD2:p81:fig1",
+          "source": "PD2",
+          "page": 81,
+          "kind": "figure",
+          "bbox": {
+            "x": 622.091,
+            "y": 0.0,
+            "width": 89.263,
+            "height": 113.953
+          },
+          "page_width": 720.0,
+          "page_height": 540.0,
+          "area_ratio": 0.026162004,
+          "native": true,
+          "image_id": "p81_1",
+          "pixel_width": 0,
+          "pixel_height": 0,
+          "format": "png",
+          "vector_primitives": 3,
+          "text_inside_chars": 0,
+          "heading": null,
+          "caption_seed": "http://upload.wikimedia.org/wikipedia/commons/c/c1/Alan_Kay2.jpg",
+          "context": {
+            "before": "",
+            "after": "Alan Kay yazılımlarda kullanıldı. Halen yazılım geliştirimleri için yeni",
+            "inside": ""
+          },
+          "group_id": null,
+          "group_members": 1,
+          "series": null,
+          "series_index": null,
+          "content_class": "photo",
+          "relevance": {
+            "label": "supporting",
+            "confidence": "low"
+          },
+          "reconstruction": {
+            "kind": "unique",
+            "confidence": "medium",
+            "reasons": []
+          },
+          "score": 58,
+          "score_parts": {
+            "area": 9.0,
+            "caption": 18.0,
+            "complexity": 12.2,
+            "heading": 1.2,
+            "low_text": 0.0,
+            "quality": 2.8,
+            "relevance_bonus": 5.0,
+            "structure": 10.0
+          },
+          "signals": [
+            "caption",
+            "native-image",
+            "tagged-figure",
+            "relevance:supporting"
+          ],
+          "penalties": [],
+          "suggested": "describe",
+          "confidence": "medium",
+          "recommended_width_percent": 35,
+          "effective_dpi": 0.0,
+          "review_mode": "visual-check-recommended",
+          "reason": "photo candidate; low effective DPI; recommended width 35%"
+        },
+        {
+          "id": "PD2:p15:fig1",
+          "source": "PD2",
+          "page": 15,
+          "kind": "figure",
+          "bbox": {
+            "x": 632.608,
+            "y": 5.981,
+            "width": 75.37305,
+            "height": 89.972
+          },
+          "page_width": 720.0,
+          "page_height": 540.0,
+          "area_ratio": 0.017442036,
+          "native": true,
+          "image_id": "p15_1",
+          "pixel_width": 0,
+          "pixel_height": 0,
+          "format": "png",
+          "vector_primitives": 0,
+          "text_inside_chars": 0,
+          "heading": null,
+          "caption_seed": "D:\\WINNT\\Profiles\\finin\\Desktop\\331\\backus_1.gif",
+          "context": {
+            "before": "",
+            "after": "Fortran I:1957 - Ticari olarak kullanıma sunuldu loating point) donanımına sahip yeni IBM 704",
+            "inside": ""
+          },
+          "group_id": null,
+          "group_members": 1,
+          "series": null,
+          "series_index": null,
+          "content_class": "photo",
+          "relevance": {
+            "label": "supporting",
+            "confidence": "low"
+          },
+          "reconstruction": {
+            "kind": "unique",
+            "confidence": "medium",
+            "reasons": []
+          },
+          "score": 57,
+          "score_parts": {
+            "area": 9.0,
+            "caption": 18.0,
+            "complexity": 10.8,
+            "heading": 1.2,
+            "low_text": 0.0,
+            "quality": 2.8,
+            "relevance_bonus": 5.0,
+            "structure": 10.0
+          },
+          "signals": [
+            "caption",
+            "native-image",
+            "tagged-figure",
+            "relevance:supporting"
+          ],
+          "penalties": [],
+          "suggested": "describe",
+          "confidence": "medium",
+          "recommended_width_percent": 35,
+          "effective_dpi": 0.0,
+          "review_mode": "visual-check-recommended",
+          "reason": "photo candidate; low effective DPI; recommended width 35%"
+        },
+        {
+          "id": "PD2:p31:fig1",
+          "source": "PD2",
+          "page": 31,
+          "kind": "figure",
+          "bbox": {
+            "x": 122.06,
+            "y": 136.687,
+            "width": 420.23602,
+            "height": 301.011
+          },
+          "page_width": 720.0,
+          "page_height": 540.0,
+          "area_ratio": 0.3253489,
+          "native": true,
+          "image_id": "p31_1",
+          "pixel_width": 0,
+          "pixel_height": 0,
+          "format": "png",
+          "vector_primitives": 2,
+          "text_inside_chars": 167,
+          "heading": "(DEFUN equal_lists (list1 list2)",
+          "caption_seed": "(DEFUN equal_lists (list1 list2)",
+          "context": {
+            "before": "LISP Örnek",
+            "after": "",
+            "inside": "(DEFUN equal_lists (list1 list2) (EQ list1 list2)) (COND ((ATOM list1) ((ATOM list2) NIL) (CAR lsit2)) ((equal_lists (CAR list1) (CDR list2))) (equal_lists (CDR lsit1) (T NIL) )"
+          },
+          "group_id": "PD2:p31:gdefun-equal-lists--list1-list2",
+          "group_members": 1,
+          "series": null,
+          "series_index": null,
+          "content_class": "photo",
+          "relevance": {
+            "label": "supporting",
+            "confidence": "low"
+          },
+          "reconstruction": {
+            "kind": "unique",
+            "confidence": "medium",
+            "reasons": []
+          },
+          "score": 53,
+          "score_parts": {
+            "area": 20.0,
+            "caption": 1.8,
+            "complexity": 11.7,
+            "heading": 12.0,
+            "low_text": 0.0,
+            "quality": 2.8,
+            "relevance_bonus": 5.0,
+            "structure": 0.0
+          },
+          "signals": [
+            "area",
+            "near-heading",
+            "native-image",
+            "relevance:supporting"
+          ],
+          "penalties": [],
+          "suggested": "describe",
+          "confidence": "medium",
+          "recommended_width_percent": 35,
+          "effective_dpi": 0.0,
+          "review_mode": "visual-check-recommended",
+          "reason": "photo candidate; near heading \"(DEFUN equal_lists (list1 list2)\"; low effective DPI; recommended width 35%"
+        },
+        {
+          "id": "PD2:p14:fig2",
+          "source": "PD2",
+          "page": 14,
+          "kind": "figure",
+          "bbox": {
+            "x": 479.991,
+            "y": 95.982,
+            "width": 175.94559,
+            "height": 139.97357
+          },
+          "page_width": 720.0,
+          "page_height": 540.0,
+          "area_ratio": 0.06334294,
+          "native": false,
+          "image_id": null,
+          "pixel_width": null,
+          "pixel_height": null,
+          "format": null,
+          "vector_primitives": 12,
+          "text_inside_chars": 12,
+          "heading": "Sözdekodlar : İlgili Sistemler",
+          "caption_seed": "Sözdekodlar : İlgili Sistemler",
+          "context": {
+            "before": "Sözdekodlar : İlgili Sistemler",
+            "after": "Grace Hopper - Grace Hopper yönetimindeki bir ekip tarafından",
+            "inside": ""
+          },
+          "group_id": "PD2:p14:gsözdekodlar---i-lgili-sistemler",
+          "group_members": 2,
+          "series": null,
+          "series_index": null,
+          "content_class": "photo",
+          "relevance": {
+            "label": "supporting",
+            "confidence": "low"
+          },
+          "reconstruction": {
+            "kind": "unique",
+            "confidence": "medium",
+            "reasons": []
+          },
+          "score": 52,
+          "score_parts": {
+            "area": 9.0,
+            "caption": 1.8,
+            "complexity": 11.7,
+            "heading": 12.0,
+            "low_text": 0.0,
+            "quality": 2.8,
+            "relevance_bonus": 5.0,
+            "structure": 10.0
+          },
+          "signals": [
+            "near-heading",
+            "native-image",
+            "tagged-figure",
+            "relevance:supporting"
+          ],
+          "penalties": [],
+          "suggested": "describe",
+          "confidence": "medium",
+          "recommended_width_percent": 90,
+          "effective_dpi": null,
+          "review_mode": "visual-check-recommended",
+          "reason": "photo candidate; near heading \"Sözdekodlar : İlgili Sistemler\"; low effective DPI; recommended width 35%; grouped 2 panels"
+        },
+        {
+          "id": "PD2:p101:img1",
+          "source": "PD2",
+          "page": 101,
+          "kind": "image",
+          "bbox": {
+            "x": 45.241,
+            "y": 113.471,
+            "width": 632.72095,
+            "height": 360.482
+          },
+          "page_width": 720.0,
+          "page_height": 540.0,
+          "area_ratio": 0.58663714,
+          "native": true,
+          "image_id": "p101_1",
+          "pixel_width": 0,
+          "pixel_height": 0,
+          "format": "png",
+          "vector_primitives": 4,
+          "text_inside_chars": 0,
+          "heading": null,
+          "caption_seed": null,
+          "context": {
+            "before": "",
+            "after": "",
+            "inside": ""
+          },
+          "group_id": null,
+          "group_members": 1,
+          "series": null,
+          "series_index": null,
+          "content_class": "photo",
+          "relevance": {
+            "label": "core",
+            "confidence": "high"
+          },
+          "reconstruction": {
+            "kind": "unique",
+            "confidence": "medium",
+            "reasons": []
+          },
+          "score": 52,
+          "score_parts": {
+            "area": 11.0,
+            "caption": 1.8,
+            "complexity": 12.6,
+            "heading": 1.2,
+            "low_text": 8.0,
+            "quality": 2.8,
+            "relevance_bonus": 15.0,
+            "structure": 0.0
+          },
+          "signals": [
+            "native-image",
+            "low-text-page",
+            "relevance:core"
+          ],
+          "penalties": [],
+          "suggested": "describe",
+          "confidence": "medium",
+          "recommended_width_percent": 35,
+          "effective_dpi": 0.0,
+          "review_mode": "visual-check-recommended",
+          "reason": "photo candidate; low effective DPI; recommended width 35%"
+        },
+        {
+          "id": "PD2:p79:vec1",
+          "source": "PD2",
+          "page": 79,
+          "kind": "vector",
+          "bbox": {
+            "x": 46.948727,
+            "y": 101.254,
+            "width": 144.28427,
+            "height": 95.95999
+          },
+          "page_width": 720.0,
+          "page_height": 540.0,
+          "area_ratio": 0.0356109,
+          "native": false,
+          "image_id": null,
+          "pixel_width": null,
+          "pixel_height": null,
+          "format": null,
+          "vector_primitives": 97,
+          "text_inside_chars": 74,
+          "heading": "Ada Örnek",
+          "caption_seed": "Ada Örnek",
+          "context": {
+            "before": "Ada Örnek",
+            "after": "end hello package ArrayCalc is",
+            "inside": "with Text_To; use Text_To procedure hello is begin put(\"Hello World\"); end hello"
+          },
+          "group_id": "PD2:p79:gada-örnek",
+          "group_members": 1,
+          "series": null,
+          "series_index": null,
+          "content_class": "diagram",
+          "relevance": {
+            "label": "supporting",
+            "confidence": "low"
+          },
+          "reconstruction": {
+            "kind": "unique",
+            "confidence": "low",
+            "reasons": [
+              "97 vector primitives inside the bbox"
+            ]
+          },
+          "score": 51,
+          "score_parts": {
+            "area": 9.0,
+            "caption": 1.8,
+            "complexity": 14.4,
+            "heading": 12.0,
+            "low_text": 0.0,
+            "quality": 9.1,
+            "relevance_bonus": 5.0,
+            "structure": 0.0
+          },
+          "signals": [
+            "near-heading",
+            "vector-content",
+            "relevance:supporting"
+          ],
+          "penalties": [],
+          "suggested": "describe",
+          "confidence": "medium",
+          "recommended_width_percent": 90,
+          "effective_dpi": null,
+          "review_mode": "visual-check-recommended",
+          "reason": "diagram candidate; near heading \"Ada Örnek\""
+        },
+        {
+          "id": "PD2:p25:fig1",
+          "source": "PD2",
+          "page": 25,
+          "kind": "figure",
+          "bbox": {
+            "x": 103.578,
+            "y": 162.17,
+            "width": 518.769,
+            "height": 342.70898
+          },
+          "page_width": 720.0,
+          "page_height": 540.0,
+          "area_ratio": 0.45727056,
+          "native": true,
+          "image_id": "p25_1",
+          "pixel_width": 0,
+          "pixel_height": 0,
+          "format": "png",
+          "vector_primitives": 2,
+          "text_inside_chars": 473,
+          "heading": "Integer :: Int_List(99)",
+          "caption_seed": "Integer :: Int_List(99)",
+          "context": {
+            "before": "Program Example ! Fortran 95 example program Implicit none",
+            "after": "End Program Example 25",
+            "inside": "Integer :: Int_List(99) Integer :: List_Len, Counter, Sum, Average, Result Result = 0 Sum =0 Read *, List_len If ((List_Len > 0) .AND. (List_Len <100)) Then Do Counter=1 List_Len Read *,Int_List(Counter) Sum = Sum + Int_List(Counter) End Do Average = Sum / List_len Do Counter=1, List_Len If (Int_List(Counter) > Average) Then Result = Result + 1 End If End Do Print *, 'Number of Values > average is ', Result Else Print *, 'Error - list length value is not legal ' End If End Program Example"
+          },
+          "group_id": "PD2:p25:ginteger----int-list-99",
+          "group_members": 1,
+          "series": null,
+          "series_index": null,
+          "content_class": "photo",
+          "relevance": {
+            "label": "supporting",
+            "confidence": "low"
+          },
+          "reconstruction": {
+            "kind": "unique",
+            "confidence": "medium",
+            "reasons": []
+          },
+          "score": 46,
+          "score_parts": {
+            "area": 20.0,
+            "caption": 1.8,
+            "complexity": 11.7,
+            "heading": 12.0,
+            "low_text": 0.0,
+            "quality": 2.8,
+            "relevance_bonus": 5.0,
+            "structure": 0.0
+          },
+          "signals": [
+            "area",
+            "near-heading",
+            "native-image",
+            "relevance:supporting"
+          ],
+          "penalties": [
+            "text-inside:-7.1"
+          ],
+          "suggested": "describe",
+          "confidence": "medium",
+          "recommended_width_percent": 35,
+          "effective_dpi": 0.0,
+          "review_mode": "text-only",
+          "reason": "photo candidate; near heading \"Integer :: Int_List(99)\"; text-inside:-7.1; low effective DPI; recommended width 35%"
+        },
+        {
+          "id": "PD2:p41:vec1",
+          "source": "PD2",
+          "page": 41,
+          "kind": "vector",
+          "bbox": {
+            "x": 11.254,
+            "y": 118.94873,
+            "width": 685.652,
+            "height": 322.10126
+          },
+          "page_width": 720.0,
+          "page_height": 540.0,
+          "area_ratio": 0.5680282,
+          "native": false,
+          "image_id": null,
+          "pixel_width": null,
+          "pixel_height": null,
+          "format": null,
+          "vector_primitives": 234,
+          "text_inside_chars": 453,
+          "heading": "// the main program (this is a comment)",
+          "caption_seed": "// the main program (this is a comment)",
+          "context": {
+            "before": "ALGOL Örnek",
+            "after": "41",
+            "inside": "// the main program (this is a comment) // the main program (this is a comment) BEGIN begin FILE F (KIND=REMOTE); integer N; EBCDIC ARRAY E [0:11]; Read Int(N); REPLACE E BY \"HELLO WORLD!\"; begin WHILE TRUE DO real array Data[1:N]; BEGIN real sum, avg; WRITE (F, *, E); integer i; sum:=0; END; for i:=1 step 1 until N do END. begin real val; Read Real(val); Data[i]:=if val<0 then -val else val end; for i:=1 step 1 until N do sum:=sum + Data[i]; avg:=sum/N; Print Real(avg) end end"
+          },
+          "group_id": "PD2:p41:gthe-main-program--this-is-a-comment",
+          "group_members": 1,
+          "series": null,
+          "series_index": null,
+          "content_class": "text",
+          "relevance": {
+            "label": "supporting",
+            "confidence": "medium"
+          },
+          "reconstruction": {
+            "kind": "text",
+            "confidence": "high",
+            "reasons": [
+              "234 vector primitives inside the bbox"
+            ]
+          },
+          "score": 45,
+          "score_parts": {
+            "area": 11.0,
+            "caption": 1.8,
+            "complexity": 14.4,
+            "heading": 12.0,
+            "low_text": 0.0,
+            "quality": 9.1,
+            "relevance_bonus": 5.0,
+            "structure": 0.0
+          },
+          "signals": [
+            "near-heading",
+            "vector-content",
+            "relevance:supporting"
+          ],
+          "penalties": [
+            "text-inside:-6.8"
+          ],
+          "suggested": "skip",
+          "confidence": "medium",
+          "recommended_width_percent": 90,
+          "effective_dpi": null,
+          "review_mode": "text-only",
+          "reason": "text candidate; near heading \"// the main program (this is a comment)\"; text-inside:-6.8"
+        },
+        {
+          "id": "PD2:p65:vec1",
+          "source": "PD2",
+          "page": 65,
+          "kind": "vector",
+          "bbox": {
+            "x": 359.263,
+            "y": 99.72299,
+            "width": 353.00598,
+            "height": 285.25803
+          },
+          "page_width": 720.0,
+          "page_height": 540.0,
+          "area_ratio": 0.25899637,
+          "native": false,
+          "image_id": null,
+          "pixel_width": null,
+          "pixel_height": null,
+          "format": null,
+          "vector_primitives": 160,
+          "text_inside_chars": 304,
+          "heading": "class Lab;",
+          "caption_seed": "class Lab;",
+          "context": {
+            "before": "",
+            "after": "comment The first SIMULA program written for this book; 65",
+            "inside": "class Lab; begin text Nam, Street, Town, County, Code; procedure ReadLabel; begin Nam :- InLine; Street :- InLine; Town :- InLine; County :- InLine; Code :- InLine end++of++ReadLabel; procedure WriteLabel; begin OutLine(Nam); OutLine(Street); OutLine(Town); OutLine(County); OutLine(Code) end++of++WriteLabel; end--of--Lab;"
+          },
+          "group_id": "PD2:p65:gclass-lab",
+          "group_members": 1,
+          "series": null,
+          "series_index": null,
+          "content_class": "text",
+          "relevance": {
+            "label": "supporting",
+            "confidence": "medium"
+          },
+          "reconstruction": {
+            "kind": "text",
+            "confidence": "high",
+            "reasons": [
+              "160 vector primitives inside the bbox"
+            ]
+          },
+          "score": 45,
+          "score_parts": {
+            "area": 20.0,
+            "caption": 1.8,
+            "complexity": 14.4,
+            "heading": 12.0,
+            "low_text": 0.0,
+            "quality": 9.1,
+            "relevance_bonus": 5.0,
+            "structure": 0.0
+          },
+          "signals": [
+            "area",
+            "near-heading",
+            "vector-content",
+            "relevance:supporting"
+          ],
+          "penalties": [
+            "text-inside:-4.6"
+          ],
+          "suggested": "skip",
+          "confidence": "medium",
+          "recommended_width_percent": 90,
+          "effective_dpi": null,
+          "review_mode": "text-only",
+          "reason": "text candidate; near heading \"class Lab;\"; text-inside:-4.6"
+        },
+        {
+          "id": "PD2:p91:vec1",
+          "source": "PD2",
+          "page": 91,
+          "kind": "vector",
+          "bbox": {
+            "x": 35.263,
+            "y": 197.23499,
+            "width": 313.718,
+            "height": 81.58902
+          },
+          "page_width": 720.0,
+          "page_height": 540.0,
+          "area_ratio": 0.06583319,
+          "native": false,
+          "image_id": null,
+          "pixel_width": null,
+          "pixel_height": null,
+          "format": null,
+          "vector_primitives": 160,
+          "text_inside_chars": 119,
+          "heading": "class HelloWorldApp {",
+          "caption_seed": "class HelloWorldApp {",
+          "context": {
+            "before": "Java Örnek",
+            "after": "} import java.applet.Applet;",
+            "inside": "class HelloWorldApp { public static void main(String[] args) { System.out.println(\"Hello World!\"); //Display the string. } }"
+          },
+          "group_id": "PD2:p91:gclass-helloworldapp",
+          "group_members": 1,
+          "series": null,
+          "series_index": null,
+          "content_class": "text",
+          "relevance": {
+            "label": "supporting",
+            "confidence": "medium"
+          },
+          "reconstruction": {
+            "kind": "text",
+            "confidence": "high",
+            "reasons": [
+              "160 vector primitives inside the bbox"
+            ]
+          },
+          "score": 45,
+          "score_parts": {
+            "area": 20.0,
+            "caption": 1.8,
+            "complexity": 14.4,
+            "heading": 12.0,
+            "low_text": 0.0,
+            "quality": 9.1,
+            "relevance_bonus": 5.0,
+            "structure": 0.0
+          },
+          "signals": [
+            "area",
+            "near-heading",
+            "vector-content",
+            "relevance:supporting"
+          ],
+          "penalties": [],
+          "suggested": "skip",
+          "confidence": "medium",
+          "recommended_width_percent": 90,
+          "effective_dpi": null,
+          "review_mode": "text-only",
+          "reason": "text candidate; near heading \"class HelloWorldApp {\""
+        },
+        {
+          "id": "PD2:p14:fig1",
+          "source": "PD2",
+          "page": 14,
+          "kind": "figure",
+          "bbox": {
+            "x": 582.009,
+            "y": 95.981,
+            "width": 86.00305,
+            "height": 107.972
+          },
+          "page_width": 720.0,
+          "page_height": 540.0,
+          "area_ratio": 0.023883544,
+          "native": true,
+          "image_id": "p14_2",
+          "pixel_width": 0,
+          "pixel_height": 0,
+          "format": "png",
+          "vector_primitives": 2,
+          "text_inside_chars": 0,
+          "heading": null,
+          "caption_seed": null,
+          "context": {
+            "before": "",
+            "after": "Grace Hopper - Grace Hopper yönetimindeki bir ekip tarafından",
+            "inside": ""
+          },
+          "group_id": null,
+          "group_members": 1,
+          "series": null,
+          "series_index": null,
+          "content_class": "photo",
+          "relevance": {
+            "label": "supporting",
+            "confidence": "low"
+          },
+          "reconstruction": {
+            "kind": "unique",
+            "confidence": "medium",
+            "reasons": []
+          },
+          "score": 42,
+          "score_parts": {
+            "area": 9.0,
+            "caption": 1.8,
+            "complexity": 11.7,
+            "heading": 1.2,
+            "low_text": 0.0,
+            "quality": 2.8,
+            "relevance_bonus": 5.0,
+            "structure": 10.0
+          },
+          "signals": [
+            "native-image",
+            "tagged-figure",
+            "relevance:supporting"
+          ],
+          "penalties": [],
+          "suggested": "describe",
+          "confidence": "medium",
+          "recommended_width_percent": 35,
+          "effective_dpi": 0.0,
+          "review_mode": "text-only",
+          "reason": "photo candidate; low effective DPI; recommended width 35%"
+        },
+        {
+          "id": "PD2:p79:tbl1",
+          "source": "PD2",
+          "page": 79,
+          "kind": "table",
+          "bbox": {
+            "x": 85.23201,
+            "y": 241.09216,
+            "width": 400.27496,
+            "height": 36.455566
+          },
+          "page_width": 720.0,
+          "page_height": 540.0,
+          "area_ratio": 0.03753151,
+          "native": false,
+          "image_id": null,
+          "pixel_width": null,
+          "pixel_height": null,
+          "format": null,
+          "vector_primitives": 0,
+          "text_inside_chars": 112,
+          "heading": "Ada Örnek",
+          "caption_seed": "Ada Örnek",
+          "context": {
+            "before": "temp := temp + v.val(i); end loop; package ArrayCalc is",
+            "after": "procedure setval(arg:in integer) is private",
+            "inside": "v.sz:=0; type Mydata is private; return temp; function sum return integer; end sum; procedure setval(arg:in integer);"
+          },
+          "group_id": "PD2:p79:gada-örnek",
+          "group_members": 1,
+          "series": null,
+          "series_index": null,
+          "content_class": "table",
+          "relevance": {
+            "label": "core",
+            "confidence": "high"
+          },
+          "reconstruction": {
+            "kind": "table",
+            "confidence": "high",
+            "reasons": [
+              "table block with extractable structure"
+            ]
+          },
+          "score": 34,
+          "score_parts": {
+            "area": 9.0,
+            "caption": 1.8,
+            "complexity": 0.0,
+            "heading": 9.0,
+            "low_text": 0.0,
+            "quality": 9.1,
+            "relevance_bonus": 15.0,
+            "structure": 0.0
+          },
+          "signals": [
+            "near-heading",
+            "relevance:core"
+          ],
+          "penalties": [
+            "extreme-aspect:-10.0"
+          ],
+          "suggested": "native_table",
+          "confidence": "low",
+          "recommended_width_percent": 90,
+          "effective_dpi": null,
+          "review_mode": "text-only",
+          "reason": "table candidate; near heading \"Ada Örnek\"; extreme-aspect:-10.0"
+        }
+      ]
+    }
+  ]
+}

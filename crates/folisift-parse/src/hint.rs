@@ -7,7 +7,7 @@
 use serde::Serialize;
 
 use crate::inventory::{Heading, Inventory};
-use crate::manifest::ManifestRow;
+use crate::manifest::{ManifestRow, covers_index, row_number};
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
 pub struct CoverageHint {
@@ -57,25 +57,18 @@ pub fn coverage_hints_with_manifest(
             seen.insert(key)
         });
         for heading in &headings {
-            let number = heading
-                .heading
-                .split_whitespace()
-                .next()
-                .unwrap_or_default()
-                .trim_end_matches('.');
+            let Some(number) = row_number(&heading.heading) else {
+                continue;
+            };
+            // The hint surface stays at the section level. Deeper nested
+            // headings are review evidence, not separate canonical rows.
             if number.matches('.').count() != 1 {
                 continue;
             }
             let manifest_covered = covers.contains(&format!("{source_id}:{number}"))
                 || manifest_rows.iter().any(|row| {
                     row.source == source_id
-                        && row
-                            .heading
-                            .split_whitespace()
-                            .next()
-                            .unwrap_or_default()
-                            .trim_end_matches('.')
-                            == number
+                        && row_number(&row.heading).as_deref() == Some(number.as_str())
                         && !matches!(row.status, crate::manifest::CoverageStatus::Missing)
                 });
             let mut best: Option<(&str, f64)> = None;
@@ -113,17 +106,6 @@ pub fn coverage_hints_with_manifest(
         }
     }
     hints
-}
-
-fn covers_index(markdown: &str) -> std::collections::BTreeSet<String> {
-    static COVERS_RE: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
-        regex::Regex::new(r"<!--\s*covers:\s*([A-Za-z0-9_.-]+:[0-9.]+)\s*-->")
-            .expect("valid covers regex")
-    });
-    COVERS_RE
-        .captures_iter(markdown)
-        .map(|capture| capture[1].to_string())
-        .collect()
 }
 
 /// True when a source number is inside a merged guide heading range such as
@@ -296,6 +278,20 @@ mod tests {
         assert!(heading_range_contains("3.3", "3.1-3.4 DPP"));
         assert!(!heading_range_contains("2.3", "2.1–2.2 Üretim"));
         let hints = coverage_hints(&inventory(), "## 3.1–3.2 Kaynaklar ve sözdizimi\n");
+        let row = hints
+            .iter()
+            .find(|hint| hint.heading == "3.2 Soyut Sözdizimi")
+            .expect("row");
+        assert_eq!(row.status, "covered");
+        assert_eq!(row.score, 1.0);
+    }
+
+    #[test]
+    fn covers_comments_and_ranges_cover_both_rows() {
+        let hints = coverage_hints(
+            &inventory(),
+            "## 3.1–3.2 Kaynaklar ve sözdizimi\n<!-- covers: PD3:3.2 -->\n",
+        );
         let row = hints
             .iter()
             .find(|hint| hint.heading == "3.2 Soyut Sözdizimi")

@@ -150,13 +150,15 @@ Do not ask D2 to draw XY/scatter/ROC/quantile charts. It is a diagram engine,
 not a chart engine. A chart renderer is only safe when the data comes from a
 table or an explicit JSON file.
 
-Start with `folisift visual candidates --guide <slug> --source <path>` (MCP
-`visual_candidates`). It returns ranked candidates with bbox, bounded context,
-`relevance`, `reconstruction`, `score_parts`, `suggested` and `review_mode`.
-Set `config.audit.visual_gate` to `required` for a chart-sensitive guide;
-`warn` (the default) reports missing decisions without breaking existing guides.
-Use `visual assets --check` as the strict preflight and `visual assets
---materialize` to regenerate a missing crop from its stored recipe.
+Start with `folisift visual candidates --guide <slug> --source <path> --write`
+(MCP `visual_candidates` with `write=true`). It returns ranked candidates with
+bbox, bounded context, `relevance`, `reconstruction`, `score_parts`, `suggested`
+and `review_mode`, and persists `data/visual-candidates.json`. Set
+`config.audit.visual_gate` to `required` for a chart-sensitive guide; `warn`
+(the default) reports gaps as `status="advisory"` without breaking existing
+guides. `audit.visual_min_score` defaults to 50. Use `visual assets --check` as
+the strict preflight and `visual assets --materialize` to regenerate a missing
+crop from its stored recipe.
 
 ## Visual decisions
 
@@ -195,6 +197,11 @@ opt-in. `source_brief` reports the same policy and low-text candidates. OCR is
 advisory by decision; see
 [ADR-0014](adr/0014-ocr-advisory-policy.md). It never becomes a coverage gate
 or an authoritative numeric source.
+
+The portable binary has OCR disabled. Build with
+`--features ocr-tesseract` for the local tesseract path, or use the CLI-only
+`insights --ocr --ocr-server-url <url>` path. MCP stays network-free and
+returns `OCR_UNAVAILABLE` with the exact next step when the feature is absent.
 
 Run `make feedback-v2` for the external A-V2 matrix (A-V2-01…18),
 `make feedback-v3` for visual/chart A-V3, and `make feedback-v4` for the final

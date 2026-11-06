@@ -25,7 +25,7 @@ run() {
 
 run tests cargo test --workspace
 run fmt cargo fmt --all -- --check
-run clippy cargo clippy --all-targets --all-features -- -D warnings
+run clippy cargo clippy --workspace --all-targets -- -D warnings
 run exam make exam-check
 run visual make visual
 run palette-check make palette-check
@@ -52,6 +52,7 @@ run coverage-hint cargo run -q -p folisift-cli -- coverage-hint --guide pd3
 run diagram-status cargo run -q -p folisift-cli -- diagram status --guide pd3
 run feedback-v3 python3 scripts/check-feedback-v3.py
 run feedback-v4 python3 scripts/check-feedback-v4.py
+run feedback-v4-agent-p0 make feedback-v4-agent-p0
 run visuals-v5 make visuals-v5
 
 printf '{"acceptance":true,"checks":[%s]}\n' "$(IFS=,; echo "${json[*]}")"

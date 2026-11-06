@@ -1735,6 +1735,25 @@ mod tests {
     }
 
     #[test]
+    fn glossary_page_break_fixture_stays_one_four_column_table() {
+        let rows = (1..=30)
+            .map(|index| {
+                format!("| **T{index}:** | Tanım {index}. | **U{index}:** | Açıklama {index}. |")
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+        let markdown = format!(
+            "::: glossary\n\n### Birinci grup\n\n| Terim | Tanım | Terim | Tanım |\n|---|---|---|---|\n{rows}\n\n### İkinci grup\n\n| Terim | Tanım | Terim | Tanım |\n|---|---|---|---|\n| **Son:** | Son tanım. | **Bitiş:** | Bitiş tanımı. |\n\n:::"
+        );
+        let typst = markdown_to_typst(&markdown).expect("glossary");
+        assert_eq!(typst.matches("#glossary_table(").count(), 1, "{typst}");
+        assert_eq!(typst.matches("#glossary_row[").count(), 2, "{typst}");
+        assert_eq!(typst.matches("Tanım 30.").count(), 1, "{typst}");
+        assert!(typst.contains("widths: (18%, 32%, 18%, 32%)"), "{typst}");
+        assert!(!typst.contains("#data_table("), "{typst}");
+    }
+
+    #[test]
     fn renders_a_glossary_as_a_compact_four_column_table() {
         let typst = markdown_to_typst(
             "::: glossary\n\n### Sözdizimi\n\n| Terim | Tanım | Terim | Tanım |\n|---|---|---|---|\n| **A:** | Bir. | **B:** | İki. |\n\n:::",

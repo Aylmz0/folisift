@@ -13,6 +13,7 @@ use serde_json::Value;
 
 use crate::error::{Error, Result, io};
 use crate::inventory::Inventory;
+use crate::visual_candidates::CandidateManifest;
 use crate::visual_quality::{QualityReport, inspect};
 
 pub const VISUAL_AUDIT_SCHEMA_VERSION: u32 = 1;
@@ -115,11 +116,17 @@ pub struct VisualReport {
     pub unreadable: usize,
     pub figure_pages: usize,
     pub visual_gate: String,
+    pub basis: String,
+    pub advisory: bool,
+    pub candidate_manifest: Option<String>,
+    pub expected_pages: usize,
+    pub missing_candidates: Vec<String>,
     pub missing: Vec<String>,
     pub missing_low_text: Vec<String>,
     pub missing_figures: Vec<String>,
     pub unresolved: Vec<String>,
     pub warnings: Vec<String>,
+    pub status: String,
     pub passed: bool,
 }
 
@@ -200,12 +207,27 @@ impl VisualAudit {
     /// are configured page numbers, not source-specific exceptions.
     pub fn validate_with_policy(
         &self,
-        _path: &Path,
+        path: &Path,
         inventory: &Inventory,
         guide_dir: &Path,
         include_figures: bool,
         intentional_pages: &[usize],
     ) -> VisualReport {
+        let gate = if include_figures { "required" } else { "off" };
+        self.validate_with_gate(path, inventory, guide_dir, gate, intentional_pages, 50)
+    }
+
+    /// Validate with an explicit visual gate and candidate score floor.
+    pub fn validate_with_gate(
+        &self,
+        _path: &Path,
+        inventory: &Inventory,
+        guide_dir: &Path,
+        gate: &str,
+        intentional_pages: &[usize],
+        min_score: u32,
+    ) -> VisualReport {
+        let include_figures = gate != "off";
         let mut low_text = Vec::new();
         for source in &inventory.sources {
             let id = source.filename.trim_end_matches(".pdf");
@@ -215,11 +237,12 @@ impl VisualAudit {
         }
         low_text.sort();
         low_text.dedup();
-        let figure_pages = if include_figures {
-            figure_pages(guide_dir, inventory, intentional_pages)
+        let figure_gate = if include_figures {
+            figure_gate(guide_dir, inventory, intentional_pages, min_score)
         } else {
-            Vec::new()
+            FigureGate::none()
         };
+        let figure_pages = figure_gate.pages.clone();
         let mut expected = low_text.clone();
         for (source, page) in &figure_pages {
             expected.push(format!("{source}:{page}"));
@@ -243,7 +266,7 @@ impl VisualAudit {
                 continue;
             }
             if !expected.contains(&page_key) {
-                unresolved.push(format!("{key}: not a low-text page in the inventory"));
+                unresolved.push(format!("{key}: not an expected visual page"));
                 continue;
             }
             seen_pages.insert(page_key.clone());
@@ -310,7 +333,19 @@ impl VisualAudit {
             }
 
             if entry.priority.as_deref() == Some("high") && entry.decision == "decorative" {
-                unresolved.push(format!("{key}: a high-priority page cannot be decorative"));
+                let reason = entry.reason.as_deref().unwrap_or_default().to_lowercase();
+                let notes = entry.notes.as_deref().unwrap_or_default().to_lowercase();
+                let cover = ["kapak", "ön söz", "on soz", "cover", "front-matter"]
+                    .iter()
+                    .any(|marker| reason.contains(marker) || notes.contains(marker));
+                if reason.trim().is_empty() {
+                    // The generic decorative-needs-reason check already
+                    // records this; do not add a second error.
+                } else if !cover {
+                    warnings.push(format!(
+                        "{key}: high-priority decorative entry needs a cover/front-matter reason"
+                    ));
+                }
             }
 
             if entry.decision == "redraw" {
@@ -360,6 +395,19 @@ impl VisualAudit {
             }
         }
 
+        let mut missing_candidates = Vec::new();
+        for (source, page, candidate) in &figure_gate.candidates {
+            if !self.source_pages.iter().any(|entry| {
+                entry.source == *source
+                    && entry.page == *page
+                    && entry.candidate_id.as_deref() == Some(candidate.as_str())
+            }) {
+                missing_candidates.push(format!("{source}:{page}:{candidate}"));
+            }
+        }
+        missing_candidates.sort();
+        missing_candidates.dedup();
+
         let mut missing_low_text = Vec::new();
         let mut missing_figures = Vec::new();
         for key in &expected {
@@ -373,7 +421,15 @@ impl VisualAudit {
                 missing_figures.push(key.clone());
             }
         }
+        let advisory = gate != "required";
         let passed = missing.is_empty() && unresolved.is_empty();
+        let status = if !passed {
+            "failed"
+        } else if advisory && !missing_figures.is_empty() {
+            "advisory"
+        } else {
+            "passed"
+        };
         VisualReport {
             low_text_pages: low_text.len(),
             entries: seen_keys.len(),
@@ -399,16 +455,18 @@ impl VisualAudit {
             decorative: counts.get("decorative").copied().unwrap_or(0),
             unreadable: counts.get("unreadable").copied().unwrap_or(0),
             figure_pages: figure_pages.len(),
-            visual_gate: if include_figures {
-                "required".to_string()
-            } else {
-                "off".to_string()
-            },
+            visual_gate: gate.to_string(),
+            basis: figure_gate.basis.to_string(),
+            advisory,
+            candidate_manifest: figure_gate.manifest,
+            expected_pages: expected.len(),
+            missing_candidates,
             missing,
             missing_low_text,
             missing_figures,
             unresolved,
             warnings,
+            status: status.to_string(),
             passed,
         }
     }
@@ -604,7 +662,88 @@ fn label_only_regex() -> &'static Regex {
 /// Asset paths must resolve inside the guide and point to an existing file.
 /// `canonicalize` also rejects symlink escapes; a lexical `..` check is not
 /// enough for a workspace boundary.
-fn figure_pages(
+#[derive(Debug, Clone)]
+struct FigureGate {
+    pages: Vec<(String, usize)>,
+    candidates: Vec<(String, usize, String)>,
+    basis: &'static str,
+    manifest: Option<String>,
+}
+
+impl FigureGate {
+    fn none() -> Self {
+        Self {
+            pages: Vec::new(),
+            candidates: Vec::new(),
+            basis: "none",
+            manifest: None,
+        }
+    }
+}
+
+fn figure_gate(
+    guide_dir: &Path,
+    inventory: &Inventory,
+    intentional_pages: &[usize],
+    min_score: u32,
+) -> FigureGate {
+    let manifest_path = guide_dir.join("data/visual-candidates.json");
+    if manifest_path.is_file()
+        && let Ok(manifest) = CandidateManifest::read(&manifest_path)
+    {
+        {
+            let mut pages = manifest
+                .gate_pages(min_score)
+                .into_iter()
+                .collect::<Vec<_>>();
+            pages.retain(|(_, page)| !intentional_pages.contains(page));
+            pages.sort();
+            pages.dedup();
+            let mut candidates = Vec::new();
+            for source in &manifest.sources {
+                for candidate in &source.candidates {
+                    if candidate.score < min_score {
+                        continue;
+                    }
+                    let decorative = matches!(
+                        candidate.relevance.label.as_str(),
+                        "decorative" | "seductive"
+                    );
+                    if candidate.relevance.label == "core"
+                        || (candidate.reconstruction.kind == "table" && !decorative)
+                    {
+                        candidates.push((
+                            source.source.clone(),
+                            candidate.page,
+                            candidate.id.clone(),
+                        ));
+                    }
+                }
+            }
+            candidates.sort();
+            candidates.dedup();
+            return FigureGate {
+                pages,
+                candidates,
+                basis: "candidates",
+                manifest: Some(manifest_path.display().to_string()),
+            };
+        }
+    }
+    let mut pages = raw_figure_pages(guide_dir, inventory, intentional_pages);
+    pages.sort();
+    pages.dedup();
+    FigureGate {
+        pages,
+        candidates: Vec::new(),
+        basis: "layout-blocks",
+        manifest: manifest_path
+            .is_file()
+            .then(|| manifest_path.display().to_string()),
+    }
+}
+
+fn raw_figure_pages(
     guide_dir: &Path,
     inventory: &Inventory,
     intentional_pages: &[usize],
@@ -638,8 +777,6 @@ fn figure_pages(
             }
         }
     }
-    pages.sort();
-    pages.dedup();
     pages
 }
 
@@ -759,6 +896,49 @@ mod tests {
     }
 
     #[test]
+    fn high_priority_decorative_needs_a_cover_reason_or_warns() {
+        let inventory = inventory(vec![1]);
+        let dir = tempfile::tempdir().expect("tempdir");
+        let mut cover = entry(1, "decorative");
+        cover.reason = Some("kapak görseli; içerik değil".to_string());
+        let audit = VisualAudit {
+            schema_version: 1,
+            source_pages: vec![cover],
+        };
+        let report = audit.validate(&inventory, dir.path());
+        assert!(report.unresolved.is_empty(), "{:?}", report.unresolved);
+
+        let mut other = entry(1, "decorative");
+        other.reason = Some("tarihsel fotoğraf".to_string());
+        let audit = VisualAudit {
+            schema_version: 1,
+            source_pages: vec![other],
+        };
+        let report = audit.validate(&inventory, dir.path());
+        assert!(report.unresolved.is_empty(), "{:?}", report.unresolved);
+        assert!(
+            report
+                .warnings
+                .iter()
+                .any(|warning| warning.contains("cover/front-matter"))
+        );
+
+        let mut missing = entry(1, "decorative");
+        missing.reason = None;
+        let audit = VisualAudit {
+            schema_version: 1,
+            source_pages: vec![missing],
+        };
+        let report = audit.validate(&inventory, dir.path());
+        assert!(
+            report
+                .unresolved
+                .iter()
+                .any(|item| item.contains("needs a reason"))
+        );
+    }
+
+    #[test]
     fn figure_pages_enter_the_visual_gate() {
         let dir = tempfile::tempdir().expect("tempdir");
         let blocks = dir.path().join("data/blocks");
@@ -824,6 +1004,84 @@ mod tests {
         assert_eq!(report.figure_pages, 1);
         assert!(report.missing.contains(&"PD0:1".to_string()));
         assert!(!report.passed);
+    }
+
+    #[test]
+    fn candidate_manifest_replaces_raw_page_spans() {
+        use crate::visual_candidates::{
+            CandidateContext, CandidateManifest, CandidateSource, Reconstruction, Relevance,
+            VisualCandidate,
+        };
+        let dir = tempfile::tempdir().expect("tempdir");
+        let candidate = |page: usize, score: u32, relevance: &str| VisualCandidate {
+            id: format!("PD0:p{page}:b0"),
+            source: "PD0".to_string(),
+            page,
+            kind: "figure".to_string(),
+            bbox: crate::layout::Rect {
+                x: 10.0,
+                y: 10.0,
+                width: 100.0,
+                height: 80.0,
+            },
+            page_width: 595.0,
+            page_height: 842.0,
+            area_ratio: 0.2,
+            native: false,
+            image_id: None,
+            pixel_width: None,
+            pixel_height: None,
+            format: None,
+            vector_primitives: 4,
+            text_inside_chars: 0,
+            heading: None,
+            caption_seed: None,
+            context: CandidateContext {
+                before: String::new(),
+                after: String::new(),
+                inside: String::new(),
+            },
+            group_id: None,
+            group_members: 1,
+            series: None,
+            series_index: None,
+            content_class: "figure".to_string(),
+            relevance: Relevance {
+                label: relevance.to_string(),
+                confidence: "high".to_string(),
+            },
+            reconstruction: Reconstruction {
+                kind: "unique".to_string(),
+                confidence: "high".to_string(),
+                reasons: Vec::new(),
+            },
+            score,
+            score_parts: BTreeMap::new(),
+            signals: Vec::new(),
+            penalties: Vec::new(),
+            suggested: "embed".to_string(),
+            confidence: "high".to_string(),
+            recommended_width_percent: 90,
+            effective_dpi: None,
+            review_mode: "inspect".to_string(),
+            reason: "test".to_string(),
+        };
+        let manifest = CandidateManifest {
+            schema_version: 1,
+            scorer_version: crate::visual_candidates::SCORER_VERSION,
+            generated_from: "test".to_string(),
+            sources: vec![CandidateSource {
+                source: "PD0".to_string(),
+                source_digest: "digest".to_string(),
+                pages: 2,
+                candidates: vec![candidate(1, 80, "core"), candidate(2, 95, "decorative")],
+            }],
+        };
+        manifest
+            .write(&dir.path().join("data/visual-candidates.json"))
+            .expect("write manifest");
+        let pages = figure_gate(dir.path(), &inventory(vec![]), &[], 50).pages;
+        assert_eq!(pages, vec![("PD0".to_string(), 1)]);
     }
 
     #[test]

@@ -245,14 +245,31 @@ pub async fn build(workspace: &Workspace, request: BuildRequest) -> Result<Build
                         .audit
                         .as_ref()
                         .map_or(&[][..], |policy| policy.intentional_pages.as_slice());
-                    let mut report = audit.validate_with_policy(
+                    let min_score = guide
+                        .config
+                        .audit
+                        .as_ref()
+                        .and_then(|policy| policy.visual_min_score)
+                        .unwrap_or(50);
+                    let mut report = audit.validate_with_gate(
                         std::path::Path::new(""),
                         inventory,
                         &guide.dir,
-                        include_figures,
+                        visual_gate,
                         intentional,
+                        u32::from(min_score),
                     );
                     report.visual_gate = visual_gate.to_string();
+                    report.advisory = visual_gate != "required";
+                    if visual_gate == "required" && report.basis != "candidates" {
+                        return Err(fail_with_draft(
+                            format!(
+                                "visual gate is required but data/visual-candidates.json is missing or stale; run `folisift visual candidates --guide {} --source <source> --write`",
+                                guide.slug
+                            ),
+                            &mut staged,
+                        ));
+                    }
                     if let Some(budget) = guide
                         .config
                         .audit
@@ -319,6 +336,13 @@ pub async fn build(workspace: &Workspace, request: BuildRequest) -> Result<Build
                         && report.unresolved.is_empty()
                         && (visual_gate != "required" || report.missing_figures.is_empty());
                     report.passed = passed;
+                    report.status = if !passed {
+                        "failed".to_string()
+                    } else if visual_gate != "required" && !report.missing_figures.is_empty() {
+                        "advisory".to_string()
+                    } else {
+                        "passed".to_string()
+                    };
                     visual_passed = Some(passed);
                     if !passed {
                         return Err(fail_with_draft(
@@ -660,7 +684,13 @@ pub async fn qa(workspace: &Workspace, slug: &str) -> Result<serde_json::Value> 
             "definitions": definitions,
             "includes_definitions": true,
             "review_intervals": intervals,
-            "warning": if cards.is_empty() { Some("no recall/answer pairs") } else { None },
+            "warning": if cards.is_empty() {
+                Some("no recall/answer pairs")
+            } else if definitions > 0 && cards.len() == definitions {
+                Some("no recall blocks; only definition cards")
+            } else {
+                None
+            },
         },
         "claims": {
             "total": claims.total,

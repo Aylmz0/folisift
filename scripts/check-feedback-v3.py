@@ -526,6 +526,22 @@ else:
                 guide_md = guide_md.replace("## Bağlantılar", figure + "## Bağlantılar", 1)
                 (guide / "guide.md").write_text(guide_md)
 
+                visual_manifest = run(
+                    [
+                        str(BIN),
+                        "--root",
+                        str(root),
+                        "visual",
+                        "candidates",
+                        "--guide",
+                        "veri-smoke",
+                        "--source",
+                        "sources/veri-smoke.pdf",
+                        "--write",
+                        "--detail",
+                        "summary",
+                    ]
+                )
                 config["audit"]["visual_gate"] = "required"
                 config_path.write_text(json.dumps(config, ensure_ascii=False, indent=2) + "\n")
                 built = run(

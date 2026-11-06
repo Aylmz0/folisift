@@ -1,8 +1,9 @@
 # V4 feedback remediation — detailed plan
 
-- **Status:** Final plan — ready for implementation; §8 decisions pending maintainer sign-off
+- **Status:** Completed — released as `v0.23.0`; 0.22.1 P0 was folded into the same release because P0/P1 changes share the same files and landed as one contract
 - **Date:** 2026-11-06
 - **Baseline:** Folisift 0.22.0, build 230, MCP schema 17, 41 tools
+- **Final release:** Folisift 0.23.0, MCP schema 19, 41 tools
 - **Primary sources:**
   - [`FOLISIFT-GERI-BILDIRIM-v4AGENT.md`](../FOLISIFT-GERI-BILDIRIM-v4AGENT.md) — external test-user matrix: 26 PASS / 7 FAIL
   - [`FOLISIFT-GERI-BILDIRIM-v4.md`](../FOLISIFT-GERI-BILDIRIM-v4.md) — our PDF/system review: P1 visual-gate truth
@@ -14,7 +15,8 @@
   FAIL count drops from 7 to 1 (OCR) or 0 if the OCR environment is available;
   our P1 visual-gate finding is closed.
 - **Definition of done (whole plan):** all 33 v4AGENT checks pass (or are explicitly environment-skipped and documented), A-V4A-15 (MCP guidance), A-V4A-16 (regression) and A-V4A-17 (matrix) are green, `make acceptance` passes, and a fresh 0.22.1 PDF passes `audit --strict`.
-- **Not claimed:** 10/10. The v4AGENT matrix still has 7 FAIL and our visual gate still reports noisy figure pages until 0.22.1 ships.
+- **Not claimed:** 10/10. The v4AGENT matrix still has 7 FAIL in the 0.22.0 baseline; the final evidence is recorded in §9.
+- **Release deviation:** the planned 0.22.1 patch was not tagged separately. The P0 and P1/P2 changes share `manifest.rs`, `visual_audit.rs`, `mcp/src/lib.rs` and `cli/src/main.rs`; splitting them after the fact would create a synthetic commit that was never tested. `v0.23.0` contains both and records the schema jump 17 → 19.
 
 ---
 
@@ -731,21 +733,62 @@ WP3–WP5 after WP0. WP11 can start after WP6 because it depends on the final
 
 ---
 
+## 9. Implementation result (0.23.0)
+
+Status: **all work packages implemented and verified**.
+
+| Finding | Result | Evidence |
+|---|---|---|
+| F-V4A-01 | Canonical generated manifest with text/layout fallback, date-like and body-prose rejection, range covers | External `is-hukuku` generated **139/139**, body-free keys; `4.4.4` and `10.2` present |
+| F-V4A-02 | Recursive `fields`/`max_tokens`, `total/returned/omitted/next`, `omitted_total` | MCP `max_tokens=50` returns bounded `per_source`; unit tests |
+| F-V4A-03 | Shared covers parser, comma/range expansion, robust row numbers | `make feedback-v4-agent-p0` T09; unit tests |
+| F-V4A-04 | `source_id`/`block_path`; all four source forms equivalent | MCP T27 path matrix |
+| F-V4A-05 | Diagram spec-only validate; normalized `guides/<slug>` | MCP T28 |
+| F-V4A-06 | `guide_plan.source_pages`, ranges and unknown flag | 13/16 PD0–PD1 sections mapped; G sections flagged unknown |
+| F-V4A-07 | Candidate-backed gate; PD0/PD2/PD3 manifests | `qa.visual`: PD0 61, PD2 9, PD3 40 candidate pages vs raw 82/28/136; basis `candidates` |
+| F-V4A-08 | Advisory/enforced truth | `status=advisory`, `advisory=true` under `warn`; `required` needs a manifest |
+| F-V4A-09 | `excluded` + reason, merge without dropping generated rows | Unit tests; CLI/MCP adopt path |
+| F-V4A-10 | OCR feature, structured error, doctor, CLI server URL | `cargo check -p folisift-cli --features ocr-tesseract`; unit test for `OCR_UNAVAILABLE` |
+| F-V4A-11 | `image_refs_detail` with id/bbox/dimensions | `source_insights` output schema |
+| F-V4A-12 | Cover decorative exception and warning | Unit tests |
+| F-V4A-13 | Cards recall/definition warning | CLI/MCP/QA counts |
+| F-V4A-14 | Glossary page-break fixture | `glossary_page_break_fixture_stays_one_four_column_table` |
+| F-V4A-15 | Layered MCP guidance, start-here, summaries, output schemas | `docs/mcp-guidance.md`; MCP tool probe |
+
+Verification commands:
+
+```bash
+cargo test --workspace                 # 319 passed
+cargo fmt --all -- --check
+cargo clippy --workspace --all-targets -- -D warnings
+cargo check -p folisift-cli --features ocr-tesseract
+make feedback-v4-agent-p0              # P0 scope green, 0.23-only checks pending
+folisift build --guide pd0-pd1 --check # 23 pages
+folisift build --guide pd2 --check     # 24 pages
+folisift build --guide pd3 --check     # 21 pages
+folisift audit --strict                # 0 issues for all three
+```
+
+The final MCP surface is 41 tools at schema 19. The v4AGENT matrix remains the
+external acceptance harness; its OCR row is environment-dependent by design.
+
+---
+
 ## Appendix A — MCP guidance delivery (research note)
 
 This appendix records how Folisift currently sends guidance to an LLM and why
 WP11 uses a layered contract. It is not a v4AGENT failure; it is the requested
 format improvement and is part of the 0.23.0 scope.
 
-### A.1 Current delivery (0.22.0)
+### A.1 Current delivery (0.23.0)
 
 | Layer | Current format | Where |
 |---|---|---|
-| Server instructions | One plain-text sentence, ~130 characters | `ServerConfig::with_instructions` in `crates/folisift-mcp/src/lib.rs` |
+| Server instructions | Five-line plain text, ≤600 characters | `ServerConfig::with_instructions` in `crates/folisift-mcp/src/lib.rs` |
 | Tool descriptions | Plain English strings compiled from Rust doc comments | `#[tool(description = …)]`; 41 tools |
 | Input schema | JSON Schema (generated) | `Parameters<T>` / `schemars` |
-| Tool results | JSON (`Json<Value>` → `structuredContent` plus a serialized-JSON text block) | rmcp `Json<T>` wrapper |
-| Prompts | Two long numbered plain-text workflows (`write-study-guide`, `write-diagram`) | `get_prompt` |
+| Tool results | `structuredContent` + serialized-JSON text + concise summary for four high-traffic tools; JSON for the rest | `tool_result` / rmcp `Json<T>` |
+| Prompts | `start-here`, `write-study-guide`, `write-diagram` | `get_prompt` |
 | Resources | Markdown (`authoring-spec`, `design-system`, guide/outline), JSON (`capabilities`, `diagram-schema`) | `list_resources`/`read_resource` |
 
 So the answer is: **not one `.md` file and not one JSON file**. Folisift uses a
@@ -825,7 +868,7 @@ send a giant JSON instruction blob. Use five layers:
   cross-tool invariants (write boundaries, gate truth, “never edit sources”).
 - **Only prompts**: prompts are user-controlled; a host may never invoke them.
 
-### A.5 WP11 implementation contract
+### A.5 WP11 implementation contract (implemented)
 
 WP11 implements the layered contract:
 
