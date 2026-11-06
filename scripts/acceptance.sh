@@ -52,7 +52,7 @@ run coverage-hint cargo run -q -p folisift-cli -- coverage-hint --guide pd3
 run diagram-status cargo run -q -p folisift-cli -- diagram status --guide pd3
 run feedback-v3 python3 scripts/check-feedback-v3.py
 run feedback-v4 python3 scripts/check-feedback-v4.py
-run feedback-v4-agent-p0 make feedback-v4-agent-p0
+run feedback-v4-agent make feedback-v4-agent
 run visuals-v5 make visuals-v5
 
 printf '{"acceptance":true,"checks":[%s]}\n' "$(IFS=,; echo "${json[*]}")"

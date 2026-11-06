@@ -13,7 +13,9 @@ use serde_json::Value;
 
 use crate::error::{Error, Result, io};
 use crate::inventory::Inventory;
-use crate::visual_candidates::CandidateManifest;
+use crate::visual_candidates::{
+    CANDIDATE_MANIFEST_SCHEMA_VERSION, CandidateManifest, SCORER_VERSION,
+};
 use crate::visual_quality::{QualityReport, inspect};
 
 pub const VISUAL_AUDIT_SCHEMA_VERSION: u32 = 1;
@@ -255,6 +257,9 @@ impl VisualAudit {
         let mut missing = Vec::new();
         let mut unresolved = Vec::new();
         let mut warnings = Vec::new();
+        if let Some(stale) = &figure_gate.stale {
+            warnings.push(stale.clone());
+        }
         let mut asset_hashes = HashMap::<String, String>::new();
         let mut counts = HashMap::<&str, usize>::new();
         for entry in &self.source_pages {
@@ -668,6 +673,7 @@ struct FigureGate {
     candidates: Vec<(String, usize, String)>,
     basis: &'static str,
     manifest: Option<String>,
+    stale: Option<String>,
 }
 
 impl FigureGate {
@@ -677,6 +683,7 @@ impl FigureGate {
             candidates: Vec::new(),
             basis: "none",
             manifest: None,
+            stale: None,
         }
     }
 }
@@ -691,7 +698,8 @@ fn figure_gate(
     if manifest_path.is_file()
         && let Ok(manifest) = CandidateManifest::read(&manifest_path)
     {
-        {
+        let stale = manifest_stale_reason(&manifest, inventory);
+        if stale.is_none() {
             let mut pages = manifest
                 .gate_pages(min_score)
                 .into_iter()
@@ -727,8 +735,19 @@ fn figure_gate(
                 candidates,
                 basis: "candidates",
                 manifest: Some(manifest_path.display().to_string()),
+                stale: None,
             };
         }
+        let mut pages = raw_figure_pages(guide_dir, inventory, intentional_pages);
+        pages.sort();
+        pages.dedup();
+        return FigureGate {
+            pages,
+            candidates: Vec::new(),
+            basis: "layout-blocks",
+            manifest: Some(manifest_path.display().to_string()),
+            stale,
+        };
     }
     let mut pages = raw_figure_pages(guide_dir, inventory, intentional_pages);
     pages.sort();
@@ -740,7 +759,43 @@ fn figure_gate(
         manifest: manifest_path
             .is_file()
             .then(|| manifest_path.display().to_string()),
+        stale: None,
     }
+}
+
+fn manifest_stale_reason(manifest: &CandidateManifest, inventory: &Inventory) -> Option<String> {
+    if manifest.schema_version != CANDIDATE_MANIFEST_SCHEMA_VERSION {
+        return Some(format!(
+            "candidate manifest schema {} is stale; expected {CANDIDATE_MANIFEST_SCHEMA_VERSION}",
+            manifest.schema_version
+        ));
+    }
+    if manifest.scorer_version != SCORER_VERSION {
+        return Some(format!(
+            "candidate manifest scorer {} is stale; expected {SCORER_VERSION}",
+            manifest.scorer_version
+        ));
+    }
+    for source in &inventory.sources {
+        let id = source.filename.trim_end_matches(".pdf");
+        let Some(expected) = source.source_digest.as_deref() else {
+            continue;
+        };
+        match manifest.source_digest(id) {
+            Some(actual) if actual == expected => {}
+            Some(_) => {
+                return Some(format!(
+                    "candidate manifest digest for {id} is stale; run visual candidates --write"
+                ));
+            }
+            None => {
+                return Some(format!(
+                    "candidate manifest has no entry for {id}; run visual candidates --write"
+                ));
+            }
+        }
+    }
+    None
 }
 
 fn raw_figure_pages(
@@ -1082,6 +1137,35 @@ mod tests {
             .expect("write manifest");
         let pages = figure_gate(dir.path(), &inventory(vec![]), &[], 50).pages;
         assert_eq!(pages, vec![("PD0".to_string(), 1)]);
+    }
+
+    #[test]
+    fn stale_candidate_manifest_falls_back_and_warns() {
+        use crate::visual_candidates::{
+            CANDIDATE_MANIFEST_SCHEMA_VERSION, CandidateManifest, CandidateSource,
+        };
+        let dir = tempfile::tempdir().expect("tempdir");
+        let manifest = CandidateManifest {
+            schema_version: CANDIDATE_MANIFEST_SCHEMA_VERSION,
+            scorer_version: crate::visual_candidates::SCORER_VERSION + 1,
+            generated_from: "test".to_string(),
+            sources: vec![CandidateSource {
+                source: "PD0".to_string(),
+                source_digest: "digest".to_string(),
+                pages: 1,
+                candidates: Vec::new(),
+            }],
+        };
+        manifest
+            .write(&dir.path().join("data/visual-candidates.json"))
+            .expect("write manifest");
+        let gate = figure_gate(dir.path(), &inventory(vec![]), &[], 50);
+        assert_eq!(gate.basis, "layout-blocks");
+        assert!(
+            gate.stale
+                .as_deref()
+                .is_some_and(|stale| stale.contains("scorer"))
+        );
     }
 
     #[test]
