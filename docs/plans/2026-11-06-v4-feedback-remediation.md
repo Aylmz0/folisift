@@ -1,6 +1,6 @@
 # V4 feedback remediation — detailed plan
 
-- **Status:** Proposed
+- **Status:** Final plan — ready for implementation; §8 decisions pending maintainer sign-off
 - **Date:** 2026-11-06
 - **Baseline:** Folisift 0.22.0, build 230, MCP schema 17, 41 tools
 - **Primary sources:**
@@ -9,11 +9,11 @@
   - [`2026-11-05-final-feedback-v3-remediation.md`](2026-11-05-final-feedback-v3-remediation.md) — completed prior remediation
 - **Targets:**
   - **0.22.1** — P0: F-V4A-01…08 — generated manifest, nested output budget, hint range/covers, source-path resolution, diagram MCP, guide-plan source pages, candidate-backed visual gate, advisory truth. Expected build 231, MCP schema 18.
-  - **0.23.0** — P1/P2: F-V4A-09…14 — `excluded` status, OCR availability, image-ref detail, decorative semantics, cards warning, glossary regression. Expected build 232, MCP schema 19.
-- **0.22.1 done when:** A-V4A-01…08 and A-V4A-15 are green; the v4AGENT FAIL
-  count drops from 7 to 1 (OCR) or 0 if the OCR environment is available; our
-  P1 visual-gate finding is closed.
-- **Definition of done (whole plan):** all 33 v4AGENT checks pass (or are explicitly environment-skipped and documented), `make acceptance` is green, and a fresh 0.22.1 PDF passes `audit --strict`.
+  - **0.23.0** — P1/P2: F-V4A-09…15 — `excluded` status, OCR availability, image-ref detail, decorative semantics, cards warning, glossary regression, MCP guidance contract. Expected build 232, MCP schema 19.
+- **0.22.1 done when:** A-V4A-01…08 and A-V4A-16 are green; the v4AGENT
+  FAIL count drops from 7 to 1 (OCR) or 0 if the OCR environment is available;
+  our P1 visual-gate finding is closed.
+- **Definition of done (whole plan):** all 33 v4AGENT checks pass (or are explicitly environment-skipped and documented), A-V4A-15 (MCP guidance), A-V4A-16 (regression) and A-V4A-17 (matrix) are green, `make acceptance` passes, and a fresh 0.22.1 PDF passes `audit --strict`.
 - **Not claimed:** 10/10. The v4AGENT matrix still has 7 FAIL and our visual gate still reports noisy figure pages until 0.22.1 ships.
 
 ---
@@ -34,8 +34,11 @@ real and the PDFs are strong, but the matrix exposes a split:
    remaining issue was one stale design-system sentence, corrected in
    `386194a`. This plan adds a regression test instead of redesigning it.
 
-The critical path is 0.22.1. `excluded` and OCR are 0.23.0 because they change
-the manifest contract or the build feature surface.
+The critical path is 0.22.1. `excluded`, OCR and the MCP guidance contract are
+0.23.0 because they change the manifest contract, the build feature surface or
+the host-facing tool contract. The guidance work is not a v4 failure; it is the
+format improvement requested after the v4 review, and it is now tracked as
+F-V4A-15 / WP11 so it cannot fall through as an appendix-only note.
 
 ---
 
@@ -79,11 +82,13 @@ row with the same numeric suffix.
 | F-V4A-12 | P1 | `visual_decision decorative` becomes unresolved, especially with high priority | v4AGENT §4.9 | `VisualAudit` rejects every `priority=high` + `decorative` entry; the cover/front-matter use case needs a documented exception. |
 | F-V4A-13 | P2 | `cards` can silently drop recall blocks | v4AGENT §4.9 | `cards` counts definitions but does not warn when a guide has no `::: recall`/`::: answer`; no minimum-content warning. |
 | F-V4A-14 | P2 | 4-column glossary page-break/group-row continuity is not regression-tested | our review | visual is correct; no fixture proves a page boundary or continuation row. |
+| F-V4A-15 | P2 | MCP guidance is thin: one-sentence server instruction, raw-JSON outputs without a concise summary, no `start-here` prompt, and resources are not surfaced in the first-run path | 0.22.0 MCP contract; user review | `with_instructions` is one sentence; rmcp `Json<T>` emits `structuredContent` plus serialized JSON text but no summary; prompts are user-controlled and may never be invoked; `outputSchema` is not guaranteed for high-traffic tools. |
 
 **Priority delta vs v4AGENT:** F-V4A-08 (qa advisory truth) is promoted from
 v4AGENT’s P1 “documentation” bucket to P0 because a `warn` report that says
-`passed:true` misstates the build result. The other v4AGENT P1/P2 items stay in
-0.23.0.
+`passed:true` misstates the build result. F-V4A-15 is not in the v4AGENT
+matrix; it is the requested MCP format improvement and stays P2/0.23.0. The
+other v4AGENT P1/P2 items stay in 0.23.0.
 
 ---
 
@@ -100,8 +105,12 @@ v4AGENT failure without the user's private workspace.
   Markdown + TOC text)
 - `crates/folisift-cli/tests/mcp_stdio.rs` (path matrix)
 - `scripts/check-feedback-v4-agent.py` (A-V4A harness; distinct from the
-  existing `check-feedback-v4.py`)
-- `Makefile` target `feedback-v4-agent`; `scripts/acceptance.sh` runs it
+  existing `check-feedback-v4.py`), with `--scope p0|all`:
+  - `p0` asserts A-V4A-01…08 and reports 0.23.0 checks as `pending`, not fail;
+  - `all` asserts the full 33-test matrix.
+- `Makefile` targets `feedback-v4-agent-p0` and `feedback-v4-agent`;
+  `scripts/acceptance.sh` runs the `p0` scope during 0.22.1 and the `all`
+  scope after 0.23.0.
 
 **Fixture cases**
 
@@ -542,9 +551,76 @@ v4AGENT failure without the user's private workspace.
 
 ---
 
+### WP11 — MCP guidance contract (F-V4A-15)
+
+**Goal:** make the host-facing contract explicit and token-efficient without
+turning the server instruction into a second authoring manual. This is the
+format improvement requested after the v4 review; Appendix A is its rationale,
+not a separate optional plan.
+
+**Files**
+
+- `crates/folisift-mcp/src/lib.rs` (instructions, prompts, resources, output
+  shaping for the four high-traffic tools)
+- `crates/folisift-cli/tests/mcp_stdio.rs` (guidance snapshots)
+- `docs/mcp-guidance.md` (new normative contract)
+- `docs/architecture.md`, `docs/README.md`
+
+**Change**
+
+- Replace the one-sentence server instruction with a five-line plain-text
+  contract:
+  - what the server does;
+  - the first two calls (`workspace_info`, `prepare_guide`);
+  - the write boundary (`guide.md` is host-authored; never edit `sources/`);
+  - the gate truth (`build --check` before claiming coverage);
+  - the resource pointer (`authoring-spec`, `design-system`, `capabilities`).
+- Add a `start-here` prompt that names the first three calls and the resource
+  URIs. Keep `write-study-guide` and `write-diagram`; they remain
+  user-invoked, never mandatory.
+- Audit the 10 highest-traffic tool descriptions (`workspace_info`,
+  `prepare_guide`, `source_brief`, `read_section`, `coverage_manifest`,
+  `guide_plan`, `build_guide`, `qa_guide`, `visual_candidates`, `diagram`):
+  each must say when to use the tool, what it returns, the next step, and the
+  actionable error. Enums, ranges and required fields stay in the JSON Schema,
+  not in prose.
+- For `coverage_manifest`, `guide_plan`, `qa_guide` and `build_guide`, keep
+  `structuredContent` and the serialized JSON text block (MCP compatibility),
+  and add a separate concise summary text block:
+  - `coverage_manifest`: claimed/canonical, missing count, next action;
+  - `guide_plan`: section count, unknown page mappings, next action;
+  - `qa_guide`: pass/fail, visual status, blocking gaps, next action;
+  - `build_guide`: pass/fail, page count, gate failure, next action.
+  - Summary ≤300 characters; never replace the JSON.
+- Add `outputSchema` to those four tools if rmcp does not already emit it.
+- Extend `folisift://capabilities` with `guidance_version: 1`, the five layers,
+  the resource URIs and the current `mcp_tool_schema_version`.
+- Write `docs/mcp-guidance.md` as the normative layer table and the “do not put
+  the manual in instructions” rule.
+- Non-goals: no giant Markdown instruction, no giant JSON instruction, no
+  network/LLM call in the server, no prompt as the only home for a mandatory
+  invariant.
+
+**Tests**
+
+- Server instructions are ≤600 characters and contain the first call, write
+  boundary, gate truth and at least one resource URI.
+- `start-here` prompt exists; every URI it names is readable; unknown prompts
+  still return a clear error.
+- Each of the four tools returns `structuredContent`, a serialized JSON text
+  block and a non-empty summary text block ≤300 characters.
+- Each of the four tools advertises an `outputSchema`; the schema accepts the
+  emitted `structuredContent`.
+- `capabilities` reports `guidance_version:1` and the current tool schema.
+- Snapshot test in `mcp_stdio.rs` prevents accidental instruction bloat.
+
+**Exit:** A-V4A-15.
+
+---
+
 ## 4. Acceptance matrix
 
-One row per finding, then two cross-cutting gates.
+One row per finding (including MCP guidance), then two cross-cutting gates.
 
 | ID | Finding | Check | Pass condition |
 |---|---|---|---|
@@ -562,8 +638,9 @@ One row per finding, then two cross-cutting gates.
 | A-V4A-12 | F-V4A-12 | Decorative semantics | cover decorative high-priority allowed with reason; otherwise warning, not unresolved |
 | A-V4A-13 | F-V4A-13 | Cards warning | recall=0 + definitions>0 → warning, not silent |
 | A-V4A-14 | F-V4A-14 | Glossary | one table, four columns, group rows, page-break fixture passes |
-| A-V4A-15 | cross-cutting | Regression | `make acceptance` green, `make feedback-v4-agent` green, `make visuals-v5` green, `cargo test`, `fmt`, portable `clippy`, PDF `audit --strict` clean |
-| A-V4A-16 | cross-cutting | v4AGENT matrix | 26 PASS / 7 FAIL → 33 PASS, or an explicit documented environment skip (OCR) |
+| A-V4A-15 | F-V4A-15 | MCP guidance | instructions ≤600 chars with first call/write boundary/gate truth/resource pointer; `start-here` prompt; four high-traffic tools have `structuredContent` + JSON text + summary ≤300 chars; `outputSchema`; valid resource URIs; snapshot test |
+| A-V4A-16 | cross-cutting | Regression | 0.22.1: `make acceptance` green, `make feedback-v4-agent-p0` green, `make visuals-v5` green, `cargo test`, `fmt`, portable `clippy`, PDF `audit --strict` clean |
+| A-V4A-17 | cross-cutting | v4AGENT matrix | after 0.23.0: `make feedback-v4-agent` → 26 PASS / 7 FAIL becomes 33 PASS, or an explicit documented environment skip (OCR) |
 
 Manual checks:
 
@@ -573,6 +650,8 @@ Manual checks:
   actual figure captions.
 - Inspect one `warn` and one `required` guide side by side; the status string
   must tell the host whether a figure gap is advisory or blocking.
+- Read `folisift://capabilities`, then run `start-here`; confirm the first
+  three calls and resource URIs are enough to start without the full manual.
 
 ---
 
@@ -583,11 +662,12 @@ Manual checks:
 | 1 | WP0, WP1, WP2 | Generated manifest and budget are the critical truth bugs | 3 d |
 | 2 | WP3, WP4, WP5 | Hint/path/guide-plan are independent and unblock MCP tests | 2.5 d |
 | 3 | WP6 | Candidate-backed gate depends on the candidate report; closes our P1 and F-V4A-08 | 2 d |
-| 4 | WP7, WP8, WP9, WP10 | Contract/extensions/docs | 3.5 d |
+| 4 | WP7, WP8, WP9, WP10, WP11 | Contract/extensions/docs/guidance | 5 d |
 | 5 | Acceptance, visual baselines, release | 0.22.1 then 0.23.0 | 2 d |
 
-Rough total: **13 engineering days**. WP1/WP2 can run in parallel with WP3–WP5
-after WP0.
+Rough total: **14.5 engineering days**. WP1/WP2 can run in parallel with
+WP3–WP5 after WP0. WP11 can start after WP6 because it depends on the final
+`qa_guide`/`build_guide` output shape.
 
 ---
 
@@ -604,13 +684,14 @@ after WP0.
 | Diagram `guides/<slug>` convenience conflicts with slug validation | Normalize before `Guide::load`; never pass a path to `validate_slug`. |
 | 4-column glossary regresses on page breaks | Fixture + baseline; no design change in this plan. |
 | Schema 18 is a contract bump even though the change is additive | Keep old fields, make new params optional, keep output schemas permissive; document schema 18 as backward-compatible; if a change becomes breaking, move it to 0.23.0. |
+| MCP guidance becomes another giant manual | Cap instructions at 600 characters, keep long rules in resources, put local rules in tool descriptions/schemas, and snapshot-test the contract. |
 
 ---
 
 ## 7. Release plan
 
 1. Implement 0.22.1 P0: WP0–WP6 (F-V4A-01…08). No P1 carry-over.
-2. Run `make acceptance`, `make feedback-v4-agent`, `make visuals-v5`,
+2. Run `make acceptance`, `make feedback-v4-agent-p0`, `make visuals-v5`,
    `cargo test`, `cargo fmt`, and
    `cargo clippy --workspace --all-targets -- -D warnings` (portable feature
    set). Run the OCR feature job separately.
@@ -620,12 +701,14 @@ after WP0.
    `crates/folisift-core/src/version.rs` schema. Update `docs/VERSIONS.md`,
    `README`, `docs/agents/versioning.md`.
 5. Tag `v0.22.1` locally; do not push unless explicitly authorized.
-6. Implement 0.23.0 P1/P2: WP7–WP10 (F-V4A-09…14). Release **0.23.0 /
+6. Implement 0.23.0 P1/P2: WP7–WP11 (F-V4A-09…15). Release **0.23.0 /
    expected build 232 / MCP schema 19**; the contract changes with `reason`,
-   image-ref detail, decorative semantics and the OCR CLI surface.
-7. Repeat acceptance; tag only after the maintainer approves.
-8. Claim 10/10 only when A-V4A-15 and A-V4A-16 are green; an OCR environment
-   skip must be recorded in the matrix.
+   image-ref detail, decorative semantics, the OCR CLI surface and the MCP
+   guidance layers.
+7. Repeat acceptance; run `make feedback-v4-agent` with `--scope all` and tag
+   only after the maintainer approves.
+8. Claim 10/10 only when A-V4A-15, A-V4A-16 and A-V4A-17 are green; an OCR
+   environment skip must be recorded in the matrix.
 
 ---
 
@@ -642,14 +725,17 @@ after WP0.
    backward-compatible) vs a separate excluded file.
 5. **Visual threshold:** `audit.visual_min_score` default `50` (recommended) vs
    `40`. The value must be validated and documented either way.
+6. **MCP summary:** keep the serialized JSON text block and add a separate
+   summary text block (recommended, MCP-compatible) vs replace the JSON with
+   prose. WP11 implements the former.
 
 ---
 
 ## Appendix A — MCP guidance delivery (research note)
 
-This appendix records how Folisift currently sends guidance to an LLM and what
-the best-practice target is. It is not a v4 defect; it is a contract decision
-for 0.23.0 or later.
+This appendix records how Folisift currently sends guidance to an LLM and why
+WP11 uses a layered contract. It is not a v4AGENT failure; it is the requested
+format improvement and is part of the 0.23.0 scope.
 
 ### A.1 Current delivery (0.22.0)
 
@@ -739,17 +825,55 @@ send a giant JSON instruction blob. Use five layers:
   cross-tool invariants (write boundaries, gate truth, “never edit sources”).
 - **Only prompts**: prompts are user-controlled; a host may never invoke them.
 
-### A.5 Concrete target (optional 0.23.0 follow-up)
+### A.5 WP11 implementation contract
 
-If approved, add a small WP11:
+WP11 implements the layered contract:
 
-- Replace the one-sentence server instruction with a five-line plain-text
-  contract.
-- Add a `start-here` prompt and link the three resources by URI.
-- Add concise text summaries to `coverage_manifest`, `guide_plan`, `qa_guide`
-  and `build_guide` while keeping `structuredContent` unchanged.
-- Add `outputSchema` to those four tools if rmcp does not already emit it.
-- Add a snapshot test: server instruction ≤ 600 characters; every tool
-  description non-empty; every resource URI referenced by the prompt exists.
+1. **Instruction text.** Five lines, ≤600 characters, plain text:
 
-This is additive; it does not change the v4 acceptance matrix.
+   ```text
+   Folisift turns source PDFs into Turkish study guides. Start with workspace_info, then prepare_guide.
+   The host writes guide.md; the server parses, renders and gates. Never edit sources/.
+   Read folisift://authoring-spec before authoring and folisift://design-system before layout changes.
+   Never claim coverage or a clean gate without build --check.
+   For the full workflow, use the start-here prompt or read folisift://capabilities.
+   ```
+2. **Prompt.** Add `start-here` with the first three calls and resource URIs.
+   Keep `write-study-guide` and `write-diagram` as user-invoked recipes.
+3. **Tool descriptions.** Audit the 10 highest-traffic tools; each description
+   says when to use, what it returns, next step and actionable error. JSON
+   Schema carries enums, ranges and required fields.
+4. **Output shape.** For `coverage_manifest`, `guide_plan`, `qa_guide` and
+   `build_guide`:
+   - keep `structuredContent`;
+   - keep the serialized JSON text block (MCP compatibility);
+   - add a separate summary text block ≤300 characters;
+   - add `outputSchema` if rmcp does not already emit it.
+5. **Capabilities.** `folisift://capabilities` reports `guidance_version: 1`,
+   the five layers, resource URIs and the current tool schema version.
+6. **Normative doc.** `docs/mcp-guidance.md` records the layer table and the
+   “no manual in instructions” rule.
+7. **Tests.** Snapshot the instruction length/content, the `start-here` prompt,
+   the four output shapes and every resource URI.
+
+Response shape for a high-traffic tool:
+
+```json
+{
+  "content": [
+    {"type": "text", "text": "Coverage 138/138; 0 missing; next: build --check."},
+    {"type": "text", "text": "{\"passed\":true,\"canonical_total\":138,...}"}
+  ],
+  "structuredContent": {
+    "passed": true,
+    "canonical_total": 138,
+    "missing": []
+  }
+}
+```
+
+The summary is for the model; the JSON is for exact fields and compatibility.
+Do not replace one with the other.
+
+This is additive; it does not change the v4 acceptance matrix, but it adds
+A-V4A-15 and is included in the 0.23.0 release.
