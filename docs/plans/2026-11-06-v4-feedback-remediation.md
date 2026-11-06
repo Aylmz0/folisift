@@ -692,6 +692,10 @@ WP3–WP5 after WP0. WP11 can start after WP6 because it depends on the final
 
 ## 7. Release plan
 
+> **Executed deviation:** the P0 and P1/P2 work landed as one `v0.23.0`
+> release. See §9 for the reason and evidence. The steps below are the original
+> planned sequence.
+
 1. Implement 0.22.1 P0: WP0–WP6 (F-V4A-01…08). No P1 carry-over.
 2. Run `make acceptance`, `make feedback-v4-agent-p0`, `make visuals-v5`,
    `cargo test`, `cargo fmt`, and
