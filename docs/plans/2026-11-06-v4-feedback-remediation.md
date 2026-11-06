@@ -77,6 +77,11 @@ row with the same numeric suffix.
 | F-V4A-13 | P2 | `cards` can silently drop recall blocks | v4AGENT §4.9 | `cards` counts definitions but does not warn when a guide has no `::: recall`/`::: answer`; no minimum-content warning. |
 | F-V4A-14 | P2 | 4-column glossary page-break/group-row continuity is not regression-tested | our review | visual is correct; no fixture proves a page boundary or continuation row. |
 
+**Priority delta vs v4AGENT:** F-V4A-08 (qa advisory truth) is promoted from
+v4AGENT’s P1 “documentation” bucket to P0 because a `warn` report that says
+`passed:true` misstates the build result. The other v4AGENT P1/P2 items stay in
+0.23.0.
+
 ---
 
 ## 3. Work packages
@@ -315,6 +320,8 @@ v4AGENT failure without the user's private workspace.
   - no image bytes, no wall-clock timestamp;
   - update the MCP annotation: `read_only_hint=false`, `idempotent_hint=true`,
     `destructive_hint=false`, because the tool can write the manifest;
+  - `--write` requires a guide (the manifest lives in the bundle); without one,
+    return `visual candidates --write needs guide`;
   - `--write` always persists the full report, independent of `detail`/`limit`;
     the returned response may still be bounded.
 - Thread the policy explicitly: `VisualAudit::validate_with_policy` takes a
@@ -323,7 +330,7 @@ v4AGENT failure without the user's private workspace.
   helper.
 - `visual_audit::figure_pages` reads the candidate manifest when present:
   - gate pages = candidates with `relevance.label=core` and
-    `score >= audit.visual_min_score`, plus candidates with
+    `score >= audit.visual_min_score`, plus non-decorative candidates with
     `reconstruction.kind=table` and the same score floor;
   - low-text pages remain mandatory even when no candidate exists;
   - no raw page-spanning `figure`/`table` blocks;
@@ -342,7 +349,8 @@ v4AGENT failure without the user's private workspace.
 - `qa.visual` / `qa_guide.visual` expose:
   - `visual_gate`: `off|warn|required`;
   - `enforced`: bool;
-  - `status`: `passed|advisory|failed`;
+  - `status`: `passed|advisory|failed`; `advisory` only when `warn` has
+    non-empty `missing_figures`, otherwise `passed`;
   - `advisory`: bool;
   - `basis`: `candidates|layout-blocks|none`;
   - `missing_figures` and `missing_candidates`.
@@ -373,7 +381,9 @@ v4AGENT failure without the user's private workspace.
 
 **Change**
 
-- Add optional `reason: Option<String>` to `ManifestRow`.
+- Add optional `reason: Option<String>` to `ManifestRow`. An `Excluded` row
+  requires a non-empty reason; legacy rows without `reason` stay valid only
+  when they are not excluded.
 - `CoverageStatus::Excluded` is produced by:
   - a review author marking a row `excluded` + `reason`;
   - a migration tool that converts deleted rows in the old review into
@@ -392,7 +402,8 @@ v4AGENT failure without the user's private workspace.
 - A review with one covered + one excluded + one missing: excluded counted,
   missing 1, passed false; after covering the missing row, passed true.
 - Adopt preserves excluded rows.
-- Old review files without `reason` remain valid.
+- An excluded row without a reason is rejected by `review_eligible`.
+- Old review files without `reason` remain valid for non-excluded rows.
 - Combine does not delete an unreviewed generated row.
 
 **Exit:** A-V4A-09.
@@ -425,22 +436,26 @@ v4AGENT failure without the user's private workspace.
     `cargo build -p folisift-cli --features ocr-tesseract` and
     `cargo run -p folisift-cli --features ocr-tesseract -- insights
     --ocr ...`.
-- Wire `ocr_server_url`:
-  - add optional `ocr_server_url` to `SourceInsightsParams` (MCP
-    `source_insights`) and the CLI `insights` command;
-  - pass it into `LiteParseConfig.ocr_server_url`;
-  - document the HTTP OCR server contract and `FOLISIFT_OCR_SERVER_URL`.
+- Wire `ocr_server_url` in the **CLI only**:
+  - add optional `ocr_server_url` to the `insights` command and pass it into
+    `LiteParseConfig.ocr_server_url`;
+  - document the HTTP OCR server contract and `FOLISIFT_OCR_SERVER_URL`;
+  - do **not** add `ocr_server_url` to MCP `SourceInsightsParams`: the MCP
+    server must not perform network access. MCP OCR is local-tesseract only.
 - `doctor` reports:
-  - `ocr: "disabled" | "tesseract" | "server"`;
+  - `ocr: "disabled" | "tesseract" | "server"` for the CLI;
   - compile-time feature state, resolved tesseract binary/version, or server
     URL presence;
   - “OCR unavailable” with a next step when neither is available;
   - `ok:true` because OCR is optional; availability is separate from the
-    required environment checks.
+    required environment checks;
+  - CLI `doctor` may run `tesseract --version` directly; MCP `doctor` only
+    checks the compile-time feature and PATH, because the MCP server must not
+    execute processes or use the network.
 - `source_insights ocr:true` when unavailable returns a structured
   `OCR_UNAVAILABLE` error (typed core error; JSON message payload) with
-  suggestions: install tesseract + build with `ocr-tesseract`, or pass
-  `ocr_server_url`.
+  suggestions: install tesseract + build with `ocr-tesseract`, or run the CLI
+  `insights --ocr --ocr-server-url` path.
 - Never auto-enable OCR; never download models at runtime.
 - Keep the portable gate portable: `scripts/acceptance.sh` and
   `docs/agents/versioning.md` must not run `--all-features` once the OCR feature
@@ -456,7 +471,8 @@ v4AGENT failure without the user's private workspace.
   environment reason.
 - The portable `make acceptance` gate stays green without tesseract installed.
 - `doctor` never claims OCR is available when it is not.
-- Server URL path passes the URL into `LiteParseConfig`.
+- CLI server URL path passes the URL into `LiteParseConfig`; MCP has no
+  server-URL parameter.
 
 **Exit:** A-V4A-10.
 
@@ -495,7 +511,8 @@ v4AGENT failure without the user's private workspace.
 
 - `image_refs_detail` contains `p76_1` with bbox and pixel dimensions.
 - Cover decorative high-priority passes with a cover reason; high+decorative
-  without a cover reason warns but does not become unresolved.
+  with a non-cover reason warns but does not become unresolved; a missing
+  reason stays unresolved.
 - `visual_decision embed_crop` with only `candidate_id` writes a crop into the
   audit and validates.
 - Cards warning appears only when `recall=0` and `definitions>0`.
@@ -537,7 +554,7 @@ One row per finding, then two cross-cutting gates.
 | A-V4A-07 | F-V4A-07 | Visual gate required | PD0/PD2/PD3 candidate manifest; expected pages are real candidates, not 82/28/136; stale/missing fails actionably |
 | A-V4A-08 | F-V4A-08 | Visual gate advisory | `warn` reports `status:"advisory"`, `enforced:false`, `advisory:true`, not plain `passed:true` |
 | A-V4A-09 | F-V4A-09 | Excluded | excluded counted, not missing; adopts; old files valid; combine never deletes unreviewed rows |
-| A-V4A-10 | F-V4A-10 | OCR | doctor reports availability; unavailable error is structured; feature build passes; server URL wired |
+| A-V4A-10 | F-V4A-10 | OCR | doctor reports availability; unavailable error is structured; feature build passes; CLI server URL wired; MCP stays network-free |
 | A-V4A-11 | F-V4A-11 | Image refs | `image_refs_detail` has ids/bbox/dims; `visual_extract` uses it |
 | A-V4A-12 | F-V4A-12 | Decorative semantics | cover decorative high-priority allowed with reason; otherwise warning, not unresolved |
 | A-V4A-13 | F-V4A-13 | Cards warning | recall=0 + definitions>0 → warning, not silent |
@@ -649,8 +666,11 @@ Markdown/JSON resources.
 
 ### A.2 What the protocol says
 
-- MCP tools are **model-controlled**; prompts are **user-controlled**; resources
-  are **application-driven** ([MCP server overview](https://modelcontextprotocol.io/specification/2026-07-28/server)).
+- MCP tools are **model-controlled**, prompts are **user-controlled**, and
+  resources are **application-driven**
+  ([MCP server overview](https://modelcontextprotocol.io/specification/2026-07-28/server);
+  [prompts](https://modelcontextprotocol.io/specification/2026-07-28/server/prompts);
+  [resources](https://modelcontextprotocol.io/specification/2026-07-28/server/resources)).
 - Server `instructions` are optional **natural-language guidance for LLMs on how
   to use the server effectively**
   ([MCP discovery](https://modelcontextprotocol.io/specification/2026-07-28/server/discover)).
@@ -681,13 +701,14 @@ send a giant JSON instruction blob. Use five layers:
    in the schema, not in prose. This is the layer the model reads when choosing
    a tool.
 
-3. **Structured results — JSON `structuredContent` plus a concise text
-   summary.**
-   Keep exact fields (`passed`, `missing`, `next`, `omitted`) in JSON; make the
-   text block a short human/LLM-readable summary and next action, not a raw JSON
-   dump. Raw JSON is precise but token-heavy and harder to scan; prose alone is
-   readable but loses machine-checkable fields. The current rmcp `Json<T>`
-   wrapper gives JSON plus serialized JSON text; the target is JSON plus a
+3. **Structured results — JSON `structuredContent`, the serialized JSON text
+   block, and a concise summary.**
+   Keep exact fields (`passed`, `missing`, `next`, `omitted`) in JSON. MCP
+   recommends returning the serialized JSON in a text block for compatibility,
+   so keep it; add a short human/LLM-readable summary and next action as a
+   separate text block. Raw JSON is precise but token-heavy and harder to scan;
+   prose alone is readable but loses machine-checkable fields. The current rmcp
+   `Json<T>` wrapper gives JSON plus serialized JSON text; the target adds a
    one-paragraph summary for the high-traffic tools (`coverage_manifest`,
    `guide_plan`, `qa_guide`, `build_guide`).
 
