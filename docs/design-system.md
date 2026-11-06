@@ -157,7 +157,7 @@ tests; they are not selectable in this release.
 ## Page layout
 
 - A4, margins `16mm 16.5mm 14mm 16.5mm`.
-- Single-column body; the C glossary uses two columns with a 7–10 mm gutter.
+- Single-column body; the C glossary is one full-width four-column term/definition table with tinted group rows.
 - Running header: chapter left, “Programlama Dilleri · Çalışma Kılavuzu” right;
   no separate header rule. The brick chapter-opener rule follows it.
 - Footer: page number centred, brick red.
