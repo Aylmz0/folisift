@@ -10,7 +10,10 @@
 - **Targets:**
   - **0.22.1** — P0: F-V4A-01…08 — generated manifest, nested output budget, hint range/covers, source-path resolution, diagram MCP, guide-plan source pages, candidate-backed visual gate, advisory truth. Expected build 231, MCP schema 18.
   - **0.23.0** — P1/P2: F-V4A-09…14 — `excluded` status, OCR availability, image-ref detail, decorative semantics, cards warning, glossary regression. Expected build 232, MCP schema 19.
-- **Definition of done (whole plan):** all 33 v4AGENT checks pass (or are explicitly environment-skipped and documented), our P1 visual-gate finding is closed, `make acceptance` is green, and a fresh 0.22.1 PDF passes `audit --strict`.
+- **0.22.1 done when:** A-V4A-01…08 and A-V4A-15 are green; the v4AGENT FAIL
+  count drops from 7 to 1 (OCR) or 0 if the OCR environment is available; our
+  P1 visual-gate finding is closed.
+- **Definition of done (whole plan):** all 33 v4AGENT checks pass (or are explicitly environment-skipped and documented), `make acceptance` is green, and a fresh 0.22.1 PDF passes `audit --strict`.
 - **Not claimed:** 10/10. The v4AGENT matrix still has 7 FAIL and our visual gate still reports noisy figure pages until 0.22.1 ships.
 
 ---
@@ -618,8 +621,8 @@ after WP0.
    `README`, `docs/agents/versioning.md`.
 5. Tag `v0.22.1` locally; do not push unless explicitly authorized.
 6. Implement 0.23.0 P1/P2: WP7–WP10 (F-V4A-09…14). Release **0.23.0 /
-   expected build 232 / MCP schema 19** if the tool contract changes (it does:
-   `reason`, image-ref detail, decorative semantics, OCR params).
+   expected build 232 / MCP schema 19**; the contract changes with `reason`,
+   image-ref detail, decorative semantics and the OCR CLI surface.
 7. Repeat acceptance; tag only after the maintainer approves.
 8. Claim 10/10 only when A-V4A-15 and A-V4A-16 are green; an OCR environment
    skip must be recorded in the matrix.
