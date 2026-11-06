@@ -8,7 +8,7 @@ publish.workspace = true
 
 [dependencies]
 bm25.workspace = true
-folisift-parse = { path = "../folisift-parse", version = "0.23.0" }
+folisift-parse = { path = "../folisift-parse", version = "0.23.1" }
 model2vec-rs.workspace = true
 serde.workspace = true
 serde_json.workspace = true
