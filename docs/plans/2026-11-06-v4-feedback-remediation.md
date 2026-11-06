@@ -1,6 +1,6 @@
 # V4 feedback remediation — detailed plan
 
-- **Status:** Completed — released as `v0.23.0`; 0.22.1 P0 was folded into the same release because P0/P1 changes share the same files and landed as one contract
+- **Status:** Completed — feature release `v0.23.0`; installer/audit patches `v0.23.1` and `v0.23.2`. 0.22.1 P0 was folded into the feature release because P0/P1 changes share the same files and landed as one contract
 - **Date:** 2026-11-06
 - **Baseline:** Folisift 0.22.0, build 230, MCP schema 17, 41 tools
 - **Final release:** Folisift 0.23.0 feature release, build 241; v0.23.1 installer patch, build 245; v0.23.2 stale-manifest/audit patch, build 248. MCP schema 19, 41 tools.
