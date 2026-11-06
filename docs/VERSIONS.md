@@ -6,6 +6,7 @@ table.
 
 | Tag | Date | Build | Commit | PDFium | What changed |
 |---|---|---:|---|---|---|
+| `v0.23.0` | 2026-11-06 | 241 | tag `v0.23.0` | `chromium/8058` | V4 feedback close-out and MCP guidance: canonical generated manifest with text/layout fallback and range covers, recursive output budgets, shared source/diagram path resolution, guide-plan source pages, candidate-backed visual gate with advisory status (`visual_min_score`), explicit `excluded` reasons, optional `ocr-tesseract` + CLI OCR server path, image-ref detail, decorative/card semantics, glossary page-break fixture, and the five-layer MCP guidance contract (`start-here`, concise summaries, output schemas). Schema 19 with 41 tools. |
 | `v0.22.0` | 2026-11-05 | 230 | `874dd06` | `chromium/8058` | Source visual pipeline: bbox-level `visual_candidates` with salience/relevance/reconstruction, native image extraction, adaptive 200–500 DPI crops, visual quality/audit provenance, `visual_decision`/`visual_assets`, D2 concept/schematic vs unique charts, vector-cluster fallback, soft visual budget; schema 17 with 41 tools; A-V5-01..13 green |
 | `v0.20.0` | 2026-11-04 | 195 | `8507525` | `chromium/8058` | Visual evidence and chart policy: `visual_evidence`, figure/table visual gate (`off`/`warn`/`required`), `embed_crop`/`describe` decisions, provenance-aware `crop_source` and `::: figure`, actionable table fallback, global Model2Vec discovery, digital review action and V3 acceptance harness; schema 15 with 37 tools |
 | `v0.19.0` | 2026-11-04 | 190 | `2e8975206cf9961ddca76cf2d3a15a72f6b9e4ff` | `chromium/8058` | Feedback v2 P2: real PDF bbox width regression, OCR evidence matrix, bounded graph path/explain, QA environment/determinism report, cookbook and manifest review docs |
@@ -45,6 +46,18 @@ table.
 | `v0.1.0` | 2026-10-26 | 16 | `fb7fe59de483f8e4e88d4346cb10f4c91f3445e2` | `chromium/8058` | First Rust/Typst/MCP release; 23-page reference guide, coverage 13/13; Python engine removed |
 
 ## Notes
+
+- `v0.23.0` closes the v4 remediation plan. The generated coverage manifest now
+  uses layout headings, TOC sections and embedded numbered source text; body
+  prose and date-like numbers are rejected. `hint`/`covers` support ranges and
+  comma lists. MCP path arguments are normalized, `guide_plan` maps source
+  pages, and the candidate-backed visual gate replaces raw page-spanning
+  layout blocks. The visual gate exposes `basis`, `advisory`, `status` and
+  `missing_candidates`; `required` needs `data/visual-candidates.json`.
+  `excluded` rows carry a reason and survive merge/adopt. OCR is opt-in via
+  `ocr-tesseract`; the CLI can use `--ocr-server-url`, while MCP stays
+  network-free. `docs/mcp-guidance.md` defines the five-layer instruction,
+  prompt, schema and result contract. Build 241; schema 19; 41 tools.
 
 - `v0.22.0` adds the source visual pipeline. `visual_candidates` ranks
   bbox-level candidates with `relevance` (core/supporting/decorative/seductive)
