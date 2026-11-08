@@ -3665,31 +3665,49 @@ impl FolisiftServer {
                 generated
                     .write_json(&generated_path)
                     .map_err(|error| error.to_string())?;
-                let review = CoverageManifest::read_json(&review_path).ok();
-                let merged = review
-                    .as_ref()
-                    .map(|review| generated.merge_with_review(review));
-                let review_eligible = merged
+                let review_was_present = review_path.is_file();
+                let review = if review_was_present {
+                    Some(
+                        CoverageManifest::read_json(&review_path)
+                            .map_err(|error| error.to_string())?,
+                    )
+                } else {
+                    let template = CoverageManifest::template_from(&generated);
+                    template
+                        .write_json(&review_path)
+                        .map_err(|error| error.to_string())?;
+                    Some(template)
+                };
+                let review_eligible = review
                     .as_ref()
                     .is_some_and(CoverageManifest::review_eligible);
-                if review_eligible
-                    && params.adopt.unwrap_or(false)
-                    && let Some(merged) = &merged
+                let blocked_by = review
+                    .as_ref()
+                    .map(CoverageManifest::review_blockers)
+                    .unwrap_or_default();
+                let mut adopted = false;
+                let mut adopted_rows = None;
+                if params.adopt.unwrap_or(false)
+                    && review_eligible
+                    && let Some(review) = &review
                 {
-                    merged
+                    let combined = review.adopt_with(&generated);
+                    combined
                         .write_json(&combined_path)
                         .map_err(|error| error.to_string())?;
+                    adopted_rows = Some(combined.rows.len());
+                    adopted = true;
                 }
                 let review_diff = review.as_ref().map(|review| {
                     let generated_keys = generated
                         .rows
                         .iter()
-                        .map(|row| format!("{}:{}", row.source, row.normalized_heading))
+                        .map(folisift_parse::row_key)
                         .collect::<std::collections::BTreeSet<_>>();
                     let review_keys = review
                         .rows
                         .iter()
-                        .map(|row| format!("{}:{}", row.source, row.normalized_heading))
+                        .map(folisift_parse::row_key)
                         .collect::<std::collections::BTreeSet<_>>();
                     let only_in_review = review_keys
                         .difference(&generated_keys)
@@ -3710,13 +3728,20 @@ impl FolisiftServer {
                     })
                 });
                 let summary = format!(
-                    "Coverage manifest {}: {} generated rows; review {}; next: validate generated or adopt review",
+                    "Coverage manifest {}: {} generated rows; review {}; next: {}",
                     guide.slug,
                     generated.rows.len(),
                     if review_eligible {
                         "eligible"
                     } else {
                         "not eligible"
+                    },
+                    if adopted {
+                        "build --check"
+                    } else if review_eligible {
+                        "adopt the review"
+                    } else {
+                        "curate the review file"
                     }
                 );
                 Ok(tool_result(
@@ -3728,9 +3753,13 @@ impl FolisiftServer {
                             "review": review_path.display().to_string(),
                             "rows": generated.rows.len(),
                             "canonical_total": generated.canonical_total,
+                            "review_template_written": !review_was_present,
                             "review_diff": review_diff,
                             "review_eligible": review_eligible,
-                            "adopted": review_eligible && params.adopt.unwrap_or(false),
+                            "review_blocked_by_total": blocked_by.len(),
+                            "review_blocked_by": blocked_by.iter().take(20).cloned().collect::<Vec<_>>(),
+                            "adopted": adopted,
+                            "adopted_rows": adopted_rows,
                         }),
                         &OutputOptions {
                             detail: params.detail.clone(),

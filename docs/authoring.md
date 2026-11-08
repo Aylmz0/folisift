@@ -513,18 +513,28 @@ cargo run -p folisift-cli -- qa --guide pd0-pd1
 
 1. `data/coverage-manifest.json` — adopted combined file; this is what
    `adopt:true` writes from a reviewed manifest;
-2. `data/coverage-manifest.review.json` — host-reviewed candidate, used only
-   when every row is `covered`, `merged` or `excluded`;
-3. `data/coverage-manifest.generated.json` — machine-built skeleton; advisory
+2. `data/coverage-manifest.review.json` — curated truth, used only when every
+   row is `covered`, `merged` or `excluded` with a reason;
+3. `data/coverage-manifest.generated.json` — machine-built proposal; advisory
    by default. Select it explicitly with `manifest:"generated"` or opt in with
    `"audit": {"manifest_gate": "generated"}`;
 4. the legacy heading gate.
 
-`build` writes a generated skeleton and never overwrites a review file. A
-review file with `missing` rows is reported but not used as the gate. Generated
-rows are body-free candidates: headings first, TOC fallback, with `origin`
-(`heading`, `toc`, `inline`, `review`, `manual`). A review may add a manual row
-that the source never exposes as a heading; that row stays review-only.
+Generated rows use one ranked evidence chain: `heading` (explicit, inline or
+table-cell) > `layout` (numbered layout text) > `toc` > `text`. A lower rank
+never overrides a higher one. `toc` fills gaps only; `text` is used only when
+the source has no layout artifact. The shared section-number filter rejects
+`1.0`, `10.500`, dates, quantities and titles that start with punctuation or
+lowercase prose.
+
+`build` writes a generated skeleton and, when no review file exists, a review
+template seeded from the generated rows with every row `missing`. `build` never
+overwrites an existing review or adopted combined file. `review_eligible`
+evaluates the review file only: a `missing` row or an `excluded` row without a
+reason blocks adoption and is returned in `review_blocked_by`. `adopt:true`
+writes the combined file from the review rows, enriching page and guide mappings
+from generated rows. Generated-only rows are reported by `review_diff` with
+`row_key()` keys and are not adopted silently.
 
 `empty_sections` means `body_chars == 0`; a section with 1–399 characters is
 `weak_sections`, not empty. The default weak threshold is 400 characters and is

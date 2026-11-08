@@ -11,11 +11,48 @@ use serde::{Deserialize, Serialize};
 
 use crate::coverage::{CoverageReport, SectionResult, SourceCoverage};
 use crate::error::{Error, Result, io};
+use crate::heading::{
+    clean_heading_title, is_section_number, parse_numbered_heading, recover_inline_headings,
+    scan_table_headings, title_like,
+};
 use crate::inventory::{Inventory, SourceInventory};
-use crate::layout::SourceLayout;
+use crate::layout::{LayoutBlockKind, SourceLayout};
 use crate::source_cache::PageText;
 
 pub const MANIFEST_SCHEMA_VERSION: u32 = 1;
+
+/// Where a generated coverage row came from. Lower rank wins.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HeadingEvidence {
+    /// Explicit heading block, recovered inline heading or table-cell heading.
+    Heading,
+    /// Numbered heading evidence found in generic layout text.
+    Layout,
+    /// Source topic list / TOC fallback.
+    Toc,
+    /// Raw page text, used only when the source has no layout artifact.
+    Text,
+}
+
+impl HeadingEvidence {
+    fn rank(self) -> u8 {
+        match self {
+            Self::Heading => 0,
+            Self::Layout => 1,
+            Self::Toc => 2,
+            Self::Text => 3,
+        }
+    }
+
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Heading => "heading",
+            Self::Layout => "layout",
+            Self::Toc => "toc",
+            Self::Text => "text",
+        }
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -124,7 +161,7 @@ impl CoverageManifest {
                         CoverageStatus::Missing
                     },
                     reason: None,
-                    origin,
+                    origin: origin.as_str().to_string(),
                     evidence: None,
                     confidence: 1.0,
                 });
@@ -305,14 +342,84 @@ impl CoverageManifest {
     /// A review file is eligible when no canonical row is still missing.
     /// Review stamps are optional for legacy files and advisory for new ones.
     pub fn review_eligible(&self) -> bool {
-        self.rows.iter().all(|row| match row.status {
-            CoverageStatus::Missing => false,
-            CoverageStatus::Excluded => row
-                .reason
-                .as_deref()
-                .is_some_and(|reason| !reason.trim().is_empty()),
-            _ => true,
-        })
+        self.review_blockers().is_empty()
+    }
+
+    /// Named reasons that block adoption. Empty means eligible.
+    pub fn review_blockers(&self) -> Vec<String> {
+        let mut blockers = Vec::new();
+        for row in &self.rows {
+            match row.status {
+                CoverageStatus::Missing => blockers.push(format!("missing: {}", row.heading)),
+                CoverageStatus::Excluded
+                    if !row
+                        .reason
+                        .as_deref()
+                        .is_some_and(|reason| !reason.trim().is_empty()) =>
+                {
+                    blockers.push(format!("excluded without reason: {}", row.heading));
+                }
+                _ => {}
+            }
+        }
+        blockers
+    }
+
+    /// Seed a review template from a generated manifest. Every row starts
+    /// missing and must be curated; generated statuses are never adopted
+    /// silently.
+    pub fn template_from(generated: &Self) -> Self {
+        let mut rows = generated.rows.clone();
+        for row in &mut rows {
+            row.status = CoverageStatus::Missing;
+            row.reason = None;
+            row.origin = "review".to_string();
+        }
+        let canonical_total = rows.len();
+        Self {
+            schema_version: MANIFEST_SCHEMA_VERSION,
+            reviewed_at: None,
+            reviewed_by: None,
+            canonical_total: Some(canonical_total),
+            rows,
+        }
+    }
+
+    /// Build the combined, review-backed manifest. Review rows are the truth;
+    /// generated rows only enrich page and guide mappings where the review is
+    /// silent. Generated-only rows stay advisory and are not adopted.
+    pub fn adopt_with(&self, generated: &Self) -> Self {
+        let generated_by_key = generated
+            .rows
+            .iter()
+            .map(|row| (row_key(row), row))
+            .collect::<BTreeMap<_, _>>();
+        let mut rows = self.rows.clone();
+        for row in &mut rows {
+            let Some(source) = generated_by_key.get(&row_key(row)) else {
+                continue;
+            };
+            if row.page == 0 && source.page > 0 {
+                row.page = source.page;
+            }
+            if row.guide_heading.is_none() {
+                row.guide_heading = source.guide_heading.clone();
+            }
+            if row.guide_sections.is_empty() {
+                row.guide_sections = source.guide_sections.clone();
+            }
+            if row.evidence.is_none() {
+                row.evidence = source.evidence.clone();
+            }
+        }
+        let canonical_total = rows.len();
+        Self {
+            schema_version: MANIFEST_SCHEMA_VERSION,
+            reviewed_at: self.reviewed_at.clone(),
+            reviewed_by: self.reviewed_by.clone(),
+            canonical_total: Some(canonical_total),
+            rows,
+        }
     }
 
     pub fn write_json(&self, path: &Path) -> Result<()> {
@@ -371,27 +478,92 @@ fn candidates(
     source: &SourceInventory,
     source_text: Option<&[PageText]>,
     layout: Option<&SourceLayout>,
-) -> Vec<(String, String, usize, String)> {
-    // Lower rank wins: layout heading > TOC/section list > numbered source text.
+) -> Vec<(String, String, usize, HeadingEvidence)> {
     let mut rows: BTreeMap<String, (u8, String, String, usize, String)> = BTreeMap::new();
+
+    // Layout evidence is the canonical universe: explicit heading blocks,
+    // recovered inline headings, table-cell headings, then generic layout text.
+    if let Some(layout) = layout {
+        for page in &layout.pages {
+            for block in &page.blocks {
+                if block.kind != LayoutBlockKind::Heading {
+                    continue;
+                }
+                let Some(parsed) = parse_numbered_heading(block.text_or_empty()) else {
+                    continue;
+                };
+                insert_candidate(
+                    &mut rows,
+                    &parsed.number,
+                    parsed.title,
+                    page.page,
+                    HeadingEvidence::Heading,
+                );
+            }
+        }
+        for heading in recover_inline_headings(&layout.pages) {
+            let Some(parsed) = parse_numbered_heading(&heading.heading) else {
+                continue;
+            };
+            insert_candidate(
+                &mut rows,
+                &parsed.number,
+                parsed.title,
+                heading.page,
+                HeadingEvidence::Heading,
+            );
+        }
+        for heading in scan_table_headings(&layout.pages) {
+            let Some(parsed) = parse_numbered_heading(&heading.heading) else {
+                continue;
+            };
+            insert_candidate(
+                &mut rows,
+                &parsed.number,
+                parsed.title,
+                heading.page,
+                HeadingEvidence::Heading,
+            );
+        }
+        for page in &layout.pages {
+            for block in &page.blocks {
+                for text in crate::heading::block_text_surfaces(block) {
+                    scan_layout_text(&mut rows, text, page.page);
+                }
+            }
+        }
+    }
+
+    // Inventory headings are explicit parser evidence when no layout exists and
+    // a fallback for anything the layout scan could not see.
     for heading in &source.headings {
-        let heading = heading.heading.trim();
-        let Some(number) = number_token(heading) else {
+        let heading_text = heading.heading.trim();
+        let parsed = parse_numbered_heading(heading_text).or_else(|| {
+            let number = number_token(heading_text)?;
+            let title = clean_heading_title(strip_number(heading_text, &number));
+            title_like(&title).then_some(crate::heading::NumberedHeading {
+                heading: format!("{number} {title}"),
+                number,
+                title,
+            })
+        });
+        let Some(parsed) = parsed else {
             continue;
         };
-        let title = clean_heading_title(strip_number(heading, &number));
-        if !title_like(&title) {
-            continue;
-        }
         insert_candidate(
             &mut rows,
-            &number,
-            title,
-            heading_page(source, heading),
-            0,
-            "heading",
+            &parsed.number,
+            parsed.title,
+            heading.page,
+            if layout.is_some() {
+                HeadingEvidence::Layout
+            } else {
+                HeadingEvidence::Heading
+            },
         );
     }
+
+    // TOC rows fill gaps only; they never override heading or layout evidence.
     for section in &source.sections {
         let Some(number) = number_token(&section.number) else {
             continue;
@@ -405,8 +577,57 @@ fn candidates(
             .iter()
             .find(|heading| number_token(&heading.heading).as_deref() == Some(number.as_str()))
             .map_or(section.page, |heading| heading.page);
-        insert_candidate(&mut rows, &number, title, page, 1, "toc");
+        insert_fallback(&mut rows, &number, title, page, HeadingEvidence::Toc);
     }
+
+    // Raw text is a last resort: only when the source has no layout artifact.
+    if layout.is_none()
+        && let Some(pages) = source_text
+    {
+        scan_source_text(&mut rows, pages);
+    }
+
+    rows.into_iter()
+        .map(|(number, (_, title, _, page, origin))| {
+            let evidence = match origin.as_str() {
+                "heading" => HeadingEvidence::Heading,
+                "layout" => HeadingEvidence::Layout,
+                "toc" => HeadingEvidence::Toc,
+                _ => HeadingEvidence::Text,
+            };
+            (number, title, page, evidence)
+        })
+        .collect()
+}
+
+fn scan_layout_text(
+    rows: &mut BTreeMap<String, (u8, String, String, usize, String)>,
+    text: &str,
+    page: usize,
+) {
+    static NUMBERED_ANYWHERE: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+        Regex::new(r"(?:^|\s)(\d+(?:\.\d+){1,3})\.?\s+(.{3,160})")
+            .expect("valid embedded heading regex")
+    });
+    for line in text.lines() {
+        for capture in NUMBERED_ANYWHERE.captures_iter(line) {
+            let number = capture[1].trim_end_matches('.').to_string();
+            if !is_section_number(&number) {
+                continue;
+            }
+            let title = clean_heading_title(capture[2].trim());
+            if !title_like(&title) {
+                continue;
+            }
+            insert_candidate(rows, &number, title, page, HeadingEvidence::Layout);
+        }
+    }
+}
+
+fn scan_source_text(
+    rows: &mut BTreeMap<String, (u8, String, String, usize, String)>,
+    pages: &[PageText],
+) {
     static NUMBERED_LINE: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
         Regex::new(r"^\s*(\d+(?:\.\d+){1,3})\.?\s+(.{3,160})\s*$")
             .expect("valid numbered heading regex")
@@ -415,76 +636,37 @@ fn candidates(
         Regex::new(r"(?:^|\s)(\d+(?:\.\d+){1,3})\.?\s+(.{3,160})")
             .expect("valid embedded heading regex")
     });
-    if let Some(pages) = source_text {
-        for page in pages {
-            for line in page.text.lines() {
-                let mut matched = false;
-                for capture in NUMBERED_LINE.captures_iter(line) {
-                    matched = true;
-                    let number = capture[1].trim_end_matches('.').to_string();
-                    if is_date_like(&number) {
-                        continue;
-                    }
-                    let title = clean_heading_title(capture[2].trim());
-                    if !title_like(&title) {
-                        continue;
-                    }
-                    insert_candidate(&mut rows, &number, title, page.page, 2, "text");
-                }
-                if matched {
+    for page in pages {
+        for line in page.text.lines() {
+            let mut matched = false;
+            for capture in NUMBERED_LINE.captures_iter(line) {
+                matched = true;
+                let number = capture[1].trim_end_matches('.').to_string();
+                if !is_section_number(&number) {
                     continue;
                 }
-                // Table cells and wrapped PDF text often put a heading after
-                // another cell on the same line.
-                for capture in NUMBERED_ANYWHERE.captures_iter(line) {
-                    let number = capture[1].trim_end_matches('.').to_string();
-                    if is_date_like(&number) {
-                        continue;
-                    }
-                    let title = clean_heading_title(capture[2].trim());
-                    if !title_like(&title) {
-                        continue;
-                    }
-                    insert_candidate(&mut rows, &number, title, page.page, 2, "text");
+                let title = clean_heading_title(capture[2].trim());
+                if !title_like(&title) {
+                    continue;
                 }
+                insert_fallback(rows, &number, title, page.page, HeadingEvidence::Text);
+            }
+            if matched {
+                continue;
+            }
+            for capture in NUMBERED_ANYWHERE.captures_iter(line) {
+                let number = capture[1].trim_end_matches('.').to_string();
+                if !is_section_number(&number) {
+                    continue;
+                }
+                let title = clean_heading_title(capture[2].trim());
+                if !title_like(&title) {
+                    continue;
+                }
+                insert_fallback(rows, &number, title, page.page, HeadingEvidence::Text);
             }
         }
     }
-    if let Some(layout) = layout {
-        let mut scan = |text: &str, page: usize| {
-            for line in text.lines() {
-                for capture in NUMBERED_ANYWHERE.captures_iter(line) {
-                    let number = capture[1].trim_end_matches('.').to_string();
-                    if is_date_like(&number) {
-                        continue;
-                    }
-                    let title = clean_heading_title(capture[2].trim());
-                    if !title_like(&title) {
-                        continue;
-                    }
-                    insert_candidate(&mut rows, &number, title, page, 3, "layout");
-                }
-            }
-        };
-        for page in &layout.pages {
-            for block in &page.blocks {
-                if let Some(text) = block.text.as_deref() {
-                    scan(text, page.page);
-                }
-                for cell in &block.header {
-                    scan(&cell.text, page.page);
-                }
-                for row in &block.rows {
-                    for cell in row {
-                        scan(&cell.text, page.page);
-                    }
-                }
-            }
-        }
-    }
-    rows.into_iter()
-        .map(|(number, (_, title, _, page, origin))| (number, title, page, origin))
-        .collect()
 }
 
 fn insert_candidate(
@@ -492,15 +674,16 @@ fn insert_candidate(
     number: &str,
     title: String,
     page: usize,
-    rank: u8,
-    origin: &str,
+    evidence: HeadingEvidence,
 ) {
+    let rank = evidence.rank();
     match rows.get_mut(number) {
         Some(existing) if rank < existing.0 => {
             existing.0 = rank;
             existing.1 = title;
+            existing.2 = number.to_string();
             existing.3 = page;
-            existing.4 = origin.to_string();
+            existing.4 = evidence.as_str().to_string();
         }
         Some(existing) => {
             if existing.3 == 0 && page > 0 {
@@ -510,21 +693,38 @@ fn insert_candidate(
         None => {
             rows.insert(
                 number.to_string(),
-                (rank, title, number.to_string(), page, origin.to_string()),
+                (
+                    rank,
+                    title,
+                    number.to_string(),
+                    page,
+                    evidence.as_str().to_string(),
+                ),
             );
         }
     }
 }
 
-fn is_date_like(number: &str) -> bool {
-    let parts = number
-        .split('.')
-        .map(|part| part.parse::<u32>())
-        .collect::<std::result::Result<Vec<_>, _>>();
-    matches!(parts, Ok(parts) if parts.len() == 3
-        && (1..=31).contains(&parts[0])
-        && (1..=12).contains(&parts[1])
-        && (1900..=2100).contains(&parts[2]))
+fn insert_fallback(
+    rows: &mut BTreeMap<String, (u8, String, String, usize, String)>,
+    number: &str,
+    title: String,
+    page: usize,
+    evidence: HeadingEvidence,
+) {
+    if rows.contains_key(number) {
+        return;
+    }
+    rows.insert(
+        number.to_string(),
+        (
+            evidence.rank(),
+            title,
+            number.to_string(),
+            page,
+            evidence.as_str().to_string(),
+        ),
+    );
 }
 
 fn strip_number<'a>(heading: &'a str, number: &str) -> &'a str {
@@ -541,88 +741,11 @@ fn number_token(value: &str) -> Option<String> {
         .next()
         .unwrap_or_default()
         .trim_end_matches(['.', ':']);
-    if token.is_empty()
-        || !token
-            .chars()
-            .all(|character| character.is_ascii_digit() || character == '.')
-        || token.starts_with('.')
-        || token.ends_with('.')
-        || token.contains("..")
-        || is_date_like(token)
-    {
-        return None;
-    }
-    Some(token.to_string())
-}
-
-fn clean_heading_title(value: &str) -> String {
-    let mut value = value.trim();
-    // A heading ends at the first sentence boundary. Colon and semicolon are
-    // valid inside titles; only a period followed by whitespace ends one.
-    if let Some(index) = value.find(". ") {
-        value = &value[..index];
-    }
-    let value = value
-        .trim()
-        .trim_end_matches(['.', ',', ';', ':', '·', '•'])
-        .trim();
-    let mut words = value.split_whitespace().collect::<Vec<_>>();
-    if words.len() > 18 {
-        words.truncate(18);
-    }
-    let mut title = words.join(" ");
-    if title.chars().count() > 100 {
-        title = title.chars().take(100).collect::<String>();
-        if let Some(index) = title.rfind(' ') {
-            title.truncate(index);
-        }
-    }
-    title
-}
-
-fn title_like(value: &str) -> bool {
-    let value = value.trim();
-    let words = value.split_whitespace().count();
-    let first = value
-        .split_whitespace()
-        .next()
-        .unwrap_or_default()
-        .to_lowercase();
-    !value.is_empty()
-        && value.chars().count() <= 100
-        && (1..=18).contains(&words)
-        && !value.ends_with("...")
-        && !value.ends_with(',')
-        && !value.ends_with(';')
-        && !(value.contains(',') && words > 8)
-        && !matches!(
-            first.as_str(),
-            "bu" | "bir"
-                | "amaç"
-                | "örnek"
-                | "şekil"
-                | "tablo"
-                | "kaynak"
-                | "not"
-                | "ve"
-                | "veya"
-                | "ile"
-                | "için"
-                | "daha"
-                | "gibi"
-        )
+    is_section_number(token).then(|| token.to_string())
 }
 
 fn default_origin() -> String {
     "review".to_string()
-}
-
-fn heading_page(source: &SourceInventory, heading: &str) -> usize {
-    source
-        .headings
-        .iter()
-        .find(|candidate| candidate.heading.trim() == heading)
-        .map_or(0, |candidate| candidate.page)
 }
 
 fn display_title(heading: &str, number: &str) -> String {
@@ -638,7 +761,7 @@ pub(crate) fn row_number(heading: &str) -> Option<String> {
     number_token(heading)
 }
 
-fn row_key(row: &ManifestRow) -> String {
+pub fn row_key(row: &ManifestRow) -> String {
     match row_number(&row.heading) {
         Some(number) => format!("{}:{number}", row.source),
         None => format!("{}:{}", row.source, row.normalized_heading),
@@ -851,7 +974,7 @@ mod tests {
     #[test]
     fn manifest_keeps_scan_headings_beyond_canonical_sections() {
         let mut inventory = inventory();
-        inventory.sources[0].headings = (1..=141)
+        inventory.sources[0].headings = (1..=99)
             .map(|index| crate::inventory::Heading {
                 heading: format!("{}.{index} Konu {index}", index % 7 + 1),
                 page: index,
@@ -860,7 +983,213 @@ mod tests {
             })
             .collect();
         let manifest = CoverageManifest::build(&inventory, "");
-        assert_eq!(manifest.rows.len(), 141);
+        assert_eq!(manifest.rows.len(), 99);
+    }
+
+    #[test]
+    fn rejects_quantities_and_leading_punctuation() {
+        let mut inventory = inventory();
+        inventory.sources[0].sections.clear();
+        inventory.sources[0].headings = [
+            "1.0 Liste",
+            "10.500 m3",
+            "300.000 Adet",
+            "1 ) Birim Satış Fiyatı",
+            "40 x azaldı",
+        ]
+        .into_iter()
+        .map(|heading| crate::inventory::Heading {
+            heading: heading.to_string(),
+            page: 1,
+            level: None,
+            block_id: None,
+        })
+        .collect();
+        let manifest = CoverageManifest::build(&inventory, "");
+        assert!(manifest.rows.is_empty(), "{:?}", manifest.rows);
+    }
+
+    #[test]
+    fn layout_evidence_suppresses_toc_and_text_fallbacks() {
+        use crate::layout::{LayoutBlock, LayoutBlockKind, LayoutCell, PageLayout, SourceLayout};
+
+        let mut inventory = inventory();
+        inventory.sources[0].headings = vec![crate::inventory::Heading {
+            heading: "1 Giriş".to_string(),
+            page: 1,
+            level: Some(1),
+            block_id: Some("PD2:p1:b0".to_string()),
+        }];
+        inventory.sources[0].sections = vec![
+            crate::inventory::CanonicalSection {
+                number: "1".to_string(),
+                title: "Giriş".to_string(),
+                page: 1,
+                origin: "toc".to_string(),
+            },
+            crate::inventory::CanonicalSection {
+                number: "1.0".to_string(),
+                title: "Liste".to_string(),
+                page: 1,
+                origin: "toc".to_string(),
+            },
+            crate::inventory::CanonicalSection {
+                number: "9.9".to_string(),
+                title: "TOC only".to_string(),
+                page: 2,
+                origin: "toc".to_string(),
+            },
+        ];
+        let layout = SourceLayout::new(
+            "PD2",
+            2,
+            vec![
+                PageLayout {
+                    page: 1,
+                    page_label: None,
+                    width: 100.0,
+                    height: 100.0,
+                    content_bounds: None,
+                    blocks: vec![
+                        LayoutBlock {
+                            id: "PD2:p1:b0".to_string(),
+                            kind: LayoutBlockKind::Heading,
+                            bbox: None,
+                            text: Some("1 Giriş".to_string()),
+                            level: Some(1),
+                            bold: true,
+                            italic: false,
+                            ordered: None,
+                            marker: None,
+                            lines: Vec::new(),
+                            lang: None,
+                            header: Vec::new(),
+                            rows: Vec::new(),
+                            header_rows: None,
+                            figure_id: None,
+                            figure_format: None,
+                        },
+                        LayoutBlock {
+                            id: "PD2:p1:b1".to_string(),
+                            kind: LayoutBlockKind::Paragraph,
+                            bbox: None,
+                            text: Some(
+                                "Bu cümle gövdedir. 4.4.4 Asıl İşveren - Alt İşveren ilişkisi"
+                                    .to_string(),
+                            ),
+                            level: None,
+                            bold: false,
+                            italic: false,
+                            ordered: None,
+                            marker: None,
+                            lines: Vec::new(),
+                            lang: None,
+                            header: Vec::new(),
+                            rows: Vec::new(),
+                            header_rows: None,
+                            figure_id: None,
+                            figure_format: None,
+                        },
+                    ],
+                },
+                PageLayout {
+                    page: 2,
+                    page_label: None,
+                    width: 100.0,
+                    height: 100.0,
+                    content_bounds: None,
+                    blocks: vec![LayoutBlock {
+                        id: "PD2:p2:b0".to_string(),
+                        kind: LayoutBlockKind::Table,
+                        bbox: None,
+                        text: None,
+                        level: None,
+                        bold: false,
+                        italic: false,
+                        ordered: None,
+                        marker: None,
+                        lines: Vec::new(),
+                        lang: None,
+                        header: Vec::new(),
+                        rows: vec![vec![LayoutCell {
+                            text: "10.2 Ulusal Bayram ve Genel Tatiller".to_string(),
+                            bbox: None,
+                            colspan: None,
+                            rowspan: None,
+                        }]],
+                        header_rows: None,
+                        figure_id: None,
+                        figure_format: None,
+                    }],
+                },
+            ],
+        );
+        let mut texts = BTreeMap::new();
+        texts.insert(
+            "PD2".to_string(),
+            vec![PageText {
+                page: 1,
+                chars: 200,
+                text: "9.8 Only in raw text\nBu bir gövde cümlesidir.".to_string(),
+            }],
+        );
+        let mut layouts = BTreeMap::new();
+        layouts.insert("PD2".to_string(), layout);
+        let manifest = CoverageManifest::build_with_sources(&inventory, "", &texts, &layouts);
+        let numbers = manifest
+            .rows
+            .iter()
+            .map(|row| crate::manifest::row_number(&row.heading).unwrap_or_default())
+            .collect::<Vec<_>>();
+        assert!(numbers.contains(&"1".to_string()), "{numbers:?}");
+        assert!(numbers.contains(&"4.4.4".to_string()), "{numbers:?}");
+        assert!(numbers.contains(&"10.2".to_string()), "{numbers:?}");
+        assert!(
+            numbers.contains(&"9.9".to_string()),
+            "TOC fallback: {numbers:?}"
+        );
+        assert!(!numbers.contains(&"1.0".to_string()), "{numbers:?}");
+        assert!(!numbers.contains(&"9.8".to_string()), "{numbers:?}");
+        assert!(
+            manifest
+                .rows
+                .iter()
+                .all(|row| row.origin == "heading" || row.origin == "toc"),
+            "{:?}",
+            manifest
+                .rows
+                .iter()
+                .map(|row| (&row.heading, &row.origin))
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn adoption_uses_review_rows_and_enriches_from_generated() {
+        let inventory = inventory();
+        let generated = CoverageManifest::build(&inventory, "## 2.1 Giriş\n\nbody\n");
+        let mut review = generated.clone();
+        review.rows[0].status = CoverageStatus::Covered;
+        review.rows[0].guide_heading = None;
+        review.rows[0].guide_sections.clear();
+        review.rows[0].page = 0;
+        assert!(review.review_eligible());
+        let adopted = review.adopt_with(&generated);
+        assert_eq!(adopted.rows.len(), review.rows.len());
+        assert_eq!(adopted.rows[0].page, 1);
+        assert!(adopted.rows[0].guide_heading.is_some());
+        assert_eq!(adopted.canonical_total, Some(1));
+    }
+
+    #[test]
+    fn review_blockers_name_missing_and_unexplained_rows() {
+        let inventory = inventory();
+        let generated = CoverageManifest::build(&inventory, "");
+        assert_eq!(generated.review_blockers().len(), 1);
+        let mut review = generated.clone();
+        review.rows[0].status = CoverageStatus::Excluded;
+        review.rows[0].reason = None;
+        assert!(review.review_blockers()[0].contains("excluded without reason"));
     }
 
     #[test]

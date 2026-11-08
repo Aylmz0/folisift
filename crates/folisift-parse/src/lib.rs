@@ -58,7 +58,8 @@ pub use layout::{
     source_id, write_layouts,
 };
 pub use manifest::{
-    CoverageManifest, CoverageStatus, ManifestRow, manifest_row_number, number_specs,
+    CoverageManifest, CoverageStatus, HeadingEvidence, ManifestRow, manifest_row_number,
+    number_specs, row_key,
 };
 pub use outline::{
     CanonicalHeading, HeadingOrigin, Outline, OutlineChapter, canonical_headings, skeleton_markdown,
