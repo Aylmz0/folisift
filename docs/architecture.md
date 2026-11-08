@@ -173,6 +173,12 @@ JSON Schemas, structured results with a concise summary, user-invoked prompts
 and on-demand resources. See [MCP guidance](mcp-guidance.md). The server never
 executes a shell, a network request or an LLM call.
 
+Normative resources (`folisift://authoring-spec`, `folisift://design-system`,
+`folisift://diagram-rules`) are embedded at compile time with `include_str!`,
+so an installed binary works without a repository checkout. A workspace copy
+at the same `docs/` path overrides the embedded text; the resource `_meta.source`
+field reports `workspace` or `embedded`.
+
 ## Non-goals
 
 Folisift is not a PDF library, an LMS, a quiz generator or a replacement for

@@ -22,9 +22,9 @@ use rmcp::handler::server::wrapper::Parameters;
 use rmcp::model::{
     CallToolResult, ContentBlock, GetPromptRequestParams, GetPromptResponse, GetPromptResult,
     Implementation, ListPromptsResult, ListResourceTemplatesResult, ListResourcesResult,
-    PaginatedRequestParams, Prompt, PromptMessage, ReadResourceRequestParams, ReadResourceResponse,
-    ReadResourceResult, Resource, ResourceContents, ResourceTemplate, Role, ServerCapabilities,
-    ServerConfig,
+    MetaObject, PaginatedRequestParams, Prompt, PromptMessage, ReadResourceRequestParams,
+    ReadResourceResponse, ReadResourceResult, Resource, ResourceContents, ResourceTemplate, Role,
+    ServerCapabilities, ServerConfig,
 };
 use rmcp::{ErrorData, Json, ServerHandler, ServiceExt, tool, tool_handler, tool_router};
 use schemars::JsonSchema;
@@ -32,6 +32,13 @@ use serde::Deserialize;
 use serde_json::{Value, json};
 
 const SERVER_INSTRUCTIONS: &str = "Folisift turns source PDFs into Turkish study guides. Start with workspace_info, then prepare_guide.\nThe host writes guide.md; the server parses, renders and gates. Never edit sources/.\nRead folisift://authoring-spec before authoring and folisift://design-system before layout changes.\nNever claim coverage or a clean gate without build --check.\nFor the full workflow, use the start-here prompt or read folisift://capabilities.";
+
+/// Normative documents ship inside the binary. The workspace may override
+/// them during engine development; an installed binary does not need a
+/// repository checkout.
+const AUTHORING_SPEC: &str = include_str!("../../../docs/authoring-spec.md");
+const DESIGN_SYSTEM: &str = include_str!("../../../docs/design-system.md");
+const DIAGRAM_RULES: &str = include_str!("../../../docs/diagram-rules.md");
 
 const START_HERE_PROMPT: &str = "Start a Folisift guide.\n\n1. Call workspace_info.\n2. Call prepare_guide once with all sources.\n3. Read folisift://authoring-spec, then use read_source/search_source in bounded chunks.\n\nBefore writing, read folisift://design-system. Use visual_candidates and visual_decision for source visuals; never edit sources/. Finish with build_guide check=true, qa_guide and budgeted claims.";
 
@@ -4433,6 +4440,7 @@ impl ServerHandler for FolisiftServer {
     ) -> impl std::future::Future<Output = Result<ReadResourceResponse, ErrorData>> + Send + '_
     {
         let uri = request.uri.clone();
+        let mut origin = None;
         let result = match uri.as_str() {
             "folisift://capabilities" => {
                 let tools = self.tool_router.list_all();
@@ -4466,10 +4474,22 @@ impl ServerHandler for FolisiftServer {
                 }))
                 .unwrap_or_default())
             }
-            "folisift://authoring-spec" => self.read_workspace_markdown("docs/authoring-spec.md"),
-            "folisift://design-system" => self.read_workspace_markdown("docs/design-system.md"),
+            "folisift://authoring-spec" => {
+                let (text, source) = self.read_normative("docs/authoring-spec.md", AUTHORING_SPEC);
+                origin = Some(source);
+                Ok(text)
+            }
+            "folisift://design-system" => {
+                let (text, source) = self.read_normative("docs/design-system.md", DESIGN_SYSTEM);
+                origin = Some(source);
+                Ok(text)
+            }
             "folisift://diagram-schema" => Ok(diagram_schema()),
-            "folisift://diagram-rules" => Ok(diagram_rules().to_string()),
+            "folisift://diagram-rules" => {
+                let (text, source) = self.read_normative("docs/diagram-rules.md", DIAGRAM_RULES);
+                origin = Some(source);
+                Ok(text)
+            }
             _ if uri.starts_with("folisift://source/") && uri.contains("/page/") => {
                 let rest = uri.trim_start_matches("folisift://source/");
                 let Some((source, page)) = rest.split_once("/page/") else {
@@ -4571,10 +4591,15 @@ impl ServerHandler for FolisiftServer {
         };
         match result {
             Ok(text) => {
-                std::future::ready(Ok(ReadResourceResult::new(vec![ResourceContents::text(
-                    text, uri,
-                )])
-                .into()))
+                let mut contents = ResourceContents::text(text, uri);
+                if let Some(source) = origin {
+                    let mut meta = serde_json::Map::new();
+                    meta.insert("source".to_string(), json!(source));
+                    contents = contents
+                        .with_meta(MetaObject(meta))
+                        .with_mime_type("text/markdown");
+                }
+                std::future::ready(Ok(ReadResourceResult::new(vec![contents]).into()))
             }
             Err(error) => std::future::ready(Err(error)),
         }
@@ -4734,10 +4759,6 @@ fn diagram_schema() -> String {
         "additionalProperties": false
     }))
     .unwrap_or_default()
-}
-
-fn diagram_rules() -> &'static str {
-    "Diagram rules\n\n- 0-3 diagrams per chapter; one idea per diagram.\n- 1-24 nodes, max 40 edges, tree/decision depth max 8.\n- Use flow for processes, concept for relationships, tree/decision for hierarchy, sequence for messages, class/erd for structural models.\n- Layouts: tala, dagre, elk. Record the layout in the manifest.\n- `aspect_ratio` is a direction hint when `direction` is absent.\n- `label_lines` is the preferred multiline label; escaped `\\n` also renders.\n- `class_styles` + `node_meta.class` colour legal outcome branches; `grid` builds matrix containers; `vars` avoids repeated literals; local `imports` are under data/d2.\n- Node/group `width`/`height` and spec-level `width`/`max_height`/`fit` are validated, not ignored.\n- `allow_page_span` is required when the geometric fit exceeds one page.\n- Sketch rendering is opt-in and off by default for legal/medical guides.\n- No decorative images, stock photos or AI illustrations.\n- Every diagram needs a takeaway caption, an alt text and provenance.\n- The host writes JSON only; D2, SVG and Typst are engine-owned.\n- Builds read pre-generated SVG; the CLI `folisift diagram build` is the only D2 caller."
 }
 
 fn suggested_page_range(inventory: &Inventory, style: &folisift_core::StyleProfile) -> String {
@@ -5868,13 +5889,13 @@ impl FolisiftServer {
         ))
     }
 
-    fn read_workspace_markdown(&self, path: &str) -> Result<String, ErrorData> {
-        let path = self
-            .workspace
-            .resolve_read(path)
-            .map_err(|error| ErrorData::internal_error(error.to_string(), None))?;
-        std::fs::read_to_string(path)
-            .map_err(|error| ErrorData::internal_error(error.to_string(), None))
+    fn read_normative(&self, relative: &str, embedded: &str) -> (String, &'static str) {
+        if let Ok(path) = self.workspace.resolve_read(relative)
+            && let Ok(text) = std::fs::read_to_string(path)
+        {
+            return (text, "workspace");
+        }
+        (embedded.to_string(), "embedded")
     }
 }
 
@@ -5991,9 +6012,10 @@ pub async fn serve_http_profile(
 #[cfg(test)]
 mod tests {
     use super::{
-        OutputOptions, SERVER_INSTRUCTIONS, citation_snippet, citation_summary, content_stats,
-        effective_read_chars, is_loopback, section_not_found, shape_response, shrink_to_budget,
-        suggested_page_range, sync_returned_pages, verify_claim,
+        AUTHORING_SPEC, DESIGN_SYSTEM, DIAGRAM_RULES, OutputOptions, SERVER_INSTRUCTIONS,
+        citation_snippet, citation_summary, content_stats, effective_read_chars, is_loopback,
+        section_not_found, shape_response, shrink_to_budget, suggested_page_range,
+        sync_returned_pages, verify_claim,
     };
     use folisift_core::StyleProfile;
     use folisift_parse::{CanonicalSection, Heading, Inventory, SourceInventory, Totals};
@@ -6161,6 +6183,23 @@ mod tests {
         assert!(snippet.contains("Alt işveren"));
         assert!(!snippet.contains("Ders Notları"));
         assert!(!result.match_terms.is_empty());
+    }
+
+    #[test]
+    fn embedded_normative_resources_are_non_empty() {
+        for (name, text, heading) in [
+            (
+                "authoring-spec",
+                AUTHORING_SPEC,
+                "MASTER STUDY-GUIDE SPECIFICATION",
+            ),
+            ("design-system", DESIGN_SYSTEM, "Design system"),
+            ("diagram-rules", DIAGRAM_RULES, "# Diagram rules"),
+        ] {
+            assert!(!text.trim().is_empty(), "{name}");
+            assert!(text.len() > 500, "{name} is suspiciously short");
+            assert!(text.contains(heading), "{name} lost its heading");
+        }
     }
 
     #[test]
