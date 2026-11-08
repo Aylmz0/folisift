@@ -268,6 +268,14 @@ Decisions: `native_table`, `redraw_table`, `redraw_figure`, `embed_crop`,
 `data/crops/`. `describe` entries need a reason and must not invent chart
 values.
 
+`embed_crop` accepts `bbox` plus an optional `crop`, a `crop` alone (the bbox is
+derived from the stored layout page), a `candidate_id` plus an optional `crop`,
+or a `candidate_id` alone (the crop comes from the candidate bbox).
+`embed_image` accepts `image_id` or a candidate that carries one. Every embed
+requires `caption`, `alt`, `reason`, a 35–100% width and a valid crop DPI when
+supplied. Validation collects all missing fields in one sorted error before any
+asset or audit write; a rejected decision leaves the bundle unchanged.
+
 - `native_table` means the source already contains a table.
 - `redraw_table` means a figure/matrix must be converted into a table.
 - `redraw_figure`/`redraw` requires an existing asset under the guide bundle.

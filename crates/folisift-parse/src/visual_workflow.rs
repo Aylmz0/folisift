@@ -9,10 +9,12 @@ use std::path::{Path, PathBuf};
 use serde::Serialize;
 
 use crate::error::{Error, Result};
-use crate::layout::Rect;
-use crate::visual_assets::{crop_from_bbox, extract_native, render_crop};
+use crate::layout::{PageLayout, Rect, SourceLayout};
+use crate::visual_assets::{
+    MAX_CROP_DPI, MIN_CROP_DPI, crop_from_bbox, extract_native, render_crop,
+};
 use crate::visual_audit::{VisualAudit, VisualEntry};
-use crate::visual_candidates::collect_candidates;
+use crate::visual_candidates::{VisualCandidate, collect_candidates};
 
 #[derive(Debug, Clone, Default)]
 pub struct DecisionInput {
@@ -59,6 +61,155 @@ pub struct AssetReport {
     pub mismatched: usize,
     pub refreshed: usize,
     pub issues: Vec<String>,
+}
+
+/// Collect every missing or invalid decision field before any file is written.
+///
+/// The caller resolves the candidate and stored layout page first, so
+/// `embed_crop` can be accepted from a crop alone or a candidate alone.
+pub fn validate_decision(
+    input: &DecisionInput,
+    candidate: Option<&VisualCandidate>,
+    layout_page: Option<&PageLayout>,
+) -> Vec<String> {
+    let mut errors = Vec::new();
+    let embedding = matches!(input.decision.as_str(), "embed_crop" | "embed_image");
+    if embedding {
+        if input.reason.trim().is_empty() {
+            errors.push(format!("{} requires a reason", input.decision));
+        }
+        if input
+            .caption
+            .as_deref()
+            .is_none_or(|value| value.trim().is_empty())
+        {
+            errors.push(format!("{} requires a caption", input.decision));
+        }
+        if input
+            .alt
+            .as_deref()
+            .is_none_or(|value| value.trim().is_empty())
+        {
+            errors.push(format!("{} requires alt text", input.decision));
+        }
+        if let Some(width) = input.width
+            && !(35..=100).contains(&width)
+        {
+            errors.push(format!(
+                "{} width {width} is outside 35..=100",
+                input.decision
+            ));
+        }
+        if let Some(dpi) = input.dpi
+            && !(MIN_CROP_DPI..=MAX_CROP_DPI).contains(&dpi)
+        {
+            errors.push(format!(
+                "{} dpi {dpi} is outside {MIN_CROP_DPI}..={MAX_CROP_DPI}",
+                input.decision
+            ));
+        }
+    }
+    match input.decision.as_str() {
+        "embed_crop" => {
+            let has_bbox = input.bbox.is_some();
+            let has_crop = input
+                .crop
+                .as_deref()
+                .is_some_and(|crop| !crop.trim().is_empty());
+            let has_candidate = candidate.is_some();
+            if !has_bbox && !has_crop && !has_candidate {
+                errors.push("embed_crop requires bbox or crop or candidate_id".to_string());
+            }
+            if let Some(crop) = input.crop.as_deref()
+                && !crop.trim().is_empty()
+                && let Err(error) = crate::render::CropBox::parse(crop)
+            {
+                errors.push(format!("embed_crop crop is invalid: {error}"));
+            }
+            if !has_bbox && has_crop && !has_candidate && layout_page.is_none() {
+                errors.push(
+                    "embed_crop with crop alone requires a stored layout page for the bbox"
+                        .to_string(),
+                );
+            }
+            if has_bbox
+                && !has_crop
+                && !has_candidate
+                && page_dimensions(candidate, layout_page).is_none()
+            {
+                errors.push(
+                    "embed_crop with bbox alone requires candidate_id or a stored layout page to derive the crop"
+                        .to_string(),
+                );
+            }
+        }
+        "embed_image" => {
+            let has_image_id = input
+                .image_id
+                .as_deref()
+                .is_some_and(|value| !value.trim().is_empty());
+            let candidate_image = candidate
+                .and_then(|candidate| candidate.image_id.as_deref())
+                .is_some_and(|value| !value.trim().is_empty());
+            if !has_image_id && !candidate_image {
+                errors.push(
+                    "embed_image requires image_id or a candidate_id with an embedded image"
+                        .to_string(),
+                );
+            }
+        }
+        "redraw" => {
+            if input
+                .asset
+                .as_deref()
+                .is_none_or(|value| value.trim().is_empty())
+            {
+                errors.push("redraw requires an existing diagram asset".to_string());
+            }
+            if input.redraw_kind.as_deref() == Some("schematic") {
+                let caption = input.caption.as_deref().unwrap_or("").to_lowercase();
+                if !caption.contains("şematik") && !caption.contains("schematic") {
+                    errors.push(
+                        "schematic redraw caption must contain “şematik” or “schematic”"
+                            .to_string(),
+                    );
+                }
+            }
+        }
+        _ => {}
+    }
+    errors.sort();
+    errors.dedup();
+    errors
+}
+
+fn layout_page(guide_dir: &Path, source_id: &str, page: usize) -> Option<PageLayout> {
+    let path = guide_dir
+        .join("data/blocks")
+        .join(format!("{source_id}.json"));
+    SourceLayout::read_json(&path)
+        .ok()?
+        .pages
+        .into_iter()
+        .find(|candidate| candidate.page == page)
+}
+
+fn page_dimensions(
+    candidate: Option<&VisualCandidate>,
+    layout_page: Option<&PageLayout>,
+) -> Option<(f32, f32)> {
+    candidate
+        .map(|candidate| (candidate.page_width, candidate.page_height))
+        .or_else(|| layout_page.map(|page| (page.width, page.height)))
+}
+
+fn bbox_from_crop(crop: &crate::render::CropBox, page_width: f32, page_height: f32) -> Rect {
+    Rect {
+        x: crop.left * page_width,
+        y: crop.top * page_height,
+        width: crop.width * page_width,
+        height: crop.height * page_height,
+    }
 }
 
 pub async fn apply_decision(
@@ -141,6 +292,23 @@ pub async fn apply_decision(
         }
     }
 
+    // Validate the complete decision before touching the audit or asset tree.
+    // A crop alone is valid when the stored layout page supplies the bbox.
+    let stored_page = layout_page(guide_dir, source_id, input.page);
+    let errors = validate_decision(&input, candidate.as_ref(), stored_page.as_ref());
+    if !errors.is_empty() {
+        let detail = errors
+            .iter()
+            .map(|error| format!("- {error}"))
+            .collect::<Vec<_>>()
+            .join("\n");
+        return Err(Error::PageSelection {
+            value: format!(
+                "invalid visual decision:\n{detail}\nnext: supply every listed field and retry; no files were written"
+            ),
+        });
+    }
+
     let mut asset = input.asset.clone();
     let preexisting_asset = asset
         .as_deref()
@@ -186,22 +354,38 @@ pub async fn apply_decision(
             image_id = Some(native.image_id.clone());
         }
         "embed_crop" => {
-            let bbox = input.bbox.ok_or_else(|| Error::PageSelection {
-                value: "embed_crop requires bbox or candidate_id".to_string(),
-            })?;
             let crop_box = if let Some(value) = crop.as_deref() {
-                crate::render::CropBox::parse(value)?
+                let parsed = crate::render::CropBox::parse(value)?;
+                if input.bbox.is_none() {
+                    let (page_width, page_height) = page_dimensions(
+                        candidate.as_ref(),
+                        stored_page.as_ref(),
+                    )
+                    .ok_or_else(|| Error::PageSelection {
+                        value:
+                            "embed_crop with crop alone requires a stored layout page for the bbox"
+                                .to_string(),
+                    })?;
+                    input.bbox = Some(bbox_from_crop(&parsed, page_width, page_height));
+                }
+                parsed
             } else {
-                let (page_width, page_height) = if let Some(candidate) = candidate.as_ref() {
-                    (candidate.page_width, candidate.page_height)
-                } else {
-                    return Err(Error::PageSelection {
-                        value: "embed_crop requires --crop when no candidate is supplied"
-                            .to_string(),
-                    });
-                };
+                let bbox = input.bbox.ok_or_else(|| Error::PageSelection {
+                    value: "embed_crop requires bbox or crop or candidate_id".to_string(),
+                })?;
+                let (page_width, page_height) =
+                    page_dimensions(candidate.as_ref(), stored_page.as_ref()).ok_or_else(|| {
+                        Error::PageSelection {
+                            value:
+                                "embed_crop with bbox alone requires candidate_id or a stored layout page to derive the crop"
+                                    .to_string(),
+                        }
+                    })?;
                 crop_from_bbox(bbox, page_width, page_height, input.padding.unwrap_or(4.0))?
             };
+            let bbox = input.bbox.ok_or_else(|| Error::PageSelection {
+                value: "embed_crop requires bbox or crop or candidate_id".to_string(),
+            })?;
             crop = Some(format!(
                 "{},{},{},{}",
                 crop_box.left, crop_box.top, crop_box.width, crop_box.height
@@ -247,41 +431,6 @@ pub async fn apply_decision(
             asset_kind = Some("diagram".to_string());
         }
         _ => {}
-    }
-
-    if input.decision == "redraw" && input.redraw_kind.as_deref() == Some("schematic") {
-        let caption = input.caption.as_deref().unwrap_or("").to_lowercase();
-        if !caption.contains("şematik") && !caption.contains("schematic") {
-            return Err(Error::PageSelection {
-                value: "schematic redraw caption must contain “şematik” or “schematic”".to_string(),
-            });
-        }
-    }
-
-    if matches!(input.decision.as_str(), "embed_crop" | "embed_image") {
-        if input.reason.trim().is_empty() {
-            return Err(Error::PageSelection {
-                value: format!("{} requires a reason", input.decision),
-            });
-        }
-        if input
-            .caption
-            .as_deref()
-            .is_none_or(|value| value.trim().is_empty())
-        {
-            return Err(Error::PageSelection {
-                value: format!("{} requires a caption", input.decision),
-            });
-        }
-        if input
-            .alt
-            .as_deref()
-            .is_none_or(|value| value.trim().is_empty())
-        {
-            return Err(Error::PageSelection {
-                value: format!("{} requires alt text", input.decision),
-            });
-        }
     }
 
     let source_digest = std::fs::read(source_path)
@@ -551,4 +700,78 @@ fn parse_bbox(value: &str) -> Option<Rect> {
 
 fn escape(value: &str) -> String {
     value.replace('"', "\\\"")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::layout::PageLayout;
+
+    fn input(decision: &str) -> DecisionInput {
+        DecisionInput {
+            decision: decision.to_string(),
+            reason: "reviewed".to_string(),
+            caption: Some("Figure caption".to_string()),
+            alt: Some("Figure takeaway".to_string()),
+            ..DecisionInput::default()
+        }
+    }
+
+    fn page() -> PageLayout {
+        PageLayout {
+            page: 1,
+            page_label: None,
+            width: 600.0,
+            height: 800.0,
+            content_bounds: None,
+            blocks: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn empty_embed_crop_names_every_route() {
+        let errors = validate_decision(&input("embed_crop"), None, None);
+        let text = errors.join("\n");
+        assert!(text.contains("bbox"), "{text}");
+        assert!(text.contains("crop"), "{text}");
+        assert!(text.contains("candidate"), "{text}");
+    }
+
+    #[test]
+    fn crop_alone_is_valid_with_a_stored_layout_page() {
+        let mut decision = input("embed_crop");
+        decision.crop = Some("0.1,0.1,0.5,0.4".to_string());
+        assert!(
+            validate_decision(&decision, None, None)
+                .iter()
+                .any(|error| error.contains("layout page"))
+        );
+        let page = page();
+        let errors = validate_decision(&decision, None, Some(&page));
+        assert!(errors.is_empty(), "{errors:?}");
+    }
+
+    #[test]
+    fn embed_image_names_image_id_and_candidate() {
+        let errors = validate_decision(&input("embed_image"), None, None);
+        let text = errors.join("\n");
+        assert!(text.contains("image_id"), "{text}");
+        assert!(text.contains("candidate_id"), "{text}");
+    }
+
+    #[tokio::test]
+    async fn failing_validation_leaves_the_audit_and_assets_untouched() {
+        let root = tempfile::tempdir().expect("tempdir");
+        let source = root.path().join("source.pdf");
+        let mut decision = input("embed_crop");
+        decision.caption = None;
+        decision.alt = None;
+        decision.reason.clear();
+        let error = apply_decision("demo", root.path(), &source, "PD0", decision)
+            .await
+            .expect_err("validation");
+        assert!(error.to_string().contains("no files were written"));
+        assert!(!root.path().join("visual-audit.json").exists());
+        assert!(!root.path().join("data").exists());
+    }
 }

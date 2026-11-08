@@ -94,5 +94,5 @@ pub use visual_quality::QualityReport;
 pub use visual_workflow::{
     AssetReport as VisualAssetReport, DecisionInput as VisualDecisionInput,
     DecisionOutcome as VisualDecisionOutcome, apply_decision as apply_visual_decision,
-    assets as visual_assets_report,
+    assets as visual_assets_report, validate_decision as validate_visual_decision,
 };
