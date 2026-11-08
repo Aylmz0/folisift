@@ -33,6 +33,10 @@ static INLINE_HEADING_RE: LazyLock<Regex> = LazyLock::new(|| {
         .expect("valid inline heading regex")
 });
 
+/// Clock times in body text (`13.00'te`, `13:00`) are dates, not headings.
+static CLOCK_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{1,2}[:.]\d{2}\b").expect("valid clock regex"));
+
 /// Parse a heading that starts with a section number and a title.
 pub fn parse_numbered_heading(value: &str) -> Option<NumberedHeading> {
     let value = value.trim();
@@ -102,7 +106,7 @@ pub fn title_like(value: &str) -> bool {
     let first_lower = first.trim_end_matches([':', ',', ';', '.']).to_lowercase();
     let starts_with_punctuation = matches!(
         value.chars().next(),
-        Some(')' | ']' | '-' | '–' | '—' | '*' | '%' | ',')
+        Some(')' | ']' | '-' | '–' | '—' | '*' | '%' | ',' | '\'' | '’' | '‘' | '"')
     );
     // Allow `e-Devlet` and `iPhone`; reject `x azaldı` and lowercase prose.
     let lowercase_word = first
@@ -115,6 +119,7 @@ pub fn title_like(value: &str) -> bool {
         && (1..=18).contains(&words)
         && !starts_with_punctuation
         && !lowercase_word
+        && !CLOCK_RE.is_match(value)
         && !value.ends_with("...")
         && !value.ends_with(',')
         && !value.ends_with(';')
@@ -335,6 +340,10 @@ mod tests {
         assert!(parse_numbered_heading("40 x azaldı* Dönüşümü Robot Maliyeti").is_none());
         assert!(parse_numbered_heading("10.500 m3 olabilmektedir").is_none());
         assert!(parse_numbered_heading("4. Adım: Mevcut süreçlerin incelenmesi").is_none());
+        assert!(
+            parse_numbered_heading("28 Ekim saat 13.00'te başlar, 29 Ekim boyunca sürer").is_none()
+        );
+        assert!(parse_numbered_heading("50 'ye kadar").is_none());
     }
 
     #[test]
