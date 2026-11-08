@@ -8,6 +8,8 @@ use crate::text::LOW_TEXT_THRESHOLD;
 pub const DEFAULT_READ_PAGES: &str = "1-20";
 pub const DEFAULT_MAX_CHARS: usize = 24_000;
 pub const HARD_MAX_CHARS: usize = 60_000;
+/// A read that cannot carry a paragraph is a budget error, not an empty page.
+pub const MIN_READ_CHARS: usize = 200;
 pub const DEFAULT_SEARCH_LIMIT: usize = 20;
 pub const HARD_SEARCH_LIMIT: usize = 50;
 
@@ -18,6 +20,11 @@ pub struct ReadSourceResult {
     pub returned_pages: usize,
     pub chars: usize,
     pub max_chars: usize,
+    /// Effective read budget in approximate tokens (4 chars/token).
+    pub requested_tokens: usize,
+    pub effective_chars: usize,
+    /// True when the page text was reduced by the read budget.
+    pub budget_limited: bool,
     pub truncated: bool,
     pub page_complete: bool,
     pub next_pages: Option<String>,
@@ -90,9 +97,14 @@ pub fn read_from_source_at(
     let explicit = pages.is_some();
     let selection = pages.unwrap_or(DEFAULT_READ_PAGES);
     let mut requested = parse_page_list(selection)?;
-    let max_chars = max_chars
-        .unwrap_or(DEFAULT_MAX_CHARS)
-        .clamp(1_000, HARD_MAX_CHARS);
+    let max_chars = max_chars.unwrap_or(DEFAULT_MAX_CHARS);
+    if max_chars < MIN_READ_CHARS {
+        return Err(Error::BudgetTooSmall {
+            requested_chars: max_chars,
+            min_chars: MIN_READ_CHARS,
+        });
+    }
+    let max_chars = max_chars.min(HARD_MAX_CHARS);
     let page_count = source.pages.len();
 
     if explicit && requested.iter().any(|page| *page as usize > page_count) {
@@ -168,6 +180,9 @@ pub fn read_from_source_at(
         pages: selected,
         chars: used,
         max_chars,
+        requested_tokens: max_chars.div_ceil(4),
+        effective_chars: max_chars,
+        budget_limited: truncated,
         truncated,
         page_complete: !truncated,
         next_pages,
@@ -411,6 +426,25 @@ mod tests {
         assert!(result.truncated);
         assert!(!result.page_complete);
         assert!(result.chars <= 1_000);
+    }
+
+    #[test]
+    fn a_small_budget_keeps_one_page_and_a_resume_offset() {
+        let mut source = source();
+        source.pages[0].text = "a".repeat(2_000);
+        let result = read_from_source_at(&source, Some("1-2"), Some(800), Some(0)).expect("read");
+        assert_eq!(result.returned_pages, 1);
+        assert_eq!(result.returned_pages, result.pages.len());
+        assert!(!result.pages[0].text.is_empty());
+        assert_eq!(result.next_pages.as_deref(), Some("1"));
+        assert!(result.next_offset.is_some());
+        assert!(result.budget_limited);
+    }
+
+    #[test]
+    fn rejects_a_budget_that_cannot_carry_a_paragraph() {
+        let error = read_from_source(&source(), Some("1"), Some(40)).expect_err("budget");
+        assert!(error.to_string().contains("read budget too small"));
     }
 
     #[test]

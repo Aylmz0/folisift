@@ -18,6 +18,14 @@ pub enum Error {
     #[error("invalid page selection: {value}")]
     PageSelection { value: String },
 
+    #[error(
+        "read budget too small: {requested_chars} chars; minimum is {min_chars} chars (50 tokens)"
+    )]
+    BudgetTooSmall {
+        requested_chars: usize,
+        min_chars: usize,
+    },
+
     #[error("PDF has no pages: {path}")]
     NoPages { path: PathBuf },
 

@@ -802,17 +802,38 @@ impl FolisiftServer {
             .resolve_read(&params.source)
             .map_err(|error| error.to_string())?;
         let cache = SourceCache::new(self.workspace.root().join("data/cache"));
+        let requested_tokens = params.response.max_tokens;
+        let effective_chars = effective_read_chars(params.max_chars, requested_tokens)?;
         let result = read_source_pages(
             &cache,
             &source,
             params.pages.as_deref(),
-            params.max_chars,
+            Some(effective_chars),
             params.offset,
         )
         .await
         .map_err(|error| error.to_string())?;
-        let value = serde_json::to_value(result).map_err(|error| error.to_string())?;
-        Ok(Json(shape_response(value, &params.response)))
+        let returned = result.returned_pages;
+        let budget_limited = result.budget_limited;
+        let effective = result.effective_chars;
+        let mut value = serde_json::to_value(result).map_err(|error| error.to_string())?;
+        if let Some(object) = value.as_object_mut() {
+            object.insert(
+                "requested_tokens".to_string(),
+                json!(requested_tokens.unwrap_or_else(|| effective.div_ceil(4))),
+            );
+            object.insert("effective_chars".to_string(), json!(effective));
+            object.insert("budget_limited".to_string(), json!(budget_limited));
+            object.insert("returned_pages".to_string(), json!(returned));
+        }
+        // The read layer already applied the token budget. Shrinking the page
+        // text again would invalidate `next_offset`, so only projection and
+        // summary shaping run here.
+        let mut options = params.response.clone();
+        options.max_tokens = None;
+        let mut shaped = shape_response(value, &options);
+        sync_returned_pages(&mut shaped);
+        Ok(Json(shaped))
     }
 
     #[tool(
@@ -5073,6 +5094,38 @@ fn tool_result(value: Value, summary: impl Into<String>) -> CallToolResult {
     result
 }
 
+fn effective_read_chars(
+    max_chars: Option<usize>,
+    max_tokens: Option<usize>,
+) -> Result<usize, String> {
+    use folisift_parse::source_read::{DEFAULT_MAX_CHARS, HARD_MAX_CHARS, MIN_READ_CHARS};
+    let requested = max_chars.unwrap_or(DEFAULT_MAX_CHARS);
+    let budget = max_tokens.map_or(requested, |tokens| requested.min(tokens.saturating_mul(4)));
+    if budget < MIN_READ_CHARS {
+        return Err(format!(
+            "read budget too small: {budget} chars; minimum is {MIN_READ_CHARS} chars (50 tokens)"
+        ));
+    }
+    Ok(budget.min(HARD_MAX_CHARS))
+}
+
+fn sync_returned_pages(value: &mut Value) {
+    let Some(object) = value.as_object_mut() else {
+        return;
+    };
+    let returned = object
+        .get("pages")
+        .and_then(Value::as_array)
+        .map(|pages| {
+            pages
+                .iter()
+                .filter(|page| page.get("text").is_some())
+                .count()
+        })
+        .unwrap_or(0);
+    object.insert("returned_pages".to_string(), json!(returned));
+}
+
 fn shape_response(mut value: Value, options: &OutputOptions) -> Value {
     if let Some(fields) = &options.fields
         && let Some(object) = value.as_object()
@@ -5186,6 +5239,7 @@ fn summarize_arrays(value: &mut Value, keep: usize) {
 }
 
 fn shrink_to_budget(value: &mut Value, budget: usize) {
+    let mut collapsed = Vec::<Vec<String>>::new();
     loop {
         let size = serde_json::to_string(value)
             .map(|text| text.len())
@@ -5194,16 +5248,19 @@ fn shrink_to_budget(value: &mut Value, budget: usize) {
             break;
         }
         let (path, length) = largest_array(value, Vec::new()).unwrap_or((Vec::new(), 0));
-        if !path.is_empty() && length > 0 {
-            // A two-item array cannot make progress with keep=1 plus an
-            // omitted marker (it becomes two items again). Collapse it to the
-            // marker instead of looping forever.
-            let keep = if length <= 2 { 0 } else { length / 2 };
+        if !path.is_empty() && length > 0 && !collapsed.contains(&path) {
+            // Never reduce a non-empty data array to zero. A two-item array
+            // keeps one item plus an omitted marker; further shrinking trims
+            // strings inside the kept item instead of looping on the marker.
+            let keep = if length <= 2 { 1 } else { length / 2 };
             if let Some(array) = value_at_mut(value, &path).and_then(Value::as_array_mut)
                 && array.len() > keep
             {
                 let total = array.len();
                 array.truncate(keep);
+                if length <= 2 {
+                    collapsed.push(path.clone());
+                }
                 array.push(json!({
                     "total": total,
                     "returned": keep,
@@ -5802,8 +5859,9 @@ pub async fn serve_http_profile(
 #[cfg(test)]
 mod tests {
     use super::{
-        OutputOptions, SERVER_INSTRUCTIONS, citation_snippet, content_stats, is_loopback,
-        shape_response, suggested_page_range, verify_claim,
+        OutputOptions, SERVER_INSTRUCTIONS, citation_snippet, content_stats, effective_read_chars,
+        is_loopback, shape_response, shrink_to_budget, suggested_page_range, sync_returned_pages,
+        verify_claim,
     };
     use folisift_core::StyleProfile;
     use folisift_parse::{CanonicalSection, Heading, Inventory, SourceInventory, Totals};
@@ -6030,6 +6088,34 @@ mod tests {
         );
         assert_eq!(two["truncated"], true);
         assert!(two["items"].as_array().expect("items").len() <= 2);
+    }
+
+    #[test]
+    fn shrinking_keeps_one_page_plus_an_omitted_marker() {
+        let mut value = serde_json::json!({
+            "pages": [
+                {"text": "a".repeat(600)},
+                {"text": "b".repeat(600)}
+            ]
+        });
+        shrink_to_budget(&mut value, 300);
+        let pages = value["pages"].as_array().expect("pages");
+        assert_eq!(pages.len(), 2);
+        assert!(pages[0].get("text").is_some());
+        assert_eq!(pages[1]["omitted"], 1);
+    }
+
+    #[test]
+    fn read_budget_preserves_pages_and_names_small_budgets() {
+        assert_eq!(effective_read_chars(None, Some(200)).expect("budget"), 800);
+        let error = effective_read_chars(None, Some(10)).expect_err("small");
+        assert!(error.contains("read budget too small"));
+        let mut value = serde_json::json!({
+            "returned_pages": 2,
+            "pages": [{"text": "one"}, {"total": 2, "omitted": 1}]
+        });
+        sync_returned_pages(&mut value);
+        assert_eq!(value["returned_pages"], 1);
     }
 
     #[test]
