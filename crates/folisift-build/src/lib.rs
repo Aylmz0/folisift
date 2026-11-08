@@ -591,8 +591,12 @@ pub async fn qa(workspace: &Workspace, slug: &str) -> Result<serde_json::Value> 
             .unwrap_or_else(|| vec![1, 3, 7, 14, 30]),
     )
     .unwrap_or_else(|_| vec![1, 3, 7, 14, 30]);
-    let cards =
-        folisift_core::cards::cards_from_markdown_opts(&markdown, &guide.slug, &intervals, true);
+    let cards = folisift_core::cards::cards_from_markdown_policy(
+        &markdown,
+        &guide.slug,
+        &intervals,
+        folisift_core::cards::CardPolicy::default(),
+    );
     let definitions = cards
         .iter()
         .filter(|card| {

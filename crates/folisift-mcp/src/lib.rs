@@ -610,7 +610,7 @@ pub struct CardsParams {
     pub out: Option<String>,
     /// Review intervals in days; defaults to config.review_intervals.
     pub review_intervals: Option<Vec<u32>>,
-    /// Also emit cards from ::: definition / ::: must-know blocks.
+    /// Also emit cards from ::: definition / ::: must-know blocks (default true).
     pub include_definitions: Option<bool>,
 }
 
@@ -4257,11 +4257,14 @@ impl FolisiftServer {
             )
             .unwrap_or_default(),
         };
-        let cards = folisift_core::cards::cards_from_markdown_opts(
+        let policy = folisift_core::cards::CardPolicy {
+            include_definitions: params.include_definitions.unwrap_or(true),
+        };
+        let cards = folisift_core::cards::cards_from_markdown_policy(
             &markdown,
             &guide.slug,
             &intervals,
-            params.include_definitions.unwrap_or(false),
+            policy,
         );
         let out = match params.out {
             Some(path) => self
@@ -4284,7 +4287,9 @@ impl FolisiftServer {
             })
             .count();
         let recall = cards.len().saturating_sub(definitions);
-        let warning = if cards.is_empty() {
+        let warning = if !policy.include_definitions {
+            Some("definitions excluded; qa_guide includes them")
+        } else if cards.is_empty() {
             Some("no recall/answer pairs found; add ::: recall and ::: answer blocks")
         } else if definitions > 0 && recall == 0 {
             Some("no recall blocks; only definition cards")
@@ -4294,9 +4299,11 @@ impl FolisiftServer {
         Ok(Json(json!({
             "guide": guide.slug,
             "output": out.display().to_string(),
+            "total": cards.len(),
             "cards": cards.len(),
             "recall": recall,
             "definitions": definitions,
+            "definitions_included": policy.include_definitions,
             "review_intervals_days": intervals,
             "warning": warning,
         })))

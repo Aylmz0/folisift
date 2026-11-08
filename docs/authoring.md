@@ -592,7 +592,8 @@ guide or claims learning efficacy.
 
 ```bash
 folisift claims --guide my-course
-folisift cards --guide my-course --review-intervals 1,3,7,14,30 --include-definitions
+folisift cards --guide my-course --review-intervals 1,3,7,14,30
+folisift cards --guide my-course --no-definitions
 ```
 
 `claims` writes `guides/<slug>/data/claims.md`. It lists high-signal sentences
@@ -615,10 +616,13 @@ The summary line uses the scoped `missing` count; `unreferenced_total` is the
 whole-guide backlog.
 
 `cards` pairs `::: recall` and `::: answer` blocks in document order and writes
-an Anki-compatible CSV with `front,back,tags,source`. `--include-definitions`
-also exports `::: definition`/`::: must-know` blocks. `qa` uses the same policy
-and reports `recall`, `definitions` and `total` separately. Set the default
-intervals in `config.json`:
+an Anki-compatible CSV with `front,back,tags,source`. `::: definition` and
+`::: must-know` blocks are included by default, so `cards`, `qa` and the MCP
+tool agree on `total`, `recall` and `definitions`. Use `--no-definitions` to
+exclude them; `--include-definitions` is a deprecated no-op for one release.
+When definitions are excluded the response carries
+`"definitions excluded; qa_guide includes them"`. Set the default intervals in
+`config.json`:
 
 ```json
 "review_intervals": [1, 3, 7]

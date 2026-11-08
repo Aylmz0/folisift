@@ -30,8 +30,30 @@ pub fn normalize_review_intervals(mut intervals: Vec<u32>) -> Result<Vec<u32>, S
     Ok(intervals)
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CardPolicy {
+    pub include_definitions: bool,
+}
+
+impl Default for CardPolicy {
+    fn default() -> Self {
+        Self {
+            include_definitions: true,
+        }
+    }
+}
+
 pub fn cards_from_markdown(markdown: &str, slug: &str, review_intervals: &[u32]) -> Vec<Card> {
     cards_from_markdown_opts(markdown, slug, review_intervals, false)
+}
+
+pub fn cards_from_markdown_policy(
+    markdown: &str,
+    slug: &str,
+    review_intervals: &[u32],
+    policy: CardPolicy,
+) -> Vec<Card> {
+    cards_from_markdown_opts(markdown, slug, review_intervals, policy.include_definitions)
 }
 
 pub fn cards_from_markdown_opts(
@@ -211,6 +233,28 @@ mod tests {
         assert_eq!(cards.len(), 1);
         assert!(cards[0].front.contains("X:"));
         assert!(cards[0].tags.contains(&"definition".to_string()));
+    }
+
+    #[test]
+    fn the_default_card_policy_includes_definitions() {
+        let markdown = "::: recall\nQ1 [SRC1, s. 1]\n:::\n\n::: answer\nA1 [SRC1, s. 1]\n:::\n\n::: definition label=\"X\"\n**X:** defined term. [SRC1, s. 1]\n:::\n";
+        let policy = CardPolicy::default();
+        assert!(policy.include_definitions);
+        let cards = cards_from_markdown_policy(markdown, "demo", &[1], policy);
+        assert_eq!(cards.len(), 2);
+        assert_eq!(
+            cards_from_markdown_opts(markdown, "demo", &[1], true).len(),
+            cards.len()
+        );
+        let excluded = cards_from_markdown_policy(
+            markdown,
+            "demo",
+            &[1],
+            CardPolicy {
+                include_definitions: false,
+            },
+        );
+        assert_eq!(excluded.len(), 1);
     }
 
     #[test]

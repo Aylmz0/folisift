@@ -90,9 +90,12 @@ enum Command {
         /// Comma-separated review intervals in days; overrides config.
         #[arg(long)]
         review_intervals: Option<String>,
-        /// Also emit cards from ::: definition / ::: must-know blocks.
+        /// Deprecated no-op; definitions are included by default.
         #[arg(long)]
         include_definitions: bool,
+        /// Exclude ::: definition / ::: must-know blocks.
+        #[arg(long)]
+        no_definitions: bool,
     },
     /// Build or inspect local semantic links between source sections.
     Links {
@@ -1079,7 +1082,8 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
             guide,
             out,
             review_intervals,
-            include_definitions,
+            include_definitions: _,
+            no_definitions,
         } => {
             let guide = Guide::load(&workspace, &guide)?;
             let markdown = std::fs::read_to_string(&guide.content)?;
@@ -1110,11 +1114,14 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 )
                 .unwrap_or_default(),
             };
-            let cards = folisift_core::cards::cards_from_markdown_opts(
+            let policy = folisift_core::cards::CardPolicy {
+                include_definitions: !no_definitions,
+            };
+            let cards = folisift_core::cards::cards_from_markdown_policy(
                 &markdown,
                 &guide.slug,
                 &intervals,
-                include_definitions,
+                policy,
             );
             let out = match out {
                 Some(path) => workspace.resolve_write(&path)?,
@@ -1133,7 +1140,9 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 })
                 .count();
             let recall = cards.len().saturating_sub(definitions);
-            let warning = if cards.is_empty() {
+            let warning = if !policy.include_definitions {
+                Some("definitions excluded; qa_guide includes them")
+            } else if cards.is_empty() {
                 Some("no recall/answer pairs found; add ::: recall and ::: answer blocks")
             } else if definitions > 0 && recall == 0 {
                 Some("no recall blocks; only definition cards")
@@ -1145,9 +1154,11 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 serde_json::to_string_pretty(&json!({
                     "guide": guide.slug,
                     "output": out.display().to_string(),
+                    "total": cards.len(),
                     "cards": cards.len(),
                     "recall": recall,
                     "definitions": definitions,
+                    "definitions_included": policy.include_definitions,
                     "review_intervals_days": intervals,
                     "warning": warning,
                 }))?
