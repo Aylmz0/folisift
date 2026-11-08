@@ -6,6 +6,7 @@ table.
 
 | Tag | Date | Build | Commit | PDFium | What changed |
 |---|---|---:|---|---|---|
+| `v0.24.0` | 2026-11-08 | 271 | tag `v0.24.0` | `chromium/8058` | V5 feedback close-out: canonical greenfield outline (including unnumbered slide headings), ranked coverage manifest with review adoption, budget-preserving `read_source`, inline/table-cell section resolver, `guide_status`/coverage parity with `data/inventory.json`, format-correct `visual_extract`, scoped citation counts, `visual.status`/`gate_result`, normalized source references, embedded normative resources, one-pass `visual_decision` validation, cards parity, and the style matrix in `doctor`/`style list`. Strict audit passes on the 26/10/19 production PDFs. Schema 19 with 41 tools. |
 | `v0.23.2` | 2026-11-06 | 248 | tag `v0.23.2` | `chromium/8058` | Audit patch: stale `visual-candidates.json` scorer/source-digest detection, full v4AGENT harness in `make acceptance`, and MCP instruction regression test. No schema change; 41 tools at schema 19. |
 | `v0.23.1` | 2026-11-06 | 245 | tag `v0.23.1` | `chromium/8058` | Installer patch: `FOLISIFT_VERSION` accepts `0.23.1` or `v0.23.1`, resolves the versioned release asset name, and installs the `v0.23.0` feature set unchanged. No engine or schema change. |
 | `v0.23.0` | 2026-11-06 | 241 | tag `v0.23.0` | `chromium/8058` | V4 feedback close-out and MCP guidance: canonical generated manifest with text/layout fallback and range covers, recursive output budgets, shared source/diagram path resolution, guide-plan source pages, candidate-backed visual gate with advisory status (`visual_min_score`), explicit `excluded` reasons, optional `ocr-tesseract` + CLI OCR server path, image-ref detail, decorative/card semantics, glossary page-break fixture, and the five-layer MCP guidance contract (`start-here`, concise summaries, output schemas). Schema 19 with 41 tools. |
@@ -48,6 +49,21 @@ table.
 | `v0.1.0` | 2026-10-26 | 16 | `fb7fe59de483f8e4e88d4346cb10f4c91f3445e2` | `chromium/8058` | First Rust/Typst/MCP release; 23-page reference guide, coverage 13/13; Python engine removed |
 
 ## Notes
+
+- `v0.24.0` closes the v5 remediation plan. Greenfield `prepare_guide` /
+  `scaffold_guide` now emit a multi-section outline from numbered or unnumbered
+  source headings, never emit `::: front`, and pass strict audit on the a-g
+  probe. Coverage manifests rank `heading > layout > toc > text`; review
+  adoption uses `row_key` and writes the combined file. `read_source` preserves
+  page text under small `max_tokens`. `4.4.4` and `10.2` resolve in all section
+  tools. `guide_status` matches the coverage gate and reports inventory
+  presence. `visual_extract` writes the requested format with a matching hash;
+  `visual.status` is separate from `gate_result`. Citation counts separate the
+  checked scope from the whole-guide backlog. Source references accept `PD0`,
+  `PD0.pdf` and `sources/PD0.pdf`. Normative resources are embedded. Visual
+  decisions validate in one pass. Cards include definitions by default. The
+  style matrix is visible in `doctor` and `style list`. Build 271; schema
+  19; 41 tools.
 
 - `v0.23.2` hardens the visual gate: `data/visual-candidates.json` is rejected
   when its schema/scorer version or a source digest is stale. `make acceptance`

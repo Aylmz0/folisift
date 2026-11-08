@@ -1,6 +1,6 @@
 # V5 feedback remediation — detailed plan
 
-- **Status:** Implemented on `main` (2026-11-08) — release verification and tags remain with the maintainer.
+- **Status:** Released as `v0.24.0` (build 271, schema 19, 41 tools).
 - **Date:** 2026-11-07
 - **Baseline:** Folisift 0.23.2, build 248, MCP schema 19, 41 tools
 - **Primary source:** [`FOLISIFT-GERI-BILDIRIM-v5.md`](../FOLISIFT-GERI-BILDIRIM-v5.md) — 30 PASS / 9 PARTIAL / 2 FAIL
@@ -9,7 +9,7 @@
   - **0.23.3** — P0/P1 hotfix: scaffold outline, coverage canonical set, `read_source` budget, inline headings, `guide_status`, `visual_extract`, `verify_citations`, visual status.
   - **0.24.0** — P2/P3 contract cleanup: path/ID normalization, packaged resources, `visual_decision` validation, cards parity, style matrix.
 - **Definition of done:** every acceptance row in §6 is green on a fresh build and on the external reproduction workspace, `cargo test`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all -- --check` pass, and no `sources/*.pdf` is tracked.
-- **Post-fix result:** the 41-tool MCP probe is 41 PASS / 0 PARTIAL / 0 FAIL, the three production PDFs are still 26/10/19 with matching content hashes, and strict audit has 0 issues. No self-assigned score; release and tags remain with the maintainer.
+- **Post-fix result:** the 41-tool MCP probe is 41 PASS / 0 PARTIAL / 0 FAIL, the three production PDFs are still 26/10/19 with matching content hashes, and strict audit has 0 issues. Released as `v0.24.0`; no self-assigned score.
 
 ---
 
@@ -891,8 +891,8 @@ Evidence gathered against `/var/tmp/opencode/v5-repro`:
   is 0 issues on all three and `qa_guide` passes.
 
 `cargo test --workspace` (361 tests), `cargo clippy --workspace --all-targets
--- -D warnings` and `cargo fmt --all -- --check` are green. Release tags,
-installer builds and remote pushes remain with the maintainer.
+-- -D warnings` and `cargo fmt --all -- --check` are green. Now released as
+`v0.24.0`, build 271.
 
 **Whole-plan gate:** all A rows green, the post-fix 41-tool matrix has no
 PARTIAL/FAIL, and the external reproduction workspace rebuilds with the same
