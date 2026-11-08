@@ -677,22 +677,36 @@ impl FolisiftServer {
         description = "Show a guide config and resolved paths",
         annotations(title = "Guide status", read_only_hint = true, open_world_hint = false)
     )]
-    fn guide_status(
+    async fn guide_status(
         &self,
         Parameters(GuideStatusParams { slug }): Parameters<GuideStatusParams>,
     ) -> Result<Json<Value>, String> {
         let guide = Guide::load(&self.workspace, &slug).map_err(|error| error.to_string())?;
         let markdown =
             std::fs::read_to_string(&guide.content).map_err(|error| error.to_string())?;
-        let body_chars = folisift_parse::guide_body_chars(&markdown);
-        let empty_sections = body_chars
-            .iter()
-            .filter(|(number, chars)| {
-                number.chars().next().is_some_and(|c| c.is_ascii_digit())
-                    && **chars < folisift_parse::MIN_SECTION_CHARS
-            })
-            .map(|(number, _)| number.clone())
-            .collect::<Vec<_>>();
+        let inventory = self.load_or_analyze_inventory(&guide).await?;
+        let style = guide.style();
+        let (empty_sections, weak_sections, coverage_source, coverage_warning) =
+            if folisift_core::gates::uses_revision_coverage(&style.structure) {
+                (Vec::new(), Vec::new(), "source-scope".to_string(), None)
+            } else {
+                let selected =
+                    select_coverage_manifest(&guide, None).map_err(|error| error.to_string())?;
+                let source = selected.source.clone();
+                let warning = selected.warning.clone();
+                let report = if let Some(manifest) = selected.manifest {
+                    manifest.report(&inventory, &markdown)
+                } else {
+                    coverage_report(&inventory, &markdown, folisift_parse::DEFAULT_THRESHOLD)
+                };
+                (report.empty_sections, report.weak_sections, source, warning)
+            };
+        let inventory_path = guide
+            .inventory
+            .as_ref()
+            .filter(|path| path.exists())
+            .map(|path| path.display().to_string());
+        let inventory_present = inventory_path.is_some();
         let metrics =
             folisift_core::guide_metrics(&markdown, &guide.style().structure, guide.sources.len());
         Ok(Json(json!({
@@ -702,14 +716,21 @@ impl FolisiftServer {
             "content": guide.content.display().to_string(),
             "output": guide.output.display().to_string(),
             "sources": guide.sources.iter().map(|path| path.display().to_string()).collect::<Vec<_>>(),
-            "inventory": guide.inventory.as_ref().map(|path| path.display().to_string()),
+            "inventory": inventory_path,
+            "inventory_present": inventory_present,
+            "inventory_hint": (!inventory_present).then_some(
+                "run prepare_guide or scaffold_guide to write data/inventory.json"
+            ),
             "coverage": guide.coverage.as_ref().map(|path| path.display().to_string()),
+            "coverage_source": coverage_source,
+            "coverage_warning": coverage_warning,
             "guide_kind": metrics.guide_kind,
             "case_count": metrics.case_count,
             "content_words": metrics.content_words,
             "section_count": metrics.section_count,
             "source_count": metrics.source_count,
             "empty_sections": empty_sections,
+            "weak_sections": weak_sections,
         })))
     }
 
@@ -1966,6 +1987,7 @@ impl FolisiftServer {
             .await
             .map_err(|error| error.to_string())?;
         let inventory = analysis.inventory;
+        write_guide_inventory(&guide, &inventory)?;
         write_layouts(&analysis.layouts, &guide.dir.join("data/blocks"))
             .map_err(|error| error.to_string())?;
         let canonical_outline = folisift_parse::Outline::build(&inventory, &analysis.layouts);
@@ -2196,6 +2218,7 @@ impl FolisiftServer {
             .await
             .map_err(|error| error.to_string())?;
         let inventory = analysis.inventory;
+        write_guide_inventory(&guide, &inventory)?;
         write_layouts(&analysis.layouts, &guide.dir.join("data/blocks"))
             .map_err(|error| error.to_string())?;
         let canonical_outline = folisift_parse::Outline::build(&inventory, &analysis.layouts);
@@ -5119,6 +5142,16 @@ fn tool_result(value: Value, summary: impl Into<String>) -> CallToolResult {
         result.content.insert(0, ContentBlock::text(summary));
     }
     result
+}
+
+fn write_guide_inventory(guide: &Guide, inventory: &Inventory) -> Result<(), String> {
+    let path = guide
+        .inventory
+        .clone()
+        .unwrap_or_else(|| guide.dir.join("data/inventory.json"));
+    inventory
+        .write_json(&path)
+        .map_err(|error| error.to_string())
 }
 
 fn section_not_found(source: &str, heading: &str, candidates: &[String]) -> String {

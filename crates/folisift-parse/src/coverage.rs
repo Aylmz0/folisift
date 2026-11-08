@@ -703,6 +703,14 @@ mod tests {
     }
 
     #[test]
+    fn a_short_nonempty_section_is_weak_not_empty() {
+        let markdown = "<!-- audit -->\n# Bölüm 0\n\n## 0.1 Giriş ve amaçlar\n\nKısa bir tanım.\n\n## 0.2 Programlama dili nedir?\n\nKısa.\n";
+        let report = check_coverage(&inventory(), markdown, DEFAULT_THRESHOLD);
+        assert!(report.empty_sections.is_empty(), "{report:#?}");
+        assert_eq!(report.weak_sections.len(), 2, "{report:#?}");
+    }
+
+    #[test]
     fn fails_when_a_section_is_missing() {
         let markdown = "# Bölüm 0\n\n## 0.1 Giriş ve amaçlar\n";
         let report = check_coverage(&inventory(), markdown, DEFAULT_THRESHOLD);

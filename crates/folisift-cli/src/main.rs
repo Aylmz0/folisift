@@ -1443,6 +1443,11 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
             let analysis =
                 analyze_sources_with_layout(&sources, folisift_parse::LOW_TEXT_THRESHOLD).await?;
             let inventory = analysis.inventory;
+            let inventory_path = guide
+                .inventory
+                .clone()
+                .unwrap_or_else(|| guide.dir.join("data/inventory.json"));
+            inventory.write_json(&inventory_path)?;
             write_layouts(&analysis.layouts, &guide.dir.join("data/blocks"))?;
             if style.structure == "irac" {
                 let mut headings = String::from("# Source headings\n\n");

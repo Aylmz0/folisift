@@ -203,22 +203,25 @@ impl Inventory {
     }
 
     pub fn write_files(&self, json_path: &Path, markdown_path: &Path) -> Result<()> {
-        if let Some(parent) = json_path.parent() {
-            std::fs::create_dir_all(parent).map_err(|error| io(parent, error))?;
-        }
         if let Some(parent) = markdown_path.parent() {
             std::fs::create_dir_all(parent).map_err(|error| io(parent, error))?;
         }
+        self.write_json(json_path)?;
+        std::fs::write(markdown_path, self.to_markdown()).map_err(|error| io(markdown_path, error))
+    }
 
+    /// Write the canonical JSON bytes for this inventory. The MCP server and
+    /// the CLI use this so a stored inventory matches the in-memory one.
+    pub fn write_json(&self, json_path: &Path) -> Result<()> {
+        if let Some(parent) = json_path.parent() {
+            std::fs::create_dir_all(parent).map_err(|error| io(parent, error))?;
+        }
         let json =
             serde_json::to_string_pretty(self).map_err(|error| crate::error::Error::Parse {
                 path: json_path.to_path_buf(),
                 message: error.to_string(),
             })?;
-        std::fs::write(json_path, json).map_err(|error| io(json_path, error))?;
-        std::fs::write(markdown_path, self.to_markdown())
-            .map_err(|error| io(markdown_path, error))?;
-        Ok(())
+        std::fs::write(json_path, json).map_err(|error| io(json_path, error))
     }
 
     pub fn to_markdown(&self) -> String {
