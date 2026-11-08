@@ -3302,11 +3302,23 @@ impl FolisiftServer {
                 })
             })
             .collect::<Vec<_>>();
+        let counts = citation_summary(
+            report.total,
+            report.referenced,
+            report.unreferenced,
+            max,
+            &rows,
+        );
         Ok(Json(shape_response(
             json!({
                 "guide": guide.slug,
-                "checked": rows.len(),
-                "missing": report.unreferenced,
+                "checked": counts["checked"],
+                "missing": counts["missing"],
+                "checked_claim_lines": counts["checked_claim_lines"],
+                "total_claims": counts["total_claims"],
+                "referenced_total": counts["referenced_total"],
+                "unreferenced_total": counts["unreferenced_total"],
+                "budget": counts["budget"],
                 "claims": rows,
             }),
             &params.response,
@@ -5154,6 +5166,39 @@ fn write_guide_inventory(guide: &Guide, inventory: &Inventory) -> Result<(), Str
         .map_err(|error| error.to_string())
 }
 
+fn citation_summary(
+    total_claims: usize,
+    referenced_total: usize,
+    unreferenced_total: usize,
+    max_claims: usize,
+    rows: &[Value],
+) -> Value {
+    let checked = rows.len();
+    let missing = rows
+        .iter()
+        .filter(|row| {
+            row["missing_citation"].as_bool() == Some(true)
+                || row["verified"].as_bool() != Some(true)
+        })
+        .count();
+    let checked_claim_lines = rows
+        .iter()
+        .filter_map(|row| row["line"].as_u64())
+        .collect::<Vec<_>>();
+    json!({
+        "checked": checked,
+        "missing": missing,
+        "checked_claim_lines": checked_claim_lines,
+        "total_claims": total_claims,
+        "referenced_total": referenced_total,
+        "unreferenced_total": unreferenced_total,
+        "budget": {
+            "max_claims": max_claims,
+            "truncated": total_claims > checked,
+        },
+    })
+}
+
 fn section_not_found(source: &str, heading: &str, candidates: &[String]) -> String {
     if candidates.is_empty() {
         format!("section {heading:?} not found in {source}")
@@ -5928,9 +5973,9 @@ pub async fn serve_http_profile(
 #[cfg(test)]
 mod tests {
     use super::{
-        OutputOptions, SERVER_INSTRUCTIONS, citation_snippet, content_stats, effective_read_chars,
-        is_loopback, section_not_found, shape_response, shrink_to_budget, suggested_page_range,
-        sync_returned_pages, verify_claim,
+        OutputOptions, SERVER_INSTRUCTIONS, citation_snippet, citation_summary, content_stats,
+        effective_read_chars, is_loopback, section_not_found, shape_response, shrink_to_budget,
+        suggested_page_range, sync_returned_pages, verify_claim,
     };
     use folisift_core::StyleProfile;
     use folisift_parse::{CanonicalSection, Heading, Inventory, SourceInventory, Totals};
@@ -6098,6 +6143,29 @@ mod tests {
         assert!(snippet.contains("Alt işveren"));
         assert!(!snippet.contains("Ders Notları"));
         assert!(!result.match_terms.is_empty());
+    }
+
+    #[test]
+    fn citation_counts_keep_checked_and_whole_guide_scopes_separate() {
+        let rows = vec![
+            serde_json::json!({"line": 10, "verified": true, "missing_citation": false}),
+            serde_json::json!({"line": 20, "verified": true, "missing_citation": false}),
+            serde_json::json!({"line": 30, "verified": true, "missing_citation": false}),
+            serde_json::json!({"line": 40, "verified": true, "missing_citation": false}),
+            serde_json::json!({"line": 50, "verified": false, "missing_citation": false}),
+        ];
+        let counts = citation_summary(80, 5, 75, 40, &rows);
+        assert_eq!(counts["checked"], 5);
+        assert_eq!(counts["missing"], 1);
+        assert_eq!(counts["unreferenced_total"], 75);
+        assert_eq!(counts["total_claims"], 80);
+        assert_eq!(
+            counts["checked_claim_lines"],
+            serde_json::json!([10, 20, 30, 40, 50])
+        );
+        assert_eq!(counts["budget"]["truncated"], true);
+        assert!(counts["missing"].as_u64() <= counts["checked"].as_u64());
+        assert!(counts["checked"].as_u64() <= counts["total_claims"].as_u64());
     }
 
     #[test]

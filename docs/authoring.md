@@ -583,6 +583,18 @@ verification**: open the cited page and check the subject, number/unit, date,
 causal wording and qualifiers. Claims inside `::: recall` questions are ignored;
 claims inside answers and prose are included.
 
+`verify_citations` reports two scopes that must not be conflated:
+
+- `checked` — claims examined in this call; `checked_claim_lines` carries their
+  line numbers;
+- `missing` — checked claims with `missing_citation` or no verified reference;
+  always `<= checked`;
+- `total_claims`, `referenced_total`, `unreferenced_total` — whole-guide counts;
+- `budget.max_claims` and `budget.truncated` — the `max_claims` bound.
+
+The summary line uses the scoped `missing` count; `unreferenced_total` is the
+whole-guide backlog.
+
 `cards` pairs `::: recall` and `::: answer` blocks in document order and writes
 an Anki-compatible CSV with `front,back,tags,source`. `--include-definitions`
 also exports `::: definition`/`::: must-know` blocks. `qa` uses the same policy
