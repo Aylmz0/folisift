@@ -951,12 +951,42 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                     }
                 }
             }
+            let matrix = styles::matrix(workspace.root(), None, None)?;
+            let matrix_structures = matrix
+                .iter()
+                .flat_map(|row| row.supported_structures.iter().cloned())
+                .collect::<std::collections::BTreeSet<_>>();
+            let matrix_domains = matrix
+                .iter()
+                .flat_map(|row| row.supported_domains.iter().cloned())
+                .collect::<std::collections::BTreeSet<_>>();
+            let mut matrix_warnings = Vec::new();
+            for (structure, domain) in
+                [("a-g", "general"), ("irac", "law"), ("workbook", "general")]
+            {
+                if !matrix.iter().any(|row| {
+                    row.supported_structures
+                        .iter()
+                        .any(|value| value == structure)
+                        && row.supported_domains.iter().any(|value| value == domain)
+                }) {
+                    matrix_warnings.push(format!(
+                        "no style supports {structure}+{domain}; extend a pack matrix or choose another pair"
+                    ));
+                }
+            }
             let checks = vec![
                 json!({"name": "pdfium", "ok": pdfium.is_ok(), "detail": pdfium.as_ref().err().map(ToString::to_string).unwrap_or_else(|| folisift_parse::pdfium::PDFIUM_VERSION.to_string())}),
                 json!({"name": "cache", "ok": cache_ok, "detail": cache.display().to_string()}),
                 json!({"name": "output", "ok": output_ok, "detail": output.display().to_string()}),
                 json!({"name": "guides", "ok": invalid_guides == 0, "detail": format!("{} guide(s), {invalid_guides} invalid", guides.len()), "warning": if guides.is_empty() { Some("no guides yet") } else { None }}),
                 json!({"name": "styles", "ok": style_issues.is_empty(), "detail": if style_issues.is_empty() { format!("{} guide style(s) compatible", guides.len()) } else { style_issues.join("; ") }}),
+                json!({
+                    "name": "style-matrix",
+                    "ok": !matrix.is_empty() && matrix_warnings.is_empty(),
+                    "detail": format!("{} pack(s); {} structure(s); {} domain(s)", matrix.len(), matrix_structures.len(), matrix_domains.len()),
+                    "warnings": matrix_warnings,
+                }),
                 json!({"name": "style-authority", "ok": true, "detail": "schema-3 style.aesthetic is authoritative; legacy theme must match"}),
                 json!({"name": "fonts", "ok": font_count > 0, "detail": format!("{font_count} embedded face(s)")}),
                 json!({"name": "structures", "ok": !folisift_core::structures::packs().is_empty(), "detail": format!("{} pack(s)", folisift_core::structures::packs().len())}),
@@ -1432,7 +1462,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 Some(style.palette.as_str()),
                 Some(style.fonts.as_str()),
             )?;
-            styles::validate_profile(&loaded_style.pack, &style)?;
+            styles::validate_profile_actionable(workspace.root(), &loaded_style.pack, &style)?;
             let target_pages = target_pages.or_else(|| {
                 intent
                     .as_deref()
@@ -1513,8 +1543,28 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                         }))?
                     );
                 } else {
-                    let packs = styles::list(workspace.root())?;
-                    println!("{}", serde_json::to_string_pretty(&packs)?);
+                    let matrix = styles::matrix(workspace.root(), None, None)?;
+                    let structures = matrix
+                        .iter()
+                        .flat_map(|row| row.supported_structures.iter().cloned())
+                        .collect::<std::collections::BTreeSet<_>>()
+                        .into_iter()
+                        .collect::<Vec<_>>();
+                    let domains = matrix
+                        .iter()
+                        .flat_map(|row| row.supported_domains.iter().cloned())
+                        .collect::<std::collections::BTreeSet<_>>()
+                        .into_iter()
+                        .collect::<Vec<_>>();
+                    println!(
+                        "{}",
+                        serde_json::to_string_pretty(&json!({
+                            "packs": matrix.len(),
+                            "structures": structures,
+                            "domains": domains,
+                            "styles": matrix,
+                        }))?
+                    );
                 }
             }
             StylesCommand::Palettes => {

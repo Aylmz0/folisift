@@ -1323,12 +1323,15 @@ impl FolisiftServer {
                         &list_response_options(&params.response),
                     )));
                 }
-                let packs =
-                    styles::list(self.workspace.root()).map_err(|error| error.to_string())?;
+                let matrix = styles::matrix(self.workspace.root(), None, None)
+                    .map_err(|error| error.to_string())?;
                 // MCP `structuredContent` must be a JSON object; a bare array is
                 // rejected by strict clients such as OpenCode V2.
                 Ok(Json(shape_response(
-                    json!({ "styles": packs }),
+                    json!({
+                        "packs": matrix.len(),
+                        "styles": matrix,
+                    }),
                     &list_response_options(&params.response),
                 )))
             }
@@ -1910,7 +1913,8 @@ impl FolisiftServer {
             Some(style.fonts.as_str()),
         )
         .map_err(|error| error.to_string())?;
-        styles::validate_profile(&loaded_style.pack, &style).map_err(|error| error.to_string())?;
+        styles::validate_profile_actionable(self.workspace.root(), &loaded_style.pack, &style)
+            .map_err(|error| error.to_string())?;
         let sources = params
             .sources
             .iter()
@@ -2202,7 +2206,8 @@ impl FolisiftServer {
             Some(style.fonts.as_str()),
         )
         .map_err(|error| error.to_string())?;
-        styles::validate_profile(&loaded_style.pack, &style).map_err(|error| error.to_string())?;
+        styles::validate_profile_actionable(self.workspace.root(), &loaded_style.pack, &style)
+            .map_err(|error| error.to_string())?;
         let sources = params
             .sources
             .iter()

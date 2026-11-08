@@ -7,7 +7,8 @@
   "aesthetic": "workbook",
   "supported_structures": [
     "workbook",
-    "a-g"
+    "a-g",
+    "irac"
   ],
   "supported_languages": [
     "tr",

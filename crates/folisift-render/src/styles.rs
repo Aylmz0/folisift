@@ -355,6 +355,96 @@ pub fn compatibility(
     Ok(out)
 }
 
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct StyleMatrixEntry {
+    pub style: String,
+    pub name: String,
+    pub status: String,
+    pub page_target: String,
+    pub supported_structures: Vec<String>,
+    pub supported_domains: Vec<String>,
+    pub supported_languages: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub compatible: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
+}
+
+/// Every style pack with its declared matrix. When a structure/domain pair is
+/// supplied, each row also carries a compatibility verdict.
+pub fn matrix(
+    styles_root: &Path,
+    structure: Option<&str>,
+    domain: Option<&str>,
+) -> Result<Vec<StyleMatrixEntry>> {
+    let mut out = Vec::new();
+    for summary in list(styles_root)? {
+        let loaded = load_with(styles_root, &summary.id, None, None)?;
+        let structure_ok = structure.is_none_or(|value| {
+            loaded
+                .pack
+                .supported_structures
+                .iter()
+                .any(|item| item == value)
+        });
+        let domain_ok = domain.is_none_or(|value| {
+            loaded
+                .pack
+                .supported_domains
+                .iter()
+                .any(|item| item == value)
+        });
+        let compatible =
+            (structure.is_some() || domain.is_some()).then_some(structure_ok && domain_ok);
+        let reason = match (compatible, structure, domain) {
+            (Some(true), _, _) => Some("structure and domain are supported".to_string()),
+            (Some(false), Some(structure), _) if !structure_ok => Some(format!(
+                "structure {structure:?} is not supported; use one of {:?}",
+                loaded.pack.supported_structures
+            )),
+            (Some(false), _, Some(domain)) if !domain_ok => Some(format!(
+                "domain {domain:?} is not supported; use one of {:?}",
+                loaded.pack.supported_domains
+            )),
+            _ => None,
+        };
+        out.push(StyleMatrixEntry {
+            style: loaded.pack.id.clone(),
+            name: loaded.pack.name.clone(),
+            status: loaded.pack.status.clone(),
+            page_target: loaded.pack.page_target.clone(),
+            supported_structures: loaded.pack.supported_structures.clone(),
+            supported_domains: loaded.pack.supported_domains.clone(),
+            supported_languages: loaded.pack.supported_languages.clone(),
+            compatible,
+            reason,
+        });
+    }
+    out.sort_by(|left, right| left.style.cmp(&right.style));
+    Ok(out)
+}
+
+/// Validate a profile and make a rejected pair actionable.
+pub fn validate_profile_actionable(
+    styles_root: &Path,
+    pack: &StylePack,
+    profile: &folisift_core::StyleProfile,
+) -> Result<()> {
+    match validate_profile(pack, profile) {
+        Ok(()) => Ok(()),
+        Err(error) => {
+            let compatible = compatibility(styles_root, &profile.structure, &profile.domain)?
+                .into_iter()
+                .filter(|item| item.compatible)
+                .map(|item| item.style)
+                .collect::<Vec<_>>();
+            Err(Error::StyleConfig(format!(
+                "{error}; compatible_styles: {compatible:?}; next: choose a compatible style or update its matrix"
+            )))
+        }
+    }
+}
+
 /// Choose the closest compatible style for a structure/domain pair.
 pub fn closest_compatible(
     styles_root: &Path,
@@ -1383,12 +1473,68 @@ mod tests {
             .filter(|item| item.compatible)
             .map(|item| item.style.as_str())
             .collect::<Vec<_>>();
-        assert_eq!(styles, vec!["accessible", "reader"]);
+        assert_eq!(styles, vec!["accessible", "clean", "reader", "workbook"]);
+    }
+
+    #[test]
+    fn rejected_pairs_list_compatible_styles() {
+        let loaded = load(Path::new(""), "paper").expect("paper");
+        let profile = folisift_core::StyleProfile {
+            aesthetic: "paper".to_string(),
+            structure: "workbook".to_string(),
+            domain: "law".to_string(),
+            language: "tr".to_string(),
+            source_language: "tr".to_string(),
+            voice: "academic".to_string(),
+            ..folisift_core::StyleProfile::default()
+        };
+        let error = validate_profile_actionable(Path::new(""), &loaded.pack, &profile)
+            .expect_err("unsupported pair")
+            .to_string();
+        assert!(error.contains("compatible_styles"), "{error}");
+        assert!(error.contains("workbook"), "{error}");
+        assert!(error.contains("next:"), "{error}");
+    }
+
+    #[test]
+    fn matrix_lists_every_pack_and_its_declared_pairs() {
+        let rows = matrix(Path::new(""), Some("workbook"), Some("law")).expect("matrix");
+        assert_eq!(rows.len(), builtin_ids().len());
+        let workbook = rows
+            .iter()
+            .find(|row| row.style == "workbook")
+            .expect("workbook");
+        assert_eq!(workbook.compatible, Some(true));
         assert!(
-            !compatible
+            workbook
+                .supported_structures
                 .iter()
-                .any(|item| item.style == "workbook" && item.compatible)
+                .any(|value| value == "irac")
         );
+        let clean = rows.iter().find(|row| row.style == "clean").expect("clean");
+        assert!(clean.supported_domains.iter().any(|value| value == "law"));
+        for row in &rows {
+            if row.compatible != Some(true) {
+                continue;
+            }
+            let loaded = load(Path::new(""), &row.style).expect("load");
+            for structure in &row.supported_structures {
+                for domain in &row.supported_domains {
+                    let profile = folisift_core::StyleProfile {
+                        aesthetic: loaded.pack.aesthetic.clone(),
+                        structure: structure.clone(),
+                        domain: domain.clone(),
+                        language: loaded.pack.supported_languages[0].clone(),
+                        source_language: loaded.pack.supported_languages[0].clone(),
+                        voice: loaded.pack.supported_voices[0].clone(),
+                        ..folisift_core::StyleProfile::default()
+                    };
+                    validate_profile(&loaded.pack, &profile).unwrap_or_else(|error| {
+                        panic!("{} {structure}+{domain}: {error}", row.style)
+                    });
+                }
+            }
+        }
     }
 
     #[test]

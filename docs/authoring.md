@@ -136,10 +136,12 @@ cargo run -p folisift-cli -- styles restyle --guide my-guide --palette forest-sa
 ```
 
 The MCP `style` tool also has a `recommend` action. It returns only packs
-compatible with the requested domain/structure/language. Domain-specific packs
-(`journal`, `brief`) rank first where they fit; `reader` is the spacious
-fallback. This is a heuristic; the host must choose a candidate and record
-`style_rationale`. When the host omits `style`, `prepare_guide` uses
+compatible with the requested domain/structure/language. `styles list` without
+a guide prints the full matrix (pack, structures, domains, languages, page
+target); a rejected pair names `compatible_styles` and a `next` action.
+Domain-specific packs (`journal`, `brief`) rank first where they fit; `reader`
+is the spacious fallback. This is a heuristic; the host must choose a candidate
+and record `style_rationale`. When the host omits `style`, `prepare_guide` uses
 `revision` for revision-sheet/knowledge-organiser structures and `reader` for
 the other structures; the response reports `style_source` (`explicit`,
 `default-revision` or `default-reader`).

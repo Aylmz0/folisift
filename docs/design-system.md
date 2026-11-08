@@ -203,6 +203,18 @@ rule, denser tables and square technical boxes. It is selected by the style
 pack `clean`; it is experimental until its snapshots and cross-style gates
 pass. `paper` remains the default and the old-PDF parity standard.
 
+## Style matrix
+
+`styles list` without a guide returns every pack with its declared structures,
+domains, languages and page target; `folisift doctor` adds a `style-matrix`
+check with pack, structure and domain coverage plus warnings for unsupported
+default pairs. A rejected pair names at least one `compatible_styles` entry and
+a `next` action.
+
+The workbook layout is structure-agnostic, so `workbook+irac` is supported; the
+clean layout has no legal-specific typography, so `clean+law` is supported.
+`style list --guide <slug>` still returns the per-guide compatibility verdict.
+
 ## Output intent and page budget
 
 The reader task comes before the layout. `style recommend` accepts an
