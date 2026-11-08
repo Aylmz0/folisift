@@ -2390,6 +2390,28 @@ impl FolisiftServer {
                 }
             }
         }
+        let matrix = styles::matrix(self.workspace.root(), None, None).unwrap_or_default();
+        let matrix_structures = matrix
+            .iter()
+            .flat_map(|row| row.supported_structures.iter().cloned())
+            .collect::<std::collections::BTreeSet<_>>();
+        let matrix_domains = matrix
+            .iter()
+            .flat_map(|row| row.supported_domains.iter().cloned())
+            .collect::<std::collections::BTreeSet<_>>();
+        let mut matrix_warnings = Vec::new();
+        for (structure, domain) in [("a-g", "general"), ("irac", "law"), ("workbook", "general")] {
+            if !matrix.iter().any(|row| {
+                row.supported_structures
+                    .iter()
+                    .any(|value| value == structure)
+                    && row.supported_domains.iter().any(|value| value == domain)
+            }) {
+                matrix_warnings.push(format!(
+                    "no style supports {structure}+{domain}; extend a pack matrix or choose another pair"
+                ));
+            }
+        }
         let d2 = d2_available();
         let ocr_feature = cfg!(feature = "ocr-tesseract");
         let ocr_binary = std::env::var_os("PATH").and_then(|path| {
@@ -2398,13 +2420,22 @@ impl FolisiftServer {
                 .find(|candidate| candidate.is_file())
         });
         Json(json!({
-            "ok": invalid == 0 && style_issues.is_empty(),
+            "ok": invalid == 0
+                && style_issues.is_empty()
+                && !matrix.is_empty()
+                && matrix_warnings.is_empty(),
             "version": version::VERSION,
             "root": self.workspace.root().display().to_string(),
             "checks": [
                 {"name": "pdfium", "ok": folisift_parse::pdfium::init(None).is_ok(), "detail": folisift_parse::pdfium::PDFIUM_VERSION},
                 {"name": "guides", "ok": invalid == 0, "detail": format!("{} guide(s), {invalid} invalid", guides.len())},
                 {"name": "styles", "ok": style_issues.is_empty(), "detail": if style_issues.is_empty() { format!("{} guide style(s) compatible", guides.len()) } else { style_issues.join("; ") }},
+                {
+                    "name": "style-matrix",
+                    "ok": !matrix.is_empty() && matrix_warnings.is_empty(),
+                    "detail": format!("{} pack(s); {} structure(s); {} domain(s)", matrix.len(), matrix_structures.len(), matrix_domains.len()),
+                    "warnings": matrix_warnings,
+                },
                 {"name": "style-authority", "ok": true, "detail": "schema-3 style.aesthetic is authoritative; legacy theme must match"},
                 {"name": "cache", "ok": cache.is_dir(), "detail": cache.display().to_string()},
                 {"name": "fonts", "ok": true, "detail": format!("{} embedded face(s)", folisift_render::embedded_font_count())},
