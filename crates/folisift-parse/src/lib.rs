@@ -8,6 +8,7 @@ pub mod brief;
 pub mod coverage;
 pub mod error;
 pub mod graph;
+pub mod heading;
 pub mod hint;
 pub mod insights;
 pub mod inventory;

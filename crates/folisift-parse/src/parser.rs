@@ -8,6 +8,7 @@ use liteparse::{LiteParse, LiteParseConfig};
 use regex::Regex;
 
 use crate::error::{Error, Result};
+use crate::heading::{normalize_heading, recover_inline_headings};
 use crate::inventory::{CanonicalSection, Heading, Inventory, PageRow, SourceInventory};
 use crate::layout::{LayoutBlock, LayoutBlockKind, PageLayout, Rect, SourceLayout};
 use crate::pdfium;
@@ -235,64 +236,6 @@ impl SourceParser for LiteparseParser {
     }
 }
 
-fn normalize_heading(heading: &str) -> String {
-    let heading = heading.trim();
-    let Some(captures) = HEADING_NUMBER_RE.captures(heading) else {
-        return heading.to_string();
-    };
-    format!("{} {}", captures[1].trim(), captures[2].trim())
-}
-
-static INLINE_HEADING_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"(?:^|[.!?]\s+)(\d+(?:\.\d+){1,})\.?\s+([A-ZÇĞİÖŞÜ][^.;!?]{2,120})")
-        .expect("valid inline heading regex")
-});
-
-/// Some sources put a heading inside a paragraph (for example
-/// `... sayar. 4.4.4. Asıl İşveren - Alt İşveren`). Recover only a
-/// multi-level number followed by a title-like phrase; never a bare
-/// cross-reference such as `bkz. 10.2`.
-fn recover_inline_headings(pages: &[PageLayout]) -> Vec<Heading> {
-    let mut out = Vec::new();
-    for page in pages {
-        for block in &page.blocks {
-            if !matches!(
-                block.kind,
-                LayoutBlockKind::Paragraph | LayoutBlockKind::ListItem | LayoutBlockKind::Unknown
-            ) {
-                continue;
-            }
-            let Some(text) = block.text.as_deref() else {
-                continue;
-            };
-            for capture in INLINE_HEADING_RE.captures_iter(text) {
-                let number = capture
-                    .get(1)
-                    .map(|value| value.as_str())
-                    .unwrap_or_default();
-                let title = capture
-                    .get(2)
-                    .map(|value| value.as_str().trim().trim_end_matches(['-', '–', ':']))
-                    .unwrap_or_default();
-                if number.is_empty() || title.is_empty() {
-                    continue;
-                }
-                let heading = normalize_heading(&format!("{number} {title}"));
-                if !is_navigational_heading(&heading) {
-                    continue;
-                }
-                out.push(Heading {
-                    heading,
-                    page: page.page,
-                    level: Some(2),
-                    block_id: Some(block.id.clone()),
-                });
-            }
-        }
-    }
-    out
-}
-
 fn is_navigational_heading(heading: &str) -> bool {
     let heading = heading.trim();
     if heading.starts_with("Bölüm ") || heading.starts_with("Chapter ") {
@@ -366,10 +309,6 @@ pub async fn analyze_source(path: &Path) -> Result<SourceInventory> {
 
 static TOC_LINE_RE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"^\s*(\d{1,3})(?:\.(\d{1,3}))?\.?\s*(.+?)\s*$").expect("valid TOC regex")
-});
-
-static HEADING_NUMBER_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"^(\d+(?:\.\d+)*)\.?\s*[:.\-]?\s*(.+)$").expect("valid heading number regex")
 });
 
 /// Recover the source's own topic-list sections from the first pages.
