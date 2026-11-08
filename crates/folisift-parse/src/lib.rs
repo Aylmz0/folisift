@@ -14,6 +14,7 @@ pub mod insights;
 pub mod inventory;
 pub mod layout;
 pub mod manifest;
+pub mod outline;
 pub mod parser;
 pub mod pdfium;
 pub mod render;
@@ -58,6 +59,9 @@ pub use layout::{
 };
 pub use manifest::{
     CoverageManifest, CoverageStatus, ManifestRow, manifest_row_number, number_specs,
+};
+pub use outline::{
+    CanonicalHeading, HeadingOrigin, Outline, OutlineChapter, canonical_headings, skeleton_markdown,
 };
 pub use parser::{
     Analysis, AnalyzedSource, LiteparseParser, SourceParser, analyze_source, analyze_sources,

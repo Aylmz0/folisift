@@ -1444,24 +1444,6 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 analyze_sources_with_layout(&sources, folisift_parse::LOW_TEXT_THRESHOLD).await?;
             let inventory = analysis.inventory;
             write_layouts(&analysis.layouts, &guide.dir.join("data/blocks"))?;
-            let source_ids = sources
-                .iter()
-                .filter_map(|path| path.file_stem().and_then(|value| value.to_str()))
-                .collect::<Vec<_>>()
-                .join(", ");
-            let mut body = format!(
-                "---\ntitle: {title_for_content:?}\nrunning: {title_for_content:?}\nlanguage: {:?}\nsources: [{source_ids}]\n---\n\n",
-                style.language
-            );
-            if style.language == "en" {
-                body.push_str(
-                    "::: front kicker=\"Front matter · Reading note\" title=\"About this guide\" lead=\"This guide turns source slides into an exam-oriented study text.\"\nThis opening will be written by the host LLM.\n:::\n\n::: toc title=\"Guide map\" note=\"Page numbers refer to this PDF.\"\n:::\n\n",
-                );
-            } else {
-                body.push_str(
-                    "::: front kicker=\"Ön kısım · Okuma notu\" title=\"Bu kitapçık hakkında\" lead=\"Bu kılavuz, kaynak slaytlardan sınav odaklı bir çalışma metni üretir.\"\nBu bölüm host LLM tarafından yazılacaktır.\n:::\n\n::: toc title=\"Kılavuzun haritası\" note=\"Sayfa numaraları bu PDF’e aittir.\"\n:::\n\n",
-                );
-            }
             if style.structure == "irac" {
                 let mut headings = String::from("# Source headings\n\n");
                 for source in &inventory.sources {
@@ -1476,82 +1458,15 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                     headings.push('\n');
                 }
                 std::fs::write(guide.dir.join("source-headings.md"), headings)?;
-                for case in 1..=10 {
-                    if style.language == "en" {
-                        body.push_str(&format!(
-                            "## Case {case}\n\n### Issue\n\nDescribe the legal issue. [PD0, p. 1]\n\n### Rule\n\nState the applicable rule. [PD0, p. 1]\n\n### Application\n\nApply the rule to the facts. [PD0, p. 1]\n\n### Conclusion\n\nGive the reasoned conclusion. [PD0, p. 1]\n\n"
-                        ));
-                    } else {
-                        body.push_str(&format!(
-                            "## Dava {case}\n\n### Sorun\n\nÇözülecek hukuki soruyu yaz. [PD0, s. 1]\n\n### Kural\n\nUygulanacak norm ve içtihadı yaz. [PD0, s. 1]\n\n### Uygulama\n\nKuralı olaya uygula. [PD0, s. 1]\n\n### Sonuç\n\nGerekçeli sonucu yaz. [PD0, s. 1]\n\n"
-                        ));
-                    }
-                }
-            } else {
-                for (index, source) in inventory.sources.iter().enumerate() {
-                    let id = source.filename.trim_end_matches(".pdf");
-                    let name = source.title_or_filename().replace('"', "'");
-                    body.push_str(&format!(
-                    "::: chapter part=\"{part}\" side=\"{side}: {id}\" kicker=\"{kicker} {index}\" title=\"{name}\" toc=\"{name}\" running=\"{name}\" subs=true\n:::\n\n",
-                    part = if style.language == "en" { "B · DETAILED REVIEW" } else { "B · AYRINTILI İNCELEME" },
-                    side = if style.language == "en" { "SOURCE" } else { "KAYNAK" },
-                    kicker = if style.language == "en" { "CHAPTER" } else { "BÖLÜM" },
-                ));
-                    for heading in &source.headings {
-                        let number = heading
-                            .heading
-                            .split_whitespace()
-                            .next()
-                            .unwrap_or_default();
-                        if number.matches('.').count() == 1
-                            && number.chars().next().is_some_and(|c| c.is_ascii_digit())
-                        {
-                            let source_label = if style.language == "en" {
-                                "Source"
-                            } else {
-                                "Kaynak"
-                            };
-                            body.push_str(&format!(
-                                "## {}\n\n{source_label}: [{}]\n\n",
-                                heading.heading, source.filename
-                            ));
-                        }
-                    }
-                }
             }
-            let required =
-                folisift_core::structures::scaffold_sections(&style.structure, &style.language);
-            if !required.is_empty() && style.structure != "irac" {
-                if style.language == "en" {
-                    body.push_str("::: chapter part=\"C · STRUCTURE\" side=\"FRAMEWORK\" kicker=\"C\" title=\"Structure checklist\" toc=\"Structure checklist\" running=\"Structure checklist\" subs=false\n:::\n\n");
-                } else {
-                    body.push_str("::: chapter part=\"C · YAPI\" side=\"ÇERÇEVE\" kicker=\"C\" title=\"Yapı denetim listesi\" toc=\"Yapı denetim listesi\" running=\"Yapı denetim listesi\" subs=false\n:::\n\n");
-                }
-                for (section, hint, level) in required {
-                    let hint = if style.language == "en" {
-                        "Source content goes here.".to_string()
-                    } else {
-                        hint
-                    };
-                    body.push_str(&format!(
-                        "{} {section}\n\n{hint}\n\n",
-                        "#".repeat(usize::from(level))
-                    ));
-                }
-            }
-            if style.language == "en" {
-                body.push_str("<!-- audit -->\n::: chapter part=\"AUDIT\" side=\"QUALITY\" kicker=\"AUDIT\" title=\"Coverage audit\" toc=\"Coverage audit\" running=\"Coverage audit\" subs=false\n:::\n\n## Coverage\n\nSource coverage and limitations will be reported here.\n");
-            } else {
-                body.push_str("<!-- audit -->\n::: chapter part=\"DENETİM\" side=\"KALİTE\" kicker=\"DENETİM\" title=\"Kapsam denetimi\" toc=\"Kapsam denetimi\" running=\"Kapsam denetimi\" subs=false\n:::\n\n## Kapsam\n\nKaynak kapsamı ve sınırlamalar burada raporlanacaktır.\n");
-            }
-            let citation_source = inventory
-                .sources
-                .first()
-                .map(|source| source.filename.trim_end_matches(".pdf"))
-                .unwrap_or("SOURCE");
-            body = body
-                .replace("[PD0, s. 1]", &format!("[{citation_source}, s. 1]"))
-                .replace("[PD0, p. 1]", &format!("[{citation_source}, p. 1]"));
+            let outline = folisift_parse::Outline::build(&inventory, &analysis.layouts);
+            let body = folisift_parse::skeleton_markdown(
+                &title_for_content,
+                &style.language,
+                &style.structure,
+                &inventory,
+                &outline,
+            );
             std::fs::write(&guide.content, body)?;
             println!(
                 "{}",

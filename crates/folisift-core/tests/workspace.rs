@@ -200,7 +200,7 @@ fn scaffolds_a_schema_two_guide() {
     assert!(root.path().join("guides/pd2/guide.md").is_file());
     assert!(root.path().join("guides/pd2/data").is_dir());
     let content = fs::read_to_string(guide.content).expect("content");
-    assert!(content.contains("::: front"));
+    assert!(!content.contains("::: front"));
     assert!(content.contains("::: toc"));
     assert!(content.contains("::: chapter"));
 }
@@ -237,7 +237,7 @@ fn scaffolds_structure_sections_in_the_requested_language() {
             "missing {heading}:\n{content}"
         );
     }
-    assert!(content.contains("About this guide"));
+    assert!(content.contains("::: toc"));
     assert!(!content.contains("Bu kitapçık"));
 }
 

@@ -13,7 +13,7 @@ use folisift_parse::{
     analyze_sources, analyze_sources_with_layout, apply_visual_decision,
     check_coverage as coverage_report, collect_candidates, extract_native, parse_page_list,
     read_block_view, read_source_at as read_source_pages, render_pages as render_page_images,
-    search_source as search_source_text, visual_assets_report, write_layouts,
+    search_source as search_source_text, skeleton_markdown, visual_assets_report, write_layouts,
 };
 use folisift_render::diagram::{self, DiagramSpec, DiagramTheme};
 use folisift_render::{RenderOptions, content_hash, render as render_guide, styles};
@@ -1947,6 +1947,7 @@ impl FolisiftServer {
         let inventory = analysis.inventory;
         write_layouts(&analysis.layouts, &guide.dir.join("data/blocks"))
             .map_err(|error| error.to_string())?;
+        let canonical_outline = folisift_parse::Outline::build(&inventory, &analysis.layouts);
         if style.structure == "irac" {
             let mut headings = String::from("# Source headings\n\n");
             for source in &inventory.sources {
@@ -1981,14 +1982,19 @@ impl FolisiftServer {
         if !was_existing || !guide.content.exists() {
             std::fs::write(
                 &guide.content,
-                skeleton_markdown(&title, &style.language, &style.structure, &inventory),
+                skeleton_markdown(
+                    &title,
+                    &style.language,
+                    &style.structure,
+                    &inventory,
+                    &canonical_outline,
+                ),
             )
             .map_err(|error| error.to_string())?;
         }
 
         let cache = SourceCache::new(self.workspace.root().join("data/cache"));
         let mut source_rows = Vec::new();
-        let mut outline = Vec::new();
         let mut visual_targets = Vec::new();
         for source in &inventory.sources {
             let cached = cache
@@ -2022,31 +2028,30 @@ impl FolisiftServer {
                     "suggested_kinds": ["concept", "flow", "tree", "matrix", "annotated"],
                 }));
             }
-            for heading in &source.headings {
-                let number = heading
-                    .heading
-                    .split_whitespace()
-                    .next()
-                    .unwrap_or_default();
-                if number.matches('.').count() == 1
-                    && number.chars().next().is_some_and(|c| c.is_ascii_digit())
-                {
-                    let id = source.filename.trim_end_matches(".pdf");
-                    outline.push(json!({
-                        "heading": heading.heading,
-                        "page": heading.page,
-                        "covers": [format!("{id}:{number}")],
-                    }));
-                }
-            }
         }
+        let outline_items = canonical_outline
+            .items
+            .iter()
+            .map(|heading| {
+                json!({
+                    "heading": heading.heading,
+                    "number": heading.number,
+                    "title": heading.title,
+                    "source": heading.source,
+                    "page": heading.page,
+                    "level": heading.level,
+                    "origin": heading.origin,
+                    "covers": [format!("{}:{}", heading.source, heading.number)],
+                })
+            })
+            .collect::<Vec<_>>();
 
         let page_range = guide
             .config
             .target_pages
             .clone()
             .unwrap_or_else(|| loaded_style.pack.page_target.clone());
-        let profiles = guide_profiles(&style, &inventory, outline.len(), &page_range);
+        let profiles = guide_profiles(&style, &inventory, outline_items.len(), &page_range);
         let visual_template = json!({
             "schema_version": 1,
             "source_pages": visual_targets
@@ -2101,9 +2106,9 @@ impl FolisiftServer {
                 "genre_checklist": genre_checklist(&style.structure),
                 "sources": source_rows,
                 "outline": {
-                    "total": outline.len(),
+                    "total": outline_items.len(),
                     "next": null,
-                    "items": outline,
+                    "items": outline_items,
                 },
                 "next": [
                     "read_source in 10-20 page chunks; use search_source for terms",
@@ -2172,7 +2177,14 @@ impl FolisiftServer {
         let inventory = analysis.inventory;
         write_layouts(&analysis.layouts, &guide.dir.join("data/blocks"))
             .map_err(|error| error.to_string())?;
-        let body = skeleton_markdown(&title, &style.language, &style.structure, &inventory);
+        let canonical_outline = folisift_parse::Outline::build(&inventory, &analysis.layouts);
+        let body = skeleton_markdown(
+            &title,
+            &style.language,
+            &style.structure,
+            &inventory,
+            &canonical_outline,
+        );
         let content_path = guide.dir.join("guide.md");
         std::fs::write(&content_path, body).map_err(|error| error.to_string())?;
         Ok(Json(json!({
@@ -4687,7 +4699,7 @@ fn guide_profiles(
             "units": {
                 "pages": inventory.totals.pages,
                 "words": inventory.totals.words,
-                "sections": inventory.sources.iter().map(|source| source.sections.len()).sum::<usize>(),
+                "sections": outline_len,
             },
             "low_text_pages": inventory.totals.low_text_pages,
             "visual_load": visual_load,
@@ -5519,110 +5531,6 @@ fn build_style(request: StyleRequest) -> Result<folisift_core::StyleProfile, Str
     Ok(style)
 }
 
-fn skeleton_markdown(
-    title: &str,
-    language: &str,
-    structure: &str,
-    inventory: &Inventory,
-) -> String {
-    let source_ids = inventory
-        .sources
-        .iter()
-        .map(|source| source.filename.trim_end_matches(".pdf").to_string())
-        .collect::<Vec<_>>()
-        .join(", ");
-    let mut body = format!(
-        "---\ntitle: {title:?}\nrunning: {title:?}\nlanguage: {language:?}\nsources: [{source_ids}]\n---\n\n"
-    );
-    if language == "en" {
-        body.push_str(
-            "::: front kicker=\"Front matter · Reading note\" title=\"About this guide\" lead=\"This guide turns source slides into an exam-oriented study text.\"\nThis opening will be written by the host LLM.\n:::\n\n",
-        );
-        body.push_str(
-            "::: toc title=\"Guide map\" note=\"Page numbers refer to this PDF.\"\n:::\n\n",
-        );
-    } else {
-        body.push_str(
-            "::: front kicker=\"Ön kısım · Okuma notu\" title=\"Bu kitapçık hakkında\" lead=\"Bu kılavuz, kaynak slaytlardan sınav odaklı bir çalışma metni üretir.\"\nBu bölüm host LLM tarafından yazılacaktır.\n:::\n\n",
-        );
-        body.push_str(
-            "::: toc title=\"Kılavuzun haritası\" note=\"Sayfa numaraları bu PDF’e aittir.\"\n:::\n\n",
-        );
-    }
-    if structure == "irac" {
-        for case in 1..=10 {
-            if language == "en" {
-                body.push_str(&format!(
-                    "## Case {case}\n\n### Issue\n\nDescribe the legal issue. [PD0, p. 1]\n\n### Rule\n\nState the applicable rule. [PD0, p. 1]\n\n### Application\n\nApply the rule to the facts. [PD0, p. 1]\n\n### Conclusion\n\nGive the reasoned conclusion. [PD0, p. 1]\n\n"
-                ));
-            } else {
-                body.push_str(&format!(
-                    "## Dava {case}\n\n### Sorun\n\nÇözülecek hukuki soruyu yaz. [PD0, s. 1]\n\n### Kural\n\nUygulanacak norm ve içtihadı yaz. [PD0, s. 1]\n\n### Uygulama\n\nKuralı olaya uygula. [PD0, s. 1]\n\n### Sonuç\n\nGerekçeli sonucu yaz. [PD0, s. 1]\n\n"
-                ));
-            }
-        }
-    } else {
-        for (index, source) in inventory.sources.iter().enumerate() {
-            let id = source.filename.trim_end_matches(".pdf");
-            let name = source.title_or_filename().replace('"', "'");
-            body.push_str(&format!(
-                "::: chapter part=\"{part}\" side=\"{side}: {id}\" kicker=\"{kicker} {index}\" title=\"{name}\" toc=\"{name}\" running=\"{name}\" subs=true\n:::\n\n",
-                part = if language == "en" { "B · DETAILED REVIEW" } else { "B · AYRINTILI İNCELEME" },
-                side = if language == "en" { "SOURCE" } else { "KAYNAK" },
-                kicker = if language == "en" { "CHAPTER" } else { "BÖLÜM" },
-            ));
-            for heading in &source.headings {
-                let number = heading
-                    .heading
-                    .split_whitespace()
-                    .next()
-                    .unwrap_or_default();
-                if number.matches('.').count() == 1
-                    && number.chars().next().is_some_and(|c| c.is_ascii_digit())
-                {
-                    body.push_str(&format!(
-                        "<!-- covers: {id}:{number} -->\n## {}\n\nKaynak: [{}]\n\n",
-                        heading.heading, source.filename
-                    ));
-                }
-            }
-        }
-    }
-    let required = folisift_core::structures::scaffold_sections(structure, language);
-    if !required.is_empty() && structure != "irac" {
-        if language == "en" {
-            body.push_str("::: chapter part=\"C · STRUCTURE\" side=\"FRAMEWORK\" kicker=\"C\" title=\"Structure checklist\" toc=\"Structure checklist\" running=\"Structure checklist\" subs=false\n:::\n\n");
-        } else {
-            body.push_str("::: chapter part=\"C · YAPI\" side=\"ÇERÇEVE\" kicker=\"C\" title=\"Yapı denetim listesi\" toc=\"Yapı denetim listesi\" running=\"Yapı denetim listesi\" subs=false\n:::\n\n");
-        }
-        for (section, hint, level) in required {
-            let hint = if language == "en" {
-                "Source content goes here.".to_string()
-            } else {
-                hint
-            };
-            body.push_str(&format!(
-                "{} {section}\n\n{hint}\n\n",
-                "#".repeat(usize::from(level))
-            ));
-        }
-    }
-    body.push_str("<!-- audit -->\n");
-    if language == "en" {
-        body.push_str("::: chapter part=\"AUDIT\" side=\"QUALITY\" kicker=\"AUDIT\" title=\"Coverage audit\" toc=\"Coverage audit\" running=\"Coverage audit\" subs=false\n:::\n\n## Coverage\n\nSource coverage and limitations will be reported here.\n");
-    } else {
-        body.push_str("::: chapter part=\"DENETİM\" side=\"KALİTE\" kicker=\"DENETİM\" title=\"Kapsam denetimi\" toc=\"Kapsam denetimi\" running=\"Kapsam denetimi\" subs=false\n:::\n\n## Kapsam\n\nKaynak kapsamı ve sınırlamalar burada raporlanacaktır.\n");
-    }
-    let citation_source = inventory
-        .sources
-        .first()
-        .map(|source| source.filename.trim_end_matches(".pdf"))
-        .unwrap_or("SOURCE");
-    body = body
-        .replace("[PD0, s. 1]", &format!("[{citation_source}, s. 1]"))
-        .replace("[PD0, p. 1]", &format!("[{citation_source}, p. 1]"));
-    body
-}
 fn apply_profile(router: &mut ToolRouter<FolisiftServer>, profile: &str) {
     let tools = match profile {
         "full" | "" => return,
@@ -6126,7 +6034,9 @@ mod tests {
 
     #[test]
     fn irac_skeleton_has_sources_and_ten_cases() {
-        let body = super::skeleton_markdown("Demo", "tr", "irac", &inventory(10, 0, 1));
+        let inventory = inventory(10, 0, 1);
+        let outline = folisift_parse::Outline::build(&inventory, &[]);
+        let body = super::skeleton_markdown("Demo", "tr", "irac", &inventory, &outline);
         assert!(body.contains("sources: [PD0]"), "{body}");
         assert_eq!(body.matches("## Dava ").count(), 10);
         assert_eq!(body.matches("### Sorun").count(), 10);
@@ -6136,7 +6046,8 @@ mod tests {
     fn irac_skeleton_uses_the_real_source_id() {
         let mut inventory = inventory(10, 0, 1);
         inventory.sources[0].filename = "is-hukuku.pdf".to_string();
-        let body = super::skeleton_markdown("Demo", "tr", "irac", &inventory);
+        let outline = folisift_parse::Outline::build(&inventory, &[]);
+        let body = super::skeleton_markdown("Demo", "tr", "irac", &inventory, &outline);
         assert!(body.contains("sources: [is-hukuku]"), "{body}");
         assert!(body.contains("[is-hukuku, s. 1]"), "{body}");
         assert!(!body.contains("[PD0"), "{body}");

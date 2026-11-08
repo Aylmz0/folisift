@@ -171,16 +171,10 @@ pub fn scaffold(workspace: &Workspace, options: &ScaffoldOptions) -> Result<Guid
         }
         body
     };
-    let (front, toc) = if options.style.language == "en" {
-        (
-            "::: front kicker=\"Front matter · Reading note\" title=\"About this guide\" lead=\"This guide turns source slides into an exam-oriented study text.\"\nThis section will be written by the host LLM.\n:::",
-            "::: toc title=\"Guide map\" note=\"Page numbers refer to this PDF.\"\n:::",
-        )
+    let toc = if options.style.language == "en" {
+        "::: toc title=\"Guide map\" note=\"Page numbers refer to this PDF.\"\n:::"
     } else {
-        (
-            "::: front kicker=\"Ön kısım · Okuma notu\" title=\"Bu kitapçık hakkında\" lead=\"Bu kılavuz, kaynak slaytlardan sınav odaklı bir çalışma metni üretir.\"\nBu bölüm host LLM tarafından yazılacaktır.\n:::",
-            "::: toc title=\"Kılavuzun haritası\" note=\"Sayfa numaraları bu PDF’e aittir.\"\n:::",
-        )
+        "::: toc title=\"Kılavuzun haritası\" note=\"Sayfa numaraları bu PDF’e aittir.\"\n:::"
     };
     let chapter_labels = if options.style.language == "en" {
         (
@@ -204,12 +198,10 @@ pub fn scaffold(workspace: &Workspace, options: &ScaffoldOptions) -> Result<Guid
     let sources = format!("[{}]", source_ids.join(", "));
     let guide_content = format!(
         "---\ntitle: {title:?}\ncourse: {course:?}\nrunning: {running:?}\nlanguage: {language:?}\nsources: {sources}\n---\n\n\
-         {front}\n\n\
          {toc}\n\n\
          ::: chapter part=\"{part}\" side=\"{side}\" kicker=\"{kicker}\" title=\"{chapter_title}\" toc=\"{toc_label}\" running=\"{running_label}\"\n\
          :::\n\n\
          {sections_markdown}\n",
-        front = front,
         toc = toc,
         part = chapter_labels.0,
         side = chapter_labels.1,
