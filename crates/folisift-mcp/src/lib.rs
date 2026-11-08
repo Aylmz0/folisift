@@ -2293,12 +2293,18 @@ impl FolisiftServer {
         let layout_passed = outcome.layout.as_ref().is_none_or(|report| report.passed);
         let passed = outcome.passed.unwrap_or(false);
         let pages = outcome.rendered.pages;
+        let visual_label = outcome
+            .visual
+            .as_ref()
+            .map(|report| format!("{} ({})", report.status, report.gate_result))
+            .unwrap_or_else(|| "skipped".to_string());
         let summary = format!(
-            "Build {}: {}; {} pages; layout {}; next: {}",
+            "Build {}: {}; {} pages; layout {}; visual {}; next: {}",
             params.slug,
             if passed { "passed" } else { "failed" },
             pages,
             if layout_passed { "passed" } else { "failed" },
+            visual_label,
             if passed {
                 "audit --strict and inspect the PDF"
             } else {
@@ -3554,13 +3560,15 @@ impl FolisiftServer {
             );
         }
         let passed = report["passed"].as_bool().unwrap_or(false);
-        let visual = report["visual"]["status"].as_str().unwrap_or("unknown");
+        let visual = report["visual"]["status"].as_str().unwrap_or("skipped");
+        let gate_result = report["visual"]["gate_result"].as_str().unwrap_or("off");
         let pages = report["build"]["pages"].as_u64().unwrap_or(0);
         let summary = format!(
-            "QA {}: {}; visual {}; {} pages; next: {}",
+            "QA {}: {}; visual {} ({}); {} pages; next: {}",
             params.slug,
             if passed { "passed" } else { "failed" },
             visual,
+            gate_result,
             pages,
             if passed {
                 "release"

@@ -273,6 +273,12 @@ values.
   candidate pages are also required and `data/visual-candidates.json` must
   exist. The default `warn` reports gaps as `status="advisory"` without
   breaking existing guides.
+- Visual vocabulary is separate from the gate policy: `visual_gate` is
+  `off|warn|required`; `status` is `passed|advisory|failed|skipped`, and
+  `gate_result` is `pass|warn|fail`. `passed=true` only means no blocking
+  issue. A clean `warn` gate is `advisory (warn)`, a clean `required` gate is
+  `passed (pass)`, a missing decision is `failed (fail)`, and `off` with no
+  audit is `skipped (warn)`. Only `failed` blocks the build.
 - This is the evidence trail for the G section.
 
 `build --check` also reports `underfilled_pages` through `folisift audit`.

@@ -224,6 +224,10 @@ pub async fn build(workspace: &Workspace, request: BuildRequest) -> Result<Build
         }
         let include_figures = visual_gate != "off";
         let audit_exists = guide.visual_audit().is_file();
+        if visual_gate == "off" {
+            visual = Some(GuideVisualReport::skipped("off"));
+            visual_passed = Some(true);
+        }
         let needs_inventory = coverage_gate || audit_exists || visual_gate == "required";
         let inventory = if needs_inventory {
             let (inventory, cached) = load_inventory(&guide).await?;
@@ -235,8 +239,9 @@ pub async fn build(workspace: &Workspace, request: BuildRequest) -> Result<Build
 
         if let Some(inventory) = inventory.as_ref() {
             let low_text_pages = inventory.totals.low_text_pages;
-            let needs_visual = low_text_pages > 0
-                || (include_figures && (audit_exists || visual_gate == "required"));
+            let needs_visual = visual_gate != "off"
+                && (low_text_pages > 0
+                    || (include_figures && (audit_exists || visual_gate == "required")));
             if needs_visual {
                 if audit_exists {
                     let audit = VisualAudit::load(&guide.visual_audit())?;
@@ -332,17 +337,7 @@ pub async fn build(workspace: &Workspace, request: BuildRequest) -> Result<Build
                             report.warnings.push(message);
                         }
                     }
-                    let passed = report.missing_low_text.is_empty()
-                        && report.unresolved.is_empty()
-                        && (visual_gate != "required" || report.missing_figures.is_empty());
-                    report.passed = passed;
-                    report.status = if !passed {
-                        "failed".to_string()
-                    } else if visual_gate != "required" && !report.missing_figures.is_empty() {
-                        "advisory".to_string()
-                    } else {
-                        "passed".to_string()
-                    };
+                    let passed = report.passed;
                     visual_passed = Some(passed);
                     if !passed {
                         return Err(fail_with_draft(

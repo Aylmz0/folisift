@@ -129,7 +129,46 @@ pub struct VisualReport {
     pub unresolved: Vec<String>,
     pub warnings: Vec<String>,
     pub status: String,
+    /// Verdict for the configured gate: pass, warn or fail.
+    pub gate_result: String,
     pub passed: bool,
+}
+
+impl VisualReport {
+    /// A report for a guide where the visual gate is off and no audit exists.
+    pub fn skipped(gate: &str) -> Self {
+        Self {
+            low_text_pages: 0,
+            entries: 0,
+            redrawn: 0,
+            redraw_figures: 0,
+            redraw_tables: 0,
+            native_tables: 0,
+            tables: 0,
+            embedded_crops: 0,
+            embedded_images: 0,
+            concept_diagrams: 0,
+            schematic_diagrams: 0,
+            text: 0,
+            decorative: 0,
+            unreadable: 0,
+            figure_pages: 0,
+            visual_gate: gate.to_string(),
+            basis: "none".to_string(),
+            advisory: true,
+            candidate_manifest: None,
+            expected_pages: 0,
+            missing_candidates: Vec::new(),
+            missing: Vec::new(),
+            missing_low_text: Vec::new(),
+            missing_figures: Vec::new(),
+            unresolved: Vec::new(),
+            warnings: Vec::new(),
+            status: "skipped".to_string(),
+            gate_result: "warn".to_string(),
+            passed: true,
+        }
+    }
 }
 
 impl VisualAudit {
@@ -428,12 +467,21 @@ impl VisualAudit {
         }
         let advisory = gate != "required";
         let passed = missing.is_empty() && unresolved.is_empty();
+        // `passed` is the blocking signal. `status` describes the gate policy
+        // that produced it; `passed` is true only for a required, clean gate.
         let status = if !passed {
             "failed"
-        } else if advisory && !missing_figures.is_empty() {
-            "advisory"
-        } else {
+        } else if gate == "required" {
             "passed"
+        } else {
+            "advisory"
+        };
+        let gate_result = if !passed {
+            "fail"
+        } else if gate == "required" {
+            "pass"
+        } else {
+            "warn"
         };
         VisualReport {
             low_text_pages: low_text.len(),
@@ -472,6 +520,7 @@ impl VisualAudit {
             unresolved,
             warnings,
             status: status.to_string(),
+            gate_result: gate_result.to_string(),
             passed,
         }
     }
@@ -991,6 +1040,40 @@ mod tests {
                 .iter()
                 .any(|item| item.contains("needs a reason"))
         );
+    }
+
+    #[test]
+    fn visual_status_reflects_gate_policy() {
+        let inventory = inventory(vec![1]);
+        let dir = tempfile::tempdir().expect("tempdir");
+        let audit = VisualAudit {
+            schema_version: 1,
+            source_pages: vec![entry(1, "decorative")],
+        };
+        let warn = audit.validate_with_gate(Path::new(""), &inventory, dir.path(), "warn", &[], 50);
+        assert!(warn.passed, "{warn:?}");
+        assert_eq!(warn.status, "advisory");
+        assert_eq!(warn.gate_result, "warn");
+        let required =
+            audit.validate_with_gate(Path::new(""), &inventory, dir.path(), "required", &[], 50);
+        assert!(required.passed, "{required:?}");
+        assert_eq!(required.status, "passed");
+        assert_eq!(required.gate_result, "pass");
+
+        let empty = VisualAudit {
+            schema_version: 1,
+            source_pages: Vec::new(),
+        };
+        let failed =
+            empty.validate_with_gate(Path::new(""), &inventory, dir.path(), "warn", &[], 50);
+        assert!(!failed.passed);
+        assert_eq!(failed.status, "failed");
+        assert_eq!(failed.gate_result, "fail");
+
+        let skipped = VisualReport::skipped("off");
+        assert!(skipped.passed);
+        assert_eq!(skipped.status, "skipped");
+        assert_eq!(skipped.gate_result, "warn");
     }
 
     #[test]
