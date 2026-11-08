@@ -34,6 +34,39 @@ impl Workspace {
         Ok(path)
     }
 
+    /// Resolve a source PDF from any accepted host form.
+    ///
+    /// Accepted: `sources/PD0.pdf`, `PD0.pdf`, `PD0` and, for convenience,
+    /// `sources/PD0`. A bare id is accepted only when the file exists.
+    pub fn resolve_source(&self, value: &str) -> Result<PathBuf> {
+        let value = value.trim();
+        if value.is_empty() {
+            return Err(Error::SourceNotFound {
+                value: value.to_string(),
+            });
+        }
+        let mut candidates = vec![
+            PathBuf::from(value),
+            Path::new("sources").join(value),
+            Path::new("sources").join(format!("{value}.pdf")),
+            PathBuf::from(format!("{value}.pdf")),
+        ];
+        candidates.dedup();
+        for candidate in candidates {
+            if let Ok(path) = self.resolve_read(&candidate)
+                && path
+                    .extension()
+                    .and_then(|extension| extension.to_str())
+                    .is_some_and(|extension| extension.eq_ignore_ascii_case("pdf"))
+            {
+                return Ok(path);
+            }
+        }
+        Err(Error::SourceNotFound {
+            value: value.to_string(),
+        })
+    }
+
     /// Resolve a path that may be created. Only `guides/`, `output/` and
     /// `data/` are writable; `sources/` is deliberately read-only.
     pub fn resolve_write(&self, path: impl AsRef<Path>) -> Result<PathBuf> {

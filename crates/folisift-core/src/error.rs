@@ -23,11 +23,14 @@ pub enum Error {
     #[error("path escapes the workspace: {path}")]
     PathEscape { path: PathBuf },
 
-    #[error("writes are not allowed under {path}")]
+    #[error("writes are not allowed under {path}; writable roots are guides/, output/ and data/")]
     ReadOnly { path: PathBuf },
 
     #[error("guide not found: {slug}")]
     GuideNotFound { slug: String },
+
+    #[error("source {value:?} not found; accepted forms: sources/<name>.pdf, <name>.pdf, <name>")]
+    SourceNotFound { value: String },
 
     #[error("invalid slug: {slug}")]
     InvalidSlug { slug: String },

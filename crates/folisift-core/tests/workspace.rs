@@ -89,6 +89,29 @@ fn sources_are_read_only() {
         .resolve_write("sources/PD0.pdf")
         .expect_err("sources are read-only");
     assert!(matches!(error, Error::ReadOnly { .. }));
+    assert!(error.to_string().contains("guides/"));
+}
+
+#[test]
+fn resolves_all_accepted_source_forms() {
+    let root = fixture();
+    let workspace = workspace(root.path());
+    let expected = root
+        .path()
+        .canonicalize()
+        .expect("root")
+        .join("sources/PD0.pdf");
+    for value in ["sources/PD0.pdf", "PD0.pdf", "PD0", "sources/PD0"] {
+        assert_eq!(
+            workspace.resolve_source(value).expect(value),
+            expected,
+            "{value}"
+        );
+    }
+    let error = workspace
+        .resolve_source("missing")
+        .expect_err("missing source");
+    assert!(error.to_string().contains("sources/<name>.pdf"));
 }
 
 #[test]

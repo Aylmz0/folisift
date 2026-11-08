@@ -61,6 +61,11 @@ both accept `--max-tokens` or `--max-chars`. `max_tokens` is a hard payload
 budget: the response is truncated with `truncated: true`, `next_offset` and the
 full character count instead of silently returning the full section.
 
+Every PDF-reading MCP tool accepts `sources/PD0.pdf`, `PD0.pdf` or `PD0`; a
+bare id resolves only when the file exists. Block and brief tools also accept
+`data/blocks/PD0.json`. Writes stay under `guides/`, `output/` and `data/`;
+`sources/` is read-only.
+
 Cluster source headings with the bundled local Model2Vec model:
 
 ```bash

@@ -72,6 +72,7 @@ pub struct GuideStatusParams {
 
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct AnalyzeSourceParams {
+    /// Source PDF: sources/PD0.pdf, PD0.pdf or PD0.
     pub source: String,
     pub out: Option<String>,
     pub md: Option<String>,
@@ -82,6 +83,7 @@ pub struct AnalyzeSourceParams {
 
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct ReadSourceParams {
+    /// Source PDF: sources/PD0.pdf, PD0.pdf or PD0.
     pub source: String,
     pub pages: Option<String>,
     pub max_chars: Option<usize>,
@@ -117,7 +119,7 @@ pub struct LinksParams {
 
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct SourceInsightsParams {
-    /// Source PDF path relative to the workspace.
+    /// Source PDF: sources/PD0.pdf, PD0.pdf or PD0.
     pub source: String,
     /// Enable OCR; default false.
     pub ocr: Option<bool>,
@@ -133,7 +135,7 @@ pub struct SourceInsightsParams {
 pub struct CropSourceParams {
     /// Guide slug.
     pub guide: String,
-    /// Source PDF path relative to the workspace.
+    /// Source PDF: sources/PD0.pdf, PD0.pdf or PD0.
     pub source: String,
     /// 1-based page.
     pub page: u32,
@@ -149,7 +151,7 @@ pub struct CropSourceParams {
 pub struct VisualCandidatesParams {
     /// Optional guide slug; used as a label.
     pub guide: Option<String>,
-    /// Source PDF path relative to the workspace.
+    /// Source PDF: sources/PD0.pdf, PD0.pdf or PD0.
     pub source: String,
     /// Page range such as 14,45,71; default all pages.
     pub pages: Option<String>,
@@ -167,7 +169,7 @@ pub struct VisualCandidatesParams {
 pub struct VisualExtractParams {
     /// Guide slug.
     pub guide: String,
-    /// Source PDF path relative to the workspace.
+    /// Source PDF: sources/PD0.pdf, PD0.pdf or PD0.
     pub source: String,
     /// 1-based page.
     pub page: u32,
@@ -181,7 +183,7 @@ pub struct VisualExtractParams {
 pub struct VisualDecisionParams {
     /// Guide slug.
     pub guide: String,
-    /// Source PDF path relative to the workspace.
+    /// Source PDF: sources/PD0.pdf, PD0.pdf or PD0.
     pub source: String,
     /// 1-based page.
     pub page: usize,
@@ -232,7 +234,7 @@ pub struct VisualAssetsParams {
 
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct VisualEvidenceParams {
-    /// Source PDF path relative to the workspace.
+    /// Source PDF: sources/PD0.pdf, PD0.pdf or PD0.
     pub source: String,
     /// Page range such as 1-5,10; default all pages.
     pub pages: Option<String>,
@@ -244,7 +246,7 @@ pub struct VisualEvidenceParams {
 pub struct SourceBriefParams {
     /// Guide slug.
     pub guide: String,
-    /// Source id: filename without .pdf.
+    /// Source id: PD0, PD0.pdf or sources/PD0.pdf.
     pub source: String,
     /// Maximum headings returned; default 30.
     pub max_headings: Option<usize>,
@@ -272,7 +274,7 @@ pub struct CostReportParams {
 pub struct VisualBriefParams {
     /// Guide slug.
     pub guide: String,
-    /// Source id: filename without .pdf.
+    /// Source id: PD0, PD0.pdf or sources/PD0.pdf.
     pub source: String,
     /// Source page number.
     pub page: usize,
@@ -302,7 +304,7 @@ pub struct VerifyCitationsParams {
 
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct TableExtractParams {
-    /// Source PDF path relative to the workspace.
+    /// Source PDF: sources/PD0.pdf, PD0.pdf or PD0.
     pub source: String,
     /// Page number (1-based).
     pub page: usize,
@@ -316,7 +318,7 @@ pub struct TableExtractParams {
 pub struct CitationSnippetParams {
     /// Guide slug.
     pub guide: String,
-    /// Source id: filename without .pdf.
+    /// Source id: PD0, PD0.pdf or sources/PD0.pdf.
     pub source: String,
     /// Source page number.
     pub page: usize,
@@ -350,7 +352,7 @@ pub struct QaGuideParams {
 pub struct SectionBriefParams {
     /// Guide slug.
     pub guide: String,
-    /// Source id: filename without .pdf.
+    /// Source id: PD0, PD0.pdf or sources/PD0.pdf.
     pub source: String,
     /// Heading text or number.
     pub heading: String,
@@ -364,7 +366,7 @@ pub struct SectionBriefParams {
 pub struct ReadSectionParams {
     /// Guide slug.
     pub guide: String,
-    /// Source id: filename without .pdf.
+    /// Source id: PD0, PD0.pdf or sources/PD0.pdf.
     pub source: String,
     /// Heading text or number.
     pub heading: String,
@@ -430,7 +432,7 @@ pub struct GraphParams {
 pub struct ReadBlocksParams {
     /// Guide slug.
     pub slug: String,
-    /// Source id: filename without .pdf.
+    /// Source id: PD0, PD0.pdf or sources/PD0.pdf.
     pub source: String,
     /// Page list such as 26-29 or 1,3,5.
     pub pages: Option<String>,
@@ -442,6 +444,7 @@ pub struct ReadBlocksParams {
 
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct SearchSourceParams {
+    /// Source PDF: sources/PD0.pdf, PD0.pdf or PD0.
     pub source: String,
     pub query: String,
     pub limit: Option<usize>,
@@ -450,6 +453,7 @@ pub struct SearchSourceParams {
 
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct RenderPagesParams {
+    /// Source PDF: sources/PD0.pdf, PD0.pdf or PD0.
     pub source: String,
     pub pages: Option<String>,
     pub out: Option<String>,
@@ -748,7 +752,7 @@ impl FolisiftServer {
     ) -> Result<Json<Value>, String> {
         let source = self
             .workspace
-            .resolve_read(&params.source)
+            .resolve_source(&params.source)
             .map_err(|error| error.to_string())?;
         let stem = source
             .file_stem()
@@ -820,7 +824,7 @@ impl FolisiftServer {
     ) -> Result<Json<Value>, String> {
         let source = self
             .workspace
-            .resolve_read(&params.source)
+            .resolve_source(&params.source)
             .map_err(|error| error.to_string())?;
         let cache = SourceCache::new(self.workspace.root().join("data/cache"));
         let requested_tokens = params.response.max_tokens;
@@ -1210,7 +1214,7 @@ impl FolisiftServer {
     ) -> Result<Json<Value>, String> {
         let source = self
             .workspace
-            .resolve_read(&params.source)
+            .resolve_source(&params.source)
             .map_err(|error| error.to_string())?;
         let cache = SourceCache::new(self.workspace.root().join("data/cache"));
         let result = search_source_text(
@@ -1240,7 +1244,7 @@ impl FolisiftServer {
     ) -> Result<Json<Value>, String> {
         let source = self
             .workspace
-            .resolve_read(&params.source)
+            .resolve_source(&params.source)
             .map_err(|error| error.to_string())?;
         let pages = params
             .pages
@@ -2423,7 +2427,7 @@ impl FolisiftServer {
     ) -> Result<Json<Value>, String> {
         let source = self
             .workspace
-            .resolve_read(&params.source)
+            .resolve_source(&params.source)
             .map_err(|error| error.to_string())?;
         let value = folisift_parse::extract_insights(
             &source,
@@ -2448,7 +2452,7 @@ impl FolisiftServer {
             Guide::load(&self.workspace, &params.guide).map_err(|error| error.to_string())?;
         let source = self
             .workspace
-            .resolve_read(&params.source)
+            .resolve_source(&params.source)
             .map_err(|error| error.to_string())?;
         let crop =
             folisift_parse::CropBox::parse(&params.crop).map_err(|error| error.to_string())?;
@@ -2515,7 +2519,7 @@ impl FolisiftServer {
     ) -> Result<Json<Value>, String> {
         let source = self
             .workspace
-            .resolve_read(&params.source)
+            .resolve_source(&params.source)
             .map_err(|error| error.to_string())?;
         let source_id = source
             .file_stem()
@@ -2580,7 +2584,7 @@ impl FolisiftServer {
             Guide::load(&self.workspace, &params.guide).map_err(|error| error.to_string())?;
         let source = self
             .workspace
-            .resolve_read(&params.source)
+            .resolve_source(&params.source)
             .map_err(|error| error.to_string())?;
         let asset = extract_native(
             &source,
@@ -2612,7 +2616,7 @@ impl FolisiftServer {
             Guide::load(&self.workspace, &params.guide).map_err(|error| error.to_string())?;
         let source = self
             .workspace
-            .resolve_read(&params.source)
+            .resolve_source(&params.source)
             .map_err(|error| error.to_string())?;
         let source_id = source
             .file_stem()
@@ -2699,7 +2703,7 @@ impl FolisiftServer {
     ) -> Result<Json<Value>, String> {
         let source = self
             .workspace
-            .resolve_read(&params.source)
+            .resolve_source(&params.source)
             .map_err(|error| error.to_string())?;
         let value =
             folisift_parse::extract_insights(&source, false, params.pages.as_deref(), false)
@@ -2742,7 +2746,7 @@ impl FolisiftServer {
                 manifest
                     .rows
                     .iter()
-                    .filter(|row| row.source == params.source)
+                    .filter(|row| row.source == source_id)
                     .collect::<Vec<_>>()
             })
             .unwrap_or_default();
@@ -3345,7 +3349,7 @@ impl FolisiftServer {
     ) -> Result<Json<Value>, String> {
         let source = self
             .workspace
-            .resolve_read(&params.source)
+            .resolve_source(&params.source)
             .map_err(|error| error.to_string())?;
         let insights =
             folisift_parse::extract_insights(&source, false, Some(&params.page.to_string()), false)
@@ -3474,13 +3478,19 @@ impl FolisiftServer {
     ) -> Result<Json<Value>, String> {
         let guide =
             Guide::load(&self.workspace, &params.guide).map_err(|error| error.to_string())?;
+        let source = self
+            .workspace
+            .resolve_source(&params.source)
+            .map_err(|error| error.to_string())?;
+        let source_id = source
+            .file_stem()
+            .and_then(|value| value.to_str())
+            .unwrap_or_default();
         let source_path = guide
             .sources
             .iter()
-            .find(|path| {
-                path.file_stem().and_then(|value| value.to_str()) == Some(params.source.as_str())
-            })
-            .ok_or_else(|| format!("source {:?} not found in guide config", params.source))?;
+            .find(|path| path.file_stem().and_then(|value| value.to_str()) == Some(source_id))
+            .ok_or_else(|| format!("source {source_id:?} not found in guide config"))?;
         let cache = SourceCache::new(self.workspace.root().join("data/cache"));
         let text = cache
             .load(source_path, false)
