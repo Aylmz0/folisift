@@ -1,6 +1,6 @@
 # V5 feedback remediation — detailed plan
 
-- **Status:** Proposed — no code changes yet
+- **Status:** Implemented on `main` (2026-11-08) — release verification and tags remain with the maintainer.
 - **Date:** 2026-11-07
 - **Baseline:** Folisift 0.23.2, build 248, MCP schema 19, 41 tools
 - **Primary source:** [`FOLISIFT-GERI-BILDIRIM-v5.md`](../FOLISIFT-GERI-BILDIRIM-v5.md) — 30 PASS / 9 PARTIAL / 2 FAIL
@@ -823,6 +823,62 @@ commits (10–14) are 0.25.0 unless the maintainer chooses to fold them into
 | A-V5-14 | Decision validation | crop-only `embed_crop` works; empty call reports all missing fields in one pass | 2 calls |
 | A-V5-15 | Cards parity | default `cards` counts == `qa.cards` counts | 2 calls |
 | A-V5-16 | Style matrix | `doctor` and `style list` expose the matrix; unsupported pair is actionable | CLI output |
+
+### Implementation record (2026-11-08)
+
+All fourteen work packages landed on `main`:
+
+| Commit | Work package |
+|---|---|
+| `e56fa71` | WP1.1 groundwork — shared heading evidence |
+| `d53e03a` | WP0.1 — canonical scaffold outline |
+| `9642dd1` | WP0.3 — budget-preserving read path |
+| `b519ba4` | WP0.2 — ranked coverage manifest |
+| `ca89492` | WP1.1 — inline and table-cell section resolver |
+| `f52ec16` | WP1.2 — guide status/coverage parity and inventory write |
+| `aaebecb` | WP1.3 — extract format, extension and hash |
+| `ead8f3a` | WP1.4 — checked vs whole-guide citation counts |
+| `98bbd85` | WP1.5 — visual status/gate_result split |
+| `2733d1c` | WP2.1 — source reference normalization |
+| `149a76c` | WP2.2 — embedded normative resources |
+| `a141a52` | WP2.3 — one-pass visual decision validation |
+| `5c022a4` | WP3.1 — cards default parity |
+| `10a8051` | WP3.2 — style matrix visibility |
+
+Evidence gathered against `/var/tmp/opencode/v5-repro`:
+
+- `is-hukuku` `4.4.4` and `10.2` resolve in `read_section`, `section_brief`,
+  `heading_brief` and `chapter_brief` with matching page ranges; unknown
+  headings return candidates.
+- `read_source(max_tokens=200)` returns one page with `next_offset`; `10`
+  tokens returns the named budget error.
+- Digital generated manifest: 74 rows (`heading:46`, `toc:28`), no `1.0` /
+  `10.500` / `300.000`; `only_in_review:0`; adoption writes a 41-row combined
+  file and a second build is byte-identical.
+- `guide_status.empty_sections` equals `check_coverage.empty_sections` on both
+  `is-hukuku` and the scaffold probe; `data/inventory.json` is written by
+  `scaffold_guide` and a status call does not write.
+- `visual_extract` writes PNG/JPEG magic matching `format`, hash matches the
+  written bytes and `visual_assets check` passes.
+- `verify_citations` reports `checked:10`, `missing:4`,
+  `unreferenced_total:75`, `total_claims:189` on `is-hukuku`.
+- Clean `warn` build reports `advisory (warn)`; required and failed states are
+  covered by unit fixtures; `off` reports `skipped`.
+- `PD0`, `PD0.pdf` and `sources/PD0.pdf` work across source tools; a write
+  outside `guides/`, `output/`, `data/` names those roots.
+- The three normative resources read from a workspace with no `docs/` with
+  `source:"embedded"`.
+- Crop-only `embed_crop` succeeds; empty decisions return every missing field
+  in one sorted error without touching the audit.
+- Default `cards` and `qa.cards` both report `total:8`, `recall:6`,
+  `definitions:2`; excluding definitions warns.
+- `doctor` reports a 10-pack style matrix, and `workbook+irac` / `clean+law`
+  scaffold and render.
+
+`cargo test --workspace` (360 tests), `cargo clippy --workspace --all-targets
+-- -D warnings` and `cargo fmt --all -- --check` are green. The full 41-tool
+external matrix and the 26/10/19 page-count rebuild are still a release-time
+check; this plan does not claim 10/10.
 
 **Whole-plan gate:** all A rows green, no new PARTIAL/FAIL in the 41-tool matrix,
 and the external reproduction workspace rebuilt with the same page counts
