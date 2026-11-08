@@ -13,6 +13,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::heading::{
     clean_heading_title, parse_numbered_heading, recover_inline_headings, scan_table_headings,
+    title_like,
 };
 use crate::inventory::Inventory;
 use crate::layout::{LayoutBlockKind, SourceLayout};
@@ -166,6 +167,47 @@ pub fn canonical_headings(
             }
         }
 
+        // A source with no numbered headings still needs a real outline. Use
+        // explicit heading blocks with title-like text, drop chart labels and
+        // author/affiliation lines, and keep document order.
+        if rows.is_empty()
+            && let Some(layout) = layout
+        {
+            let mut seen = std::collections::BTreeSet::new();
+            let mut index = 0usize;
+            for page in &layout.pages {
+                for block in &page.blocks {
+                    if block.kind != LayoutBlockKind::Heading {
+                        continue;
+                    }
+                    let Some(title) = unnumbered_heading_title(block.text_or_empty()) else {
+                        continue;
+                    };
+                    if !seen.insert(title.to_lowercase()) {
+                        continue;
+                    }
+                    let key = format!("~{:04}:{index:04}", page.page);
+                    index += 1;
+                    rows.insert(
+                        key,
+                        (
+                            HeadingOrigin::Heading.rank(),
+                            CanonicalHeading {
+                                source: source_id.to_string(),
+                                number: String::new(),
+                                title: title.clone(),
+                                heading: title,
+                                page: page.page,
+                                level: 2,
+                                origin: HeadingOrigin::Heading,
+                                block_id: Some(block.id.clone()),
+                            },
+                        ),
+                    );
+                }
+            }
+        }
+
         // Inventory headings are a fallback for sources without a stored
         // layout, and a safety net for headings the layout scan could not see.
         for heading in &source.headings {
@@ -232,11 +274,16 @@ fn insert_heading(
 ) {
     let rank = origin.rank();
     let title = clean_heading_title(&title);
+    let heading_text = if number.is_empty() {
+        title.clone()
+    } else {
+        format!("{number} {title}")
+    };
     let heading = CanonicalHeading {
         source: source.to_string(),
         number: number.clone(),
         title: title.clone(),
-        heading: format!("{number} {title}"),
+        heading: heading_text,
         page,
         level: level_for_number(&number),
         origin,
@@ -248,6 +295,33 @@ fn insert_heading(
             rows.insert(number, (rank, heading));
         }
     }
+}
+
+fn unnumbered_heading_title(value: &str) -> Option<String> {
+    let title = clean_heading_title(value);
+    let words = title.split_whitespace().count();
+    let first = title.chars().next()?;
+    if !title_like(&title)
+        || words < 3
+        || first.is_ascii_digit()
+        || matches!(
+            first,
+            '(' | ')' | ']' | '-' | '–' | '—' | '*' | '%' | ',' | '[' | '•'
+        )
+        || title
+            .chars()
+            .any(|character| matches!(character, '*' | '@' | '•' | '…'))
+        || title.contains("...")
+        || title.contains('-')
+        || title.contains('–')
+        || title.contains('—')
+        || title.contains("- ")
+        || title.contains(", ")
+        || title.ends_with(':')
+    {
+        return None;
+    }
+    Some(title)
 }
 
 fn level_for_number(number: &str) -> u8 {
@@ -341,10 +415,17 @@ pub fn skeleton_markdown(
                 } else {
                     "Bu bölüm kaynaktan yazılacaktır.".to_string()
                 };
+                let covers = if heading.number.is_empty() {
+                    String::new()
+                } else {
+                    format!(
+                        "<!-- covers: {id}:{number} -->\n",
+                        id = chapter.source,
+                        number = heading.number
+                    )
+                };
                 body.push_str(&format!(
-                    "<!-- covers: {id}:{number} -->\n{hashes} {heading}\n\n{note}\n\n",
-                    id = chapter.source,
-                    number = heading.number,
+                    "{covers}{hashes} {heading}\n\n{note}\n\n",
                     heading = heading.heading,
                 ));
             }
@@ -375,6 +456,22 @@ pub fn skeleton_markdown(
         body.push_str("::: chapter part=\"AUDIT\" side=\"QUALITY\" kicker=\"AUDIT\" title=\"Coverage audit\" toc=\"Coverage audit\" running=\"Coverage audit\" subs=false\n:::\n\n## Coverage\n\nSource coverage and limitations will be reported here.\n");
     } else {
         body.push_str("::: chapter part=\"DENETİM\" side=\"KALİTE\" kicker=\"DENETİM\" title=\"Kapsam denetimi\" toc=\"Kapsam denetimi\" running=\"Kapsam denetimi\" subs=false\n:::\n\n## Kapsam\n\nKaynak kapsamı ve sınırlamalar burada raporlanacaktır.\n");
+    }
+    if !outline.items.is_empty() {
+        if language == "en" {
+            body.push_str("\n| Source | Section | Page | Status |\n|---|---|---:|---|\n");
+        } else {
+            body.push_str("\n| Kaynak | Bölüm | Sayfa | Durum |\n|---|---|---:|---|\n");
+        }
+        for heading in outline.items.iter().take(12) {
+            let title = heading.heading.replace('|', "\\|");
+            let status = if language == "en" { "open" } else { "açık" };
+            body.push_str(&format!(
+                "| {} | {} | {} | {} |\n",
+                heading.source, title, heading.page, status
+            ));
+        }
+        body.push('\n');
     }
     let citation_source = inventory
         .sources
@@ -476,6 +573,59 @@ mod tests {
         let markdown = skeleton_markdown("Test", "tr", "a-g", &inventory, &outline);
         assert!(markdown.contains("::: chapter"));
         assert!(markdown.contains("## Giriş"));
+    }
+
+    #[test]
+    fn unnumbered_slide_headings_become_outline_sections() {
+        let block = |id: &str, text: &str| LayoutBlock {
+            id: id.to_string(),
+            kind: LayoutBlockKind::Heading,
+            bbox: None,
+            text: Some(text.to_string()),
+            level: None,
+            bold: false,
+            italic: false,
+            ordered: None,
+            marker: None,
+            lines: Vec::new(),
+            lang: None,
+            header: Vec::new(),
+            rows: Vec::new(),
+            header_rows: None,
+            figure_id: None,
+            figure_format: None,
+        };
+        let layout = SourceLayout::new(
+            "PD2",
+            1,
+            vec![PageLayout {
+                page: 1,
+                page_label: None,
+                width: 100.0,
+                height: 100.0,
+                content_bounds: None,
+                blocks: vec![
+                    block("PD2:p1:b0", "Dijital Dönüşüm Tanımı ve Bileşenleri"),
+                    block("PD2:p1:b1", "Şahin Tulga"),
+                    block("PD2:p1:b2", "40x azaldı* Robot Maliyeti"),
+                    block("PD2:p1:b3", "Sanayi Devrimlerine Bir Bakış"),
+                ],
+            }],
+        );
+        let inventory = inventory(source(Vec::new()));
+        let outline = Outline::build(&inventory, &[layout]);
+        assert_eq!(outline.items.len(), 2);
+        assert!(
+            outline
+                .items
+                .iter()
+                .all(|heading| heading.number.is_empty())
+        );
+        let markdown = skeleton_markdown("Test", "tr", "a-g", &inventory, &outline);
+        assert!(markdown.contains("## Dijital Dönüşüm Tanımı ve Bileşenleri"));
+        assert!(markdown.contains("## Sanayi Devrimlerine Bir Bakış"));
+        assert!(!markdown.contains("<!-- covers: PD2: -->"));
+        assert!(!markdown.contains("Şahin Tulga"));
     }
 
     #[test]

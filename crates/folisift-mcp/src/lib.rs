@@ -2099,7 +2099,11 @@ impl FolisiftServer {
                     "page": heading.page,
                     "level": heading.level,
                     "origin": heading.origin,
-                    "covers": [format!("{}:{}", heading.source, heading.number)],
+                    "covers": if heading.number.is_empty() {
+                        Vec::<String>::new()
+                    } else {
+                        vec![format!("{}:{}", heading.source, heading.number)]
+                    },
                 })
             })
             .collect::<Vec<_>>();
