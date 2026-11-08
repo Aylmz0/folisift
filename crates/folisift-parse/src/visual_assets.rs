@@ -27,6 +27,9 @@ pub struct NativeAsset {
     pub image_id: String,
     pub asset: String,
     pub hash: String,
+    /// Format of the embedded source image.
+    pub native_format: String,
+    /// Format actually written to `asset`.
     pub format: String,
     pub width: u32,
     pub height: u32,
@@ -77,6 +80,81 @@ pub fn crop_from_bbox(
     ))
 }
 
+/// Canonical extension for a native image format.
+fn native_extension(format: &str) -> Result<&'static str> {
+    if format.eq_ignore_ascii_case("jpg") || format.eq_ignore_ascii_case("jpeg") {
+        Ok("jpg")
+    } else if format.eq_ignore_ascii_case("png") {
+        Ok("png")
+    } else {
+        Err(Error::PageSelection {
+            value: format!("unsupported native image format {format:?}; expected png or jpeg"),
+        })
+    }
+}
+
+/// Resolve the requested output path and the format actually written.
+///
+/// An explicit `.png` or `.jpg` extension decides the encoding. A path with no
+/// extension gets the native extension; any other extension is rejected.
+fn requested_format(out: Option<&str>, native: &str) -> Result<(Option<String>, String)> {
+    let Some(out) = out else {
+        return Ok((None, native.to_string()));
+    };
+    let extension = Path::new(out)
+        .extension()
+        .and_then(|value| value.to_str())
+        .unwrap_or_default()
+        .to_ascii_lowercase();
+    match extension.as_str() {
+        "" => Ok((
+            Some(format!("{}.{native}", out.trim_end_matches('.'))),
+            native.to_string(),
+        )),
+        "png" => Ok((Some(out.to_string()), "png".to_string())),
+        "jpg" | "jpeg" => Ok((Some(out.to_string()), "jpg".to_string())),
+        other => Err(Error::PageSelection {
+            value: format!("unsupported image extension .{other}; use .png, .jpg or .jpeg"),
+        }),
+    }
+}
+
+/// Encode decoded source bytes in the requested output format. Native bytes
+/// are preserved unchanged when no conversion is needed.
+fn encode_for_format(bytes: &[u8], native: &str, format: &str) -> Result<Vec<u8>> {
+    if native == format {
+        return Ok(bytes.to_vec());
+    }
+    let decoded = image::load_from_memory(bytes).map_err(|error| Error::Parse {
+        path: PathBuf::from("<embedded image>"),
+        message: format!("decode embedded {native} image: {error}"),
+    })?;
+    let mut encoded = Vec::new();
+    match format {
+        "png" => decoded
+            .write_to(&mut std::io::Cursor::new(&mut encoded), ImageFormat::Png)
+            .map_err(|error| Error::Parse {
+                path: PathBuf::from("<embedded image>"),
+                message: format!("encode png asset: {error}"),
+            })?,
+        "jpg" => {
+            let rgb = decoded.to_rgb8();
+            let mut cursor = std::io::Cursor::new(&mut encoded);
+            let mut encoder = image::codecs::jpeg::JpegEncoder::new_with_quality(&mut cursor, 92);
+            encoder.encode_image(&rgb).map_err(|error| Error::Parse {
+                path: PathBuf::from("<embedded image>"),
+                message: format!("encode jpeg asset: {error}"),
+            })?;
+        }
+        other => {
+            return Err(Error::PageSelection {
+                value: format!("unsupported output image format {other:?}; use png or jpg"),
+            });
+        }
+    }
+    Ok(encoded)
+}
+
 /// Extract one embedded raster image at its original pixel data.
 pub async fn extract_native(
     source: &Path,
@@ -114,29 +192,26 @@ pub async fn extract_native(
             message: format!("image {image_id:?} not found on page {page}"),
         })?;
     let bytes = image.bytes.as_slice();
-    let hash = blake3::hash(bytes).to_hex().to_string();
-    let extension = if image.format.eq_ignore_ascii_case("jpg") {
-        "jpg"
-    } else {
-        "png"
-    };
-    let relative = out
-        .map(ToString::to_string)
-        .unwrap_or_else(|| format!("data/figures/{hash}.{extension}"));
+    let native = native_extension(&image.format)?;
+    let (out_path, format) = requested_format(out, native)?;
+    let bytes = encode_for_format(bytes, native, &format)?;
+    let hash = blake3::hash(&bytes).to_hex().to_string();
+    let relative = out_path.unwrap_or_else(|| format!("data/figures/{hash}.{format}"));
     let target = safe_join(guide_dir, &relative)?;
     if let Some(parent) = target.parent() {
         std::fs::create_dir_all(parent).map_err(|error| io(parent, error))?;
     }
-    std::fs::write(&target, bytes).map_err(|error| io(&target, error))?;
+    std::fs::write(&target, &bytes).map_err(|error| io(&target, error))?;
     let bbox = Rect::from(image.bbox.clone());
     let effective = effective_dpi(image.width, bbox.width);
-    let quality = inspect(bytes, effective)?;
+    let quality = inspect(&bytes, effective)?;
     Ok(NativeAsset {
         page,
         image_id: image.id.clone(),
         asset: relative,
         hash,
-        format: image.format.clone(),
+        native_format: native.to_string(),
+        format,
         width: image.width,
         height: image.height,
         bbox,
@@ -293,5 +368,66 @@ mod tests {
             height: 0.0,
         };
         assert!(crop_from_bbox(bbox, 200.0, 100.0, 0.0).is_err());
+    }
+
+    fn jpeg_bytes() -> Vec<u8> {
+        let image = image::RgbImage::from_fn(48, 32, |x, y| {
+            image::Rgb([(x * 5) as u8, (y * 7) as u8, 128])
+        });
+        let mut bytes = Vec::new();
+        {
+            let mut cursor = std::io::Cursor::new(&mut bytes);
+            let mut encoder = image::codecs::jpeg::JpegEncoder::new_with_quality(&mut cursor, 92);
+            encoder.encode_image(&image).expect("jpeg");
+        }
+        bytes
+    }
+
+    #[test]
+    fn png_target_reencodes_a_native_jpeg() {
+        let native = jpeg_bytes();
+        let (path, format) =
+            requested_format(Some("data/figures/exhibit.png"), "jpg").expect("requested format");
+        assert_eq!(path.as_deref(), Some("data/figures/exhibit.png"));
+        assert_eq!(format, "png");
+        let written = encode_for_format(&native, "jpg", &format).expect("encode");
+        assert_eq!(&written[..8], b"\x89PNG\r\n\x1a\n");
+        assert_ne!(written, native);
+        assert_eq!(
+            blake3::hash(&written).to_hex().to_string(),
+            blake3::hash(&written).to_hex().to_string()
+        );
+        inspect(&written, Some(200.0)).expect("quality");
+    }
+
+    #[test]
+    fn jpg_target_keeps_native_jpeg_bytes() {
+        let native = jpeg_bytes();
+        let (path, format) =
+            requested_format(Some("data/figures/exhibit.jpg"), "jpg").expect("requested format");
+        assert_eq!(path.as_deref(), Some("data/figures/exhibit.jpg"));
+        assert_eq!(format, "jpg");
+        let written = encode_for_format(&native, "jpg", &format).expect("encode");
+        assert_eq!(written, native);
+        inspect(&written, Some(200.0)).expect("quality");
+    }
+
+    #[test]
+    fn missing_extension_uses_the_native_extension() {
+        let (path, format) =
+            requested_format(Some("data/figures/exhibit"), "jpg").expect("requested format");
+        assert_eq!(path.as_deref(), Some("data/figures/exhibit.jpg"));
+        assert_eq!(format, "jpg");
+        let (path, format) = requested_format(None, "png").expect("default requested format");
+        assert!(path.is_none());
+        assert_eq!(format, "png");
+    }
+
+    #[test]
+    fn unsupported_extensions_are_named() {
+        let error = requested_format(Some("data/figures/exhibit.webp"), "png")
+            .expect_err("webp should fail");
+        assert!(error.to_string().contains(".webp"));
+        assert!(error.to_string().contains(".png"));
     }
 }
