@@ -466,7 +466,12 @@ impl VisualAudit {
             }
         }
         let advisory = gate != "required";
-        let passed = missing.is_empty() && unresolved.is_empty();
+        // Low-text pages and unresolved entries always block. Candidate/figure
+        // pages block only when the gate is required; under warn they are
+        // advisory, not a failed build.
+        let passed = missing_low_text.is_empty()
+            && unresolved.is_empty()
+            && (gate != "required" || missing_figures.is_empty());
         // `passed` is the blocking signal. `status` describes the gate policy
         // that produced it; `passed` is true only for a required, clean gate.
         let status = if !passed {
@@ -1142,6 +1147,11 @@ mod tests {
         assert_eq!(report.figure_pages, 1);
         assert!(report.missing.contains(&"PD0:1".to_string()));
         assert!(!report.passed);
+        let warn = audit.validate_with_gate(Path::new(""), &inventory, dir.path(), "warn", &[], 50);
+        assert!(warn.passed, "{warn:?}");
+        assert_eq!(warn.status, "advisory");
+        assert_eq!(warn.gate_result, "warn");
+        assert_eq!(warn.missing_figures.len(), 1);
     }
 
     #[test]
