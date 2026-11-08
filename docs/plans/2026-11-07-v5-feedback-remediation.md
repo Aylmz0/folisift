@@ -9,7 +9,7 @@
   - **0.23.3** — P0/P1 hotfix: scaffold outline, coverage canonical set, `read_source` budget, inline headings, `guide_status`, `visual_extract`, `verify_citations`, visual status.
   - **0.24.0** — P2/P3 contract cleanup: path/ID normalization, packaged resources, `visual_decision` validation, cards parity, style matrix.
 - **Definition of done:** every acceptance row in §6 is green on a fresh build and on the external reproduction workspace, `cargo test`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all -- --check` pass, and no `sources/*.pdf` is tracked.
-- **Not claimed:** 10/10. The v5 report still has 2 FAIL and 7 PARTIAL rows; the score may only be raised after the acceptance matrix is green and the external probes are rerun.
+- **Post-fix result:** the 41-tool MCP probe is 41 PASS / 0 PARTIAL / 0 FAIL, the three production PDFs are still 26/10/19 with matching content hashes, and strict audit has 0 issues. No self-assigned score; release and tags remain with the maintainer.
 
 ---
 
@@ -844,6 +844,8 @@ All fourteen work packages landed on `main`:
 | `a141a52` | WP2.3 — one-pass visual decision validation |
 | `5c022a4` | WP3.1 — cards default parity |
 | `10a8051` | WP3.2 — style matrix visibility |
+| `57720ef` | WP0.1 follow-up — unnumbered heading outline and strict-safe audit page |
+| `8038650` | WP3.2 follow-up — MCP doctor style-matrix check |
 
 Evidence gathered against `/var/tmp/opencode/v5-repro`:
 
@@ -874,15 +876,27 @@ Evidence gathered against `/var/tmp/opencode/v5-repro`:
   `definitions:2`; excluding definitions warns.
 - `doctor` reports a 10-pack style matrix, and `workbook+irac` / `clean+law`
   scaffold and render.
+- A fresh `probe-final6` from `Ders_Notu_1_VİZE.pdf` has **37** outline
+  sections (5 returned by the summary budget), no `::: front`, renders in
+  **8** pages and passes `audit_guide strict:true` with 0 issues, 0 underfilled
+  pages and 0 chapter splits.
+- The post-fix 41-tool MCP probe is **41 PASS / 0 PARTIAL / 0 FAIL**. Key
+  payloads: `read_source` returns 1 page + `next_offset:788`; `4.4.4` resolves
+  in all four section tools; `verify_citations` returns `checked:5`,
+  `missing:4`, `unreferenced_total:75`; `visual_extract` returns
+  `native_format:"png"` / `format:"png"`; `coverage_manifest` returns 74 rows
+  with `review_eligible:true`; `cards` and `qa.cards` both return 9.
+- The three production PDFs rebuild to **26 / 10 / 19** pages with the v5
+  content hashes unchanged (`fcf7244…`, `4360944…`, `a088487…`); strict audit
+  is 0 issues on all three and `qa_guide` passes.
 
-`cargo test --workspace` (360 tests), `cargo clippy --workspace --all-targets
--- -D warnings` and `cargo fmt --all -- --check` are green. The full 41-tool
-external matrix and the 26/10/19 page-count rebuild are still a release-time
-check; this plan does not claim 10/10.
+`cargo test --workspace` (361 tests), `cargo clippy --workspace --all-targets
+-- -D warnings` and `cargo fmt --all -- --check` are green. Release tags,
+installer builds and remote pushes remain with the maintainer.
 
-**Whole-plan gate:** all A rows green, no new PARTIAL/FAIL in the 41-tool matrix,
-and the external reproduction workspace rebuilt with the same page counts
-(26/10/19) and strict audit 0.
+**Whole-plan gate:** all A rows green, the post-fix 41-tool matrix has no
+PARTIAL/FAIL, and the external reproduction workspace rebuilds with the same
+page counts (26/10/19) and strict audit 0.
 
 ---
 
