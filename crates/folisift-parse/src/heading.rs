@@ -183,6 +183,48 @@ pub fn normalize_heading(heading: &str) -> String {
     parse_numbered_heading(heading).map_or_else(|| heading.to_string(), |parsed| parsed.heading)
 }
 
+/// A numbered heading recovered from running text, with its byte offset.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InlineHeadingMatch {
+    pub start: usize,
+    pub heading: NumberedHeading,
+}
+
+/// Find every numbered heading embedded in a paragraph, list item or table
+/// cell text. `start` is the byte offset of the section number.
+pub fn inline_heading_matches(text: &str) -> Vec<InlineHeadingMatch> {
+    let mut out = Vec::new();
+    for capture in INLINE_HEADING_RE.captures_iter(text) {
+        let Some(number) = capture.get(1).map(|value| value.as_str()) else {
+            continue;
+        };
+        if !is_section_number(number) {
+            continue;
+        }
+        let title = capture
+            .get(2)
+            .map(|value| value.as_str().trim().trim_end_matches(['-', '–', ':']))
+            .unwrap_or_default();
+        let title = clean_heading_title(title);
+        if !title_like(&title) {
+            continue;
+        }
+        let Some(start) = capture.get(1).map(|value| value.start()) else {
+            continue;
+        };
+        let number = number.trim_end_matches('.').to_string();
+        out.push(InlineHeadingMatch {
+            start,
+            heading: NumberedHeading {
+                heading: format!("{number} {title}"),
+                number,
+                title,
+            },
+        });
+    }
+    out
+}
+
 /// Recover inline headings from paragraph, list and unknown blocks.
 ///
 /// This is the inventory's existing evidence path. Table cells are recovered
@@ -201,24 +243,9 @@ pub fn recover_inline_headings(pages: &[PageLayout]) -> Vec<Heading> {
             let Some(text) = block.text.as_deref() else {
                 continue;
             };
-            for capture in INLINE_HEADING_RE.captures_iter(text) {
-                let number = capture
-                    .get(1)
-                    .map(|value| value.as_str())
-                    .unwrap_or_default();
-                let title = capture
-                    .get(2)
-                    .map(|value| value.as_str().trim().trim_end_matches(['-', '–', ':']))
-                    .unwrap_or_default();
-                if number.is_empty() || title.is_empty() || !is_section_number(number) {
-                    continue;
-                }
-                let title = clean_heading_title(title);
-                if !title_like(&title) {
-                    continue;
-                }
+            for matched in inline_heading_matches(text) {
                 out.push(Heading {
-                    heading: format!("{number} {title}"),
+                    heading: matched.heading.heading,
                     page: page.page,
                     level: Some(2),
                     block_id: Some(block.id.clone()),

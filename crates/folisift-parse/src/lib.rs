@@ -39,7 +39,7 @@ pub use audit::{
 pub use brief::{
     BRIEF_CACHE_VERSION, BriefSection, SectionBrief, SectionRead, SourceSection, chapter_brief,
     find_section, read_section, read_section_mode, section_brief, section_brief_cached,
-    source_sections,
+    section_candidates, source_sections,
 };
 pub use coverage::{
     CoverageReport, DEFAULT_THRESHOLD, MIN_SECTION_CHARS, check_coverage, guide_body_chars,

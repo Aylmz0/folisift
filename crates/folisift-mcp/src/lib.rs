@@ -3611,10 +3611,8 @@ impl FolisiftServer {
             params.mode.as_deref().unwrap_or("full"),
         )
         .ok_or_else(|| {
-            format!(
-                "section {:?} not found in {}",
-                params.heading, params.source
-            )
+            let candidates = folisift_parse::section_candidates(&layout, &params.heading);
+            section_not_found(&params.source, &params.heading, &candidates)
         })?;
         Ok(Json(
             serde_json::to_value(read).map_err(|error| error.to_string())?,
@@ -5123,6 +5121,17 @@ fn tool_result(value: Value, summary: impl Into<String>) -> CallToolResult {
     result
 }
 
+fn section_not_found(source: &str, heading: &str, candidates: &[String]) -> String {
+    if candidates.is_empty() {
+        format!("section {heading:?} not found in {source}")
+    } else {
+        format!(
+            "section {heading:?} not found in {source}; candidates: {}",
+            serde_json::to_string(candidates).unwrap_or_default()
+        )
+    }
+}
+
 fn effective_read_chars(
     max_chars: Option<usize>,
     max_tokens: Option<usize>,
@@ -5750,10 +5759,8 @@ impl FolisiftServer {
             .or_else(|| folisift_parse::section_brief(&layout, &params.heading, max_chars))
         }
         .ok_or_else(|| {
-            format!(
-                "section {:?} not found in {}",
-                params.heading, params.source
-            )
+            let candidates = folisift_parse::section_candidates(&layout, &params.heading);
+            section_not_found(&params.source, &params.heading, &candidates)
         })?;
         brief.mode = mode.to_string();
         brief.requested_tokens = params
@@ -5889,8 +5896,8 @@ pub async fn serve_http_profile(
 mod tests {
     use super::{
         OutputOptions, SERVER_INSTRUCTIONS, citation_snippet, content_stats, effective_read_chars,
-        is_loopback, shape_response, shrink_to_budget, suggested_page_range, sync_returned_pages,
-        verify_claim,
+        is_loopback, section_not_found, shape_response, shrink_to_budget, suggested_page_range,
+        sync_returned_pages, verify_claim,
     };
     use folisift_core::StyleProfile;
     use folisift_parse::{CanonicalSection, Heading, Inventory, SourceInventory, Totals};
@@ -6145,6 +6152,21 @@ mod tests {
         });
         sync_returned_pages(&mut value);
         assert_eq!(value["returned_pages"], 1);
+    }
+
+    #[test]
+    fn unknown_section_errors_include_candidates() {
+        let message = section_not_found(
+            "is-hukuku",
+            "4.4.9",
+            &["4.4.4 Asıl İşveren".to_string(), "4.5 İşçi".to_string()],
+        );
+        assert!(message.contains("candidates"));
+        assert!(message.contains("4.4.4 Asıl İşveren"));
+        assert_eq!(
+            section_not_found("PD3", "9.9", &[]),
+            "section \"9.9\" not found in PD3"
+        );
     }
 
     #[test]

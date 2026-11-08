@@ -4,12 +4,14 @@
 //! turn stored layout blocks into a small, page-anchored answer before the host
 //! asks for the full section.
 
+use std::collections::BTreeSet;
 use std::path::Path;
 
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
-use crate::layout::{LayoutBlock, LayoutBlockKind, SourceLayout};
+use crate::heading::{inline_heading_matches, parse_numbered_heading};
+use crate::layout::{LayoutBlock, LayoutBlockKind, PageLayout, SourceLayout};
 
 pub const BRIEF_CACHE_VERSION: u32 = 3;
 
@@ -86,56 +88,241 @@ pub struct SourceSection {
 }
 
 pub fn source_sections(layout: &SourceLayout) -> Vec<SourceSection> {
-    let mut sections = Vec::new();
-    let mut current: Option<SourceSection> = None;
+    // Explicit heading blocks always win over recovered evidence. Collect
+    // their keys first so an inline copy of the same heading on the same page
+    // cannot split the section a second time.
+    let explicit = layout
+        .pages
+        .iter()
+        .flat_map(|page| {
+            page.blocks
+                .iter()
+                .filter(|block| block.kind == LayoutBlockKind::Heading)
+                .filter_map(move |block| {
+                    let parsed = parse_numbered_heading(block.text_or_empty())?;
+                    Some((parsed.number, page.page))
+                })
+        })
+        .collect::<BTreeSet<_>>();
+    let mut accumulator = SectionAccumulator {
+        sections: Vec::new(),
+        current: None,
+        created: BTreeSet::new(),
+        explicit,
+    };
     for page in &layout.pages {
         for block in &page.blocks {
-            if block.kind == LayoutBlockKind::Heading {
-                let heading = block.text_or_empty().trim();
-                if heading.is_empty() {
-                    continue;
+            match block.kind {
+                LayoutBlockKind::Heading => {
+                    let heading = block.text_or_empty().trim();
+                    if heading.is_empty() {
+                        continue;
+                    }
+                    let key =
+                        parse_numbered_heading(heading).map(|parsed| (parsed.number, page.page));
+                    if key
+                        .as_ref()
+                        .is_some_and(|key| accumulator.created.contains(key))
+                    {
+                        continue;
+                    }
+                    accumulator.start(page.page, heading, key);
                 }
-                if let Some(section) = current.take()
-                    && (!section.heading.trim().is_empty() || !section.text.trim().is_empty())
-                {
-                    sections.push(section);
+                LayoutBlockKind::Paragraph
+                | LayoutBlockKind::ListItem
+                | LayoutBlockKind::Unknown => {
+                    accumulator.append_with_inline_headings(page, block);
                 }
-                current = Some(SourceSection {
-                    heading: heading.to_string(),
-                    page_start: page.page,
-                    page_end: page.page,
-                    text: String::new(),
-                    table_rows: Vec::new(),
-                });
-                continue;
-            }
-            let text = block_text(block);
-            if text.is_empty() {
-                continue;
-            }
-            let section = current.get_or_insert_with(|| SourceSection {
-                heading: String::new(),
-                page_start: page.page,
-                page_end: page.page,
-                text: String::new(),
-                table_rows: Vec::new(),
-            });
-            if !section.text.is_empty() {
-                section.text.push('\n');
-            }
-            section.text.push_str(&text);
-            section.page_end = page.page;
-            if block.kind.is_table() {
-                section.table_rows.extend(table_rows(block));
+                _ if block.kind.is_table() => {
+                    accumulator.append_table(page, block);
+                }
+                _ => accumulator.append_text(page.page, &block_text(block)),
             }
         }
     }
-    if let Some(section) = current
-        && (!section.heading.trim().is_empty() || !section.text.trim().is_empty())
-    {
-        sections.push(section);
+    accumulator.finish()
+}
+
+struct SectionAccumulator {
+    sections: Vec<SourceSection>,
+    current: Option<SourceSection>,
+    /// `(number, page)` headings already opened by a heading or inline match.
+    created: BTreeSet<(String, usize)>,
+    /// `(number, page)` headings declared by explicit Heading blocks.
+    explicit: BTreeSet<(String, usize)>,
+}
+
+impl SectionAccumulator {
+    fn start(&mut self, page: usize, heading: &str, key: Option<(String, usize)>) {
+        self.flush();
+        self.current = Some(SourceSection {
+            heading: heading.trim().to_string(),
+            page_start: page,
+            page_end: page,
+            text: String::new(),
+            table_rows: Vec::new(),
+        });
+        if let Some(key) = key {
+            self.created.insert(key);
+        }
     }
-    sections
+
+    fn append_text(&mut self, page: usize, text: &str) {
+        let text = text.trim();
+        if text.is_empty() {
+            return;
+        }
+        let section = self.current.get_or_insert_with(|| SourceSection {
+            heading: String::new(),
+            page_start: page,
+            page_end: page,
+            text: String::new(),
+            table_rows: Vec::new(),
+        });
+        if !section.text.is_empty() {
+            section.text.push('\n');
+        }
+        section.text.push_str(text);
+        section.page_end = section.page_end.max(page);
+    }
+
+    fn append_with_inline_headings(&mut self, page: &PageLayout, block: &LayoutBlock) {
+        let text = block_text(block);
+        let matches = inline_heading_matches(&text);
+        if matches.is_empty() {
+            self.append_text(page.page, &text);
+            return;
+        }
+        let mut cursor = 0;
+        for matched in matches {
+            let key = (matched.heading.number.clone(), page.page);
+            if self.explicit.contains(&key) || self.created.contains(&key) {
+                continue;
+            }
+            if matched.start < cursor || matched.start > text.len() {
+                continue;
+            }
+            // A paragraph or list item may carry body text before the heading;
+            // that prefix belongs to the section that was already open.
+            self.append_text(page.page, &text[cursor..matched.start]);
+            self.start(page.page, &matched.heading.heading, Some(key));
+            cursor = matched.start;
+        }
+        self.append_text(page.page, &text[cursor..]);
+    }
+
+    fn append_table(&mut self, page: &PageLayout, block: &LayoutBlock) {
+        let heading = block
+            .header
+            .iter()
+            .chain(block.rows.iter().flatten())
+            .find_map(|cell| parse_numbered_heading(&cell.text));
+        if let Some(heading) = heading {
+            let key = (heading.number, page.page);
+            if !self.explicit.contains(&key) && !self.created.contains(&key) {
+                // The table block starts the section; every row in this table
+                // belongs to that heading.
+                self.start(page.page, &heading.heading, Some(key));
+            }
+        }
+        self.append_text(page.page, &block_text(block));
+        if let Some(section) = self.current.as_mut() {
+            section.table_rows.extend(table_rows(block));
+        }
+    }
+
+    fn flush(&mut self) {
+        if let Some(section) = self.current.take()
+            && (!section.heading.trim().is_empty() || !section.text.trim().is_empty())
+        {
+            self.sections.push(section);
+        }
+    }
+
+    fn finish(mut self) -> Vec<SourceSection> {
+        self.flush();
+        self.sections
+    }
+}
+
+/// Closest canonical headings for an unresolved query. The MCP tools use this
+/// to suggest a valid number instead of a bare "not found" error.
+pub fn section_candidates(layout: &SourceLayout, query: &str) -> Vec<String> {
+    let sections = source_sections(layout);
+    candidates_for(&sections, query)
+}
+
+fn candidates_for(sections: &[SourceSection], query: &str) -> Vec<String> {
+    let query = normalize(query);
+    if query.is_empty() {
+        return Vec::new();
+    }
+    let query_number = heading_number(&query);
+    let query_parts = query_number
+        .split('.')
+        .filter(|part| !part.is_empty())
+        .collect::<Vec<_>>();
+    let query_words = query.split_whitespace().collect::<BTreeSet<_>>();
+    let mut scored = Vec::<(i64, usize, String)>::new();
+    for (index, section) in sections.iter().enumerate() {
+        let heading = normalize(&section.heading);
+        if heading.is_empty() {
+            continue;
+        }
+        let number = heading_number(&section.heading);
+        let heading_parts = number
+            .split('.')
+            .filter(|part| !part.is_empty())
+            .collect::<Vec<_>>();
+        let common = query_parts
+            .iter()
+            .zip(&heading_parts)
+            .take_while(|(left, right)| left == right)
+            .count();
+        let mut score = 0i64;
+        if !query_parts.is_empty() && !heading_parts.is_empty() {
+            score += common as i64 * 30;
+            if number.starts_with(&query_number) || query_number.starts_with(&number) {
+                score += 40;
+            }
+        }
+        if heading == query {
+            score += 1_000;
+        } else if heading.starts_with(&query) {
+            score += 200;
+        } else if heading.contains(&query) {
+            score += 100;
+        }
+        let heading_words = heading.split_whitespace().collect::<BTreeSet<_>>();
+        score += heading_words.intersection(&query_words).count() as i64 * 10;
+        if score > 0 {
+            scored.push((score, index, section.heading.clone()));
+        }
+    }
+    scored.sort_by(|left, right| right.0.cmp(&left.0).then(left.1.cmp(&right.1)));
+    let mut out = Vec::new();
+    for (_, _, heading) in scored {
+        if !out.contains(&heading) {
+            out.push(heading);
+        }
+        if out.len() == 5 {
+            break;
+        }
+    }
+    if out.is_empty() {
+        for section in sections
+            .iter()
+            .filter(|section| !section.heading.trim().is_empty())
+        {
+            if !out.contains(&section.heading) {
+                out.push(section.heading.clone());
+            }
+            if out.len() == 5 {
+                break;
+            }
+        }
+    }
+    out
 }
 
 struct SectionResolution<'a> {
@@ -834,5 +1021,216 @@ mod tests {
         let read = read_section(&layout(), "3.1", 20, 0).expect("read");
         assert!(read.truncated);
         assert!(read.next_offset.is_some());
+    }
+
+    fn text_block(id: &str, kind: LayoutBlockKind, text: &str) -> LayoutBlock {
+        LayoutBlock {
+            id: id.to_string(),
+            kind,
+            bbox: None,
+            text: Some(text.to_string()),
+            level: None,
+            bold: false,
+            italic: false,
+            ordered: None,
+            marker: None,
+            lines: Vec::new(),
+            lang: None,
+            header: Vec::new(),
+            rows: Vec::new(),
+            header_rows: None,
+            figure_id: None,
+            figure_format: None,
+        }
+    }
+
+    fn heading_block(id: &str, text: &str) -> LayoutBlock {
+        let mut block = text_block(id, LayoutBlockKind::Heading, text);
+        block.level = Some(2);
+        block
+    }
+
+    fn table_block(id: &str, header: &[&str], rows: &[&[&str]]) -> LayoutBlock {
+        let mut block = text_block(id, LayoutBlockKind::Table, "");
+        block.text = None;
+        block.header = header
+            .iter()
+            .map(|text| LayoutCell {
+                text: text.to_string(),
+                bbox: None,
+                colspan: None,
+                rowspan: None,
+            })
+            .collect();
+        block.rows = rows
+            .iter()
+            .map(|row| {
+                row.iter()
+                    .map(|text| LayoutCell {
+                        text: text.to_string(),
+                        bbox: None,
+                        colspan: None,
+                        rowspan: None,
+                    })
+                    .collect()
+            })
+            .collect();
+        block
+    }
+
+    fn page(number: usize, blocks: Vec<LayoutBlock>) -> PageLayout {
+        PageLayout {
+            page: number,
+            page_label: None,
+            width: 595.0,
+            height: 842.0,
+            content_bounds: None,
+            blocks,
+        }
+    }
+
+    #[test]
+    fn inline_heading_splits_paragraph_and_keeps_prefix() {
+        let layout = SourceLayout::new(
+            "PD3",
+            1,
+            vec![page(
+                1,
+                vec![
+                    heading_block("PD3:p1:b0", "4.4 İş İlişkisi"),
+                    text_block(
+                        "PD3:p1:b1",
+                        LayoutBlockKind::Paragraph,
+                        "Bu bölüm giriş metnidir. 4.4.4. Asıl İşveren - Alt İşveren ilişkisi işçiye karşı sorumludur.",
+                    ),
+                ],
+            )],
+        );
+        let sections = source_sections(&layout);
+        let parent = sections
+            .iter()
+            .find(|section| section.heading.starts_with("4.4 "))
+            .expect("parent section");
+        assert!(parent.text.contains("giriş metnidir"));
+        assert!(!parent.text.contains("Asıl İşveren"));
+        let child = sections
+            .iter()
+            .find(|section| section.heading.starts_with("4.4.4 "))
+            .expect("inline section");
+        assert!(child.text.contains("Asıl İşveren"));
+        assert_eq!(child.page_start, 1);
+        assert_eq!(child.page_end, 1);
+    }
+
+    #[test]
+    fn table_cell_heading_starts_a_section_and_owns_the_rows() {
+        let layout = SourceLayout::new(
+            "PD3",
+            1,
+            vec![page(
+                2,
+                vec![
+                    heading_block("PD3:p2:b0", "10 Tatiller"),
+                    table_block(
+                        "PD3:p2:b1",
+                        &["10.2. UlusalBayram ve GenelTatiller", "Süre"],
+                        &[&["10.2.1. Bir gün", "24 saat"]],
+                    ),
+                ],
+            )],
+        );
+        let sections = source_sections(&layout);
+        let child = sections
+            .iter()
+            .find(|section| section.heading.starts_with("10.2 "))
+            .expect("table section");
+        assert_eq!(child.page_start, 2);
+        assert_eq!(child.page_end, 2);
+        assert!(
+            child.table_rows.iter().any(|row| row.contains("24 saat")),
+            "{child:#?}"
+        );
+        let read = read_section(&layout, "10.2", 4_000, 0).expect("read");
+        assert_eq!(read.page_start, 2);
+        assert!(read.text.contains("UlusalBayram") || read.text.contains("24 saat"));
+    }
+
+    #[test]
+    fn explicit_heading_wins_over_an_inline_duplicate() {
+        let layout = SourceLayout::new(
+            "PD3",
+            1,
+            vec![page(
+                1,
+                vec![
+                    heading_block("PD3:p1:b0", "2.1 Giriş"),
+                    text_block(
+                        "PD3:p1:b1",
+                        LayoutBlockKind::Paragraph,
+                        "2.1 Giriş tekrar eden bir başlık gibi görünse de bu gövde metnidir.",
+                    ),
+                ],
+            )],
+        );
+        let sections = source_sections(&layout);
+        let matches = sections
+            .iter()
+            .filter(|section| section.heading.starts_with("2.1 "))
+            .count();
+        assert_eq!(matches, 1, "{sections:#?}");
+    }
+
+    #[test]
+    fn briefs_and_reads_share_the_inline_section_range() {
+        let layout = SourceLayout::new(
+            "PD3",
+            2,
+            vec![page(
+                1,
+                vec![
+                    heading_block("PD3:p1:b0", "4.4 İş İlişkisi"),
+                    text_block(
+                        "PD3:p1:b1",
+                        LayoutBlockKind::Paragraph,
+                        "Giriş. 4.4.4. Asıl İşveren - Alt İşveren ilişkisi işçiye karşı sorumludur.",
+                    ),
+                ],
+            )],
+        );
+        let section = section_brief(&layout, "4.4.4", 2_000).expect("section brief");
+        let chapter = chapter_brief(&layout, "4.4", 2_000).expect("chapter brief");
+        let read = read_section(&layout, "4.4.4", 2_000, 0).expect("read");
+        assert_eq!(section.page_start, read.page_start);
+        assert_eq!(section.page_end, read.page_end);
+        assert_eq!(chapter.page_start, 1);
+        assert_eq!(chapter.page_end, 1);
+        assert!(
+            chapter
+                .sections
+                .iter()
+                .any(|child| child.heading.starts_with("4.4.4 "))
+        );
+    }
+
+    #[test]
+    fn unknown_queries_get_candidate_headings() {
+        let layout = SourceLayout::new(
+            "PD3",
+            1,
+            vec![page(
+                1,
+                vec![
+                    heading_block("PD3:p1:b0", "4.4 İş İlişkisi"),
+                    text_block(
+                        "PD3:p1:b1",
+                        LayoutBlockKind::Paragraph,
+                        "Giriş. 4.4.4. Asıl İşveren - Alt İşveren ilişkisi.",
+                    ),
+                ],
+            )],
+        );
+        let candidates = section_candidates(&layout, "4.4.9");
+        assert!(!candidates.is_empty());
+        assert!(candidates.iter().any(|value| value.starts_with("4.4.4 ")));
     }
 }
